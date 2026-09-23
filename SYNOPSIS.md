@@ -45,12 +45,8 @@ service-role key, public seed routes, GPS stored with scans, CORS `*`, and the l
 
 ## 4. What to do next to continue the build
 
-**Step 0: safety net (≈5 min, do first).**
-```bash
-git init
-```
-Add a `.gitignore` containing `node_modules` and `dist`, then commit the untouched export as the baseline. Also move
-`react` and `react-dom` from `peerDependencies` into `dependencies`. Otherwise any dependency cleanup silently breaks the app.
+**Step 0: safety net ✅ done.** The git repo is on `main`, with `63eef63` as the untouched Figma baseline, then the
+docs, then react/react-dom moved into `dependencies`. The build is verified after the change.
 
 **Step 1: check the live backend (owner, ≈15 min in the Supabase dashboard).**
 Open `supabase.com/dashboard/project/ipcbqjrceyqleuaufier` and note:
@@ -81,9 +77,9 @@ last, the final documentation.
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md. Do roadmap step 0 (git init, .gitignore,
-> baseline commit, move react/react-dom into dependencies). Then, using these dashboard findings: [paste
-> step-1 answers], fix K-01 and K-04. Keep each change small and verify it in the running app.
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (step 0 is done; the repo is on `main`). Using
+> these dashboard findings: [paste step-1 answers], fix K-01 and K-04. Keep each change small, commit each one,
+> and verify it in the running app.
 
 If you'd rather not touch the live database while working on the UI, ask for a `dev:offline` script. The
 audit used an offline stub config, but it lived in a temporary folder and is not in the repo.

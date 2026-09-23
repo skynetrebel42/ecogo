@@ -40,7 +40,7 @@
 
 | ID | Issue | Where |
 |---|---|---|
-| **K-07** ✔ | `react`/`react-dom` are only **optional peerDependencies**. They are installed today only because unused packages peer-require them. Pruning unused deps (an obvious cleanup) silently drops `react-dom` and breaks `main.tsx`. Move both to `dependencies` first. | `package.json:77-88` |
+| ~~**K-07**~~ ✅ | **Fixed in `c9a7fde`.** `react`/`react-dom` were only optional peerDependencies, installed solely because unused packages peer-required them, so pruning unused deps would have dropped `react-dom`. Both are now regular `dependencies` (18.3.1). | `package.json` |
 | **K-08** ▶✔ | "Healthier Alternatives" ignores category (potato chips → laundry detergent, cleaner, milk), and the rows can't be clicked. | `ProductDetailScreen.tsx:678-681`, `859` |
 | **K-09** ▶✔ | Two different numbers are presented as "the score": lists show `safetyScore` (the health dimension) as `%`, detail shows `overallScore` (Tide 38% vs 35/100; Lay's 62% vs 54/100). The letter grade comes from **ethics only**, so 15/51 products show a grade that contradicts their overall score. | `App.tsx:78,491`; `scoring.ts` grade thresholds; `ProductDetailScreen.tsx:745` |
 | **K-10** ✔ | A DB resource whose `type` isn't one of the 6 `CAT` keys crashes HomeTab (`cat.bg` of undefined), and with **no error boundary** the whole app goes blank. | `App.tsx:63,659-664`; `main.tsx` |
@@ -93,7 +93,7 @@
 
 These are ordered by value per effort and consistent with "Path A: keep building the prototype". Each is small and behavior-preserving outside its target.
 
-0. **Safety net (5 min).** Run `git init`, add a `.gitignore` (`node_modules`, `dist`), and make a baseline commit of the untouched export. Move `react`/`react-dom` into `dependencies` (K-07). Nothing else should be changed without a restore point.
+0. ✅ **Safety net: done 2026-09-23.** Git repo on `main`: `63eef63` is the untouched Figma baseline (restore with `git checkout 63eef63 -- <file>`), `e9aa5a8` adds the docs, and `c9a7fde` moves react/react-dom into `dependencies` (K-07).
 1. **Check the live backend (owner, about 15 min in the Supabase dashboard).** Confirm you own `ipcbqjrceyqleuaufier`. Look at what `commons_products` actually contains (camelCase CSV shape, the 7-row server shape, or nothing). Check whether RLS is on for `kv_store_504b3bba`, whether an edge function is deployed and under which slug, and its `verify_jwt` setting. Items 2 and 3 depend on these answers.
 2. **Fix K-01: make "live" mode show the real catalog.** Pick the CSV `Product` shape as canonical, make the product mapper pass camelCase rows through (or stop mapping products), and retire the server's 7-row `DEFAULT_PRODUCTS`. Then fix the `SERVER` path and send the anon key header (K-04) so scan history actually persists. Together these make the capstone's "frontend ↔ backend ↔ realtime" demo real instead of accidental.
 3. **Make ingredient analysis trustworthy (K-02, K-03).** Use whole-token alias matching, drop the 2-letter aliases, stop splitting inside names like `1,4-`, handle `;` and parenthetical sub-ingredients, and leave behind one assert-based check that no product gets a false HIGH label. This is the app's headline feature.

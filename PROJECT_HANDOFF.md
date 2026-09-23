@@ -4,7 +4,8 @@
 > exported 2026-07-07; identical to this folder apart from `package-lock.json`/`node_modules`).
 > Details: [ARCHITECTURE.md](ARCHITECTURE.md) (structure, Supabase map, data map, feature inventory) and
 > [KNOWN_ISSUES.md](KNOWN_ISSUES.md) (baseline, bug list, roadmap).
-> **No application code has been changed.** Only these three `.md` files were added.
+> **No application code has been changed.** The project is now a git repo (`main`). Commit `63eef63` is the
+> untouched Figma export, followed by the audit docs and one dependency fix (react/react-dom declared, K-07).
 
 ## Where things stand
 
@@ -52,7 +53,7 @@
 | 004 | Don't split App.tsx until behavior is pinned | Responsibility map now exists (ARCHITECTURE.md §5); start with the ~150 lines of dead code | Active |
 | 005 | Documentation follows stabilization | These three files are working docs, not final docs | Active |
 | 006 | The CSV `Product` (camelCase) shape is the proposed canonical product shape | It is the only shape the whole UI consumes; the server's 7-row snake_case seed is incompatible | **Proposed**: confirm before fixing K-01 |
-| 007 | Put a restore point in place before the first code change | No git repo exists; the handoff prioritizes not destroying working behavior | **Proposed** |
+| 007 | Put a restore point in place before the first code change | The handoff prioritizes not destroying working behavior | **Done**: baseline commit `63eef63` |
 
 ## Open questions only the owner can answer
 
