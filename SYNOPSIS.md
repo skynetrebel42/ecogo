@@ -48,12 +48,9 @@ service-role key, public seed routes, GPS stored with scans, CORS `*`, and the l
 **Step 0: safety net ✅ done.** The git repo is on `main`, with `63eef63` as the untouched Figma baseline, then the
 docs, then react/react-dom moved into `dependencies`. The build is verified after the change.
 
-**Step 1: check the live backend (owner, ≈15 min in the Supabase dashboard).**
-Open `supabase.com/dashboard/project/ipcbqjrceyqleuaufier` and note:
-- What `commons_products` contains: nothing, 51 CSV-style rows, or 7 server-style rows.
-- Whether RLS is on for `kv_store_504b3bba`.
-- Whether an edge function is deployed, under which name, and with JWT verification on or off.
-- Whether `scan_history` already holds anyone's GPS coordinates.
+**Step 1: backend ✅ resolved by starting fresh.** The Figma database was in an account you can't access, so it's
+retired. Your own project is **`ecogo`** (`gippyavmxxzqxjkuahpt`, US West, free plan) and it starts empty. The code
+still points at the old project until step 2.
 
 **Step 2: make "live" mode work (K-01, K-04).** Treat the CSV product shape as canonical and fix the
 product mapper. Retire the server's 7-row seed. Then fix the edge-function URL and send the key header, so
@@ -77,9 +74,9 @@ last, the final documentation.
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (step 0 is done; the repo is on `main`). Using
-> these dashboard findings: [paste step-1 answers], fix K-01 and K-04. Keep each change small, commit each one,
-> and verify it in the running app.
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–1 are done; the repo is on `main`; my
+> Supabase project is `ecogo` / `gippyavmxxzqxjkuahpt`, empty). Do step 2: set up the database, point the app
+> at the new project, and fix K-01 and K-04. Keep each change small, commit each one, and verify it in the running app.
 
 If you'd rather not touch the live database while working on the UI, ask for a `dev:offline` script. The
 audit used an offline stub config, but it lived in a temporary folder and is not in the repo.

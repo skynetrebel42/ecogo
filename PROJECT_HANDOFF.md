@@ -15,8 +15,9 @@
   explorer (buggy), Leaflet map of 18 static Chicago resources, simulated barcode scan, in-memory favorites.
 - **What's fake:** "AI" evaluations, the camera scanner, Home recommendations and deals, Profile, Sign In, Lists, Share, Call.
 - **Headline bug:** the app only displays correctly when Supabase is *unreachable*; a live DB load wipes prices and scores (**K-01**).
-- **Backend:** Supabase project `ipcbqjrceyqleuaufier` (anon key issued 2026-07-06). A single KV table. The browser
-  reads and seeds it directly. The edge function is effectively unused (its URL doesn't match its routes, and no auth header is sent).
+- **Backend:** the code still targets the retired Figma project `ipcbqjrceyqleuaufier` (inaccessible; see decision 008).
+  The owner's new, empty project is `ecogo` (`gippyavmxxzqxjkuahpt`). The current design is a single KV table that the
+  browser reads and seeds directly. The edge function is effectively unused (its URL doesn't match its routes, and no auth header is sent).
 - **Security:** unchanged from the Figma export. **None** of the previous session's sandbox fixes are in this code.
 
 ## Previous handoff claims, checked against the code
@@ -54,14 +55,13 @@
 | 005 | Documentation follows stabilization | These three files are working docs, not final docs | Active |
 | 006 | The CSV `Product` (camelCase) shape is the proposed canonical product shape | It is the only shape the whole UI consumes; the server's 7-row snake_case seed is incompatible | **Proposed**: confirm before fixing K-01 |
 | 007 | Put a restore point in place before the first code change | The handoff prioritizes not destroying working behavior | **Done**: baseline commit `63eef63` |
+| 008 | Start fresh with an owner-controlled Supabase project | The Figma project `ipcbqjrceyqleuaufier` lives in an account the owner can't access, and it held only prototype data | **Done**: `ecogo` = `gippyavmxxzqxjkuahpt` (us-west-1, free), empty. The code is not yet switched over |
 
 ## Open questions only the owner can answer
 
-1. **Supabase access:** can you open `https://supabase.com/dashboard/project/ipcbqjrceyqleuaufier`? (That settles ownership.)
-2. **Live DB contents:** what does `commons_products` hold: nothing, 51 camelCase CSV rows, or the 7 snake_case server rows? Does `scan_history` exist, and does it contain testers' GPS coordinates?
-3. **RLS / realtime:** is RLS on for `kv_store_504b3bba`, and is the table in the `supabase_realtime` publication?
-4. **Edge function:** is one deployed, under which slug (`server` or `make-server-504b3bba`), and with `verify_jwt` on?
-5. **Scope:** real camera scanning? GPS on scans at all? A real city instead of fictional Chicago? Sign In / Partners screens? A responsive layout vs the phone mock-up? Keep the "AI"/"SmartScore™" wording for the demo?
+1. ~~Supabase access / live DB contents / RLS / edge function~~: moot now that decision 008 created a new empty project.
+2. **Step-2 database shape:** recreate the single KV table (smallest change) or go straight to normalized tables (what the capstone brief requires)?
+3. **Scope:** real camera scanning? GPS on scans at all? A real city instead of fictional Chicago? Sign In / Partners screens? A responsive layout vs the phone mock-up? Keep the "AI"/"SmartScore™" wording for the demo?
 6. **Figma re-sync:** will you regenerate from Figma Make again? A re-sync would overwrite local edits.
 
 ## How to run
