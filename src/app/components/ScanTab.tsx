@@ -7,7 +7,7 @@
 //   3. On scan complete, the barcode is looked up in the product database.
 //      • Found   → records a ScanEvent, fires onScanResult (opens product detail).
 //      • Unknown → records a placeholder, shows the "New Product Detected" screen.
-//   4. Scan events are persisted via scanService → edge function → kv_store.
+//   4. Scan events are persisted via scanService → Supabase `scan_events` table.
 //
 // Demo mode: since a real camera API isn't available in Make, a slide-up
 // "Demo Barcodes" panel lets the user pick which barcode to simulate scanning.

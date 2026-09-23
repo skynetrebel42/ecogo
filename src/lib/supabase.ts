@@ -1,10 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import { projectId, publicAnonKey } from "../../utils/supabase/info.tsx";
 
+// Public project URL + publishable key, from .env (safe to ship to browsers:
+// access is controlled by the grants and RLS policies in supabase/migrations).
 export const supabase = createClient(
-  `https://${projectId}.supabase.co`,
-  publicAnonKey
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 );
-
-// Edge function base URL for CRUD operations
-export const SERVER = `https://${projectId}.supabase.co/functions/v1/server/make-server-504b3bba`;

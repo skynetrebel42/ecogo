@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase, SERVER } from "../lib/supabase";
+import { supabase } from "../lib/supabase";
+import { loadCatalog } from "../lib/catalog";
 import NewMapTab from "./components/MapTab";
 import NewProductDetailScreen from "./components/ProductDetailScreen";
 import NewScanTab from "./components/ScanTab";
@@ -53,45 +54,14 @@ const RESOURCES: Resource[] = [
   { id: 12, name: "Community Center WiFi",   type: "wifi",        address: "88 Unity Avenue",      hours: "Daily 7am–11pm",       phone: "(555) 012-3456", description: "Free WiFi, charging stations, and computer terminals.", x: 470, y: 222 },
 ];
 
-// Products are loaded once from src/data/products.csv via the import pipeline.
-// To add or edit a product, update the CSV — no code changes needed.
-// To migrate to Supabase, replace loadProductsFromCSV() in productImporter.ts.
+// Bundled CSV catalog: shown until Supabase answers, and kept as the offline
+// fallback. The live catalog comes from the database (src/lib/catalog.ts).
 const PRODUCTS: Product[] = CSV_PRODUCTS;
 
-// ── DB row → app type mappers ─────────────────────────────────────────────────
+// ── DB row → app type mapper ──────────────────────────────────────────────────
 function rowToResource(r: any) {
   return { id: r.id, name: r.name, type: r.type as ResourceType, address: r.address ?? "", hours: r.hours ?? "", phone: r.phone ?? null, description: r.description ?? "", x: r.x ?? 0, y: r.y ?? 0 };
 }
-function rowToProduct(r: any): Product {
-  const dims = {
-    health:       r.health_score      ?? r.safety_score ?? 50,
-    environment:  r.environment_score ?? 50,
-    ethics:       r.ethics_score      ?? 50,
-    transparency: r.transparency_score ?? 50,
-  };
-  return {
-    id: r.id, name: r.name, brand: r.brand ?? "", category: r.category ?? "",
-    barcode: r.barcode ?? "", description: r.description ?? "", imageUrl: r.image_url ?? "",
-    amazon:  r.amazon_price  != null ? { price: r.amazon_price,  rating: r.amazon_rating  } : undefined,
-    walmart: r.walmart_price != null ? { price: r.walmart_price, rating: r.walmart_rating } : undefined,
-    facebook:r.fb_price      != null ? { price: r.fb_price,      condition: r.fb_condition ?? "" } : undefined,
-    ethicalScore: r.ethical_score ?? "C", safetyScore: dims.health,
-    flaggedIngredients: r.flagged_ingredients ?? [], ingredients: r.ingredients ?? "",
-    keywords: Array.isArray(r.keywords) ? r.keywords : (r.keywords ?? "").split("|").filter(Boolean),
-    healthScore: dims.health, environmentScore: dims.environment,
-    ethicsScore: dims.ethics, transparencyScore: dims.transparency,
-    overallScore: r.overall_score ?? Math.round(dims.health*0.3 + dims.environment*0.25 + dims.ethics*0.25 + dims.transparency*0.2),
-  };
-}
-
-const DEFAULT_PARTNERS = [
-  { id: 1, name: "GreenLeaf Organic Market",  type: "Grocery",         ethical_score: "A", emoji: "🌿", services: ["10% community discount","Weekly produce drives","Local sourcing within 150mi"],        offer: "15% off + free reusable bag for community card holders", since: "2019" },
-  { id: 2, name: "City Cycles Cooperative",    type: "Transportation",  ethical_score: "A", emoji: "🚲", services: ["Free safety inspections","Pay-what-you-can repairs","30-day bike lending library"],   offer: "Free inner tube + patch kit with any visit",             since: "2021" },
-  { id: 3, name: "ReThreaded Clothing Co.",    type: "Retail",          ethical_score: "B", emoji: "👕", services: ["100% second-hand inventory","Living wage certified","Clothing vouchers for families"], offer: "Buy-one-get-one on all thrifted items Saturdays",        since: "2020" },
-  { id: 4, name: "Sunrise Community Health",   type: "Healthcare",      ethical_score: "A", emoji: "🏥", services: ["Sliding-scale fees","Free quarterly screenings","Multilingual staff (12 languages)"], offer: "Free 30-min initial consultation, no referral needed",   since: "2018" },
-  { id: 5, name: "Fair Ground Coffee",         type: "Food & Beverage", ethical_score: "A", emoji: "☕", services: ["Direct-trade beans","10% profits to community fund","Free workspace Mon–Thu"],        offer: "Free drip coffee during job-search hours (10am–2pm)",   since: "2022" },
-  { id: 6, name: "MegaMart Retail",            type: "Big Box Retail",  ethical_score: "D", emoji: "🏪", services: ["Price match guarantee","Curbside pickup"],                                             offer: "5% off select items with community card",               since: "2023" },
-];
 
 
 const ONBOARDING = [
@@ -1032,37 +1002,14 @@ export default function App() {
 
   const loadData = useCallback(async () => {
     try {
-      // Read current db state
-      const { data: rows, error } = await supabase
-        .from("kv_store_504b3bba")
-        .select("key, value")
-        .in("key", ["commons_resources", "commons_products", "commons_partners"]);
-
-      if (error) throw error;
-
-      const rRow = rows?.find(r => r.key === "commons_resources");
-      const pRow = rows?.find(r => r.key === "commons_products");
-
-      // Seed any missing keys
-      const upserts: { key: string; value: any }[] = [];
-      if (!rRow?.value || (Array.isArray(rRow.value) && rRow.value.length === 0))
-        upserts.push({ key: "commons_resources", value: RESOURCES });
-      if (!pRow?.value || (Array.isArray(pRow.value) && pRow.value.length === 0))
-        upserts.push({ key: "commons_products", value: PRODUCTS });
-      if (!rows?.find(r => r.key === "commons_partners"))
-        upserts.push({ key: "commons_partners", value: DEFAULT_PARTNERS });
-      if (upserts.length > 0) {
-        const { error: seedErr } = await supabase.from("kv_store_504b3bba").upsert(upserts);
-        if (seedErr) console.warn("Seed error:", seedErr.message);
-      }
-
-      // Set state from db (or keep defaults if just seeded)
-      const finalR = rRow?.value ?? RESOURCES;
-      const finalP = pRow?.value ?? PRODUCTS;
-      if (Array.isArray(finalR) && finalR.length > 0) setResources(finalR.map(rowToResource));
-      if (Array.isArray(finalP) && finalP.length > 0) setProducts(finalP.map(rowToProduct));
+      const catalog = await loadCatalog();
+      // An empty catalog means a misconfigured DB, not "live" data: keep the bundled copy.
+      if (catalog.products.length === 0) throw new Error("catalog is empty");
+      setProducts(catalog.products);
+      if (catalog.resources.length > 0) setResources(catalog.resources.map(rowToResource));
       setDbStatus("live");
-    } catch {
+    } catch (err) {
+      console.warn("[catalog] using bundled data:", err);
       setDbStatus("offline");
     }
   }, []);
@@ -1070,18 +1017,13 @@ export default function App() {
   useEffect(() => {
     loadData();
 
-    // Real-time: subscribe to kv_store table changes
-    const channel = supabase
-      .channel("commons-realtime")
-      .on("postgres_changes" as any, {
-        event: "UPDATE", schema: "public", table: "kv_store_504b3bba",
-      }, (payload: any) => {
-        const key = payload.new?.key;
-        const value = payload.new?.value;
-        if (key === "commons_resources" && Array.isArray(value)) setResources(value.map(rowToResource));
-        if (key === "commons_products" && Array.isArray(value)) setProducts(value.map(rowToProduct));
-      })
-      .subscribe();
+    // Realtime: any catalog change is a signal to re-fetch (events can be missed,
+    // so we never patch state from the payload itself).
+    const channel = supabase.channel("catalog-realtime");
+    for (const table of ["products", "product_prices", "resources"]) {
+      channel.on("postgres_changes" as any, { event: "*", schema: "public", table }, () => loadData());
+    }
+    channel.subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [loadData]);
