@@ -49,12 +49,14 @@ service-role key, public seed routes, GPS stored with scans, CORS `*`, and the l
 docs, then react/react-dom moved into `dependencies`. The build is verified after the change.
 
 **Step 1: backend ✅ resolved by starting fresh.** The Figma database was in an account you can't access, so it's
-retired. Your own project is **`ecogo`** (`gippyavmxxzqxjkuahpt`, US West, free plan) and it starts empty. The code
-still points at the old project until step 2.
+retired. Your own project is **`ecogo`** (`gippyavmxxzqxjkuahpt`, US West, free plan).
 
-**Step 2: make "live" mode work (K-01, K-04).** Treat the CSV product shape as canonical and fix the
-product mapper. Retire the server's 7-row seed. Then fix the edge-function URL and send the key header, so
-scans actually save. This turns the capstone's frontend ↔ backend ↔ realtime demo from accidental into real.
+**Step 2: normalized database + live mode ✅ done.** There are 5 tables (categories, products, product_prices,
+resources, scan_events) with constraints, timestamps, row-level security and realtime. The schema is in
+`supabase/migrations/`. The app reads the catalog from them, which fixes the price-and-score wipe (K-01), and scans
+now save (K-04). The old unsecured backend is gone. Verified live: all 51 products match the CSV exactly, a scan row
+was saved, browsers can't edit the catalog or read scans, and a price changed in the database updated the open app
+in about 3 s.
 
 **Step 3: make ingredient analysis trustworthy (K-02, K-03).** Match whole words instead of substrings,
 don't split names like "1,4-dioxane", and add one small automated check that no product gets a false high-risk label.
@@ -65,18 +67,18 @@ the Live/Offline banner honest; fix "See all" deals.
 
 **Step 5: persist favorites and scanned items** (localStorage for now).
 
-**Later, in this order:** delete dead code and unused dependencies; split `App.tsx` one piece per commit.
-Then move to a **normalized database schema** (your own capstone brief in
-`src/imports/pasted_text/project-guidelines.md` requires it). Then do the security hardening (S-01…S-05), and
-last, the final documentation.
+**Later, in this order:**
+- Delete dead code and unused dependencies.
+- Make the map read coordinates from the database, so adding a resource puts a pin on the map. That's a great live demo.
+- Split `App.tsx` one piece per commit.
+- Add sign-in plus favorites/reviews tables.
+- Rate-limit scans, then write the final documentation.
 
 ## 5. How to start the next session
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–1 are done; the repo is on `main`; my
-> Supabase project is `ecogo` / `gippyavmxxzqxjkuahpt`, empty). Do step 2: set up the database, point the app
-> at the new project, and fix K-01 and K-04. Keep each change small, commit each one, and verify it in the running app.
-
-If you'd rather not touch the live database while working on the UI, ask for a `dev:offline` script. The
-audit used an offline stub config, but it lived in a temporary folder and is not in the repo.
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–2 are done; the repo is on `main`; my
+> Supabase project is `ecogo` / `gippyavmxxzqxjkuahpt`). Do step 3: fix the ingredient matcher and parser
+> (K-02, K-03) and leave one small check that no product gets a false high-risk label. Keep each change small,
+> commit each one, and verify it in the running app.

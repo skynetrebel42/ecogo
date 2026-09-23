@@ -4,21 +4,22 @@
 > exported 2026-07-07; identical to this folder apart from `package-lock.json`/`node_modules`).
 > Details: [ARCHITECTURE.md](ARCHITECTURE.md) (structure, Supabase map, data map, feature inventory) and
 > [KNOWN_ISSUES.md](KNOWN_ISSUES.md) (baseline, bug list, roadmap).
-> **No application code has been changed.** The project is now a git repo (`main`). Commit `63eef63` is the
-> untouched Figma export, followed by the audit docs and one dependency fix (react/react-dom declared, K-07).
+> The project is a git repo (`main`). Commit `63eef63` is the untouched Figma export. Roadmap steps 0–2 are done:
+> the safety net, a new owner-controlled Supabase project, and a normalized database with the app switched over to it.
 
 ## Where things stand
 
-- **Phase:** Prototype comprehension and stabilization (Path A: keep building the prototype; secure and normalize later).
-- **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. `npm run build` passes.
-- **What's real:** CSV catalog (51 products), weighted scores from hand-entered CSV dimensions, ingredient
-  explorer (buggy), Leaflet map of 18 static Chicago resources, simulated barcode scan, in-memory favorites.
+- **Phase:** Prototype stabilization. Steps 0–2 are done; next is step 3 (ingredient analysis). See the KNOWN_ISSUES.md roadmap.
+- **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
+- **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), weighted scores computed by
+  `scoring.ts`, realtime catalog updates, scans saved to `scan_events`, ingredient explorer (buggy), Leaflet map of
+  18 Chicago resources, simulated barcode scan, in-memory favorites.
 - **What's fake:** "AI" evaluations, the camera scanner, Home recommendations and deals, Profile, Sign In, Lists, Share, Call.
-- **Headline bug:** the app only displays correctly when Supabase is *unreachable*; a live DB load wipes prices and scores (**K-01**).
-- **Backend:** the code still targets the retired Figma project `ipcbqjrceyqleuaufier` (inaccessible; see decision 008).
-  The owner's new, empty project is `ecogo` (`gippyavmxxzqxjkuahpt`). The current design is a single KV table that the
-  browser reads and seeds directly. The edge function is effectively unused (its URL doesn't match its routes, and no auth header is sent).
-- **Security:** unchanged from the Figma export. **None** of the previous session's sandbox fixes are in this code.
+- **Backend:** Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free). There are 5 normalized tables
+  with RLS and explicit grants, and the schema lives in `supabase/migrations/`. The browser reads the catalog and can only
+  insert scans. There is no edge function. The old Figma project is retired (decision 008).
+- **Security:** browsers can't modify the catalog or read scans (verified), and the security advisor is clean. Still open:
+  no user accounts (S-06) and no rate limit on scan inserts (S-04).
 
 ## Previous handoff claims, checked against the code
 
@@ -49,30 +50,36 @@
 | # | Decision | Reason | Status |
 |---|---|---|---|
 | 001 | Keep the Figma-generated architecture for now | Preserve working prototype behavior while it's understood | Active |
-| 002 | Don't normalize the KV database yet | Coupling is now mapped (ARCHITECTURE.md §7), but the live DB contents are unknown. **Note:** the owner's own capstone brief (`src/imports/pasted_text/project-guidelines.md`) *requires* a normalized relational schema, REST API and realtime, so this is a **planned** phase, not an optional one | Deferred (planned) |
-| 003 | Security hardening is required before any public deploy | S-01…S-05 in KNOWN_ISSUES.md | Known future requirement |
+| 002 | Don't normalize the KV database yet | The coupling and live DB contents were unknown at the time | **Superseded by 009** once both were resolved |
+| 003 | Security hardening is required before any public deploy | S-04 (scan rate limit) and S-06 (auth) remain in KNOWN_ISSUES.md; S-01/02/03/05 are resolved | Active |
 | 004 | Don't split App.tsx until behavior is pinned | Responsibility map now exists (ARCHITECTURE.md §5); start with the ~150 lines of dead code | Active |
 | 005 | Documentation follows stabilization | These three files are working docs, not final docs | Active |
-| 006 | The CSV `Product` (camelCase) shape is the proposed canonical product shape | It is the only shape the whole UI consumes; the server's 7-row snake_case seed is incompatible | **Proposed**: confirm before fixing K-01 |
+| 006 | The CSV `Product` (camelCase) shape is the canonical frontend product shape | It is the only shape the whole UI consumes | **Done**: `catalog.ts` maps DB rows into it |
 | 007 | Put a restore point in place before the first code change | The handoff prioritizes not destroying working behavior | **Done**: baseline commit `63eef63` |
-| 008 | Start fresh with an owner-controlled Supabase project | The Figma project `ipcbqjrceyqleuaufier` lives in an account the owner can't access, and it held only prototype data | **Done**: `ecogo` = `gippyavmxxzqxjkuahpt` (us-west-1, free), empty. The code is not yet switched over |
+| 008 | Start fresh with an owner-controlled Supabase project | The Figma project `ipcbqjrceyqleuaufier` lives in an account the owner can't access, and it held only prototype data | **Done**: `ecogo` = `gippyavmxxzqxjkuahpt` (us-west-1, free) |
+| 009 | Normalized tables now (owner chose option A) instead of recreating the KV table | The capstone brief requires a normalized relational schema and forbids KV storage; the new DB was empty, so there was nothing to migrate | **Done** 2026-09-23: 5 tables, RLS, grants, realtime (`ed97a90`) |
+| 010 | Browser talks to Supabase directly (PostgREST + RLS); the edge function was deleted | It was KV-based, unauthenticated and unreachable; RLS plus column grants give the same guarantees with less code | **Done**. Revisit if the course requires a custom API layer |
+| 011 | Overall score and grade are computed (`scoring.ts`), never stored; unknown barcode = `product_id is null` | Avoids derived data drifting out of sync (capstone brief: "do not hardcode overall product scores") | **Done** |
+| 012 | The DB is the source of truth for the catalog; the CSV is the seed source and offline fallback | One writer; the offline demo still works | **Done**. CSV edits don't reach the live DB (K-17) |
+| 013 | Scan locations are rounded to 3 decimals (~100 m), and scans are insert-only for clients | Privacy (earlier audit S-03) | **Done**. Drop GPS entirely if the demo doesn't need it |
 
 ## Open questions only the owner can answer
 
-1. ~~Supabase access / live DB contents / RLS / edge function~~: moot now that decision 008 created a new empty project.
-2. **Step-2 database shape:** recreate the single KV table (smallest change) or go straight to normalized tables (what the capstone brief requires)?
-3. **Scope:** real camera scanning? GPS on scans at all? A real city instead of fictional Chicago? Sign In / Partners screens? A responsive layout vs the phone mock-up? Keep the "AI"/"SmartScore™" wording for the demo?
+1. ~~Supabase access / live DB contents / RLS / edge function~~: moot after decision 008.
+2. ~~Step-2 database shape~~: normalized (decision 009).
+3. **Custom API layer?** Does your course require a hand-written backend API (the brief mentions "API Routes / Controllers"), or is Supabase's auto-generated REST API with row-level security acceptable?
+4. **Scope:** real camera scanning? GPS on scans at all? A real city instead of fictional Chicago? Sign In / Partners screens? A responsive layout vs the phone mock-up? Keep the "AI"/"SmartScore™" wording for the demo?
 6. **Figma re-sync:** will you regenerate from Figma Make again? A re-sync would overwrite local edits.
 
 ## How to run
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173 — talks to the LIVE Supabase project
+npm run dev      # http://localhost:5173 — reads the live "ecogo" Supabase project
 npm run build    # production bundle in dist/
 ```
 
-Opening the app against live Supabase **writes seed data from the browser** if the KV keys are empty. For
-UI-only work, the audit used a scratch Vite config that stubbed `src/lib/supabase.ts` to `127.0.0.1:9`, so
-the app ran in its offline fallback with no production traffic. Ask for it to be added to the repo if you
-want that as a permanent `dev:offline` script.
+The Supabase URL and publishable key come from `.env` (committed; public by design). The app never writes the
+catalog; only scans are inserted. If Supabase is unreachable, the app falls back to the bundled CSV and shows
+"Offline". To point at a different Supabase project, apply `supabase/migrations/` there in order and override
+the two variables in a gitignored `.env.local`.
