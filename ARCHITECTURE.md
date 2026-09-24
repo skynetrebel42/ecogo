@@ -82,7 +82,7 @@ alternatives". **Nothing is AI:** the "AI Evaluation Summary" and "SmartScore™
 | `src/app/components/figma/ImageWithFallback.tsx` | 27 | Figma helper (unused) | GENERATED, EDIT WITH CAUTION |
 | `vite.config.ts` | 38 | Figma asset resolver, `@` alias | EDIT WITH CAUTION |
 | `src/styles/*.css`, `default_shadcn_theme.css` | — | Tailwind entry, theme tokens, Google Fonts | EDIT WITH CAUTION |
-| `src/imports/pasted_text/project-guidelines.md` | 425 | The owner's own Figma Make prompt (capstone goals) | Reference only |
+| `src/imports/pasted_text/project-guidelines.md` | 425 | Prompt pasted into Figma Make. Its "capstone/instructor" wording is template text: this is a **personal project**. Use it as engineering-style guidance, not as requirements | Reference only |
 | `guidelines/Guidelines.md`, `ATTRIBUTIONS.md`, `pnpm-workspace.yaml`, `postcss.config.mjs` | — | Figma template leftovers | Leave alone |
 
 Removed in step 2: `utils/supabase/info.tsx` (key for the retired Figma project) and `supabase/functions/server/*`
@@ -192,7 +192,7 @@ erDiagram
 **Why these tables:**
 - **Categories** are shared by many products (one-to-many).
 - **Prices** vary per store, so they live in their own table keyed by (product, store) rather than as columns.
-- **Overall score and letter grade are not stored.** `scoring.ts` derives them, as the capstone brief asks, so they can't drift.
+- **Overall score and letter grade are not stored.** `scoring.ts` derives them, so they can't drift out of sync.
 - **An unknown barcode** is simply a scan with `product_id is null`. That's the review queue; no extra flag is needed.
 - **Every table** has constraints (`CHECK`, `UNIQUE`, `FK`) and `created_at`/`updated_at` (a trigger maintains `updated_at`).
 

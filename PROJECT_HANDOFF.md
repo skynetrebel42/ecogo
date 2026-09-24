@@ -9,6 +9,9 @@
 
 ## Where things stand
 
+- **Context:** a **personal project** (confirmed by the owner 2026-09-23). It is not a course deliverable, despite the
+  capstone wording in the pasted Figma Make prompt. Prioritize what makes the app useful, not demo value.
+
 - **Phase:** Prototype stabilization. Steps 0–2 are done; next is step 3 (ingredient analysis). See the KNOWN_ISSUES.md roadmap.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), weighted scores computed by
@@ -57,9 +60,9 @@
 | 006 | The CSV `Product` (camelCase) shape is the canonical frontend product shape | It is the only shape the whole UI consumes | **Done**: `catalog.ts` maps DB rows into it |
 | 007 | Put a restore point in place before the first code change | The handoff prioritizes not destroying working behavior | **Done**: baseline commit `63eef63` |
 | 008 | Start fresh with an owner-controlled Supabase project | The Figma project `ipcbqjrceyqleuaufier` lives in an account the owner can't access, and it held only prototype data | **Done**: `ecogo` = `gippyavmxxzqxjkuahpt` (us-west-1, free) |
-| 009 | Normalized tables now (owner chose option A) instead of recreating the KV table | The capstone brief requires a normalized relational schema and forbids KV storage; the new DB was empty, so there was nothing to migrate | **Done** 2026-09-23: 5 tables, RLS, grants, realtime (`ed97a90`) |
-| 010 | Browser talks to Supabase directly (PostgREST + RLS); the edge function was deleted | It was KV-based, unauthenticated and unreachable; RLS plus column grants give the same guarantees with less code | **Done**. Revisit if the course requires a custom API layer |
-| 011 | Overall score and grade are computed (`scoring.ts`), never stored; unknown barcode = `product_id is null` | Avoids derived data drifting out of sync (capstone brief: "do not hardcode overall product scores") | **Done** |
+| 009 | Normalized tables now (owner chose option A) instead of recreating the KV table | Real constraints, relations and realtime per table are easier to grow than one JSON blob; the new DB was empty, so there was nothing to migrate | **Done** 2026-09-23: 5 tables, RLS, grants, realtime (`ed97a90`) |
+| 010 | Browser talks to Supabase directly (PostgREST + RLS); the edge function was deleted | It was KV-based, unauthenticated and unreachable; RLS plus column grants give the same guarantees with less code | **Done**. Add an edge function only when server-side logic is needed (e.g. calling an external product API with a secret key) |
+| 011 | Overall score and grade are computed (`scoring.ts`), never stored; unknown barcode = `product_id is null` | Avoids derived data drifting out of sync | **Done** |
 | 012 | The DB is the source of truth for the catalog; the CSV is the seed source and offline fallback | One writer; the offline demo still works | **Done**. CSV edits don't reach the live DB (K-17) |
 | 013 | Scan locations are rounded to 3 decimals (~100 m), and scans are insert-only for clients | Privacy (earlier audit S-03) | **Done**. Drop GPS entirely if the demo doesn't need it |
 
@@ -67,8 +70,8 @@
 
 1. ~~Supabase access / live DB contents / RLS / edge function~~: moot after decision 008.
 2. ~~Step-2 database shape~~: normalized (decision 009).
-3. **Custom API layer?** Does your course require a hand-written backend API (the brief mentions "API Routes / Controllers"), or is Supabase's auto-generated REST API with row-level security acceptable?
-4. **Scope:** real camera scanning? GPS on scans at all? A real city instead of fictional Chicago? Sign In / Partners screens? A responsive layout vs the phone mock-up? Keep the "AI"/"SmartScore™" wording for the demo?
+3. ~~Custom API layer for a course~~: moot. This is a personal project (clarified 2026-09-23).
+4. **Scope (what should the app become for you?):** real camera scanning? GPS on scans at all? A real city instead of fictional Chicago? Sign In / Partners screens? A responsive layout vs the phone mock-up? Keep the "AI"/"SmartScore™" wording for the demo?
 6. **Figma re-sync:** will you regenerate from Figma Make again? A re-sync would overwrite local edits.
 
 ## How to run

@@ -110,6 +110,6 @@ These are ordered by value per effort and consistent with "Path A: keep building
 - Delete dead code and prune deps.
 - Make the map read DB coordinates (K-06), so adding a resource in the database puts a pin on the map. That's a strong CRUD/realtime demo.
 - Extract `App.tsx` pieces (`useCatalog`, Home, Saved, Profile) one commit at a time.
-- Add Supabase Auth plus `favorites` (and later reviews) tables (S-06, K-16). The capstone brief lists users, favorites and reviews.
+- Add Supabase Auth plus a `favorites` table (S-06, K-16), if you want saved items to follow you across devices.
 - Normalize ingredients into their own table once the parser is fixed (step 3).
 - Rate-limit scans (S-04), then write the final docs.
