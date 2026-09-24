@@ -29,6 +29,29 @@
 - **Security:** browsers can't modify the catalog or read scans (verified), and the security advisor is clean. Still open:
   no user accounts (S-06) and no rate limit on scan inserts (S-04).
 
+## Owner goals (captured 2026-09-23, from the owner directly)
+
+These override anything in the AI-written planning docs.
+
+| Topic | Owner's answer |
+|---|---|
+| Purpose | Personal project to **showcase build skills**, with the intent to grow it into a **public app**. A viable, running prototype is enough for now |
+| Core value | **Product safety** and **barcode scanning**. Everything else (prices, map, lists, profile) comes later |
+| Prototype "done" means | **1) Scan a real product with a phone camera → product page. 2) A trustworthy safety score** (no false alarms) |
+| Scan devices | All: iPhone, Android and laptop webcam, so use a JS scanning library (Safari has no built-in barcode reader) |
+| Product data | The 51 curated products stay as "featured"; any other barcode is looked up in **Open Food Facts** (free, no key) |
+| Safety score | **Computed from ingredients** with transparent rules, the same engine for curated and Open Food Facts products |
+| Product types first | **Food & drinks** |
+| Delivery | **Deployed website** (free hosting, HTTPS) and a **public GitHub repo** |
+| Layout | **Real mobile web app**: full-screen on phones, phone frame only on desktop |
+| Accounts | Not yet |
+| Budget | **Free tier only** (so no paid APIs and no LLM calls) |
+| Timeline | No deadline; quality over speed |
+| Design | Keep the Figma style; free to improve UX |
+| "AI" wording | **Rename until it's real** (e.g. "Safety Summary", no "AI"/"SmartScore™" claims) |
+| Scans | **Save scans without location** (drop GPS from scans) |
+| Map (later) | Follow the user's location; **Los Angeles** as the default; real nearby places from **OpenStreetMap** |
+
 ## ChatGPT handoff claims, checked against the code
 
 | Claim in the ChatGPT-written handoff | Verdict |
@@ -72,17 +95,16 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 010 | Browser talks to Supabase directly (PostgREST + RLS); the edge function was deleted | It was KV-based, unauthenticated and unreachable; RLS plus column grants give the same guarantees with less code | **Done**. Add an edge function only when server-side logic is needed (e.g. calling an external product API with a secret key) |
 | 011 | Overall score and grade are computed (`scoring.ts`), never stored; unknown barcode = `product_id is null` | Avoids derived data drifting out of sync | **Done** |
 | 012 | The DB is the source of truth for the catalog; the CSV is the seed source and offline fallback | One writer; the offline demo still works | **Done**. CSV edits don't reach the live DB (K-17) |
-| 013 | Scan locations are rounded to 3 decimals (~100 m), and scans are insert-only for clients | Privacy (earlier audit S-03) | **Done**. Drop GPS entirely if the demo doesn't need it |
+| 013 | Scan locations are rounded to 3 decimals (~100 m), and scans are insert-only for clients | Privacy (earlier audit S-03) | **Superseded by 014** |
+| 014 | Scans are saved **without** location (owner goal) | Location isn't needed for the core scan → safety flow | **To do** in roadmap step 6 (stop sending coords, drop the columns in a new migration) |
+| 015 | Prototype "done" = real camera scan → product page with a trustworthy, ingredient-computed safety score; free tier only | Owner goals 2026-09-23 | Active: drives the roadmap |
 
 ## Open questions only the owner can answer
 
 1. ~~Supabase access / live DB contents / RLS / edge function~~: moot after decision 008.
 2. ~~Step-2 database shape~~: normalized (decision 009).
 3. ~~Custom API layer for a course~~: moot. This is a personal project (clarified 2026-09-23).
-4. **The owner's own goals (not yet captured; the planning docs were AI-written):** who is the app for (just you,
-   friends, the public)? Which part matters most (product safety scores, price comparison, the community map)?
-   Real camera scanning? A real city instead of fictional Chicago? A real phone/web layout vs the phone mock-up?
-   Keep the "AI"/"SmartScore™" wording?
+4. ~~The owner's own goals~~: captured 2026-09-23 (see "Owner goals" above).
 5. **Figma re-sync:** will you regenerate from Figma Make again? A re-sync would overwrite local edits.
 
 ## How to run

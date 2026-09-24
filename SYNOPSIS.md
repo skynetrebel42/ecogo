@@ -58,27 +58,28 @@ now save (K-04). The old unsecured backend is gone. Verified live: all 51 produc
 was saved, browsers can't edit the catalog or read scans, and a price changed in the database updated the open app
 in about 3 s.
 
-**Step 3: make ingredient analysis trustworthy (K-02, K-03).** Match whole words instead of substrings,
-don't split names like "1,4-dioxane", and add one small automated check that no product gets a false high-risk label.
+**Your goals (captured 2026-09-23):** a showcase of your skills, heading toward a public app; product safety and
+barcode scanning first; free tier only; no deadline. The prototype is **done** when you can scan a real food product
+with your phone's camera and get a trustworthy safety score. The full answers are in PROJECT_HANDOFF.md → "Owner goals".
 
-**Step 4: quick UX batch.** Filter alternatives by category and make them clickable; show one consistent
-score in lists and detail; stop the map emptying outside Chicago; add a crash guard and error boundary; make
-the Live/Offline banner honest; fix "See all" deals.
+**Step 3: trustworthy safety analysis.** Fix the ingredient checker's false alarms, compute the safety score from
+ingredients, show one consistent score, and rename the "AI" labels.
 
-**Step 5: persist favorites and scanned items** (localStorage for now).
+**Step 4: Open Food Facts lookup.** Barcodes outside the 51 featured products get real product data and the same scoring.
 
-**Later, in this order:**
-- Delete dead code and unused dependencies.
-- Make the map read coordinates from the database, so adding a resource puts a pin on the map. That's a great live demo.
-- Split `App.tsx` one piece per commit.
-- Add sign-in plus favorites/reviews tables.
-- Rate-limit scans, then write the final documentation.
+**Step 5: deploy + public GitHub repo.** A public link over HTTPS, which phones need for camera access.
+
+**Step 6: real camera scanning + mobile layout.** Phone-camera scanning on iPhone, Android and laptop; full-screen on
+phones; scans saved without location.
+
+**Later:** a map that follows the user's location (Los Angeles as the default, real places from OpenStreetMap),
+persistent favorites, cleanup, then accounts and rate limiting before going public.
 
 ## 5. How to start the next session
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
 > Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–2 are done; the repo is on `main`; my
-> Supabase project is `ecogo` / `gippyavmxxzqxjkuahpt`). Do step 3: fix the ingredient matcher and parser
-> (K-02, K-03) and leave one small check that no product gets a false high-risk label. Keep each change small,
-> commit each one, and verify it in the running app.
+> Supabase project is `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
+> Do roadmap step 3: trustworthy safety analysis. Keep each change small, commit each one, verify it in the
+> running app, and leave one committed check that no product gets a false high-risk label.

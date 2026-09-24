@@ -95,21 +95,35 @@
 | ~~S-05~~ ✅ | **Resolved in step 2:** RLS is on for every table, the grants are explicit, the realtime publication is known, and migrations live in the repo. The security advisor is clean. (The previous session's sandbox patch was never used; the new design supersedes it.) | `supabase/migrations/` |
 | S-06 | No user accounts yet: favorites and scans are anonymous. Adding Supabase Auth (anonymous sign-in or email) is the prerequisite for per-user favorites/history and for tightening the scan insert policy. | — |
 
-## 3. Roadmap: the next 5 changes by value
+## 3. Roadmap
 
-These are ordered by value per effort and consistent with "Path A: keep building the prototype". Each is small and behavior-preserving outside its target.
+Re-prioritized 2026-09-23 around the **owner's goals** (PROJECT_HANDOFF.md → "Owner goals"). Prototype **done** means:
+**(1)** scan a real product with a phone camera → product page, and **(2)** a trustworthy safety score. Free tier only;
+food and drinks first. Each step is small and verified in the running app before moving on.
 
 0. ✅ **Safety net: done 2026-09-23.** Git repo on `main`: `63eef63` is the untouched Figma baseline (restore with `git checkout 63eef63 -- <file>`), `e9aa5a8` adds the docs, and `c9a7fde` moves react/react-dom into `dependencies` (K-07).
 1. ✅ **Backend: resolved 2026-09-23 by starting fresh.** The Figma project `ipcbqjrceyqleuaufier` is in a Supabase account the owner can't access, and it held only prototype data, so it is **retired**. The new project is **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan) in the owner's org.
 2. ✅ **Normalized database + live mode: done 2026-09-23** (`ed97a90`, `6e64e7d`). Five tables (categories, products, product_prices, resources, scan_events) with constraints, timestamps, RLS, explicit grants and realtime. The app reads them through `src/lib/catalog.ts` and saves scans to `scan_events`. Fixes K-01 and K-04, and resolves S-01/S-02/S-03/S-05. All of it was verified in the live app.
-3. **Make ingredient analysis trustworthy (K-02, K-03).** Use whole-token alias matching, drop the 2-letter aliases, stop splitting inside names like `1,4-`, handle `;` and parenthetical sub-ingredients, and leave behind one assert-based check that no product gets a false HIGH label. This is the app's headline feature.
-4. **Quick UX batch (each is a few lines).** Filter alternatives by category and make them clickable (K-08); show one consistent score in lists and detail (K-09); don't let the radius filter empty the map outside Chicago (K-05); guard `CAT[type]` and add a root error boundary (K-10); make the banner honest (K-11); fix "See all"/deals (K-15).
-5. **Persist favorites and scanned items** (localStorage for now, K-16), so the Saved tab survives a reload. Move to real tables when the schema is redesigned.
+3. **Trustworthy safety analysis (done-criterion 2).** Fix the ingredient parser and matcher (K-02, K-03): whole-word
+   matching, no 2-letter aliases, don't split names like `1,4-dioxane`, handle `;` and sub-ingredients in parentheses.
+   Then **compute the safety score from the ingredients** with transparent rules, so any product with an ingredient
+   list can be scored. Show one consistent score in lists and detail (K-09). Rename the "AI Evaluation Summary" /
+   "SmartScore™" labels (no AI claims). Leave behind one committed check that no product gets a false high-risk label.
+   *Open design point for this step:* how the computed safety score relates to the curated products' hand-entered
+   environment/ethics/transparency scores.
+4. **Open Food Facts lookup.** Any barcode not in the 51 featured products is fetched from Open Food Facts (free,
+   no key, food) and scored by the same engine; not-found barcodes still go to the review queue. This is testable before
+   the camera exists, using the demo barcode picker.
+5. **Deploy + public repo.** Create a public GitHub repo and free hosting (e.g. Vercel/Netlify). This gives the HTTPS a
+   phone needs to open the camera, so step 6 can be tested on a real phone.
+6. **Real camera scanning + mobile layout (done-criterion 1).** Use a JS barcode library that works on iPhone Safari,
+   Android and webcams, keeping the demo picker as a fallback. Make the app full-screen on phones, with the frame on
+   desktop only (K-28). Drop location from scans (decision 014) and fix the scan-flow bugs found along the way (K-12, K-13, K-22).
 
-**Later, in this order:**
-- Delete dead code and prune deps.
-- Make the map read DB coordinates (K-06), so adding a resource in the database puts a pin on the map. That's a strong CRUD/realtime demo.
-- Extract `App.tsx` pieces (`useCatalog`, Home, Saved, Profile) one commit at a time.
-- Add Supabase Auth plus a `favorites` table (S-06, K-16), if you want saved items to follow you across devices.
-- Normalize ingredients into their own table once the parser is fixed (step 3).
-- Rate-limit scans (S-04), then write the final docs.
+**Later (after "done"):**
+- Map: follow the user's location, with Los Angeles as the default, and real nearby places from OpenStreetMap. This also
+  fixes K-05 and K-06, and retires the fictional Chicago data. Switching only the center would leave today's 18
+  Chicago pins off-screen, so it's one step.
+- Persist favorites (K-16); search improvements (K-20); a quick UX batch (K-08, K-10, K-11, K-15).
+- Delete dead code and prune unused deps; extract `App.tsx` pieces one commit at a time.
+- Before going public: accounts (S-06), scan rate limiting (S-04), final docs.
