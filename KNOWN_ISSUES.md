@@ -83,6 +83,14 @@
 - ~~Product ids are coupled to hardcoded explanations~~ *(resolved in M1: the explanations were deleted; `src/lib/safety/fixtures/expected-flags.json` is keyed by id, so regenerate it if products are renumbered).*
 - About 115 KB of inline data literals plus the raw CSV ship in the single eager chunk. Google Fonts loads via a render-blocking CSS `@import`.
 
+### Safety engine follow-ups (from the M1 final review, deferred)
+
+- **Library coverage:** partially hydrogenated oils (FDA 2015 GRAS revocation), propylparaben E216 (EU deleted it), and BVO's E-number E443 appear to qualify. Add each only with a verified official quote (`npm run verify:sources`).
+- `verify-sources` reports HTTP 404/410 as "unverifiable", so a dead source link passes; the hand checks of IARC/EUR-Lex quotes aren't recorded per source.
+- A flag's `matchedText` is the normalized item, not the exact label span, so the highlight and "Listed as" break on newlines, double spaces and "parent (x) rest" joins. Newlines aren't separators yet, which matters for camera text (M4).
+- Zero-width spaces and soft hyphens aren't stripped; `Red&nbsp;40` splits on the `;`.
+- The alternatives sort computes `Infinity − Infinity = NaN` when two alternatives have no price (unstable order).
+
 ### Future production: security and privacy (do **not** deploy publicly before these)
 
 | ID | Issue | Where |
