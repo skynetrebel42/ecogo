@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "test": "node --test \"src/lib/safety/**/*.test.ts\""
+    "test": "node --test \"src/lib/safety/**/*.test.ts\"",
+    "verify:sources": "node scripts/verify-sources.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
