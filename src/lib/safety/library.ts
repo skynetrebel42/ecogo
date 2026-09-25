@@ -124,7 +124,7 @@ export const LIBRARY: LibraryEntry[] = [
     ],
   },
   {
-    id: "erythrosine", name: "Erythrosine (Red No. 3)", aliases: ["erythrosine", "red 3", "red no. 3"], eCodes: ["E127"], severity: "high",
+    id: "erythrosine", name: "Erythrosine (Red No. 3)", aliases: ["erythrosine", "red 3"], eCodes: ["E127"], severity: "high",
     concern: "The FDA revoked its authorization for use in food in January 2025.",
     context: "US manufacturers have until January 15, 2027 to reformulate foods that use it.",
     sources: [
@@ -168,12 +168,12 @@ export const LIBRARY: LibraryEntry[] = [
     sources: [iarc2b("potassium bromate", "Potassium bromate 2B", "Suppl. 7, vol. 73")],
   },
   {
-    id: "citrus-red-2", name: "Citrus Red No. 2", aliases: ["citrus red 2", "citrus red no. 2"], eCodes: ["E121"], severity: "some",
+    id: "citrus-red-2", name: "Citrus Red No. 2", aliases: ["citrus red 2"], eCodes: ["E121"], severity: "some",
     concern: "Classified by IARC as possibly carcinogenic to humans (Group 2B).",
     sources: [iarc2b("Citrus Red No. 2", "Citrus Red No. 2 2B", "vol. 8, Suppl. 7")],
   },
   {
-    id: "tartrazine", name: "Tartrazine (Yellow 5)", aliases: ["tartrazine", "yellow 5", "yellow no. 5"], eCodes: ["E102"], severity: "some",
+    id: "tartrazine", name: "Tartrazine (Yellow 5)", aliases: ["tartrazine", "yellow 5"], eCodes: ["E102"], severity: "some",
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("tartrazine (E 102)")],
   },
   {
@@ -181,7 +181,7 @@ export const LIBRARY: LibraryEntry[] = [
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("quinoline yellow (E 104)")],
   },
   {
-    id: "sunset-yellow", name: "Sunset yellow (Yellow 6)", aliases: ["sunset yellow", "yellow 6", "yellow no. 6"], eCodes: ["E110"], severity: "some",
+    id: "sunset-yellow", name: "Sunset yellow (Yellow 6)", aliases: ["sunset yellow", "yellow 6"], eCodes: ["E110"], severity: "some",
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("sunset yellow (E 110)")],
   },
   {
@@ -193,7 +193,7 @@ export const LIBRARY: LibraryEntry[] = [
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("ponceau 4R (E 124)")],
   },
   {
-    id: "allura-red", name: "Allura red (Red 40)", aliases: ["allura red", "red 40", "red no. 40"], eCodes: ["E129"], severity: "some",
+    id: "allura-red", name: "Allura red (Red 40)", aliases: ["allura red", "red 40"], eCodes: ["E129"], severity: "some",
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("allura red (E 129)")],
   },
 ];

@@ -67,7 +67,7 @@ function rowToResource(r: any) {
 
 const ONBOARDING = [
   { color: "#1A5C39", bg: "#E6F2EC", Icon: DollarSign, title: "Find the Best Price", body: "Compare Amazon, Walmart, local stores & Facebook Marketplace instantly. See who has the best deal near you." },
-  { color: "#0EA5E9", bg: "#E0F2FE", Icon: Leaf,       title: "Shop Healthier",      body: "Scan any barcode to check ingredients against the IARC carcinogen database and get a full SafetyScore." },
+  { color: "#0EA5E9", bg: "#E0F2FE", Icon: Leaf,       title: "Shop Healthier",      body: "Scan any barcode to see which ingredients carry an official health concern (IARC, EU, FDA), with sources." },
   { color: "#8B5CF6", bg: "#EDE9FE", Icon: Heart,      title: "Support Your Community", body: "Find food banks, free WiFi, bike repair, donation centers, and ethical local businesses near you." },
 ];
 

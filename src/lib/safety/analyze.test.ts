@@ -86,6 +86,56 @@ test("'no aspartame' / 'nitrite-free' do not flag", () => {
   assert.deepEqual(ids(food("Water, no aspartame, nitrite-free")), []);
 });
 
+// ── Final review fixes: real label wording that used to hide or invent flags ──
+
+test("'may contain' inside brackets keeps the rest of the label", () => {
+  assert.deepEqual(ids(food("Vegetable oil (may contain one or more of the following: canola, soybean oil), salt, sodium nitrite.")), ["sodium-nitrite"]);
+});
+
+test("a '-free' claim does not hide real ingredients", () => {
+  assert.deepEqual(ids(food("Pork, water, salt, sodium nitrite. Gluten-free.")), ["sodium-nitrite"]);
+  assert.deepEqual(ids(food("Carbonated water, caramel color, aspartame. Sugar-free.")), ["aspartame"]);
+  assert.deepEqual(ids(food("Sugar-free sweetener blend: aspartame, sucralose")), ["aspartame"]);
+});
+
+test("absence claims anywhere on the label never flag", () => {
+  for (const text of [
+    "Pork, water, salt. No sodium nitrite.", "celery powder. No sodium nitrite added", "contains no aspartame",
+    "Made without aspartame", "Free of aspartame", "Water, aspartame free",
+  ]) assert.deepEqual(ids(food(text)), [], text);
+});
+
+test("a label that parses to nothing is not enough data", () => {
+  assert.equal(food("May contain traces of nuts.").verdict, "no-data");
+  assert.deepEqual(ids(food("Contains: Water, sugar, sodium nitrite.")), ["sodium-nitrite"]);
+});
+
+const lib = (id: string, aliases: string[]): LibraryEntry =>
+  ({ id, name: id, aliases, eCodes: [], severity: "some", concern: "t", sources: [{ ...src, basis: "eu-warning-label" }] });
+const COLOURS = [lib("allura-red", ["red 40"]), lib("tartrazine", ["yellow 5"]), lib("sunset-yellow", ["yellow 6"]), lib("erythrosine", ["red 3"])];
+
+test("colour spellings with #, No., Dye and '&' match", () => {
+  const colour = (t: string) => analyzeIngredients({ ingredients: t }, COLOURS).flags.map(f => f.entry.id).sort();
+  for (const [text, want] of [
+    ["Red #40", ["allura-red"]], ["FD&C Yellow #5", ["tartrazine"]], ["Yellow No 5", ["tartrazine"]],
+    ["FD&C Red No.40", ["allura-red"]], ["Red No.3", ["erythrosine"]], ["Red Dye 3", ["erythrosine"]],
+    ["Yellow 5 & 6", ["sunset-yellow", "tartrazine"]],
+  ] as const) assert.deepEqual(colour(text), want, text);
+});
+
+test("a vitamin E dose is never an E-number", () => {
+  for (const text of ["Vitamins (A, C, E 250 IU)", "Vitamin-E 250 IU", "Vit. E 250 IU", "vitamine E 250"]) {
+    assert.deepEqual(ids(food(text)), [], text);
+  }
+});
+
+test("'non-' and 'un-' prefixes state absence", () => {
+  const bromate = (t: string) => analyzeIngredients({ ingredients: t }, [lib("potassium-bromate", ["bromated flour"])]).flags.length;
+  assert.equal(bromate("Non-bromated flour, water"), 0);
+  assert.equal(bromate("Un-bromated flour, water"), 0);
+  assert.equal(bromate("Bromated flour, water"), 1);
+});
+
 test("the engine never throws on hostile input", () => {
   const nasty = ["", "((((", "))))", "[{(", ",,,;;;", "\u0000￿", "🍕".repeat(500), "a, ".repeat(5000), "E".repeat(10000)];
   for (const text of nasty) assert.doesNotThrow(() => food(text));

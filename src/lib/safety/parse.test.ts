@@ -63,6 +63,25 @@ test("non-breaking spaces and unicode dashes are normalized", () => {
   assert.deepEqual(items, ["sodium nitrite", "E-250"]);
 });
 
+// Final review fixes: real label wording that used to hide or invent flags.
+test("a 'may contain' inside brackets does not delete the rest of the list", () => {
+  const items = parseIngredients("Vegetable oil (may contain one or more of the following: canola, soybean oil), salt, Yellow 5, sodium nitrite.");
+  for (const want of ["salt", "Yellow 5", "sodium nitrite"]) assert.ok(items.includes(want), want);
+});
+
+test("a sentence period ends an item", () => {
+  assert.deepEqual(parseIngredients("Pork, water, salt. No titanium dioxide."), ["Pork", "water", "salt"]);
+  assert.deepEqual(parseIngredients("Pork, salt, sodium nitrite. Gluten-free."), ["Pork", "salt", "sodium nitrite"]);
+});
+
+test("a '-free' claim removes only that word", () => {
+  assert.deepEqual(parseIngredients("Sugar-free sweetener blend: aspartame, sucralose"), ["sweetener blend: aspartame", "sucralose"]);
+});
+
+test("a leading 'Contains:' is a heading, not an allergen statement", () => {
+  assert.deepEqual(parseIngredients("Contains: Water, sugar, Red 40."), ["Water", "sugar", "Red 40"]);
+});
+
 test("empty and non-string input yield an empty list", () => {
   assert.deepEqual(parseIngredients(""), []);
   assert.deepEqual(parseIngredients("   "), []);

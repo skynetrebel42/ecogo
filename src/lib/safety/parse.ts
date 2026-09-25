@@ -9,10 +9,13 @@ const FILLER_PREFIXES: RegExp[] = [
   /^ingredients?\s*:\s*/i,
   /^(?:contains\s+)?(?:less\s+than\s+)?\d+(?:\.\d+)?\s*%\s+(?:or\s+less\s+)?of(?:\s+(?:each\s+of\s+)?the\s+following)?\s*:?\s*/i,
   /^(?:in)?active(?:\s+ingredients?)?\s*:\s*/i,
+  /^contains\s*:\s*/i,
 ];
 
-/** "no titanium dioxide", "free from aspartame", "nitrite-free" state an absence, not an ingredient. */
-const NEGATION = /^(?:no|free\s+from|without)\s|\b[a-z0-9]+-free\b/i;
+/** "no titanium dioxide", "made without aspartame", "free of X", "aspartame free" state an absence: drop the item. */
+const NEGATION = /^(?:contains\s+|made\s+)?(?:no|without|free\s+(?:of|from))\s|\sfree$/i;
+/** "gluten-free", "nitrite-free": drop just the word, keep any real ingredient around it. */
+const FREE_WORD = /\b[a-z0-9]+-free\b/gi;
 
 export function parseIngredients(text: string): string[] {
   if (typeof text !== "string") return [];
@@ -21,15 +24,17 @@ export function parseIngredients(text: string): string[] {
     .replace(/[‐-―−]/g, "-")
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
-    .replace(/\bmay\s+contain\b[^.]*(?:\.|$)/gi, " ")
-    .replace(/(^|\.)\s*contains\s*:[^.]*(?:\.|$)/gi, "$1 ")
+    // Allergen sentences only; a "may contain" inside brackets lists real alternatives and is kept.
+    .replace(/(^|\.)\s*may\s+contain\b[^.]*(?:\.|$)/gi, "$1 ")
+    .replace(/\.\s*contains\s*:[^.]*(?:\.|$)/gi, ". ")
     .replace(/\band\s*\/\s*or\b/gi, ",");
   const out: string[] = [];
   for (const part of splitTopLevel(cleaned)) expand(part, out);
   return out;
 }
 
-/** Split on commas and semicolons outside brackets; a comma between two digits ("1,4-dioxane") is not a separator. */
+/** Split on commas, semicolons and sentence ends (". No nitrite") outside brackets.
+ *  A comma between two digits ("1,4-dioxane") and a period before a digit ("Red No. 3") are not separators. */
 function splitTopLevel(s: string): string[] {
   const parts: string[] = [];
   let depth = 0;
@@ -39,7 +44,10 @@ function splitTopLevel(s: string): string[] {
     if (OPEN.includes(ch)) depth++;
     else if (CLOSE.includes(ch)) depth = Math.max(0, depth - 1);
     const digitComma = ch === "," && /\d/.test(s[i - 1] ?? "") && /\d/.test(s[i + 1] ?? "");
-    if (depth === 0 && (ch === ";" || (ch === "," && !digitComma))) {
+    let j = i + 1;
+    if (ch === ".") while (/\s/.test(s[j] ?? "")) j++;
+    const sentenceEnd = j > i + 1 && /[a-z]/i.test(s[j] ?? "");
+    if (depth === 0 && (ch === ";" || sentenceEnd || (ch === "," && !digitComma))) {
       parts.push(cur);
       cur = "";
     } else {
@@ -73,10 +81,13 @@ function expand(raw: string, out: string[]): void {
   for (const sub of splitTopLevel(inner)) expand(sub, out);
 }
 
+const tidy = (s: string) => s.replace(/\s+/g, " ").trim().replace(/^[\s.,:;*•-]+|[\s.,:;*•]+$/g, "");
+
 function emit(raw: string, out: string[]): void {
-  const item = stripFiller(raw.replace(/[()[\]{}]/g, " ").replace(/\s+/g, " ").trim())
-    .replace(/^[\s.,:;*•-]+|[\s.,:;*•]+$/g, "");
-  if (item && !NEGATION.test(item)) out.push(item);
+  const item = tidy(stripFiller(tidy(raw.replace(/[()[\]{}]/g, " "))));
+  if (!item || NEGATION.test(item)) return;
+  const kept = tidy(item.replace(FREE_WORD, " "));
+  if (kept) out.push(kept);
 }
 
 function stripFiller(s: string): string {
