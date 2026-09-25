@@ -49,15 +49,20 @@ explicit `.ts` extensions so Node can run the tests directly):
 
 | File | Responsibility |
 |---|---|
-| `library.ts` | The verified ingredient library (data) and its types |
-| `parse.ts` | `parseIngredients(text)`: raw ingredient text → flat, normalized list including sub-ingredients |
-| `analyze.ts` | `analyzeIngredients(input)`: list + optional additive codes → verdict and flags |
+| `library.ts` | The verified ingredient library (data), its types, and `deriveSeverity` |
+| `parse.ts` | `parseIngredients(text)`: raw ingredient text → flat list including sub-ingredients (original letter case kept for display; matching lowercases) |
+| `analyze.ts` | `analyzeIngredients(input, library?)`: list + optional additive codes → verdict and flags |
+
+Plus one shared UI file, `src/app/components/verdict.tsx`: the verdict colours, labels and icons, and
+`safeAnalyze(product)`, used by both the product page and the product lists.
 
 ```ts
 // library.ts
 export type Severity = "high" | "some";
+export type Basis = "iarc-1" | "iarc-2a" | "iarc-2b" | "banned-eu" | "banned-us" | "eu-warning-label" | "context";
 export interface Source {
   body: "IARC" | "EU" | "FDA" | "EFSA" | "WHO/JECFA";
+  basis: Basis;      // what this source establishes; "context" (an intake position) never sets severity
   finding: string;   // e.g. "Group 2B: possibly carcinogenic to humans"
   url: string;       // official page
   quote: string;     // short verbatim phrase from that page, used by the automated source check
@@ -66,13 +71,14 @@ export interface Source {
 export interface LibraryEntry {
   id: string;          // slug, e.g. "sodium-nitrite"
   name: string;        // display name
-  aliases: string[];   // lowercase label spellings, each >= 4 characters, unique across the library
+  aliases: string[];   // lowercase label spellings, each >= 3 characters (e.g. "bha"), unique across the library
   eCodes: string[];    // e.g. ["E250"]
-  severity: Severity;  // derived mechanically from the sources (section 5)
+  severity: Severity;  // must equal deriveSeverity(sources) (section 5)
   concern: string;     // one plain-English sentence
   context?: string;    // regulator intake position, e.g. "WHO/JECFA kept the acceptable daily intake unchanged"
-  sources: Source[];   // >= 1
+  sources: Source[];   // >= 1, at least one severity-bearing
 }
+export function deriveSeverity(sources: Source[]): Severity | null;
 export const LIBRARY: LibraryEntry[];
 
 // parse.ts
@@ -82,11 +88,16 @@ export function parseIngredients(text: string): string[];
 export type Verdict = "high" | "some" | "none" | "no-data" | "non-food";
 export interface Flag { entry: LibraryEntry; matchedText: string }
 export interface Analysis { verdict: Verdict; flags: Flag[]; checkedCount: number }
-export function analyzeIngredients(input: {
-  ingredients: string;
-  category?: string;         // decides food vs non-food
-  additiveCodes?: string[];  // e.g. Open Food Facts "en:e250" (M2); optional
-}): Analysis;
+export const VERDICT_RANK: Record<Verdict, number>;  // none 0 < some 1 < high 2 < no-data 3 < non-food 4
+export const FOOD_CATEGORIES: ReadonlySet<string>;
+export function analyzeIngredients(
+  input: {
+    ingredients: string;
+    category?: string;         // decides food vs non-food; omitted = food (e.g. Open Food Facts)
+    additiveCodes?: string[];  // e.g. Open Food Facts "en:e250" (M2); optional
+  },
+  library?: LibraryEntry[],    // defaults to LIBRARY; tests pass their own
+): Analysis;
 ```
 
 **Data flow:** product → `analyzeIngredients({ ingredients, category })` → `Analysis` → UI. Called at render time
@@ -102,6 +113,10 @@ and memoized per product. **No database change is needed for M1**; ingredient te
   |---|---|
   | **high** | IARC Group 1 or 2A for the ingredient; **or** banned or revoked for food use in the EU or by the FDA |
   | **some** | IARC Group 2B; **or** an EU-mandated warning label |
+
+  An IARC classification counts only when its evaluation covers **eating or drinking** the substance.
+  Inhalation-only classifications don't count; titanium dioxide's IARC 2B is about inhaled dust, so its basis is the
+  EU food ban instead.
 
 - **Precise-form rule:** aliases name only the concerning form. Generic terms that cover both safe and concerning
   forms (e.g. plain "caramel color") are not aliased.
@@ -137,8 +152,10 @@ and memoized per product. **No database change is needed for M1**; ingredient te
    "less than 2% of:", "inactive:". Remove trailing periods.
 5. Drop allergen statements, which are not ingredients: any clause starting "may contain", and a "contains:" clause
    that forms its own sentence after the ingredient list (US format "Contains: Milk, Soy.").
-6. Normalize for matching: lowercase, unify dashes and quotes, collapse whitespace, treat "and/or" as a separator.
-   Keep the original text for display.
+6. Normalize: unify dashes, quotes and non-breaking spaces, collapse whitespace, treat "and/or" as a separator. Keep
+   the original letter case for display; matching lowercases.
+7. Drop negated mentions, which state an absence rather than an ingredient: items starting "no", "free from" or
+   "without", and "…-free" words ("nitrite-free").
 
 **Matching (`analyze.ts`):**
 1. An alias matches only as a **whole phrase** (word boundaries on both sides). There is no reverse or substring
@@ -174,8 +191,9 @@ Food categories: Beverages, Bread, Breakfast, Condiments, Dairy, Frozen, Meat, S
     `WhyThisScore`, `DimensionBar`. `IngredientLearnMore` is replaced by the flag detail view.
   - The hero gradient keys off the verdict: red for `high`, amber for `some`, green for `none`, neutral grey for
     `no-data` / `non-food`.
-- **Healthier alternatives:** same category, strictly better verdict (`high` → `some` → `none`), up to 3, tappable
-  (opens that product). The section is hidden when there are none, and for `none`, `no-data` and `non-food`
+- **"Alternatives with fewer concerns"** (renamed from "Healthier alternatives", since the engine doesn't judge
+  healthiness): same category, strictly better verdict (`high` → `some` → `none`), up to 3, tappable (opens that
+  product via a new `onSelectProduct` prop; the screen is keyed by product id so it resets). The section is hidden when there are none, and for `none`, `no-data` and `non-food`
   products. Fixes K-08.
 - **Product lists (`ProductCard` in `App.tsx`):** a verdict dot and short label replace the ethical-grade badge and
   `safetyScore%` (grey for `no-data` / `non-food`).
@@ -213,7 +231,7 @@ All tests run with Node's built-in runner (no new dependency), via `npm test` =
 4. **`library.test.ts` (integrity):**
    - Every entry has at least one source with url, quote and checkedOn.
    - Severity equals what the mapping in section 5 derives from its sources.
-   - Aliases are at least 4 characters and unique across entries; E-codes are well-formed.
+   - Aliases are at least 3 characters and unique across entries; E-codes are well-formed.
 5. **Source check (network, run when the library changes):** `npm run verify:sources` = `node scripts/verify-sources.mjs`
    reports pass, fail or unverifiable per source. If agents help with research or verification, they follow the
    guardrails: small jobs, capped effort, a 20-minute watchdog.
