@@ -35,8 +35,8 @@
 
 | ID | Issue | Where | Evidence / failure |
 |---|---|---|---|
-| **K-02** ▶✔ | **Ingredient matcher produces false HIGH-risk labels.** `alias.includes(key.split(" ")[0])` is a reverse-substring test, the 2-letter alias `"mi"` exists, and the first match wins. A replay over all 51 products gives **70 false HIGH labels on 31 products** (Seventh Generation shows "Sodium Nitrite"; milk/vitamin D3 and Tylenol "acetaMInophen" show Methylisothiazolinone). | `ProductDetailScreen.tsx:344`, `:61` | The app's core "Shop Healthier" claim is wrong for most products |
-| **K-03** ▶✔ | **Ingredient parser splits chemical names.** "1,4-dioxane (trace)" becomes "1" + "4-dioxane"; "1" then matches **Blue 1 food dye** (seen live on Tide PODS). Parentheticals are stripped, so "pepperoni (… sodium nitrite)" hides nitrite, and `;` is not a separator. | `ProductDetailScreen.tsx:331-343` | ▶ Tide PODS detail |
+| ~~**K-02**~~ ✅ | **Fixed in M1 (safety engine, `c017d93`).** Whole-word matching against a sourced library (no alias under 3 characters); `npm test` checks all 51 products against hand-reviewed flags. *Original issue:* **Ingredient matcher produces false HIGH-risk labels.** `alias.includes(key.split(" ")[0])` is a reverse-substring test, the 2-letter alias `"mi"` exists, and the first match wins. A replay over all 51 products gives **70 false HIGH labels on 31 products** (Seventh Generation shows "Sodium Nitrite"; milk/vitamin D3 and Tylenol "acetaMInophen" show Methylisothiazolinone). | `ProductDetailScreen.tsx:344`, `:61` | The app's core "Shop Healthier" claim is wrong for most products |
+| ~~**K-03**~~ ✅ | **Fixed in M1 (safety engine, `c017d93`).** The parser keeps "1,4-dioxane" whole, splits on `;`, and reads sub-ingredients inside parentheses (nitrite in pepperoni is now flagged). *Original issue:* **Ingredient parser splits chemical names.** "1,4-dioxane (trace)" becomes "1" + "4-dioxane"; "1" then matches **Blue 1 food dye** (seen live on Tide PODS). Parentheticals are stripped, so "pepperoni (… sodium nitrite)" hides nitrite, and `;` is not a separator. | `ProductDetailScreen.tsx:331-343` | ▶ Tide PODS detail |
 | ~~**K-04**~~ ✅ | **Fixed in `6e64e7d` (step 2).** Scans now `INSERT` straight into `scan_events` (verified: row saved). The edge function is gone. *Original issue:* **Scan history very likely never saved.** `SERVER` = `/functions/v1/server/make-server-504b3bba`, but the Hono routes have no `basePath` and Supabase passes the slug in the path, so it 404s under either deploy name. No `Authorization`/`apikey` header is sent either (401 under the default `verify_jwt`). All errors are swallowed to `console.warn`. | `src/lib/supabase.ts:10`, `scanService.ts:134,145` | ▶ POST attempted on every scan; no UI feedback (live?) |
 | **K-05** ✔ | **Map "My Location" empties the map for anyone more than 50 mi from downtown Chicago** (the radius filter applies whenever a location is known, and all 18 resources are in the Loop). There is no way to undo it. The owner is in California. | `MapTab.tsx:401-404` | Tap My Location → "0 resources" |
 | **K-06** ✔ | **Map ignores the database.** It iterates its own 18 hardcoded `BASE_RESOURCES` and overlays only name/hours/phone/description **by id**. DB adds, deletes, address/type/coordinate changes never show, and a new DB resource (next id 13) overwrites the text of unrelated static pin 13. | `MapTab.tsx:389-393` | Undermines any CRUD or realtime demo |
@@ -46,8 +46,8 @@
 | ID | Issue | Where |
 |---|---|---|
 | ~~**K-07**~~ ✅ | **Fixed in `c9a7fde`.** `react`/`react-dom` were only optional peerDependencies, installed solely because unused packages peer-required them, so pruning unused deps would have dropped `react-dom`. Both are now regular `dependencies` (18.3.1). | `package.json` |
-| **K-08** ▶✔ | "Healthier Alternatives" ignores category (potato chips → laundry detergent, cleaner, milk), and the rows can't be clicked. | `ProductDetailScreen.tsx:678-681`, `859` |
-| **K-09** ▶✔ | Two different numbers are presented as "the score": lists show `safetyScore` (the health dimension) as `%`, detail shows `overallScore` (Tide 38% vs 35/100; Lay's 62% vs 54/100). The letter grade comes from **ethics only**, so 15/51 products show a grade that contradicts their overall score. | `App.tsx:78,491`; `scoring.ts` grade thresholds; `ProductDetailScreen.tsx:745` |
+| ~~**K-08**~~ ✅ | **Fixed in M1 (safety engine, `c017d93`).** "Alternatives with fewer concerns" are same-category, strictly better verdicts, and tappable. *Original issue:* "Healthier Alternatives" ignores category (potato chips → laundry detergent, cleaner, milk), and the rows can't be clicked. | `ProductDetailScreen.tsx:678-681`, `859` |
+| ~~**K-09**~~ ✅ | **Fixed in M1 (safety engine, `c017d93`).** Lists and the product page show the same ingredient verdict; the score, percentage and letter grade are gone. *Original issue:* Two different numbers are presented as "the score": lists show `safetyScore` (the health dimension) as `%`, detail shows `overallScore` (Tide 38% vs 35/100; Lay's 62% vs 54/100). The letter grade comes from **ethics only**, so 15/51 products show a grade that contradicts their overall score. | `App.tsx:78,491`; `scoring.ts` grade thresholds; `ProductDetailScreen.tsx:745` |
 | **K-10** ✔ | A DB resource whose `type` isn't one of the 6 `CAT` keys crashes HomeTab (`cat.bg` of undefined), and with **no error boundary** the whole app goes blank. Still latent after step 2: the `resources` table allows the Map's 12 types, and Home shows the first 5 by id (currently all within App's 6). | `App.tsx` `rowToResource`, `HomeTab`; `main.tsx` |
 | **K-11** ✔ | *Partly fixed in step 2:* "Live" now appears only when catalog rows actually arrive (an empty result counts as offline). **Remaining:** "Offline — showing *cached* data" is inaccurate, because it's bundled data, not a cache. | `App.tsx` offline banner |
 | **K-12** ✔ | A scan waits on geolocation. The 4 s `timeout` doesn't cover the permission prompt, so the scanner can hang in "scanning". There is no try/finally, so any throw also leaves it stuck. | `ScanTab.tsx:107`; `scanService.ts:86,111` |
@@ -61,7 +61,7 @@
 
 | ID | Issue | Where |
 |---|---|---|
-| K-18 ✔ | Hardcoded explanation text contradicts the data: Diet Coke "No phosphoric acid" (it has it), Lay's "17% of daily sodium" (170 mg ≈ 7%), Oscar Mayer cites turkey (not in its list), an "Affordability score" that doesn't exist. | `ProductDetailScreen.tsx:98,241,261,285` |
+| ~~K-18~~ ✅ | **Moot: hand-written explanations were deleted (M1, `c017d93`).** *Original issue:* Hardcoded explanation text contradicts the data: Diet Coke "No phosphoric acid" (it has it), Lay's "17% of daily sodium" (170 mg ≈ 7%), Oscar Mayer cites turkey (not in its list), an "Affordability score" that doesn't exist. | `ProductDetailScreen.tsx:98,241,261,285` |
 | K-19 ▶✔ | Opening any sub-screen unmounts the active tab: Back from a search result lands on Home, and Saved resets to Favorites. | `App.tsx:1139,1174` |
 | K-20 ✔ | Search: a leading space matches every product, brand is not searched, and short keywords over-match ("steak" contains "tea"). | `App.tsx:686-690` |
 | K-21 ▶✔ | Dead controls: Sign In, all 5 Profile settings rows, Lists "New", Share, Map "Call", home Refresh (sticks on "Locating…" without geolocation). | `App.tsx:240,521,882,967`; `ProductDetailScreen.tsx:714`; `MapTab.tsx:260` |
@@ -75,13 +75,12 @@
 
 ### Maintainability (not bugs; fix opportunistically)
 
-- About 150 lines of dead code in `App.tsx` (`CityMap`, `ScoreRing`, `ScoreBar` at 86–150; legacy `MapTab` at 718–806), several unused icon imports, and dead `scoring.ts` exports. (The dead `scanService` read helpers and the unused `SERVER` import were removed in step 2.)
+- ~~Dead code in `App.tsx`~~ Resolved by the M0 cleanup (`6497847`).
 - Fallback data still lives in code next to the database: `App.tsx` RESOURCES (12, x/y), `MapTab.tsx` BASE_RESOURCES (18, lat/lng, drawn on the map), and the CSV (51 products). The DB now holds the canonical copy of all of it (step 2 retired the server's `DEFAULT_*` and `DEFAULT_PARTNERS`). Making the map read DB coordinates (K-06) would retire BASE_RESOURCES.
-- **53 of 59 runtime dependencies are unused.** 14 are imported nowhere (MUI, Emotion, react-router, motion, react-dnd, react-slick, canvas-confetti, masonry, popper, date-fns…); 39 are imported only by the 48 shadcn `ui/` files, and nothing imports those. K-07 is fixed, so pruning is now safe.
-- pnpm leftovers (`pnpm-workspace.yaml` with a Linux-only `supportedArchitectures`, the package.json `pnpm` block) are ignored by npm and would break a pnpm install on Windows. Also: `globals.css` is empty, `default_shadcn_theme.css` is unreferenced, the `figma:asset` resolver points at a missing `src/assets`, and DM Mono is loaded but not wired to `font-mono`.
+- ~~53 of 59 runtime dependencies unused; pnpm leftovers, empty/unreferenced CSS, dead `figma:asset` resolver~~ Resolved by the M0 cleanup (`6497847`): 7 runtime dependencies remain. Still open: DM Mono is loaded but not wired to `font-mono`.
 - ~~No stable product identity~~ *(resolved in step 2: the DB and the CSV share ids 1–51, and the incompatible 7-row server seed is gone).*
 - ~~No git repo / `.gitignore`~~ *(resolved in step 0).*
-- Product ids are coupled to the hardcoded explanations in `ProductDetailScreen.tsx` (ids 1–7), so don't renumber products.
+- ~~Product ids are coupled to hardcoded explanations~~ *(resolved in M1: the explanations were deleted; `src/lib/safety/fixtures/expected-flags.json` is keyed by id, so regenerate it if products are renumbered).*
 - About 115 KB of inline data literals plus the raw CSV ship in the single eager chunk. Google Fonts loads via a render-blocking CSS `@import`.
 
 ### Future production: security and privacy (do **not** deploy publicly before these)
@@ -104,13 +103,13 @@ food and drinks first. Each step is small and verified in the running app before
 0. ✅ **Safety net: done 2026-09-23.** Git repo on `main`: `63eef63` is the untouched Figma baseline (restore with `git checkout 63eef63 -- <file>`), `e9aa5a8` adds the docs, and `c9a7fde` moves react/react-dom into `dependencies` (K-07).
 1. ✅ **Backend: resolved 2026-09-23 by starting fresh.** The Figma project `ipcbqjrceyqleuaufier` is in a Supabase account the owner can't access, and it held only prototype data, so it is **retired**. The new project is **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan) in the owner's org.
 2. ✅ **Normalized database + live mode: done 2026-09-23** (`ed97a90`, `6e64e7d`). Five tables (categories, products, product_prices, resources, scan_events) with constraints, timestamps, RLS, explicit grants and realtime. The app reads them through `src/lib/catalog.ts` and saves scans to `scan_events`. Fixes K-01 and K-04, and resolves S-01/S-02/S-03/S-05. All of it was verified in the live app.
-3. **Trustworthy safety analysis (done-criterion 2).** Fix the ingredient parser and matcher (K-02, K-03): whole-word
-   matching, no 2-letter aliases, don't split names like `1,4-dioxane`, handle `;` and sub-ingredients in parentheses.
-   Then **compute the safety score from the ingredients** with transparent rules, so any product with an ingredient
-   list can be scored. Show one consistent score in lists and detail (K-09). Rename the "AI Evaluation Summary" /
-   "SmartScore™" labels (no AI claims). Leave behind one committed check that no product gets a false high-risk label.
-   *Open design point for this step:* how the computed safety score relates to the curated products' hand-entered
-   environment/ethics/transparency scores.
+3. ✅ **Trustworthy safety analysis: done 2026-09-25** (`6497847`…`c017d93`, plus the label/docs commit). M0 cleanup,
+   then the safety engine (`src/lib/safety`): a parser that keeps chemical names whole and reads sub-ingredients, whole-word
+   matching against a 17-entry library where every entry cites an official source (IARC, EU, FDA) with a verbatim quote,
+   and a verdict (high / some / none / no data / food only) computed from the ingredients. The product page shows the
+   flagged ingredients with their sources, lists show the same verdict, and "SmartScore™"/AI labels are gone. `npm test`
+   checks all 51 products against hand-reviewed flags; `npm run verify:sources` re-checks the quotes. Fixes K-02, K-03,
+   K-08, K-09; K-18 moot. Design: `docs/superpowers/specs/2026-09-24-safety-engine-design.md`.
 4. **Open Food Facts lookup.** Any barcode not in the 51 featured products is fetched from Open Food Facts (free,
    no key, food) and scored by the same engine; not-found barcodes still go to the review queue. This is testable before
    the camera exists, using the demo barcode picker.
@@ -124,6 +123,6 @@ food and drinks first. Each step is small and verified in the running app before
 - Map: follow the user's location, with Los Angeles as the default, and real nearby places from OpenStreetMap. This also
   fixes K-05 and K-06, and retires the fictional Chicago data. Switching only the center would leave today's 18
   Chicago pins off-screen, so it's one step.
-- Persist favorites (K-16); search improvements (K-20); a quick UX batch (K-08, K-10, K-11, K-15).
-- Delete dead code and prune unused deps; extract `App.tsx` pieces one commit at a time.
+- Persist favorites (K-16); search improvements (K-20); a quick UX batch (K-10, K-11, K-15).
+- Extract `App.tsx` pieces one commit at a time (dead code and unused deps were removed in M0).
 - Before going public: accounts (S-06), scan rate limiting (S-04), final docs.

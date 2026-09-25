@@ -62,8 +62,10 @@ in about 3 s.
 barcode scanning first; free tier only; no deadline. The prototype is **done** when you can scan a real food product
 with your phone's camera and get a trustworthy safety score. The full answers are in PROJECT_HANDOFF.md → "Owner goals".
 
-**Step 3: trustworthy safety analysis.** Fix the ingredient checker's false alarms, compute the safety score from
-ingredients, show one consistent score, and rename the "AI" labels.
+**Step 3: trustworthy safety analysis. ✅ Done 2026-09-25** (`6497847`…`c017d93`). A sourced 17-ingredient library
+(IARC, EU, FDA; every entry has a verbatim quote), a parser that reads sub-ingredients, and a verdict computed from the
+ingredients. The product page shows flagged ingredients with their sources; lists show the same verdict; no AI labels.
+`npm test` checks all 51 products.
 
 **Step 4: Open Food Facts lookup.** Barcodes outside the 51 featured products get real product data and the same scoring.
 
@@ -79,7 +81,8 @@ persistent favorites, cleanup, then accounts and rate limiting before going publ
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–2 are done; the repo is on `main`; my
-> Supabase project is `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
-> Do roadmap step 3: trustworthy safety analysis. Keep each change small, commit each one, verify it in the
-> running app, and leave one committed check that no product gets a false high-risk label.
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–3 are done; my Supabase project is
+> `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
+> Do roadmap step 4 (M2): Open Food Facts lookup for barcodes outside the 51 featured products, analysed by the
+> same safety engine (`src/lib/safety`). Keep each change small, commit each one, verify it in the running app,
+> and keep `npm test` green.

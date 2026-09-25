@@ -17,12 +17,13 @@
   owner requirements.** Its "previous session security fixes" were never in the code (ChatGPT's private sandbox copy).
   The owner's actual goals are still to be captured (see open questions).
 
-- **Phase:** Prototype stabilization. Steps 0–2 are done; next is step 3 (ingredient analysis). See the KNOWN_ISSUES.md roadmap.
+- **Phase:** M0 cleanup and M1 safety engine done; next is M2 (Open Food Facts lookup). See the KNOWN_ISSUES.md roadmap.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
-- **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), weighted scores computed by
-  `scoring.ts`, realtime catalog updates, scans saved to `scan_events`, ingredient explorer (buggy), Leaflet map of
-  18 Chicago resources, simulated barcode scan, in-memory favorites.
-- **What's fake:** "AI" evaluations, the camera scanner, Home recommendations and deals, Profile, Sign In, Lists, Share, Call.
+- **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), an ingredient safety
+  verdict computed by the safety engine (`src/lib/safety`, sourced library, `npm test` over all 51 products), realtime
+  catalog updates, scans saved to `scan_events`, Leaflet map of 18 Chicago resources, simulated barcode scan,
+  in-memory favorites.
+- **What's fake:** the camera scanner, Home recommendations (place "Rating" numbers and their reasons are invented) and deals, Profile, Sign In, Lists, Share, Call.
 - **Backend:** Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free). There are 5 normalized tables
   with RLS and explicit grants, and the schema lives in `supabase/migrations/`. The browser reads the catalog and can only
   insert scans. There is no edge function. The old Figma project is retired (decision 008).
