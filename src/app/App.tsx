@@ -5,13 +5,12 @@ import NewMapTab from "./components/MapTab";
 import NewProductDetailScreen from "./components/ProductDetailScreen";
 import NewScanTab from "./components/ScanTab";
 import { PRODUCTS as CSV_PRODUCTS, type Product as CsvProduct } from "../lib/productImporter";
-import { scoreColorHex, gradeBadgeClass, gradeToVerdict } from "../lib/scoring";
+import { scoreColorHex, gradeBadgeClass } from "../lib/scoring";
 import {
   Home, Map, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
-  Share2, Bookmark, Shield, DollarSign, Star, AlertTriangle, CheckCircle,
-  ShoppingBag, Leaf, Zap, Package, Shirt, Bike, Building2, Wifi, Utensils,
-  Clock, Phone, X, Plus, Bell, Moon, QrCode, Award, Settings, Sparkles,
-  TrendingUp, MapPin
+  Bookmark, Shield, DollarSign, Star, AlertTriangle, CheckCircle,
+  ShoppingBag, Leaf, Package, Shirt, Bike, Building2, Wifi, Utensils,
+  Plus, Bell, Moon, QrCode, Award, Settings, Sparkles, MapPin
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -22,7 +21,7 @@ type SubScreen = "search-results" | "product-detail" | null;
 
 interface Resource {
   id: number; name: string; type: ResourceType; address: string;
-  hours: string; phone?: string | null; description: string; x: number; y: number;
+  hours: string; phone?: string | null; description: string;
 }
 // Re-export the canonical Product type from the import pipeline so the rest of
 // the file can use it without a separate import statement.
@@ -40,18 +39,18 @@ const CAT: Record<ResourceType, { label: string; fill: string; bg: string; text:
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 const RESOURCES: Resource[] = [
-  { id: 1,  name: "Community Food Pantry",   type: "food-bank",   address: "142 Oak Street",       hours: "Mon–Fri 9am–5pm",      phone: "(555) 234-5678", description: "Hot meals and dry goods. No ID required.", x: 78,  y: 144 },
-  { id: 2,  name: "Second Harvest Hub",      type: "food-bank",   address: "389 Maple Avenue",     hours: "Daily 8am–7pm",        phone: "(555) 876-5432", description: "Fresh produce and pantry staples. 200+ families weekly.", x: 568, y: 222 },
-  { id: 3,  name: "Goodwill Drop-Off",       type: "donation",    address: "55 Central Boulevard", hours: "Mon–Sat 8am–8pm",      phone: "(555) 345-6789", description: "Clothing, furniture, electronics. Tax receipt provided.", x: 372, y: 66  },
-  { id: 4,  name: "Habitat ReStore",         type: "donation",    address: "201 Pine Road",        hours: "Tue–Sat 9am–6pm",      phone: "(555) 456-7890", description: "Home improvement items and appliances.", x: 176, y: 378 },
-  { id: 5,  name: "Winter Warmth Drive",     type: "clothing",    address: "78 Elm Street",        hours: "Wed–Sun 10am–4pm",     phone: "(555) 567-8901", description: "Coats, hats, and warm clothing for all ages.", x: 470, y: 144 },
-  { id: 6,  name: "Thread & Share Co-op",    type: "clothing",    address: "315 Birch Way",        hours: "Mon, Wed, Fri 12–6pm", phone: "(555) 678-9012", description: "Free clothing exchange — take what you need.", x: 666, y: 66  },
-  { id: 7,  name: "Community Bike Shop",     type: "bike-repair", address: "92 River Drive",       hours: "Sat–Sun 10am–3pm",     phone: "(555) 789-0123", description: "Free repairs, tire changes, and safety checks.", x: 78,  y: 222 },
-  { id: 8,  name: "Pedal Forward Workshop",  type: "bike-repair", address: "420 Lake Avenue",      hours: "Tue, Thu 4pm–8pm",     phone: "(555) 890-1234", description: "DIY repair station with tools and spare parts.", x: 470, y: 300 },
-  { id: 9,  name: "City Hall Restrooms",     type: "restroom",    address: "1 Civic Plaza",        hours: "Mon–Fri 7am–9pm",      phone: null,             description: "Clean, accessible public restrooms. ADA compliant.", x: 372, y: 222 },
-  { id: 10, name: "Central Park Facilities", type: "restroom",    address: "Park Boulevard",       hours: "Daily 6am–10pm",       phone: null,             description: "Restrooms and water fountains throughout the park.", x: 225, y: 261 },
-  { id: 11, name: "Public Library WiFi",     type: "wifi",        address: "250 Knowledge Drive",  hours: "Mon–Sat 8am–8pm",      phone: "(555) 901-2345", description: "High-speed internet. Computers available.", x: 666, y: 222 },
-  { id: 12, name: "Community Center WiFi",   type: "wifi",        address: "88 Unity Avenue",      hours: "Daily 7am–11pm",       phone: "(555) 012-3456", description: "Free WiFi, charging stations, and computer terminals.", x: 470, y: 222 },
+  { id: 1,  name: "Community Food Pantry",   type: "food-bank",   address: "142 Oak Street",       hours: "Mon–Fri 9am–5pm",      phone: "(555) 234-5678", description: "Hot meals and dry goods. No ID required." },
+  { id: 2,  name: "Second Harvest Hub",      type: "food-bank",   address: "389 Maple Avenue",     hours: "Daily 8am–7pm",        phone: "(555) 876-5432", description: "Fresh produce and pantry staples. 200+ families weekly." },
+  { id: 3,  name: "Goodwill Drop-Off",       type: "donation",    address: "55 Central Boulevard", hours: "Mon–Sat 8am–8pm",      phone: "(555) 345-6789", description: "Clothing, furniture, electronics. Tax receipt provided." },
+  { id: 4,  name: "Habitat ReStore",         type: "donation",    address: "201 Pine Road",        hours: "Tue–Sat 9am–6pm",      phone: "(555) 456-7890", description: "Home improvement items and appliances." },
+  { id: 5,  name: "Winter Warmth Drive",     type: "clothing",    address: "78 Elm Street",        hours: "Wed–Sun 10am–4pm",     phone: "(555) 567-8901", description: "Coats, hats, and warm clothing for all ages." },
+  { id: 6,  name: "Thread & Share Co-op",    type: "clothing",    address: "315 Birch Way",        hours: "Mon, Wed, Fri 12–6pm", phone: "(555) 678-9012", description: "Free clothing exchange — take what you need." },
+  { id: 7,  name: "Community Bike Shop",     type: "bike-repair", address: "92 River Drive",       hours: "Sat–Sun 10am–3pm",     phone: "(555) 789-0123", description: "Free repairs, tire changes, and safety checks." },
+  { id: 8,  name: "Pedal Forward Workshop",  type: "bike-repair", address: "420 Lake Avenue",      hours: "Tue, Thu 4pm–8pm",     phone: "(555) 890-1234", description: "DIY repair station with tools and spare parts." },
+  { id: 9,  name: "City Hall Restrooms",     type: "restroom",    address: "1 Civic Plaza",        hours: "Mon–Fri 7am–9pm",      phone: null,             description: "Clean, accessible public restrooms. ADA compliant." },
+  { id: 10, name: "Central Park Facilities", type: "restroom",    address: "Park Boulevard",       hours: "Daily 6am–10pm",       phone: null,             description: "Restrooms and water fountains throughout the park." },
+  { id: 11, name: "Public Library WiFi",     type: "wifi",        address: "250 Knowledge Drive",  hours: "Mon–Sat 8am–8pm",      phone: "(555) 901-2345", description: "High-speed internet. Computers available." },
+  { id: 12, name: "Community Center WiFi",   type: "wifi",        address: "88 Unity Avenue",      hours: "Daily 7am–11pm",       phone: "(555) 012-3456", description: "Free WiFi, charging stations, and computer terminals." },
 ];
 
 // Bundled CSV catalog: shown until Supabase answers, and kept as the offline
@@ -60,7 +59,7 @@ const PRODUCTS: Product[] = CSV_PRODUCTS;
 
 // ── DB row → app type mapper ──────────────────────────────────────────────────
 function rowToResource(r: any) {
-  return { id: r.id, name: r.name, type: r.type as ResourceType, address: r.address ?? "", hours: r.hours ?? "", phone: r.phone ?? null, description: r.description ?? "", x: r.x ?? 0, y: r.y ?? 0 };
+  return { id: r.id, name: r.name, type: r.type as ResourceType, address: r.address ?? "", hours: r.hours ?? "", phone: r.phone ?? null, description: r.description ?? "" };
 }
 
 
@@ -80,74 +79,7 @@ const DEALS = [
 // ── Score helpers (delegate to scoring.ts) ────────────────────────────────────
 const scoreColor  = (s: number) => scoreColorHex(s);
 const ethicalBadge = (g: string) => gradeBadgeClass(g);
-const ethicalLabel  = (g: string) => gradeToVerdict(g);
 const bestPrice     = (p: Product) => Math.min(p.amazon?.price ?? 9999, p.walmart?.price ?? 9999, p.facebook?.price ?? 9999);
-
-// ── SVG City Map ─────────────────────────────────────────────────────────────
-const BW = 90, BH = 70, SG = 8, OX = 33, OY = 31;
-const PARKS = new Set(["1-2", "1-3", "2-2", "2-3"]);
-const WATER = new Set(["5-3", "6-3", "6-4"]);
-const CIVIC = new Set(["3-2"]);
-
-function CityMap({ resources, filters, selectedId, onSelect }: {
-  resources: Resource[]; filters: ResourceType[]; selectedId: number | null; onSelect: (id: number) => void;
-}) {
-  return (
-    <svg viewBox="0 0 760 460" style={{ width: "100%", height: "100%", display: "block" }}>
-      <rect width="760" height="460" fill="#C4B89E" />
-      {Array.from({ length: 5 }, (_, r) => Array.from({ length: 7 }, (_, c) => {
-        const key = `${c}-${r}`;
-        return <rect key={key} x={OX + c * (BW + SG)} y={OY + r * (BH + SG)} width={BW} height={BH}
-          fill={WATER.has(key) ? "#8BBDD4" : PARKS.has(key) ? "#8DB87A" : CIVIC.has(key) ? "#C4B08C" : "#D6CABB"} rx={1} />;
-      }))}
-      <text x="225" y="265" textAnchor="middle" fontSize="7" fill="#4A6741" fontStyle="italic" letterSpacing="1" fontFamily="DM Mono, monospace">GREENWAY PARK</text>
-      <text x="625" y="345" textAnchor="middle" fontSize="7" fill="#3A7CA5" fontStyle="italic" letterSpacing="1" fontFamily="DM Mono, monospace">RIVER</text>
-      <text x={OX + 3 * (BW + SG) + BW / 2} y={OY + 2 * (BH + SG) + BH / 2 + 3} textAnchor="middle" fontSize="6.5" fill="#6B5B3A" letterSpacing="1" fontFamily="DM Mono, monospace">CITY HALL</text>
-      {resources.filter(r => filters.includes(r.type)).map(r => {
-        const cat = CAT[r.type];
-        const sel = selectedId === r.id;
-        return (
-          <g key={r.id} onClick={() => onSelect(r.id)} style={{ cursor: "pointer" }}>
-            {sel && <circle cx={r.x} cy={r.y} r={20} fill={cat.fill} opacity={0.25} />}
-            <circle cx={r.x} cy={r.y} r={sel ? 13 : 10} fill={cat.fill} stroke="white" strokeWidth={sel ? 3 : 1.5} />
-            <text x={r.x} y={r.y + 0.5} textAnchor="middle" dominantBaseline="middle" fontSize={sel ? 8 : 7} fill="white" fontWeight="700" fontFamily="sans-serif">{cat.letter}</text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// ── Score Ring ────────────────────────────────────────────────────────────────
-function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
-  const r = (size - 14) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (score / 100) * circ;
-  const color = scoreColor(score);
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E5E7EB" strokeWidth={10} />
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={10}
-        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-      <text x={size / 2} y={size / 2 + 1} textAnchor="middle" dominantBaseline="middle"
-        fontSize={size * 0.24} fontWeight="800" fill={color} fontFamily="DM Mono, monospace">{score}</text>
-    </svg>
-  );
-}
-
-function ScoreBar({ label, score }: { label: string; score: number }) {
-  const color = scoreColor(score);
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[11px] text-muted-foreground w-24 flex-shrink-0 leading-tight">{label}</span>
-      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${score}%`, background: color }} />
-      </div>
-      <span className="text-[11px] font-bold w-6 text-right font-mono" style={{ color }}>{score}</span>
-    </div>
-  );
-}
 
 // ── Status Bar ────────────────────────────────────────────────────────────────
 function StatusBar({ light = false }: { light?: boolean }) {
@@ -714,94 +646,6 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
 
 // ProductDetailScreen is now in ./components/ProductDetailScreen.tsx
 const ProductDetailScreen = NewProductDetailScreen;
-
-// ── Map Tab ───────────────────────────────────────────────────────────────────
-function MapTab({ selectedId, setSelectedId, filters, setFilters, resources }: {
-  selectedId: number | null; setSelectedId: (id: number | null) => void;
-  filters: ResourceType[]; setFilters: (fn: (p: ResourceType[]) => ResourceType[]) => void;
-  resources: Resource[];
-}) {
-  const sel = resources.find(r => r.id === selectedId);
-  const visible = resources.filter(r => filters.includes(r.type));
-
-  return (
-    <div className="h-full relative overflow-hidden">
-      <div className="absolute inset-0">
-        <CityMap resources={resources} filters={filters} selectedId={selectedId} onSelect={(id) => setSelectedId(id === selectedId ? null : id)} />
-      </div>
-
-      {/* Filter chips */}
-      <div className="absolute top-3 left-0 right-0 px-3">
-        <div className="flex gap-2 overflow-x-auto py-1" style={{ scrollbarWidth: "none" }}>
-          {(Object.entries(CAT) as [ResourceType, typeof CAT[ResourceType]][]).map(([type, cfg]) => {
-            const active = filters.includes(type);
-            return (
-              <button key={type}
-                onClick={() => setFilters(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type])}
-                className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-bold shadow-lg backdrop-blur-sm transition-all ${active ? `${cfg.bg} ${cfg.text}` : "bg-white/90 text-gray-600"}`}>
-                <cfg.Icon size={9} />
-                {cfg.label.split(" ")[0]}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Bottom sheet */}
-      <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-2xl">
-        {sel ? (
-          <div className="p-4">
-            <div className="w-8 h-1 bg-gray-200 rounded-full mx-auto mb-3" />
-            <div className="flex items-start gap-3">
-              {(() => { const SelIcon = CAT[sel.type].Icon; return (
-              <div className={`w-10 h-10 rounded-xl ${CAT[sel.type].bg} flex items-center justify-center flex-shrink-0`}>
-                <SelIcon size={16} className={CAT[sel.type].text} />
-              </div>
-              ); })()}
-              <div className="flex-1 min-w-0">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{CAT[sel.type].label}</span>
-                <h3 className="font-bold text-base leading-tight">{sel.name}</h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{sel.address}</p>
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5"><Clock size={9} />{sel.hours}</p>
-                <p className="text-xs text-foreground mt-1.5 leading-snug">{sel.description}</p>
-              </div>
-              <button onClick={() => setSelectedId(null)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <X size={12} />
-              </button>
-            </div>
-            {sel.phone && (
-              <button className="w-full mt-3 py-3 bg-primary text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
-                <Phone size={13} /> Call {sel.phone}
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="p-4">
-            <div className="w-8 h-1 bg-gray-200 rounded-full mx-auto mb-3" />
-            <h3 className="font-bold text-sm mb-2.5">{visible.length} Nearby Resources</h3>
-            <div className="space-y-2 max-h-40 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
-              {visible.slice(0, 5).map(r => (
-                <button key={r.id} onClick={() => setSelectedId(r.id)}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted transition-colors text-left">
-                  {(() => { const RIcon = CAT[r.type].Icon; return (
-                  <div className={`w-8 h-8 rounded-xl ${CAT[r.type].bg} flex items-center justify-center flex-shrink-0`}>
-                    <RIcon size={13} className={CAT[r.type].text} />
-                  </div>
-                  ); })()}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold truncate">{r.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{r.address}</p>
-                  </div>
-                  <ChevronRight size={12} className="text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ScanTab is now in ./components/ScanTab.tsx
 const ScanTab = NewScanTab;
