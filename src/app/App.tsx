@@ -5,10 +5,12 @@ import NewMapTab from "./components/MapTab";
 import NewProductDetailScreen from "./components/ProductDetailScreen";
 import NewScanTab from "./components/ScanTab";
 import { PRODUCTS as CSV_PRODUCTS, type Product as CsvProduct } from "../lib/productImporter";
-import { scoreColorHex, gradeBadgeClass } from "../lib/scoring";
+import { scoreColorHex } from "../lib/scoring";
+import { VERDICT_RANK } from "../lib/safety/analyze";
+import { VERDICT_STYLE, safeAnalyze } from "./components/verdict";
 import {
   Home, Map, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
-  Bookmark, Shield, DollarSign, Star, AlertTriangle, CheckCircle,
+  Bookmark, Shield, DollarSign, Star, CheckCircle,
   ShoppingBag, Leaf, Package, Shirt, Bike, Building2, Wifi, Utensils,
   Plus, Bell, Moon, QrCode, Award, Settings, Sparkles, MapPin
 } from "lucide-react";
@@ -78,7 +80,6 @@ const DEALS = [
 // ── Helpers ──────────────────────────────────────────────────────────────────
 // ── Score helpers (delegate to scoring.ts) ────────────────────────────────────
 const scoreColor  = (s: number) => scoreColorHex(s);
-const ethicalBadge = (g: string) => gradeBadgeClass(g);
 const bestPrice     = (p: Product) => Math.min(p.amazon?.price ?? 9999, p.walmart?.price ?? 9999, p.facebook?.price ?? 9999);
 
 // ── Status Bar ────────────────────────────────────────────────────────────────
@@ -372,13 +373,12 @@ function RecommendationSection({ title, emoji, items, threshold, onWhyClick }: {
 // ── Product Card (mini) ───────────────────────────────────────────────────────
 function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Product) => void }) {
   const bp = bestPrice(product);
-  const bg = product.safetyScore >= 80 ? "#DCFCE7" : product.safetyScore >= 60 ? "#FEF3C7" : "#FEE2E2";
-  const ic = product.safetyScore >= 80 ? "#15803D" : product.safetyScore >= 60 ? "#D97706" : "#DC2626";
+  const look = VERDICT_STYLE[safeAnalyze(product).verdict];
   return (
     <button onClick={() => onSelect(product)}
       className="w-full bg-card border border-border rounded-2xl p-3.5 text-left shadow-sm flex items-center gap-3 active:scale-98 transition-transform">
-      <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
-        <ShoppingBag size={24} style={{ color: ic }} />
+      <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: look.bg }}>
+        <ShoppingBag size={24} style={{ color: look.color }} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-muted-foreground font-medium">{product.brand}</p>
@@ -388,10 +388,9 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
           <span className="text-[10px] text-muted-foreground">best price</span>
         </div>
       </div>
-      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-        <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${ethicalBadge(product.ethicalScore)}`}>{product.ethicalScore}</span>
-        <span className="text-xs font-bold font-mono" style={{ color: scoreColor(product.safetyScore) }}>{product.safetyScore}%</span>
-        {product.flaggedIngredients.length > 0 && <AlertTriangle size={11} className="text-red-500" />}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span className="w-2 h-2 rounded-full" style={{ background: look.color }} />
+        <span className="text-[10px] font-bold" style={{ color: look.color }}>{look.short}</span>
       </div>
     </button>
   );
@@ -585,17 +584,18 @@ function HomeTab({ onSearch, onSelectProduct, onGoMap, products, resources }: {
 function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
   query: string; onBack: () => void; onSelectProduct: (p: Product) => void; products: Product[];
 }) {
-  const [sortBy, setSortBy] = useState<"health" | "price" | "ethics">("health");
+  const [sortBy, setSortBy] = useState<"concerns" | "price">("concerns");
   const q = query.toLowerCase();
   const raw = products.filter(p =>
     p.keywords.some(k => q.includes(k) || k.includes(q.split(" ")[0])) ||
     p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
   );
-  const results = [...raw].sort((a, b) => {
-    if (sortBy === "price") return bestPrice(a) - bestPrice(b);
-    if (sortBy === "health") return b.safetyScore - a.safetyScore;
-    return a.ethicalScore.localeCompare(b.ethicalScore);
-  });
+  const results = raw
+    .map(p => ({ p, a: safeAnalyze(p) }))
+    .sort((x, y) => sortBy === "price"
+      ? bestPrice(x.p) - bestPrice(y.p)
+      : VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict] || x.a.flags.length - y.a.flags.length)
+    .map(({ p }) => p);
   const isEmpty = results.length === 0;
 
   return (
@@ -613,10 +613,10 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
       {!isEmpty && (
         <div className="px-4 py-2 flex items-center gap-2 border-b border-border">
           <span className="text-xs text-muted-foreground font-medium">Sort:</span>
-          {(["health", "price", "ethics"] as const).map(s => (
-            <button key={s} onClick={() => setSortBy(s)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sortBy === s ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
+          {([["concerns", "Fewest concerns"], ["price", "Price"]] as const).map(([key, label]) => (
+            <button key={key} onClick={() => setSortBy(key)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sortBy === key ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
+              {label}
             </button>
           ))}
           <span className="ml-auto text-xs text-muted-foreground">{results.length} found</span>
@@ -956,11 +956,13 @@ export default function App() {
               )}
               {subScreen === "product-detail" && selectedProduct && (
                 <ProductDetailScreen
+                  key={selectedProduct.id}
                   product={selectedProduct}
                   onBack={() => setSubScreen(null)}
                   saved={savedIds.includes(selectedProduct.id)}
                   onToggleSave={toggleSave}
                   products={products}
+                  onSelectProduct={openProduct}
                 />
               )}
             </div>
