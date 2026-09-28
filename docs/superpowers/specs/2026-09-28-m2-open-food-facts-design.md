@@ -29,6 +29,7 @@ or estimated is presented as official.
 | D5 | A scan found on OFF is logged as an unknown barcode (`product_id` null) | recommended default |
 | D6 | Demo picker gains real non-catalog barcodes plus a "type a barcode" field | recommended default |
 | D7 | Gerber Puffs moves to a new food category "Baby Food" (it's baby cereal food, currently skipped as non-food) | recommended default |
+| D8 | Nutrition shows only for products looked up on OFF, not for catalog products (amended 2026-09-28: live checks showed catalog barcodes belong to other products on OFF — Doritos' barcode is Tostitos, Oreo's is Wheat Thins) | planning finding |
 
 ## 3. Facts this design rests on (verified 2026-09-28, second-agent checked)
 
@@ -114,8 +115,8 @@ ScanTab ──(catalog miss)──► lib/off.ts fetchOffProduct(code) ──►
        ingredients, 3 processed foods, 4 ultra-processed foods).
      - Caption: "Calculated by Open Food Facts (Nutri-Score 2023 method, not a US label). NOVA group estimated by Open
        Food Facts from ingredients; experimental." It links to the OFF product page.
-     - Catalog products load it lazily via `fetchOffProduct(p.barcode)`. A 404 or error shows "Nutrition data not
-       available" with no retry loop.
+     - Shown only when `p.off` is set (D8). Catalog products show no nutrition section until their barcodes are
+       verified (KNOWN_ISSUES K-29).
    - **OFF products:** the header note "Product data from Open Food Facts (crowd-sourced) · view on Open Food Facts",
      plus the footer "Data © Open Food Facts contributors, ODbL". When `ingredientsLang !== "en"`: "Ingredients are
      listed in {language}; additive codes were checked, ingredient names may be missed." There are no prices and no
@@ -143,7 +144,7 @@ ScanTab ──(catalog miss)──► lib/off.ts fetchOffProduct(code) ──►
 | Found but no name and no ingredients | Not found |
 | Found, name but no ingredients | Product page with verdict "Not enough data"; nutrition and cooking note still shown if data exists |
 | Non-English ingredients only | Analyze the text plus additive codes; show the language note |
-| Catalog product with a fake or unknown barcode | Nutrition "not available", one request per session |
+| Catalog product | No OFF request and no nutrition section (D8) |
 | Engine throws | Existing `safeAnalyze` fallback ("Not enough data") |
 
 ## 6. Testing
@@ -167,7 +168,7 @@ ScanTab ──(catalog miss)──► lib/off.ts fetchOffProduct(code) ──►
   - Nutella shows English ingredients and nutrition E / NOVA 4.
   - Coke Zero is amber (aspartame via code).
   - `3017620429996` shows not found; typing a barcode works.
-  - Lay's shows the cooking note and nutrition; Doritos has no cooking note; Tide has neither.
+  - Lay's shows the cooking note (no nutrition, per D8); Doritos has no cooking note; Tide has neither.
   - Offline gives the error state.
   - No console errors.
 
