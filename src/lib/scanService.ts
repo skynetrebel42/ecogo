@@ -4,8 +4,8 @@
 // Responsibilities:
 //   1. Look up a scanned barcode against the local product database.
 //   2. Record every scan event (product found or not) in the `scan_events` table.
-//   3. Unrecognised barcodes are recorded with product_id = null, which makes
-//      them the review queue for growing the catalog.
+//   3. Barcodes not in the catalog (looked up in USDA / Open Food Facts, or not
+//      found at all) are recorded with product_id = null.
 //
 // Supabase storage: browsers may only INSERT scans (see supabase/migrations);
 // scan history can never be read back by clients, and locations are rounded
@@ -14,6 +14,7 @@
 
 import { supabase } from "./supabase";
 import type { Product } from "./productImporter";
+import { sameBarcode } from "./lookup";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,27 +62,9 @@ export function getCurrentLocation(): Promise<{ lat: number; lng: number } | nul
 
 // ─── Barcode Lookup ───────────────────────────────────────────────────────────
 
-/**
- * Look up a scanned barcode in the local product array.
- *
- * Matching rules (in priority order):
- *   1. Exact match on `product.barcode`
- *   2. Case-insensitive match after trimming whitespace
- *
- * Returns null when no product matches — the caller should then call
- * `createPlaceholder()` to queue the barcode for later review.
- */
-export function findProductByBarcode(
-  barcode: string,
-  products: Product[]
-): Product | null {
-  if (!barcode?.trim()) return null;
-  const normalised = barcode.trim();
-  return (
-    products.find((p) => p.barcode === normalised) ??
-    products.find((p) => p.barcode.toLowerCase() === normalised.toLowerCase()) ??
-    null
-  );
+/** Look up a barcode in the catalog: same digits, ignoring spaces, dashes and leading zeros (12- vs 13/14-digit forms). */
+export function findProductByBarcode(barcode: string, products: Product[]): Product | null {
+  return products.find((p) => sameBarcode(p.barcode, barcode)) ?? null;
 }
 
 /**

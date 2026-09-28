@@ -834,6 +834,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [savedIds, setSavedIds] = useState<number[]>([3, 5]);
   const [scannedIds, setScannedIds] = useState<number[]>([2, 6]);
+  // Products looked up in USDA / Open Food Facts this session (not in the catalog; negative ids).
+  const [lookedUp, setLookedUp] = useState<Product[]>([]);
 
 
   // ── Live data from Supabase ──────────────────────────────────────────────
@@ -934,10 +936,14 @@ export default function App() {
                   {activeTab === "scan"    && (
                     <ScanTab
                       products={products}
-                      onScanResult={(p) => { setScannedIds(prev => prev.includes(p.id) ? prev : [...prev, p.id]); openProduct(p); }}
+                      onScanResult={(p) => {
+                        if (p.source) setLookedUp(prev => prev.some(x => x.id === p.id) ? prev : [...prev, p]);
+                        setScannedIds(prev => prev.includes(p.id) ? prev : [...prev, p.id]);
+                        openProduct(p);
+                      }}
                     />
                   )}
-                  {activeTab === "saved"   && <SavedTab savedIds={savedIds} scannedIds={scannedIds} onSelectProduct={openProduct} products={products} />}
+                  {activeTab === "saved"   && <SavedTab savedIds={savedIds} scannedIds={scannedIds} onSelectProduct={openProduct} products={[...products, ...lookedUp]} />}
                   {activeTab === "profile" && <ProfileTab />}
                 </div>
               )}
