@@ -51,11 +51,12 @@
 | **K-10** ✔ | A DB resource whose `type` isn't one of the 6 `CAT` keys crashes HomeTab (`cat.bg` of undefined), and with **no error boundary** the whole app goes blank. Still latent after step 2: the `resources` table allows the Map's 12 types, and Home shows the first 5 by id (currently all within App's 6). | `App.tsx` `rowToResource`, `HomeTab`; `main.tsx` |
 | **K-11** ✔ | *Partly fixed in step 2:* "Live" now appears only when catalog rows actually arrive (an empty result counts as offline). **Remaining:** "Offline — showing *cached* data" is inaccurate, because it's bundled data, not a cache. | `App.tsx` offline banner |
 | **K-12** ✔ | A scan waits on geolocation. The 4 s `timeout` doesn't cover the permission prompt, so the scanner can hang in "scanning". There is no try/finally, so any throw also leaves it stuck. | `ScanTab.tsx:107`; `scanService.ts:86,111` |
-| **K-13** ✔ | The unknown-barcode screen always says "We've saved it for review", even when the insert failed. The `error` scan state is declared and never set. | `ScanTab.tsx:174,210` |
+| ~~**K-13**~~ ✅ | **Fixed in M2 (`69b7f68`).** The not-found screen now says "We couldn't find this barcode yet" (no review-queue claim), and the `error` state is used for unreachable lookups. *Original issue:* The unknown-barcode screen always says "We've saved it for review", even when the insert failed. The `error` scan state is declared and never set. | `ScanTab.tsx` |
 | **K-14** ✔ | The "Why Recommended?" modal is positioned inside the scrolling Home container, so for lower sections it opens off-screen. (Verifier-found; not runtime-checked.) | `App.tsx:543` |
 | **K-15** ▶✔ | Today's Deals cards open unrelated products (the Seventh Gen. deal opens KIND bars), and "See all" searches the literal word "deals" → "No results". | `App.tsx:626-650` |
 | **K-16** ▶✔ | Favorites and Scanned live only in React state, pre-seeded with fake ids `[3,5]`/`[2,6]`, and are lost on reload. Profile's "34 products scanned" and other stats are hardcoded and contradict the app's state. | `App.tsx:1024-1025`, `906` |
 | **K-17** ✔ | *Reframed by step 2 (now by design):* the database is the source of truth, and `products.csv` is only the offline fallback and seed source. Editing the CSV changes offline mode but **not** the live catalog. Change products in the Supabase dashboard or with a new migration, and keep the CSV in sync if the offline view matters. | `src/lib/catalog.ts`, `App.tsx` `PRODUCTS` |
+| K-29 | The Figma export invented the catalog barcodes: 49 of 51 match nothing in USDA FoodData Central (checked 2026-09-28), so scanning the real package opens the USDA record instead of our featured page (correct data, but no prices). Doritos and Oreo, whose codes belonged to other products, were fixed in M2. Fix: when a product's real package is in hand, replace its barcode (one migration per batch). | products.csv, DB |
 
 ### Low
 
@@ -118,10 +119,12 @@ food and drinks first. Each step is small and verified in the running app before
    flagged ingredients with their sources, lists show the same verdict, and "SmartScore™"/AI labels are gone. `npm test`
    checks all 51 products against hand-reviewed flags; `npm run verify:sources` re-checks the quotes. Fixes K-02, K-03,
    K-08, K-09; K-18 moot. Design: `docs/superpowers/specs/2026-09-24-safety-engine-design.md`.
-4. **Open Food Facts lookup.** Any barcode not in the 51 featured products is fetched from Open Food Facts (free,
-   no key, food) and scored by the same engine; not-found barcodes still go to the review queue. This is testable before
-   the camera exists, using the demo barcode picker. Open Food Facts also lists additive codes (`additives_tags`, e.g.
-   `en:e250`); add that input to `analyzeIngredients` here (it was removed before M2 as unused).
+4. ✅ **Product lookup (USDA first, Open Food Facts fallback): done 2026-09-28** (`0af39f3`…`69b7f68`, plus the docs
+   commit). Any barcode not in the 51 featured products is looked up in USDA FoodData Central (manufacturer label data),
+   then Open Food Facts (crowd-sourced, labelled), and gets the same ingredient check; Open Food Facts additive codes
+   (`en:e951`) are checked too. Every looked-up product page says where its data came from. The not-found screen is
+   honest (K-13), unreachable sources show "Couldn't reach…" with Try again, and the Doritos/Oreo barcodes that opened
+   other products were replaced. Design: `docs/superpowers/specs/2026-09-28-m2-usda-lookup-design.md`.
 5. **Deploy + public repo.** Create a public GitHub repo and free hosting (e.g. Vercel/Netlify). This gives the HTTPS a
    phone needs to open the camera, so step 6 can be tested on a real phone.
 6. **Real camera scanning + mobile layout (done-criterion 1).** Use a JS barcode library that works on iPhone Safari,
@@ -134,4 +137,7 @@ food and drinks first. Each step is small and verified in the running app before
   Chicago pins off-screen, so it's one step.
 - Persist favorites (K-16); search improvements (K-20); a quick UX batch (K-10, K-11, K-15).
 - Extract `App.tsx` pieces one commit at a time (dead code and unused deps were removed in M0).
-- Before going public: accounts (S-06), scan rate limiting (S-04), final docs.
+- Acrylamide cooking note, Nutri-Score/NOVA and Baby Food category (deferred from M2; verified sources in
+  `specs/2026-09-28-m2-open-food-facts-design.md`).
+- Before going public: accounts (S-06), scan rate limiting (S-04), final docs; set `VITE_FDC_API_KEY` on the host; put
+  the public repo URL in Open Food Facts' `X-User-Agent`.

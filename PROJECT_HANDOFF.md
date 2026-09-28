@@ -17,7 +17,7 @@
   owner requirements.** Its "previous session security fixes" were never in the code (ChatGPT's private sandbox copy).
   The owner's actual goals are still to be captured (see open questions).
 
-- **Phase:** M0 cleanup and M1 safety engine done; next is M2 (Open Food Facts lookup). See the KNOWN_ISSUES.md roadmap.
+- **Phase:** M2 (product lookup) done; next is M3 (deploy + public repo). See the KNOWN_ISSUES.md roadmap.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), an ingredient safety
   verdict computed by the safety engine (`src/lib/safety`, sourced library, `npm test` over all 51 products), realtime
@@ -40,7 +40,7 @@ These override anything in the AI-written planning docs.
 | Core value | **Product safety** and **barcode scanning**. Everything else (prices, map, lists, profile) comes later |
 | Prototype "done" means | **1) Scan a real product with a phone camera → product page. 2) A trustworthy safety score** (no false alarms) |
 | Scan devices | All: iPhone, Android and laptop webcam, so use a JS scanning library (Safari has no built-in barcode reader) |
-| Product data | The 51 curated products stay as "featured"; any other barcode is looked up in **Open Food Facts** (free, no key) |
+| Product data | Curated 51 stay as featured; any other barcode is looked up in **USDA FoodData Central** (official manufacturer label data), then **Open Food Facts** (crowd-sourced, labelled) |
 | Safety score | **Computed from ingredients** with transparent rules, the same engine for curated and Open Food Facts products |
 | Product types first | **Food & drinks** |
 | Delivery | **Deployed website** (free hosting, HTTPS) and a **public GitHub repo** |
@@ -99,6 +99,7 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 013 | Scan locations are rounded to 3 decimals (~100 m), and scans are insert-only for clients | Privacy (earlier audit S-03) | **Superseded by 014** |
 | 014 | Scans are saved **without** location (owner goal) | Location isn't needed for the core scan → safety flow | **To do** in roadmap step 6 (stop sending coords, drop the columns in a new migration) |
 | 015 | Prototype "done" = real camera scan → product page with a trustworthy, ingredient-computed safety score; free tier only | Owner goals 2026-09-23 | Active: drives the roadmap |
+| 016 | USDA FoodData Central is the primary lookup, Open Food Facts a labelled fallback | Owner wants a diverse lineup from a trustworthy US source; OFF is crowd-sourced and worldwide | **Done** (M2) |
 
 ## Open questions only the owner can answer
 
@@ -120,3 +121,6 @@ The Supabase URL and publishable key come from `.env` (committed; public by desi
 catalog; only scans are inserted. If Supabase is unreachable, the app falls back to the bundled CSV and shows
 "Offline". To point at a different Supabase project, apply `supabase/migrations/` there in order and override
 the two variables in a gitignored `.env.local`.
+
+Barcode lookup: create `.env.local` with `VITE_FDC_API_KEY=<free key from https://fdc.nal.usda.gov/api-key-signup>`;
+without it the app uses USDA's `DEMO_KEY` (30 lookups/hour). Restart `npm run dev` after changing it.

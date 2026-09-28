@@ -14,7 +14,7 @@ Figma Make. After a welcome screen and a 3-slide onboarding it has five tabs:
 |---|---|
 | **Home** | Hardcoded "Alex", 15 hardcoded Chicago recommendations with a SmartScore filter, 3 fake deals, a product search box, and the first 5 community resources (from the database). |
 | **Map** | A real Leaflet/OpenStreetMap map of **18 Chicago resources** drawn from `MapTab.tsx` `BASE_RESOURCES`. The database overrides only name, hours, phone and description by id, even though the `resources` table now also holds coordinates. |
-| **Scan** | **Simulated.** You pick one of 16 demo barcodes and tap Scan. There is no camera and no decoder. The barcode is matched against the loaded catalog, and each scan is **saved to the `scan_events` table** (location rounded to ~100 m). |
+| **Scan** | **Simulated.** You pick a demo barcode or type one (8–14 digits); there is no camera or decoder yet (M4). The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Each scan is **saved to the `scan_events` table** (location rounded to ~100 m); looked-up and not-found barcodes are saved with `product_id` null. |
 | **Saved** | Favorites and Scanned lists, in React state only (lost on reload). "Lists" is static. |
 | **Profile** | Entirely static (Alex Johnson, fake stats and badges). The settings rows do nothing. |
 
@@ -34,10 +34,10 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 | Frontend | React 18.3.1, Vite 6.3.5, Tailwind 4.1.12 via `@tailwindcss/vite`, lucide-react. 7 runtime dependencies (M0 removed 53 unused ones and the shadcn/ui kit) |
 | Map | leaflet 1.9.4 + leaflet.markercluster 1.5.3 (used directly, no react-leaflet) |
 | Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. There is **no edge function.** |
-| Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). Put secrets in `.env.local` (gitignored). |
+| Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). `.env.local` (gitignored): `VITE_FDC_API_KEY`, the owner's free data.gov key for USDA FoodData Central (without it the app falls back to `DEMO_KEY`, 30 lookups/hour). Restart the dev server after changing it. |
 | Barcode / camera | **None** |
 | Types / lint / tests | Tests: Node's built-in `node --test` with native TypeScript type stripping (no test framework). No TypeScript package, tsconfig or ESLint |
-| Scripts | `npm run dev` (vite), `npm run build` (vite build), `npm test` (safety engine + 51-product check), `npm run verify:sources` (re-fetches every library source and checks its quote; needs internet) |
+| Scripts | `npm run dev` (vite), `npm run build` (vite build), `npm test` (everything under `src/lib/**`: safety engine, 51-product check, lookup client), `npm run verify:sources` (re-fetches every library source and checks its quote; needs internet) |
 
 ## 3. System diagram
 
@@ -73,10 +73,12 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 | `src/lib/safety/*` | 353 + tests | Safety engine: verified library, parser, analyzer; tested by `npm test` | SAFE TO EDIT (library changes must pass `npm run verify:sources` and `npm test`) |
 | `src/lib/safety/fixtures/expected-flags.json` | — | Hand-reviewed flags per product id; `catalog.test.ts` checks every product in `products.csv` against it | Review, never loosen |
 | `src/app/components/MapTab.tsx` | 593 | Leaflet map, 18 static resources, filters, bottom sheet | SAFE TO EDIT |
-| `src/app/components/ScanTab.tsx` | 392 | Simulated scanner UI, 16 demo barcodes | SAFE TO EDIT |
+| `src/app/components/ScanTab.tsx` | 266 | Simulated scanner: demo barcodes, type-a-barcode, catalog → lookup, not-found and error states | SAFE TO EDIT |
 | `src/lib/catalog.ts` | 103 | **Database read layer**: `loadCatalog()` plus the row → `Product` mapper | SAFE TO EDIT |
 | `src/lib/productImporter.ts` | 595 | `parseProductsCSV(text)` → `Product[]`, `bestPrice`; defines the canonical `Product` type. App.tsx feeds it the bundled CSV (`?raw`); tests read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
-| `src/lib/scanService.ts` | 150 | Geolocation, barcode lookup, `scan_events` insert | SAFE TO EDIT |
+| `src/lib/scanService.ts` | 133 | Geolocation, catalog barcode match (`sameBarcode`), `scan_events` insert | SAFE TO EDIT |
+| `src/lib/lookup.ts` | 133 | USDA FoodData Central + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()`; import-free so Node tests load it | SAFE TO EDIT |
+| `src/lib/fixtures/{usda,off}/*.json` | — | Recorded real API responses (trimmed) for `lookup.test.ts` | Re-record, don't hand-edit |
 | `src/lib/supabase.ts` | 8 | Browser client from `.env` | SAFE TO EDIT |
 | `src/data/products.csv` | 113 | Seed source and offline fallback (112 rows → 51 products) | SAFE TO EDIT (DB won't change; see K-17) |
 | `supabase/migrations/*.sql` | — | Schema and seed; file names match the project's migration history | **Add new migrations; never edit applied ones** |
@@ -234,6 +236,7 @@ CLI (`supabase link` then `supabase db push`) or by pasting them into the SQL ed
 | Resources (Home list) | `resources` table | `loadCatalog()` → `rowToResource`, first 5 by id | Dashboard / SQL | `App.tsx RESOURCES` (12) | Any change → re-fetch | yes |
 | Resources (Map) | `MapTab.tsx BASE_RESOURCES` (18, lat/lng) | Overlays name/hours/phone/description from the DB list **by id** | — | static | via App prop | static |
 | Scan events | `scan_events` table | nobody (clients can't read; dashboard only) | ScanTab → `scanService` INSERT | none (failure logged, UI continues) | not published | yes (server side) |
+| Looked-up products | fetched live per session from USDA FoodData Central (manufacturer label data) or Open Food Facts (crowd-sourced); never stored | `lookupBarcode()` (session cache) | — | error state with Try again | — | no (session list in App state) |
 | Scanned ids (Saved › Scanned) | React state, seeded `[2,6]` | — | `onScanResult` | — | — | **no** |
 | Favorites | React state, seeded `[3,5]` | — | bookmark toggle | — | — | **no** |
 | User location | Browser Geolocation (Home pill, Map "My Location", Scan) | — | stored only with scans, rounded to 3 decimals | "Chicago, IL (default)" / Chicago centre | — | no |
@@ -272,10 +275,11 @@ static or a no-op; **broken**.
 | Map: open/closed badge | `MapTab` | partial | Hours parser edge cases; viewer's local timezone |
 | Map: Call, directions, search | `MapTab` | placeholder | no-op / absent |
 | Map reflects DB resources | `MapTab` | partial | Only 4 text fields by id; DB adds/deletes/coords ignored (K-06) |
-| Scan: demo barcode → product | `ScanTab` + `scanService` | working (simulated) | 14 real UPCs plus 2 unknown |
+| Scan: demo barcode → product | `ScanTab` + `scanService` | working (simulated) | 14 catalog barcodes (most invented, K-29) plus USDA, Open Food Facts and not-found demos |
+| Scan: lookup of non-catalog barcodes | `ScanTab` + `lookup.ts` | **working** | USDA FoodData Central first, then Open Food Facts; session cache; source note on the product page; verified live 2026-09-28 |
 | Scan: camera/decoder | — | placeholder | none |
 | Scan: record scan event | `scanService.recordProductScan` | **working** | Verified: row saved in `scan_events` |
-| Scan: unknown barcode "saved for review" | `ScanTab` + `createPlaceholder` | partial | Saves with `product_id` null; the screen still says "saved" even if the insert fails |
+| Scan: barcode not found anywhere | `ScanTab` + `createPlaceholder` | working | Honest "We couldn't find this barcode yet" screen; the scan is saved with `product_id` null |
 | Scan history / stats / review queue UI | — | placeholder | Data is in `scan_events`; no screen (dashboard only) |
 | Saved › Favorites / Scanned | `SavedTab` | partial | In-memory, fake seeds |
 | Saved › Lists | `SavedTab` | placeholder | static |
@@ -287,6 +291,8 @@ static or a no-op; **broken**.
 | Service | Used by | Notes |
 |---|---|---|
 | Supabase (PostgREST, Realtime) | `catalog.ts`, `scanService.ts`, App realtime | see §6 |
+| USDA FoodData Central (`api.nal.usda.gov/fdc/v1/foods/search`) | `lookup.ts` | Branded foods; key `VITE_FDC_API_KEY` in `.env.local` (3,600 requests/hour); codes tried as typed and 14-digit |
+| Open Food Facts (`world.openfoodfacts.org/api/v3`) | `lookup.ts` | No key; crowd-sourced, labelled as such; ODbL credit on product pages; `X-User-Agent: EcoGo/0.1 (personal project)` |
 | tile.openstreetmap.org | MapTab | public tiles via the deprecated `{s}` subdomains; attribution hidden by UI |
 | images.unsplash.com | Home recommendations | hotlinked photo ids |
 | fonts.googleapis.com | `fonts.css` | Plus Jakarta Sans, DM Mono |

@@ -67,7 +67,9 @@ with your phone's camera and get a trustworthy safety score. The full answers ar
 ingredients. The product page shows flagged ingredients with their sources; lists show the same verdict; no AI labels.
 `npm test` checks all 51 products.
 
-**Step 4: Open Food Facts lookup.** Barcodes outside the 51 featured products get real product data and the same scoring.
+**Step 4: product lookup. ✅ Done 2026-09-28.** Barcodes outside the 51 featured products are looked up in USDA
+FoodData Central (manufacturer label data), then Open Food Facts (crowd-sourced, labelled), and get the same ingredient
+check. Every looked-up page says where its data came from.
 
 **Step 5: deploy + public GitHub repo.** A public link over HTTPS, which phones need for camera access.
 
@@ -81,8 +83,7 @@ persistent favorites, cleanup, then accounts and rate limiting before going publ
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–3 are done; my Supabase project is
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–4 are done; my Supabase project is
 > `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
-> Do roadmap step 4 (M2): Open Food Facts lookup for barcodes outside the 51 featured products, analysed by the
-> same safety engine (`src/lib/safety`). Keep each change small, commit each one, verify it in the running app,
-> and keep `npm test` green.
+> Do roadmap step 5 (M3): a public GitHub repo and free hosting, with `VITE_FDC_API_KEY` set on the host. Keep each
+> change small, commit each one, verify it in the running app, and keep `npm test` green.
