@@ -80,6 +80,15 @@ export interface ImportDiagnostics {
   warnings: string[];
 }
 
+/** Where a looked-up product's data came from. Catalog products never set it. */
+export interface ProductSource {
+  name: "USDA FoodData Central" | "Open Food Facts";
+  url: string;             // the record's public page (credit + "view record" link)
+  crowdSourced: boolean;   // true for Open Food Facts
+  ingredientsLang: string; // "en", or the label's language when no English text exists
+  additiveCodes: string[]; // Open Food Facts additive tags, e.g. "en:e951"; always [] for USDA
+}
+
 /** The canonical Product shape consumed by the rest of the application. */
 export interface Product {
   id: number;
@@ -95,6 +104,7 @@ export interface Product {
   amazon?:   { price: number; rating: number };
   walmart?:  { price: number; rating: number };
   facebook?: { price: number; condition: string };
+  source?: ProductSource;
 }
 
 /** Lowest price across stores; Infinity when the product has none. */
