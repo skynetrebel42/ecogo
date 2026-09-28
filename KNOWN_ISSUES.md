@@ -92,6 +92,14 @@
 - Zero-width spaces and soft hyphens aren't stripped; `Red&nbsp;40` splits on the `;`.
 - The alternatives sort computes `Infinity − Infinity = NaN` when two alternatives have no price (unstable order).
 
+### Lookup follow-ups (from the M2 final review, deferred)
+
+- A 200 response with an unparseable body reads as "not found" instead of an error (`lookup.ts` `fetchUsda`/`fetchOff`).
+- Letters in a typed barcode are silently stripped and check digits aren't validated, so a typo becomes a different code.
+- USDA 429/403 (rate limit, bad key) show "check your connection"; under `DEMO_KEY` Open Food Facts silently takes over.
+- Switching tabs mid-lookup still pops the product page when the lookup finishes.
+- A scan can sit on "Looking up…" while the location permission prompt is unanswered (same root cause as K-12).
+
 ### Future production: security and privacy (do **not** deploy publicly before these)
 
 | ID | Issue | Where |
