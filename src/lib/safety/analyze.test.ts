@@ -131,6 +131,15 @@ test("'non-' and 'un-' prefixes state absence", () => {
   assert.equal(bromate("Bromated flour, water"), 1);
 });
 
+test("additive codes from Open Food Facts flag by E-number", () => {
+  assert.deepEqual(ids(analyzeIngredients({ ingredients: "", additiveCodes: ["en:e951"] }, LIB)), ["aspartame"]);
+  assert.deepEqual(ids(analyzeIngredients({ ingredients: "Water", additiveCodes: ["E 250", "en:e330"] }, LIB)), ["sodium-nitrite"]);
+});
+
+test("codes alone are analyzed, not 'not enough data'", () => {
+  assert.equal(analyzeIngredients({ ingredients: "", additiveCodes: ["en:e330"] }, LIB).verdict, "none");
+});
+
 test("the engine never throws on hostile input", () => {
   const nasty = ["", "((((", "))))", "[{(", ",,,;;;", "\u0000￿", "🍕".repeat(500), "a, ".repeat(5000), "E".repeat(10000)];
   for (const text of nasty) assert.doesNotThrow(() => food(text));
