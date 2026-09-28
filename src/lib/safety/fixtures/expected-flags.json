@@ -11,7 +11,7 @@
   "10": {"verdict": "none", "flags": []},
   "11": {"verdict": "none", "flags": []},
   "12": {"verdict": "none", "flags": []},
-  "13": {"verdict": "some", "flags": ["sunset-yellow"]},
+  "13": {"verdict": "some", "flags": ["sunset-yellow", "tartrazine", "allura-red"]},
   "14": {"verdict": "none", "flags": []},
   "15": {"verdict": "some", "flags": ["sunset-yellow"]},
   "16": {"verdict": "none", "flags": []},

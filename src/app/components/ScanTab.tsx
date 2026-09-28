@@ -24,7 +24,7 @@ const DEMO_BARCODES: DemoBarcode[] = [
   { barcode: "049000006421",  label: "Diet Coke 12-Pack",          category: "Beverages"       },
   { barcode: "049000028905",  label: "Coca-Cola Classic 12-Pack",  category: "Beverages"       },
   { barcode: "028400335799",  label: "Doritos Nacho Cheese",       category: "Snacks"          },
-  { barcode: "044000042554",  label: "Oreo Original Cookies",      category: "Snacks"          },
+  { barcode: "044000032029",  label: "Oreo Original Cookies",      category: "Snacks"          },
   { barcode: "016000280939",  label: "Nature Valley Granola Bars", category: "Snacks"          },
   { barcode: "070847011443",  label: "Monster Energy Original",    category: "Beverages"       },
   { barcode: "044700032085",  label: "Oscar Mayer Hot Dogs",       category: "Meat"            },
@@ -222,7 +222,12 @@ export default function ScanTab({ onScanResult, products }: ScanTabProps) {
             {DEMO_BARCODES.map((demo) => {
               const active = demo.barcode === selectedBarcode.barcode;
               return (
-                <button key={demo.barcode} onClick={() => { setSelectedBarcode(demo); setSelectorOpen(false); }}
+                <button key={demo.barcode} onClick={() => {
+                    setSelectedBarcode(demo);
+                    setSelectorOpen(false);
+                    // A new pick replaces a failed lookup, so the big button scans it instead of retrying the old code.
+                    if (scanState === "error") setScanState("idle");
+                  }}
                   className="w-full flex items-center justify-between px-4 py-2.5 text-left border-b border-white/5 last:border-0 transition-colors"
                   style={{ background: active ? "rgba(255,255,255,0.10)" : "transparent" }}>
                   <div>

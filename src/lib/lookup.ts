@@ -120,14 +120,18 @@ export function lookupBarcode(raw: string, opts: { fdcKey?: string; fetchImpl?: 
     console.warn("[lookup] VITE_FDC_API_KEY is not set; using USDA's DEMO_KEY (30 lookups an hour)");
     fdcKey = "DEMO_KEY";
   }
+  let provisional = false; // an OFF find while USDA was unreachable: show it, but look again next time
   const pending = (async (): Promise<LookupResult> => {
     const usda = await safely(fetchUsda(code, fdcKey, f));
     if (usda.status === "found") return usda;
+    // 8-digit codes are ambiguous worldwide (US UPC-E vs store-internal EAN-8): OFF answered the Heinz UPC-E
+    // 01311501 with a UK store product. Those go to USDA only.
+    if (code.length === 8) return usda;
     const off = await safely(fetchOff(code, f));
-    if (off.status === "found") return off;
+    if (off.status === "found") { provisional = usda.status === "error"; return off; }
     return usda.status === "error" ? usda : off;
   })();
   cache.set(k, pending);
-  pending.then(r => { if (r.status === "error") cache.delete(k); });
+  pending.then(r => { if (r.status === "error" || provisional) cache.delete(k); });
   return pending;
 }

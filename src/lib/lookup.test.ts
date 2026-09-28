@@ -171,6 +171,28 @@ test("USDA down but OFF has it: show OFF", async () => {
   assert.equal(r.status === "found" && r.product.source?.name, "Open Food Facts");
 });
 
+// Final review: 8-digit codes are ambiguous worldwide (US UPC-E vs store-internal EAN-8). OFF answered the Heinz
+// UPC-E 01311501 with a UK store product, so 8-digit codes are looked up in USDA only.
+test("8-digit codes are looked up in USDA only, never Open Food Facts", async () => {
+  const sweetcorn = { httpStatus: 200, body: { status: "success", product: { code: "01311501", product_name: "Sainsbury's Organic Sweetcorn", ingredients_text: "Sweetcorn" } } };
+  const net = fakeNet({}, { "01311501": sweetcorn });
+  assert.equal((await lookupBarcode("01311501", { fdcKey: "TEST", fetchImpl: net.impl })).status, "not-found");
+  assert.ok(net.calls.every(u => u.startsWith("https://api.nal.usda.gov/")), "no OFF request");
+});
+
+test("an OFF find made while USDA was unreachable is shown but not cached", async () => {
+  let calls = 0;
+  const f = (async (input: RequestInfo | URL) => {
+    calls++;
+    if (String(input).startsWith("https://api.nal.usda.gov/")) throw new TypeError("Failed to fetch");
+    return json(fixture("off/nutella-3017620422003").body);
+  }) as typeof fetch;
+  assert.equal((await lookupBarcode("4006381333931", { fdcKey: "TEST", fetchImpl: f })).status, "found");
+  const first = calls;
+  assert.equal((await lookupBarcode("4006381333931", { fdcKey: "TEST", fetchImpl: f })).status, "found");
+  assert.ok(calls > first, "looked up again once USDA may be back");
+});
+
 test("codes outside 8–14 digits never hit the network", async () => {
   const net = fakeNet({}, {});
   assert.equal((await lookupBarcode("1234", { fdcKey: "TEST", fetchImpl: net.impl })).status, "not-found");
