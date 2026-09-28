@@ -67,8 +67,8 @@
 | K-21 ▶✔ | Dead controls: Sign In, all 5 Profile settings rows, Lists "New", Share, Map "Call", home Refresh (sticks on "Locating…" without geolocation). | `App.tsx:240,521,882,967`; `ProductDetailScreen.tsx:714`; `MapTab.tsx:260` |
 | K-22 ✔ | Leaving the Scan tab mid-scan still yanks you into product detail about 3 s later, and a late placeholder POST can show a false "Scan saved at" on a later scan. | `ScanTab.tsx:114-124` |
 | K-23 ✔ | Map details: the hours parser misreads "12–6pm" and "dawn–dusk"; open/closed uses the viewer's timezone and goes stale; "Smart Score" sort equals rating sort; the list shows 10 with no "more"; zoom-out and OSM attribution are covered by the sheet. | `MapTab.tsx:125-148,276-283,399-410,523-554` |
-| K-24 ✔ | Importer edge cases: rows sharing an id merge silently; `'1'` and `'01'` become duplicate ids; quoted newlines drop the row; an empty FB condition gives `''`; the required `overall_score` column is ignored (5 rows differ); `flaggedIngredients` is always `[]`; 27/51 barcodes fail the UPC-A check digit (matters only for a real scanner). | `productImporter.ts:158,372,496,509,575,642` |
-| K-25 ✔ | Floating-point rounding makes 58.5 → 58 (id 41 only). | `scoring.ts:68` |
+| K-24 ✔ | Importer edge cases: rows sharing an id merge silently; `'1'` and `'01'` become duplicate ids; quoted newlines drop the row; an empty FB condition gives `''`; 27/51 barcodes fail the UPC-A check digit (matters only for a real scanner). | `productImporter.ts:158,372,496,509,575,642` |
+| ~~K-25~~ ✅ | **Moot: `scoring.ts` was deleted (the score is no longer computed).** *Original issue:* Floating-point rounding makes 58.5 → 58 (id 41 only). | (deleted) |
 | K-26 ✔ | *Mostly fixed in step 2:* realtime now re-fetches on INSERT/UPDATE/DELETE of products, prices and resources. **Remaining:** an open product detail keeps its snapshot until reopened; no subscribe-status check; overlapping re-fetches could resolve out of order (harmless at this scale). | `App.tsx` realtime effect |
 | K-27 ▶ | Icon-only buttons (back, save, share, search-QR, etc.) have no accessible names. | `ProductDetailScreen.tsx:707-714`, `App.tsx` |
 | K-28 ▶ | The fixed 390×844 phone frame clips on narrow or short viewports (not responsive). | `App.tsx:1098-1100` |
@@ -120,7 +120,8 @@ food and drinks first. Each step is small and verified in the running app before
    K-08, K-09; K-18 moot. Design: `docs/superpowers/specs/2026-09-24-safety-engine-design.md`.
 4. **Open Food Facts lookup.** Any barcode not in the 51 featured products is fetched from Open Food Facts (free,
    no key, food) and scored by the same engine; not-found barcodes still go to the review queue. This is testable before
-   the camera exists, using the demo barcode picker.
+   the camera exists, using the demo barcode picker. Open Food Facts also lists additive codes (`additives_tags`, e.g.
+   `en:e250`); add that input to `analyzeIngredients` here (it was removed before M2 as unused).
 5. **Deploy + public repo.** Create a public GitHub repo and free hosting (e.g. Vercel/Netlify). This gives the HTTPS a
    phone needs to open the camera, so step 6 can be tested on a real phone.
 6. **Real camera scanning + mobile layout (done-criterion 1).** Use a JS barcode library that works on iPhone Safari,

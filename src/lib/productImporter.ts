@@ -8,14 +8,10 @@
 //   • All numeric parsing uses safe wrappers with explicit fallbacks.
 //   • IMPORT_DIAGNOSTICS is exported so callers can inspect what happened.
 //
-// ── Supabase migration path ──────────────────────────────────────────────────
-// Replace loadProductsFromCSV() with an async Supabase query, then map each
-// row through buildValidatedProduct(). The exported types and PRODUCTS constant
-// stay unchanged — no consumer code needs to change.
+// The live catalog comes from Supabase (catalog.ts). This parses the bundled
+// src/data/products.csv — the offline fallback (App.tsx) and the test fixture
+// (src/lib/safety/catalog.test.ts). No imports, so Node tests can load it.
 // ─────────────────────────────────────────────────────────────────────────────
-
-import csvText from "../data/products.csv?raw";
-import { buildProductScore, scoreToGrade } from "./scoring";
 
 // ─── Schema: required and optional columns ────────────────────────────────────
 
@@ -31,12 +27,10 @@ const REQUIRED_COLUMNS = [
   "category",
   "store",
   "price",
-  "health_score",
-  "environment_score",
-  "ethics_score",
-  "transparency_score",
-  "overall_score",
 ] as const;
+
+/** Legacy score columns: still in products.csv and the DB, no longer read. */
+const LEGACY_COLUMNS = ["health_score", "environment_score", "ethics_score", "transparency_score", "overall_score"];
 
 /**
  * Columns that MAY be absent. Missing optional columns default to empty string.
@@ -56,18 +50,14 @@ const OPTIONAL_COLUMNS = [
 const ALL_KNOWN_COLUMNS = new Set<string>([
   ...REQUIRED_COLUMNS,
   ...OPTIONAL_COLUMNS,
+  ...LEGACY_COLUMNS,
 ]);
 
 /** Valid values for the `store` column (case-insensitive). */
 const VALID_STORES = new Set(["amazon", "walmart", "facebook"]);
 
-/** Integer score range. Values are clamped, not rejected. */
-const SCORE_MIN = 0;
-const SCORE_MAX = 100;
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type RequiredColumn  = (typeof REQUIRED_COLUMNS)[number];
 type RawRow = Record<string, string>;
 
 /** Diagnostic information captured during a single import run. */
@@ -105,41 +95,13 @@ export interface Product {
   amazon?:   { price: number; rating: number };
   walmart?:  { price: number; rating: number };
   facebook?: { price: number; condition: string };
-
-  /** Letter grade A–F derived from ethics_score */
-  ethicalScore: string;
-  /** Alias for healthScore — kept for UI backward-compatibility */
-  safetyScore: number;
-  /** Populated at runtime by the ingredient-analysis module, not the CSV */
-  flaggedIngredients: string[];
-
-  healthScore:      number;
-  environmentScore: number;
-  ethicsScore:      number;
-  transparencyScore:number;
-  overallScore:     number;
 }
+
+/** Lowest price across stores; Infinity when the product has none. */
+export const bestPrice = (p: Product) =>
+  Math.min(p.amazon?.price ?? Infinity, p.walmart?.price ?? Infinity, p.facebook?.price ?? Infinity);
 
 // ─── Safe Parsing Helpers ─────────────────────────────────────────────────────
-
-/**
- * Parse a string to an integer.
- * Returns `fallback` for empty, whitespace-only, or non-numeric strings.
- * Clamps the result to [min, max] when bounds are provided.
- */
-function safeInt(
-  raw: string | undefined,
-  fallback: number,
-  min?: number,
-  max?: number
-): number {
-  if (!raw || raw.trim() === "") return fallback;
-  const n = parseInt(raw.trim(), 10);
-  if (isNaN(n)) return fallback;
-  if (min !== undefined && n < min) return min;
-  if (max !== undefined && n > max) return max;
-  return n;
-}
 
 /**
  * Parse a string to a float.
@@ -258,7 +220,6 @@ interface RowValidationResult {
  *   - `price` is not a parseable positive number
  *
  * Warn-only conditions (row is included with a fallback value):
- *   - Score fields outside [0, 100] — clamped to the valid range
  *   - `brand` or `category` is empty — defaults to empty string
  *   - `ingredients` is empty — product still loads, just no ingredient data
  */
@@ -299,35 +260,6 @@ function validateDataRow(
     const reason = `Row ${lineNum} (id=${id}, store=${store}): skipped — invalid price "${row.price}" (must be a positive number)`;
     warnings.push(reason);
     return { valid: false, warnings: [reason] };
-  }
-
-  // ── Warn-only: score fields should be integers in [0, 100] ───────────────
-  const scoreFields = [
-    "health_score",
-    "environment_score",
-    "ethics_score",
-    "transparency_score",
-    "overall_score",
-  ] as const;
-
-  for (const field of scoreFields) {
-    const raw = safeString(row[field]);
-    if (raw === "") {
-      rowWarnings.push(
-        `Row ${lineNum} (id=${id}): ${field} is missing — defaulting to 50`
-      );
-    } else {
-      const n = parseInt(raw, 10);
-      if (isNaN(n)) {
-        rowWarnings.push(
-          `Row ${lineNum} (id=${id}): ${field} "${raw}" is not a number — defaulting to 50`
-        );
-      } else if (n < SCORE_MIN || n > SCORE_MAX) {
-        rowWarnings.push(
-          `Row ${lineNum} (id=${id}): ${field} value ${n} is outside [${SCORE_MIN}, ${SCORE_MAX}] — clamped`
-        );
-      }
-    }
   }
 
   // ── Warn-only: recommended but non-fatal fields ───────────────────────────
@@ -498,15 +430,6 @@ function buildValidatedProduct(
   // id was already validated as a positive integer; parseInt is safe here
   const id = parseInt(base.id, 10);
 
-  // Score dimensions — clamped to [0, 100] by safeInt
-  const dims = {
-    health:       safeInt(base.health_score,       50, SCORE_MIN, SCORE_MAX),
-    environment:  safeInt(base.environment_score,  50, SCORE_MIN, SCORE_MAX),
-    ethics:       safeInt(base.ethics_score,        50, SCORE_MIN, SCORE_MAX),
-    transparency: safeInt(base.transparency_score, 50, SCORE_MIN, SCORE_MAX),
-  };
-
-  const score    = buildProductScore(dims);
   const keywords = safeString(base.keywords)
     .split("|")
     .map((k) => k.trim())
@@ -568,18 +491,6 @@ function buildValidatedProduct(
     amazon,
     walmart,
     facebook,
-
-    // Legacy UI compatibility
-    ethicalScore:      scoreToGrade(dims.ethics),
-    safetyScore:       dims.health,
-    flaggedIngredients: [],
-
-    // Score breakdown
-    healthScore:       score.health,
-    environmentScore:  score.environment,
-    ethicsScore:       score.ethics,
-    transparencyScore: score.transparency,
-    overallScore:      score.overall,
   };
 }
 
@@ -598,16 +509,13 @@ const _diagnostics: ImportDiagnostics = {
 };
 
 /**
- * Parse the bundled CSV and return a typed Product array.
+ * Parse products.csv text into a typed Product array.
  * Invalid rows are skipped; valid rows always load.
  *
  * Side-effect: populates the module-level `_diagnostics` object, which is
  * exported as `IMPORT_DIAGNOSTICS` after this function returns.
- *
- * To migrate to Supabase, replace this function body with an async fetch,
- * map each row through `buildValidatedProduct()`, and keep the return type.
  */
-export function loadProductsFromCSV(): Product[] {
+export function parseProductsCSV(csvText: string): Product[] {
   const warnings: string[] = [];
 
   // ── 1. Parse CSV and validate structure ─────────────────────────────────
@@ -676,11 +584,6 @@ export function loadProductsFromCSV(): Product[] {
 
   return products.sort((a, b) => a.id - b.id);
 }
-
-// ─── Singletons ───────────────────────────────────────────────────────────────
-// Parsed once at module load — no repeated work on re-renders.
-
-export const PRODUCTS: Product[] = loadProductsFromCSV();
 
 /**
  * Read-only snapshot of the last import run.

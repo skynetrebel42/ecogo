@@ -1,11 +1,10 @@
 // catalog.ts — reads the product catalog and community resources from Supabase.
 //
 // Schema: supabase/migrations/20260923221344_catalog_schema.sql. Rows are mapped
-// into the same Product shape the CSV importer produces, and the overall score
-// and grade are derived with the shared scoring engine (never stored).
+// into the same Product shape the CSV importer produces. The legacy score
+// columns stay in the DB but are not read (the safety verdict replaced them in M1).
 
 import { supabase } from "./supabase";
-import { buildProductScore, scoreToGrade } from "./scoring";
 import type { Product } from "./productImporter";
 
 interface PriceRow {
@@ -24,10 +23,6 @@ interface ProductRow {
   ingredients: string;
   image_url: string;
   keywords: string[];
-  health_score: number;
-  environment_score: number;
-  ethics_score: number;
-  transparency_score: number;
   categories: { name: string } | null;
   product_prices: PriceRow[];
 }
@@ -47,17 +42,9 @@ export interface ResourceRow {
 
 const PRODUCT_COLUMNS =
   "id, barcode, name, brand, description, ingredients, image_url, keywords, " +
-  "health_score, environment_score, ethics_score, transparency_score, " +
   "categories(name), product_prices(store, price, rating, condition)";
 
 export function rowToProduct(row: ProductRow): Product {
-  const dims = {
-    health:       row.health_score,
-    environment:  row.environment_score,
-    ethics:       row.ethics_score,
-    transparency: row.transparency_score,
-  };
-  const score = buildProductScore(dims);
   const price = (store: PriceRow["store"]) => row.product_prices.find((p) => p.store === store);
   const amazon = price("amazon"), walmart = price("walmart"), facebook = price("facebook");
 
@@ -75,16 +62,6 @@ export function rowToProduct(row: ProductRow): Product {
     amazon:   amazon   ? { price: amazon.price,   rating: amazon.rating ?? 0 }       : undefined,
     walmart:  walmart  ? { price: walmart.price,  rating: walmart.rating ?? 0 }      : undefined,
     facebook: facebook ? { price: facebook.price, condition: facebook.condition ?? "" } : undefined,
-
-    ethicalScore:       scoreToGrade(dims.ethics),
-    safetyScore:        dims.health,
-    flaggedIngredients: [],
-
-    healthScore:       score.health,
-    environmentScore:  score.environment,
-    ethicsScore:       score.ethics,
-    transparencyScore: score.transparency,
-    overallScore:      score.overall,
   };
 }
 

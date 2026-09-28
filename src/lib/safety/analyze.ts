@@ -1,4 +1,4 @@
-// analyze.ts — ingredient text (+ optional additive codes) → verdict and flags.
+// analyze.ts — ingredient text → verdict and flags.
 // Deterministic: no network, no AI. Spec: docs/superpowers/specs/2026-09-24-safety-engine-design.md §4, §6.
 
 import { LIBRARY, type LibraryEntry } from "./library.ts";
@@ -16,7 +16,7 @@ export const FOOD_CATEGORIES: ReadonlySet<string> = new Set([
   "Beverages", "Bread", "Breakfast", "Condiments", "Dairy", "Frozen", "Meat", "Snacks",
 ]);
 
-const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** E-numbers in label text: "E250", "E 250", "E-250", "e150d" — but never a vitamin E dose ("vitamin E 250", "E 250 IU"). */
 const E_CODE = /(?<!\bvit(?:amine?)?\.?[\s-]*)(?<![a-z0-9])e[\s-]?(\d{3,4}[a-z]?)(?![a-z0-9])(?!\s*(?:iu|mg|mcg|µg|%))/g;
@@ -26,22 +26,17 @@ const normalizeColours = (s: string) => s
   .replace(/\b(red|yellow|blue|green)\s+(?:dye\s+)?(?:(?:no\.?|#)\s*)?(?=\d)/g, "$1 ")
   .replace(/\b(red|yellow|blue|green) (\d+)\s*(?:&|and)\s*(\d+)\b/g, "$1 $2, $1 $3");
 
-/** "en:e250" (Open Food Facts), "E 250", "e250" → "E250". */
-const normalizeCode = (code: string) => code.replace(/^[a-z]{2}:/i, "").replace(/[\s-]/g, "").toUpperCase();
-
 export function analyzeIngredients(
-  input: { ingredients: string; category?: string; additiveCodes?: string[] },
+  input: { ingredients: string; category?: string },
   library: LibraryEntry[] = LIBRARY,
 ): Analysis {
   const checkedCount = library.length;
   if (input.category !== undefined && !FOOD_CATEGORIES.has(input.category)) {
     return { verdict: "non-food", flags: [], checkedCount };
   }
-  const text = typeof input.ingredients === "string" ? input.ingredients : "";
-  const codes = (input.additiveCodes ?? []).map(normalizeCode);
-  const items = parseIngredients(text);
+  const items = parseIngredients(typeof input.ingredients === "string" ? input.ingredients : "");
   // Nothing parsed (blank, or only an allergen sentence) is not the same as "checked and clean".
-  if (items.length === 0 && codes.length === 0) return { verdict: "no-data", flags: [], checkedCount };
+  if (items.length === 0) return { verdict: "no-data", flags: [], checkedCount };
 
   const matchers = library.map(entry => ({
     entry,
@@ -62,9 +57,6 @@ export function analyzeIngredients(
     for (const { entry, aliases } of matchers) {
       if (aliases.some(re => re.test(lower)) || itemCodes.some(c => entry.eCodes.includes(c))) flag(entry, item);
     }
-  }
-  for (const code of codes) {
-    for (const { entry } of matchers) if (entry.eCodes.includes(code)) flag(entry, code);
   }
 
   flags.sort((a, b) => (a.entry.severity === b.entry.severity ? 0 : a.entry.severity === "high" ? -1 : 1));

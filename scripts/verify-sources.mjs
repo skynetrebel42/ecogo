@@ -26,7 +26,6 @@ for (const entry of LIBRARY) {
     try {
       const res = await fetch(source.url, {
         headers: { "User-Agent": "EcoGo source check (personal project)" },
-        redirect: "follow",
         signal: AbortSignal.timeout(20_000),
       });
       const type = res.headers.get("content-type") ?? "";

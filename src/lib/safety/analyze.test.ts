@@ -12,8 +12,7 @@ const LIB: LibraryEntry[] = [
   { id: "brilliant-blue", name: "Blue 1", aliases: ["blue 1"], eCodes: ["E133"], severity: "some", concern: "t", sources: [{ ...src, basis: "eu-warning-label" }] },
   { id: "caramel-iv", name: "Sulphite ammonia caramel", aliases: ["sulphite ammonia caramel"], eCodes: ["E150D"], severity: "some", concern: "t", sources: [{ ...src, basis: "iarc-2b" }] },
 ];
-const food = (ingredients: string, extra: Partial<{ category: string; additiveCodes: string[] }> = {}) =>
-  analyzeIngredients({ ingredients, category: "Snacks", ...extra }, LIB);
+const food = (ingredients: string) => analyzeIngredients({ ingredients, category: "Snacks" }, LIB);
 const ids = (a: ReturnType<typeof food>) => a.flags.map(f => f.entry.id);
 
 test("names match only as whole phrases (the old '1' → 'Blue 1' false alarm is gone)", () => {
@@ -37,10 +36,6 @@ test("E-codes match with or without a space, hyphen or brackets", () => {
 test("generic terms are not flagged; the precise form is", () => {
   assert.deepEqual(ids(food("Carbonated water, caramel color, phosphoric acid")), []);
   assert.deepEqual(ids(food("caramel color (E150d)")), ["caramel-iv"]);
-});
-
-test("additive codes from Open Food Facts are matched", () => {
-  assert.deepEqual(ids(food("", { additiveCodes: ["en:e951"] })), ["aspartame"]);
 });
 
 test("verdicts follow severity, and high-concern flags come first", () => {

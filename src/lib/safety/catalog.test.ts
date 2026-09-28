@@ -3,13 +3,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { analyzeIngredients } from "./analyze.ts";
+import { parseProductsCSV } from "../productImporter.ts";
 
-interface FixtureProduct { id: number; name: string; category: string; ingredients: string }
-const read = (file: string) => JSON.parse(readFileSync(new URL(`./fixtures/${file}`, import.meta.url), "utf8"));
-const catalog: FixtureProduct[] = read("catalog.json");
-const expected: Record<string, { verdict: string; flags: string[] }> = read("expected-flags.json");
+const catalog = parseProductsCSV(readFileSync(new URL("../../data/products.csv", import.meta.url), "utf8"));
+const expected: Record<string, { verdict: string; flags: string[] }> =
+  JSON.parse(readFileSync(new URL("./fixtures/expected-flags.json", import.meta.url), "utf8"));
 
-test("the fixture and the expected file cover the same 51 products", () => {
+test("the catalog and the expected file cover the same 51 products", () => {
   assert.equal(catalog.length, 51);
   assert.deepEqual(catalog.map(p => String(p.id)).sort(), Object.keys(expected).sort());
 });

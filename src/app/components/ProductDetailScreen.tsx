@@ -8,15 +8,12 @@
 
 import { useMemo, useState } from "react";
 import {
-  ArrowLeft, Bookmark, Share2, ShoppingBag, DollarSign, Star, MapPin,
+  ArrowLeft, Bookmark, Share2, ShoppingBag, DollarSign, Star,
   TrendingUp, ChevronDown, ExternalLink, FlaskConical,
 } from "lucide-react";
-import type { Product } from "../../lib/productImporter";
-import { VERDICT_RANK, type Analysis, type Flag } from "../../lib/safety/analyze";
+import { bestPrice, type Product } from "../../lib/productImporter";
+import { VERDICT_RANK, escapeRegExp, type Analysis, type Flag } from "../../lib/safety/analyze";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline } from "./verdict";
-
-const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const lowestPrice = (p: Product) => Math.min(p.amazon?.price ?? Infinity, p.walmart?.price ?? Infinity, p.facebook?.price ?? Infinity);
 
 const SMALL_PRINT: Record<Analysis["verdict"], (a: Analysis) => string> = {
   high:       () => "Tap an ingredient to see its official sources.",
@@ -85,7 +82,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
   const [openFlag, setOpenFlag] = useState<string | null>(null);
   const analysis = useMemo(() => safeAnalyze(product), [product]);
   const look = VERDICT_STYLE[analysis.verdict];
-  const bestPrice = lowestPrice(product);
+  const best = bestPrice(product);
 
   // Same category, strictly better verdict; only offered when this product has concerns.
   const alternatives = useMemo(() => {
@@ -97,14 +94,14 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
       .filter(({ a }) => VERDICT_RANK[a.verdict] < mine)
       .sort((x, y) => VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict]
         || x.a.flags.length - y.a.flags.length
-        || lowestPrice(x.p) - lowestPrice(y.p))
+        || bestPrice(x.p) - bestPrice(y.p))
       .slice(0, 3);
   }, [products, product, analysis]);
 
   const stores = [
-    product.amazon   ? { name: "Amazon",        icon: "📦", price: product.amazon.price,   color: "#FF9900", distance: "Online (2-day)", avail: "In Stock",                rating: product.amazon.rating  } : null,
-    product.walmart  ? { name: "Walmart",        icon: "🛒", price: product.walmart.price,  color: "#0071CE", distance: "0.8 mi away",    avail: "In Stock",                rating: product.walmart.rating } : null,
-    product.facebook ? { name: "FB Marketplace", icon: "👥", price: product.facebook.price, color: "#1877F2", distance: "1.2 mi away",    avail: product.facebook.condition, rating: null                  } : null,
+    product.amazon   ? { name: "Amazon",         icon: "📦", price: product.amazon.price,   color: "#FF9900", rating: product.amazon.rating,  condition: "" } : null,
+    product.walmart  ? { name: "Walmart",        icon: "🛒", price: product.walmart.price,  color: "#0071CE", rating: product.walmart.rating, condition: "" } : null,
+    product.facebook ? { name: "FB Marketplace", icon: "👥", price: product.facebook.price, color: "#1877F2", rating: 0, condition: product.facebook.condition } : null,
   ].filter((s): s is NonNullable<typeof s> => s !== null);
 
   return (
@@ -137,9 +134,9 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/60">{product.category}</span>
             </div>
             <h1 className="text-lg font-extrabold text-white leading-tight mb-2">{product.name}</h1>
-            {Number.isFinite(bestPrice) && (
+            {Number.isFinite(best) && (
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl font-extrabold text-white">${bestPrice.toFixed(2)}</span>
+                <span className="text-xl font-extrabold text-white">${best.toFixed(2)}</span>
                 <span className="text-sm text-white/60">best price</span>
               </div>
             )}
@@ -207,25 +204,20 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
                 <DollarSign size={15} className="text-primary" />
                 <span className="font-bold text-sm">Price Comparison</span>
-                <span className="ml-auto text-primary font-extrabold text-sm">${bestPrice.toFixed(2)} best</span>
-              </div>
-              <div className="grid grid-cols-4 px-4 py-2 bg-gray-50 border-b border-gray-100">
-                {["Store", "Price", "Distance", "Availability"].map(h => (
-                  <span key={h} className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{h}</span>
-                ))}
+                <span className="ml-auto text-primary font-extrabold text-sm">${best.toFixed(2)} best</span>
               </div>
               {stores.map(store => (
-                <div key={store.name} className="grid grid-cols-4 px-4 py-3 border-b last:border-0 border-gray-50 items-center">
+                <div key={store.name} className="flex items-center justify-between px-4 py-3 border-b last:border-0 border-gray-50">
                   <div className="flex items-center gap-1.5">
                     <span className="text-base leading-none">{store.icon}</span>
                     <div>
                       <p className="text-[11px] font-bold leading-tight">{store.name}</p>
-                      {store.rating && <div className="flex items-center gap-0.5 mt-0.5"><Star size={8} className="fill-amber-400 text-amber-400" /><span className="text-[9px] text-gray-400">{store.rating}</span></div>}
+                      {store.rating
+                        ? <div className="flex items-center gap-0.5 mt-0.5"><Star size={8} className="fill-amber-400 text-amber-400" /><span className="text-[9px] text-gray-400">{store.rating}</span></div>
+                        : store.condition && <p className="text-[9px] text-gray-400 mt-0.5">{store.condition}</p>}
                     </div>
                   </div>
                   <span className="text-sm font-extrabold" style={{ color: store.color }}>${store.price.toFixed(2)}</span>
-                  <div className="flex items-center gap-1"><MapPin size={9} className="text-gray-400 flex-shrink-0" /><span className="text-[10px] text-gray-500 leading-tight">{store.distance}</span></div>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${store.avail === "In Stock" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>{store.avail}</span>
                 </div>
               ))}
             </div>
@@ -241,7 +233,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               <div className="divide-y divide-gray-50">
                 {alternatives.map(({ p, a }) => {
                   const altLook = VERDICT_STYLE[a.verdict];
-                  const altPrice = lowestPrice(p);
+                  const altPrice = bestPrice(p);
                   return (
                     <button key={p.id} onClick={() => onSelectProduct(p)} className="w-full px-4 py-3 flex items-center gap-3 text-left">
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: altLook.bg }}>

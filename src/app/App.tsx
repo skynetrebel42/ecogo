@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { loadCatalog } from "../lib/catalog";
-import NewMapTab from "./components/MapTab";
-import NewProductDetailScreen from "./components/ProductDetailScreen";
-import NewScanTab from "./components/ScanTab";
-import { PRODUCTS as CSV_PRODUCTS, type Product as CsvProduct } from "../lib/productImporter";
-import { scoreColorHex } from "../lib/scoring";
+import MapTab from "./components/MapTab";
+import ProductDetailScreen from "./components/ProductDetailScreen";
+import ScanTab from "./components/ScanTab";
+import csvText from "../data/products.csv?raw";
+import { parseProductsCSV, bestPrice, type Product as CsvProduct } from "../lib/productImporter";
 import { VERDICT_RANK } from "../lib/safety/analyze";
 import { VERDICT_STYLE, safeAnalyze } from "./components/verdict";
 import {
@@ -57,7 +57,7 @@ const RESOURCES: Resource[] = [
 
 // Bundled CSV catalog: shown until Supabase answers, and kept as the offline
 // fallback. The live catalog comes from the database (src/lib/catalog.ts).
-const PRODUCTS: Product[] = CSV_PRODUCTS;
+const PRODUCTS: Product[] = parseProductsCSV(csvText);
 
 // ── DB row → app type mapper ──────────────────────────────────────────────────
 function rowToResource(r: any) {
@@ -78,9 +78,9 @@ const DEALS = [
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-// ── Score helpers (delegate to scoring.ts) ────────────────────────────────────
-const scoreColor  = (s: number) => scoreColorHex(s);
-const bestPrice     = (p: Product) => Math.min(p.amazon?.price ?? 9999, p.walmart?.price ?? 9999, p.facebook?.price ?? 9999);
+/** 0–100 place rating → colour (Home recommendations and deals). */
+const scoreColor = (s: number) =>
+  s >= 80 ? "#16a34a" : s >= 65 ? "#059669" : s >= 50 ? "#ca8a04" : s >= 35 ? "#ea580c" : "#dc2626";
 
 // ── Status Bar ────────────────────────────────────────────────────────────────
 function StatusBar({ light = false }: { light?: boolean }) {
@@ -383,10 +383,12 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-muted-foreground font-medium">{product.brand}</p>
         <p className="text-sm font-semibold leading-tight line-clamp-2">{product.name}</p>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-primary font-bold">${bp.toFixed(2)}</span>
-          <span className="text-[10px] text-muted-foreground">best price</span>
-        </div>
+        {Number.isFinite(bp) && (
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-primary font-bold">${bp.toFixed(2)}</span>
+            <span className="text-[10px] text-muted-foreground">best price</span>
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
         <span className="w-2 h-2 rounded-full" style={{ background: look.color }} />
@@ -644,11 +646,6 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
   );
 }
 
-// ProductDetailScreen is now in ./components/ProductDetailScreen.tsx
-const ProductDetailScreen = NewProductDetailScreen;
-
-// ScanTab is now in ./components/ScanTab.tsx
-const ScanTab = NewScanTab;
 
 // ── Saved Tab ────────────────────────────────────────────────────────────────
 function SavedTab({ savedIds, scannedIds, onSelectProduct, products }: {
@@ -933,7 +930,7 @@ export default function App() {
                       resources={resources}
                     />
                   )}
-                  {activeTab === "map"     && <NewMapTab resources={resources} />}
+                  {activeTab === "map"     && <MapTab resources={resources} />}
                   {activeTab === "scan"    && (
                     <ScanTab
                       products={products}

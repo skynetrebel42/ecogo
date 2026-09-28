@@ -25,7 +25,7 @@ export interface LibraryEntry {
   name: string;        // display name
   aliases: string[];   // lowercase label spellings, >= 3 characters, unique across the library
   eCodes: string[];    // e.g. ["E250"]
-  severity: Severity;  // must equal deriveSeverity(sources)
+  severity: Severity;  // derived from sources (deriveSeverity), never written by hand
   concern: string;     // one plain-English sentence
   context?: string;    // regulator intake position shown next to the flag
   sources: Source[];
@@ -74,26 +74,26 @@ const iarc2b = (agent: string, quote: string, volumes: string): Source => ({
   url: IARC_LIST, quote, checkedOn: CHECKED,
 });
 
-export const LIBRARY: LibraryEntry[] = [
+const ENTRIES: Omit<LibraryEntry, "severity">[] = [
   // ── High concern ───────────────────────────────────────────────────────────
   {
-    id: "sodium-nitrite", name: "Sodium nitrite", aliases: ["sodium nitrite"], eCodes: ["E250"], severity: "high",
+    id: "sodium-nitrite", name: "Sodium nitrite", aliases: ["sodium nitrite"], eCodes: ["E250"],
     concern: NITROSATION_CONCERN, context: NITRITE_CONTEXT, sources: [iarcNitrosation, efsaNitrites],
   },
   {
-    id: "potassium-nitrite", name: "Potassium nitrite", aliases: ["potassium nitrite"], eCodes: ["E249"], severity: "high",
+    id: "potassium-nitrite", name: "Potassium nitrite", aliases: ["potassium nitrite"], eCodes: ["E249"],
     concern: NITROSATION_CONCERN, context: NITRITE_CONTEXT, sources: [iarcNitrosation, efsaNitrites],
   },
   {
-    id: "sodium-nitrate", name: "Sodium nitrate", aliases: ["sodium nitrate"], eCodes: ["E251"], severity: "high",
+    id: "sodium-nitrate", name: "Sodium nitrate", aliases: ["sodium nitrate"], eCodes: ["E251"],
     concern: NITROSATION_CONCERN, context: NITRITE_CONTEXT, sources: [iarcNitrosation, efsaNitrites],
   },
   {
-    id: "potassium-nitrate", name: "Potassium nitrate", aliases: ["potassium nitrate"], eCodes: ["E252"], severity: "high",
+    id: "potassium-nitrate", name: "Potassium nitrate", aliases: ["potassium nitrate"], eCodes: ["E252"],
     concern: NITROSATION_CONCERN, context: NITRITE_CONTEXT, sources: [iarcNitrosation, efsaNitrites],
   },
   {
-    id: "titanium-dioxide", name: "Titanium dioxide", aliases: ["titanium dioxide"], eCodes: ["E171"], severity: "high",
+    id: "titanium-dioxide", name: "Titanium dioxide", aliases: ["titanium dioxide"], eCodes: ["E171"],
     concern: "Banned as a food additive in the EU since 2022 because a concern for DNA damage (genotoxicity) could not be ruled out.",
     context: "EFSA (2021) concluded that titanium dioxide can no longer be considered safe as a food additive.",
     sources: [
@@ -112,7 +112,7 @@ export const LIBRARY: LibraryEntry[] = [
     ],
   },
   {
-    id: "brominated-vegetable-oil", name: "Brominated vegetable oil (BVO)", aliases: ["brominated vegetable oil", "bvo"], eCodes: [], severity: "high",
+    id: "brominated-vegetable-oil", name: "Brominated vegetable oil (BVO)", aliases: ["brominated vegetable oil", "bvo"], eCodes: [],
     concern: "No longer allowed in US food: the FDA revoked its authorization in July 2024 after new safety studies.",
     sources: [
       {
@@ -124,7 +124,7 @@ export const LIBRARY: LibraryEntry[] = [
     ],
   },
   {
-    id: "erythrosine", name: "Erythrosine (Red No. 3)", aliases: ["erythrosine", "red 3"], eCodes: ["E127"], severity: "high",
+    id: "erythrosine", name: "Erythrosine (Red No. 3)", aliases: ["erythrosine", "red 3"], eCodes: ["E127"],
     concern: "The FDA revoked its authorization for use in food in January 2025.",
     context: "US manufacturers have until January 15, 2027 to reformulate foods that use it.",
     sources: [
@@ -139,7 +139,7 @@ export const LIBRARY: LibraryEntry[] = [
 
   // ── Some concern ───────────────────────────────────────────────────────────
   {
-    id: "aspartame", name: "Aspartame", aliases: ["aspartame"], eCodes: ["E951"], severity: "some",
+    id: "aspartame", name: "Aspartame", aliases: ["aspartame"], eCodes: ["E951"],
     concern: "Classified by IARC as possibly carcinogenic to humans (Group 2B), based on limited evidence.",
     context: "The WHO/FAO expert committee (JECFA) kept the acceptable daily intake at 40 mg per kg of body weight.",
     sources: [
@@ -158,42 +158,45 @@ export const LIBRARY: LibraryEntry[] = [
     ],
   },
   {
-    id: "bha", name: "BHA (butylated hydroxyanisole)", aliases: ["bha", "butylated hydroxyanisole"], eCodes: ["E320"], severity: "some",
+    id: "bha", name: "BHA (butylated hydroxyanisole)", aliases: ["bha", "butylated hydroxyanisole"], eCodes: ["E320"],
     concern: "Classified by IARC as possibly carcinogenic to humans (Group 2B).",
     sources: [iarc2b("butylated hydroxyanisole (BHA)", "Butylated hydroxyanisole (BHA) 2B", "vol. 40, Suppl. 7")],
   },
   {
-    id: "potassium-bromate", name: "Potassium bromate", aliases: ["potassium bromate", "bromated flour"], eCodes: ["E924"], severity: "some",
+    id: "potassium-bromate", name: "Potassium bromate", aliases: ["potassium bromate", "bromated flour"], eCodes: ["E924"],
     concern: "Classified by IARC as possibly carcinogenic to humans (Group 2B); used in some bromated flours.",
     sources: [iarc2b("potassium bromate", "Potassium bromate 2B", "Suppl. 7, vol. 73")],
   },
   {
-    id: "citrus-red-2", name: "Citrus Red No. 2", aliases: ["citrus red 2"], eCodes: ["E121"], severity: "some",
+    id: "citrus-red-2", name: "Citrus Red No. 2", aliases: ["citrus red 2"], eCodes: ["E121"],
     concern: "Classified by IARC as possibly carcinogenic to humans (Group 2B).",
     sources: [iarc2b("Citrus Red No. 2", "Citrus Red No. 2 2B", "vol. 8, Suppl. 7")],
   },
   {
-    id: "tartrazine", name: "Tartrazine (Yellow 5)", aliases: ["tartrazine", "yellow 5"], eCodes: ["E102"], severity: "some",
+    id: "tartrazine", name: "Tartrazine (Yellow 5)", aliases: ["tartrazine", "yellow 5"], eCodes: ["E102"],
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("tartrazine (E 102)")],
   },
   {
-    id: "quinoline-yellow", name: "Quinoline yellow", aliases: ["quinoline yellow"], eCodes: ["E104"], severity: "some",
+    id: "quinoline-yellow", name: "Quinoline yellow", aliases: ["quinoline yellow"], eCodes: ["E104"],
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("quinoline yellow (E 104)")],
   },
   {
-    id: "sunset-yellow", name: "Sunset yellow (Yellow 6)", aliases: ["sunset yellow", "yellow 6"], eCodes: ["E110"], severity: "some",
+    id: "sunset-yellow", name: "Sunset yellow (Yellow 6)", aliases: ["sunset yellow", "yellow 6"], eCodes: ["E110"],
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("sunset yellow (E 110)")],
   },
   {
-    id: "carmoisine", name: "Carmoisine", aliases: ["carmoisine", "azorubine"], eCodes: ["E122"], severity: "some",
+    id: "carmoisine", name: "Carmoisine", aliases: ["carmoisine", "azorubine"], eCodes: ["E122"],
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("carmoisine (E 122)")],
   },
   {
-    id: "ponceau-4r", name: "Ponceau 4R", aliases: ["ponceau 4r"], eCodes: ["E124"], severity: "some",
+    id: "ponceau-4r", name: "Ponceau 4R", aliases: ["ponceau 4r"], eCodes: ["E124"],
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("ponceau 4R (E 124)")],
   },
   {
-    id: "allura-red", name: "Allura red (Red 40)", aliases: ["allura red", "red 40"], eCodes: ["E129"], severity: "some",
+    id: "allura-red", name: "Allura red (Red 40)", aliases: ["allura red", "red 40"], eCodes: ["E129"],
     concern: WARNING_LABEL_CONCERN, sources: [euWarningLabel("allura red (E 129)")],
   },
 ];
+
+// null only for an entry with context sources alone — library.test.ts rejects that.
+export const LIBRARY: LibraryEntry[] = ENTRIES.map(e => ({ ...e, severity: deriveSeverity(e.sources)! }));
