@@ -15,6 +15,11 @@ import { bestPrice, type Product } from "../../lib/productImporter";
 import { VERDICT_RANK, escapeRegExp, type Analysis, type Flag } from "../../lib/safety/analyze";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline } from "./verdict";
 
+/** "fr" → "French" (native Intl; falls back to the code). */
+const languageName = (code: string) => {
+  try { return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code; } catch { return code; }
+};
+
 const SMALL_PRINT: Record<Analysis["verdict"], (a: Analysis) => string> = {
   high:       () => "Tap an ingredient to see its official sources.",
   some:       () => "Tap an ingredient to see its official sources.",
@@ -130,8 +135,10 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-1">
               <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/60">{product.brand}</span>
-              <span className="text-white/30">·</span>
-              <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/60">{product.category}</span>
+              {product.category && (<>
+                <span className="text-white/30">·</span>
+                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/60">{product.category}</span>
+              </>)}
             </div>
             <h1 className="text-lg font-extrabold text-white leading-tight mb-2">{product.name}</h1>
             {Number.isFinite(best) && (
@@ -160,6 +167,24 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
       {/* ── Scrollable Body ── */}
       <div className="flex-1 overflow-y-auto bg-gray-50" style={{ scrollbarWidth: "none" }}>
         <div className="px-4 py-4 space-y-3 pb-10">
+
+          {product.source && (
+            <div className={`rounded-2xl p-3 text-[11px] leading-snug border ${product.source.crowdSourced
+              ? "bg-amber-50 border-amber-100 text-amber-900" : "bg-white border-gray-100 text-gray-600 shadow-sm"}`}>
+              {product.source.crowdSourced
+                ? "Product data from Open Food Facts (crowd-sourced, may contain errors)."
+                : "Label data from USDA FoodData Central, supplied by the manufacturer."}{" "}
+              <a href={product.source.url} target="_blank" rel="noreferrer" className="font-bold underline">
+                {product.source.crowdSourced ? "View on Open Food Facts" : "View record"}
+              </a>
+              {product.source.ingredientsLang !== "en" && (
+                <span className="block mt-1">
+                  Ingredients are listed in {languageName(product.source.ingredientsLang)}; additive codes were checked, ingredient names may be missed.
+                </span>
+              )}
+              {product.source.crowdSourced && <span className="block mt-1 opacity-70">Data © Open Food Facts contributors, ODbL.</span>}
+            </div>
+          )}
 
           {/* ── Verdict ── */}
           <div className="bg-white rounded-2xl p-4 shadow-sm" style={{ borderLeft: `4px solid ${look.color}` }}>

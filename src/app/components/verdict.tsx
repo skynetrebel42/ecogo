@@ -19,7 +19,8 @@ const NO_DATA: Analysis = { verdict: "no-data", flags: [], checkedCount: 0 };
 /** Never let the engine blank a screen: an unexpected error shows "Not enough data" and is logged. */
 export function safeAnalyze(p: Product): Analysis {
   try {
-    return analyzeIngredients({ ingredients: p.ingredients, category: p.category });
+    // Looked-up products have no catalog category (both sources are food databases) and may bring additive codes.
+    return analyzeIngredients({ ingredients: p.ingredients, category: p.source ? undefined : p.category, additiveCodes: p.source?.additiveCodes });
   } catch (err) {
     console.error("[safety] analysis failed for product", p.id, err);
     return NO_DATA;
