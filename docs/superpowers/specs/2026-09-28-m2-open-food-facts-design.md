@@ -1,5 +1,8 @@
 # M2: Open Food Facts lookup, cooking note, nutrition section: design spec
 
+> **Superseded 2026-09-28** by `2026-09-28-m2-usda-lookup-design.md` (owner chose USDA as the main source). Kept for
+> the verified acrylamide and Nutri-Score facts, which are deferred work.
+
 - **Date:** 2026-09-28
 - **Status:** approved in conversation, awaiting written-spec review
 - **Designed with:** the owner (Minh Bui). Decisions below are theirs unless marked *recommended default*.
