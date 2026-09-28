@@ -18,7 +18,7 @@ import { VERDICT_STYLE, safeAnalyze, verdictHeadline } from "./verdict";
 const SMALL_PRINT: Record<Analysis["verdict"], (a: Analysis) => string> = {
   high:       () => "Tap an ingredient to see its official sources.",
   some:       () => "Tap an ingredient to see its official sources.",
-  none:       a => `Checked against ${a.checkedCount} ingredients with an official health concern.`,
+  none:       () => "This checks additives with an official health concern (IARC, EU, FDA). It doesn't yet rate nutrition or substances formed by cooking.",
   "no-data":  () => "This product has no ingredient list yet.",
   "non-food": () => "Checks for cleaning, personal-care and other products are coming later.",
 };

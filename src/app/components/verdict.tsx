@@ -9,7 +9,7 @@ export const VERDICT_STYLE: Record<Verdict, {
 }> = {
   high:       { label: "High-concern ingredient",         short: "High concern", color: "#B91C1C", bg: "#FEE2E2", gradient: "linear-gradient(160deg, #450a0a, #dc2626)", Icon: ShieldAlert },
   some:       { label: "Ingredients of some concern",     short: "Some concern", color: "#B45309", bg: "#FEF3C7", gradient: "linear-gradient(160deg, #78350f, #d97706)", Icon: AlertTriangle },
-  none:       { label: "No ingredients of concern found", short: "No concerns",  color: "#15803D", bg: "#DCFCE7", gradient: "linear-gradient(160deg, #064e3b, #10b981)", Icon: CheckCircle },
+  none:       { label: "No flagged additives found", short: "No flagged additives", color: "#15803D", bg: "#DCFCE7", gradient: "linear-gradient(160deg, #064e3b, #10b981)", Icon: CheckCircle },
   "no-data":  { label: "Not enough data",                 short: "No data",      color: "#4B5563", bg: "#F3F4F6", gradient: "linear-gradient(160deg, #1f2937, #6b7280)", Icon: HelpCircle },
   "non-food": { label: "Ingredient check covers food & drinks for now", short: "Food only", color: "#4B5563", bg: "#F3F4F6", gradient: "linear-gradient(160deg, #1f2937, #6b7280)", Icon: HelpCircle },
 };
@@ -33,5 +33,6 @@ export function verdictHeadline(a: Analysis): string {
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
   if (a.verdict === "high") return some ? `${plural(high, "high-concern ingredient")} · ${some} of some concern` : plural(high, "high-concern ingredient");
   if (a.verdict === "some") return `${plural(some, "ingredient")} of some concern`;
+  if (a.verdict === "none") return `None of the ${a.checkedCount} flagged additives found`;
   return VERDICT_STYLE[a.verdict].label;
 }
