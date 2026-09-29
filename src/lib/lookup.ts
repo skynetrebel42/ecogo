@@ -94,7 +94,7 @@ export function mapOffResponse(json: unknown, httpStatus: number): LookupResult 
 }
 
 async function fetchOff(code: string, f: typeof fetch): Promise<LookupResult> {
-  const res = await f(`${OFF}${code}.json?fields=${OFF_FIELDS}`, { headers: { "X-User-Agent": "EcoGo/0.1 (personal project)" } });
+  const res = await f(`${OFF}${code}.json?fields=${OFF_FIELDS}`, { headers: { "X-User-Agent": "EcoGo/0.1 (https://github.com/skynetrebel42/ecogo)" } });
   return mapOffResponse(await res.json().catch(() => null), res.status);
 }
 

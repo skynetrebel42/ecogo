@@ -1,20 +1,45 @@
 # EcoGo!
 
-This is a code bundle for EcoGo!. The original design is available at https://www.figma.com/design/wSoUYzrk2gMgn0wVuecJK7/EcoGo-.
+Scan a food barcode and see which ingredients carry an **official** health concern, with the source for every flag.
 
-## Running the code
+**Live demo:** https://skynetrebel42.github.io/ecogo/ (phone-sized layout; camera scanning is coming in the next milestone,
+so use the demo barcodes or type one).
 
-Run `npm i` to install the dependencies.
+## How it works
 
-Run `npm run dev` to start the development server at http://localhost:5173.
+- **Product data:** 51 featured products live in a Supabase (Postgres) database. Any other barcode is looked up in
+  **USDA FoodData Central** (label data supplied by manufacturers), then in **Open Food Facts** (crowd-sourced, and
+  labelled as such).
+- **Safety check:** the ingredient list is parsed and matched word for word against a small library of additives that
+  IARC, the EU or the FDA have flagged. Each entry quotes its source verbatim and links to it. There's no AI and no
+  made-up score: if nothing is flagged, the page says exactly that, "No flagged additives".
+- **Trust checks:** `npm test` checks every featured product against hand-reviewed flags, and
+  `npm run verify:sources` re-checks the quotes against the live source pages.
 
-## Backend (Supabase)
+## Run it locally
 
-- The app reads its catalog from the Supabase project configured in `.env` (`VITE_SUPABASE_URL`,
-  `VITE_SUPABASE_PUBLISHABLE_KEY`; public values). Put personal overrides or secrets in `.env.local`.
-- The schema and seed data live in `supabase/migrations/`. To use your own Supabase project, apply them in
-  order (Supabase CLI `supabase db push`, or paste them into the SQL editor), then set the two variables.
-- If Supabase is unreachable, the app falls back to the bundled `src/data/products.csv`.
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm test
+```
+
+For product lookups, create `.env.local` with `VITE_FDC_API_KEY=<your free key from
+https://fdc.nal.usda.gov/api-key-signup>`. Without it the app uses USDA's shared `DEMO_KEY` (30 lookups an hour).
+The Supabase URL and publishable key in `.env` are public by design; the database only allows reading the catalog.
+
+## Built with
+
+React 18, Vite 6, Tailwind CSS 4, Supabase, Leaflet/OpenStreetMap, deployed to GitHub Pages with GitHub Actions.
+The original UI was designed in Figma Make.
+
+## Data credits
+
+- USDA FoodData Central, U.S. Department of Agriculture (public domain).
+- Open Food Facts, © Open Food Facts contributors, [ODbL](https://opendatacommons.org/licenses/odbl/1-0/).
+- Hazard sources: IARC (WHO), EFSA / EU regulations, U.S. FDA. Linked from each flag in the app.
+
+This is a personal project, not medical advice.
 
 Project docs: [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md) (start here), [ARCHITECTURE.md](ARCHITECTURE.md),
-[KNOWN_ISSUES.md](KNOWN_ISSUES.md), [SYNOPSIS.md](SYNOPSIS.md).
+[KNOWN_ISSUES.md](KNOWN_ISSUES.md).
