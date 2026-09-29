@@ -4,7 +4,7 @@
 > exported 2026-07-07; identical to this folder apart from `package-lock.json`/`node_modules`).
 > Details: [ARCHITECTURE.md](ARCHITECTURE.md) (structure, Supabase map, data map, feature inventory) and
 > [KNOWN_ISSUES.md](KNOWN_ISSUES.md) (baseline, bug list, roadmap).
-> The project is a git repo (`main`). Commit `63eef63` is the untouched Figma export. Roadmap steps 0–2 are done:
+> The project is a git repo (`main`). Commit `9ccf3ce` is the untouched Figma export. Roadmap steps 0–2 are done:
 > the safety net, a new owner-controlled Supabase project, and a normalized database with the app switched over to it.
 
 ## Where things stand
@@ -90,9 +90,9 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 004 | Don't split App.tsx until behavior is pinned *(ChatGPT)* | Responsibility map now exists (ARCHITECTURE.md §5); start with the ~150 lines of dead code | Active default, unconfirmed |
 | 005 | Documentation follows stabilization *(ChatGPT)* | These are working docs, not final docs | Active default, unconfirmed |
 | 006 | The CSV `Product` (camelCase) shape is the canonical frontend product shape | It is the only shape the whole UI consumes | **Done**: `catalog.ts` maps DB rows into it |
-| 007 | Put a restore point in place before the first code change | The handoff prioritizes not destroying working behavior | **Done**: baseline commit `63eef63` |
+| 007 | Put a restore point in place before the first code change | The handoff prioritizes not destroying working behavior | **Done**: baseline commit `9ccf3ce` |
 | 008 | Start fresh with an owner-controlled Supabase project | The Figma project `ipcbqjrceyqleuaufier` lives in an account the owner can't access, and it held only prototype data | **Done**: `ecogo` = `gippyavmxxzqxjkuahpt` (us-west-1, free) |
-| 009 | Normalized tables now (owner chose option A) instead of recreating the KV table | Real constraints, relations and realtime per table are easier to grow than one JSON blob; the new DB was empty, so there was nothing to migrate | **Done** 2026-09-23: 5 tables, RLS, grants, realtime (`ed97a90`) |
+| 009 | Normalized tables now (owner chose option A) instead of recreating the KV table | Real constraints, relations and realtime per table are easier to grow than one JSON blob; the new DB was empty, so there was nothing to migrate | **Done** 2026-09-23: 5 tables, RLS, grants, realtime (`3f33bb6`) |
 | 010 | Browser talks to Supabase directly (PostgREST + RLS); the edge function was deleted | It was KV-based, unauthenticated and unreachable; RLS plus column grants give the same guarantees with less code | **Done**. Add an edge function only when server-side logic is needed (e.g. calling an external product API with a secret key) |
 | 011 | Overall score and grade are computed, never stored; unknown barcode = `product_id is null` | Avoids derived data drifting out of sync | **Done**; superseded 2026-09-28: the score was replaced by the M1 ingredient verdict and `scoring.ts` deleted |
 | 012 | The DB is the source of truth for the catalog; the CSV is the seed source and offline fallback | One writer; the offline demo still works | **Done**. CSV edits don't reach the live DB (K-17) |

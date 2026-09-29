@@ -13,7 +13,7 @@
 
 M1 answers one narrow question: "is any of 17 officially flagged additives on the label?" The owner pointed out the
 blind spot. Potato chips got a green "No concerns" while acrylamide forms when they're fried and their nutrition is
-poor. Two fixes followed: the wording is now honest ("No flagged additives", commit `6d24703`), and M2 widens what
+poor. Two fixes followed: the wording is now honest ("No flagged additives", commit `21232c0`), and M2 widens what
 the product page tells people. The same "facts / science first" rule still applies: every statement cites an official
 source or is labelled as someone else's estimate.
 

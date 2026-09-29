@@ -91,7 +91,7 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 
 Removed in step 2: `utils/supabase/info.tsx` (key for the retired Figma project) and `supabase/functions/server/*`
 (the key-value edge function). Removed in M0 (`6497847`): the shadcn `ui/` kit (48 files), `figma/`, `guidelines/`,
-`pnpm-workspace.yaml`, `default_shadcn_theme.css`, `globals.css`. All remain available in the baseline commit `63eef63`.
+`pnpm-workspace.yaml`, `default_shadcn_theme.css`, `globals.css`. All remain available in the baseline commit `9ccf3ce`.
 
 ## 5. `App.tsx` responsibility map
 

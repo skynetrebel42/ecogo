@@ -1,7 +1,7 @@
 # M2: look up any US food barcode (USDA first): design spec
 
 - **Date:** 2026-09-28
-- **Status:** implemented (`0af39f3`…`69b7f68`, plus docs; branch `m2-open-food-facts`)
+- **Status:** implemented (`e50e12e`…`b99eb13`, plus docs; branch `m2-open-food-facts`)
 - **Supersedes:** `2026-09-28-m2-open-food-facts-design.md` and its plan `plans/2026-09-28-m2-open-food-facts.md`
   (Open Food Facts as the main source). The acrylamide note, nutrition section and Baby Food move are **deferred**, not
   dropped; that spec keeps their verified sources for later.

@@ -153,7 +153,7 @@ Expected: `0`.
 
 - [ ] **Step 7: Delete dead code in `src/app/App.tsx`**
 
-The line numbers are for `App.tsx` as of commit `d2372e7`. Delete them in one pass: line 83 (`ethicalLabel`), 86–151 (SVG `CityMap`, `ScoreRing`, `ScoreBar`), and 718–805 (the unused inline `MapTab`):
+The line numbers are for `App.tsx` as of commit `98a6654`. Delete them in one pass: line 83 (`ethicalLabel`), 86–151 (SVG `CityMap`, `ScoreRing`, `ScoreBar`), and 718–805 (the unused inline `MapTab`):
 
 ```bash
 sed -i '718,805d;86,151d;83d' src/app/App.tsx

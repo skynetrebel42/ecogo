@@ -45,7 +45,7 @@ service-role key, public seed routes, GPS stored with scans, CORS `*`, and the l
 
 ## 4. What to do next to continue the build
 
-**Step 0: safety net ✅ done.** The git repo is on `main`, with `63eef63` as the untouched Figma baseline, then the
+**Step 0: safety net ✅ done.** The git repo is on `main`, with `9ccf3ce` as the untouched Figma baseline, then the
 docs, then react/react-dom moved into `dependencies`. The build is verified after the change.
 
 **Step 1: backend ✅ resolved by starting fresh.** The Figma database was in an account you can't access, so it's
@@ -62,7 +62,7 @@ in about 3 s.
 barcode scanning first; free tier only; no deadline. The prototype is **done** when you can scan a real food product
 with your phone's camera and get a trustworthy safety score. The full answers are in PROJECT_HANDOFF.md → "Owner goals".
 
-**Step 3: trustworthy safety analysis. ✅ Done 2026-09-25** (`6497847`…`c017d93`). A sourced 17-ingredient library
+**Step 3: trustworthy safety analysis. ✅ Done 2026-09-25** (`6497847`…`74e5d52`). A sourced 17-ingredient library
 (IARC, EU, FDA; every entry has a verbatim quote), a parser that reads sub-ingredients, and a verdict computed from the
 ingredients. The product page shows flagged ingredients with their sources; lists show the same verdict; no AI labels.
 `npm test` checks all 51 products.
