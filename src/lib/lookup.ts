@@ -115,7 +115,7 @@ export function lookupBarcode(raw: string, opts: { fdcKey?: string; fetchImpl?: 
   const hit = cache.get(k);
   if (hit) return hit;
   const f = opts.fetchImpl ?? fetch;
-  let fdcKey = opts.fdcKey;
+  let fdcKey = opts.fdcKey?.trim(); // a pasted secret can carry a newline, which USDA rejects (403 API_KEY_INVALID)
   if (!fdcKey) {
     console.warn("[lookup] VITE_FDC_API_KEY is not set; using USDA's DEMO_KEY (30 lookups an hour)");
     fdcKey = "DEMO_KEY";

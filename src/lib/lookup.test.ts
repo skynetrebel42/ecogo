@@ -193,6 +193,15 @@ test("an OFF find made while USDA was unreachable is shown but not cached", asyn
   assert.ok(calls > first, "looked up again once USDA may be back");
 });
 
+// M3: the first deploy's key secret carried a trailing newline and USDA answered 403 API_KEY_INVALID.
+test("a USDA key with stray whitespace (e.g. a pasted newline) is trimmed before use", async () => {
+  const net = fakeNet({}, {});
+  await lookupBarcode("036000291452", { fdcKey: " KEY\n", fetchImpl: net.impl });
+  const usda = net.calls.filter(u => u.startsWith("https://api.nal.usda.gov/"));
+  assert.ok(usda.length > 0);
+  assert.ok(usda.every(u => new URL(u).searchParams.get("api_key") === "KEY"));
+});
+
 test("codes outside 8–14 digits never hit the network", async () => {
   const net = fakeNet({}, {});
   assert.equal((await lookupBarcode("1234", { fdcKey: "TEST", fetchImpl: net.impl })).status, "not-found");
