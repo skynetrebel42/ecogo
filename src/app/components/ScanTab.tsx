@@ -3,19 +3,19 @@
 //
 //   1. The user taps "Scan" (demo barcode) or types a barcode.
 //   2. Look up our catalog, then USDA FoodData Central, then Open Food Facts (lib/lookup.ts).
-//      • Catalog product    → scan recorded with its id, product page opens.
-//      • Found by lookup    → scan recorded as an unknown barcode (no catalog id), product page opens.
-//      • Found nowhere      → scan recorded, honest "not found" screen.
-//      • Lookup unreachable → "Couldn't reach…" with Try again; nothing recorded.
+//      • Catalog product    → product page opens.
+//      • Found by lookup    → product page opens.
+//      • Found nowhere      → honest "not found" screen.
+//      • Lookup unreachable → "Couldn't reach…" with Try again.
+//   Scans are not saved (owner decision M3-4, 2026-09-29).
 //
 // There is no camera yet (M4): the "Demo" panel picks which barcode to simulate.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useCallback } from "react";
-import { CheckCircle, QrCode, ChevronUp, ChevronDown, MapPin, Clock, Database, X, WifiOff, ExternalLink } from "lucide-react";
+import { CheckCircle, QrCode, ChevronUp, ChevronDown, Database, X, WifiOff, ExternalLink } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
-import { lookupBarcode, normalizeBarcode, isBarcode } from "../../lib/lookup";
-import { findProductByBarcode, recordProductScan, createPlaceholder, getCurrentLocation, type ScanEvent } from "../../lib/scanService";
+import { lookupBarcode, normalizeBarcode, isBarcode, sameBarcode } from "../../lib/lookup";
 
 interface DemoBarcode { barcode: string; label: string; category: string }
 
@@ -54,49 +54,36 @@ export default function ScanTab({ onScanResult, products }: ScanTabProps) {
   const [selectorOpen, setSelectorOpen]       = useState(false);
   const [typed, setTyped]                     = useState("");
   const [scannedCode, setScannedCode]         = useState("");
-  const [lastScanEvent, setLastScanEvent]     = useState<ScanEvent | null>(null);
-  const [locationStatus, setLocationStatus]   = useState<"pending" | "granted" | "denied" | null>(null);
 
   const handleScan = useCallback(async (raw: string, simulateCamera: boolean) => {
     if (scanState === "scanning" || scanState === "found") return;
     const barcode = normalizeBarcode(raw);
     setScanState("scanning");
     setScannedCode(barcode);
-    setLastScanEvent(null);
     setSelectorOpen(false);
-    setLocationStatus("pending");
 
-    const locationPromise = getCurrentLocation().then((loc) => { setLocationStatus(loc ? "granted" : "denied"); return loc; });
     if (simulateCamera) await new Promise<void>((resolve) => setTimeout(resolve, 2200));
 
-    const catalogProduct = findProductByBarcode(barcode, products);
+    const catalogProduct = products.find((p) => sameBarcode(p.barcode, barcode)) ?? null;
     let product: Product | null = catalogProduct;
     if (!product) {
       const found = await lookupBarcode(barcode, { fdcKey: import.meta.env.VITE_FDC_API_KEY });
       if (found.status === "error") { setScanState("error"); return; }
       if (found.status === "found") product = found.product;
     }
-    const location = await locationPromise;
 
     if (product) {
       setScanState("found");
-      // Only catalog products have a database id; looked-up products are logged as unknown barcodes.
-      const event = catalogProduct ? await recordProductScan(catalogProduct, location) : await createPlaceholder(barcode, location);
-      if (event) setLastScanEvent(event);
       await new Promise<void>((resolve) => setTimeout(resolve, 900));
       setScanState("idle");
       onScanResult(product);
     } else {
       setScanState("not_found");
-      const event = await createPlaceholder(barcode, location);
-      if (event) setLastScanEvent(event);
     }
   }, [scanState, products, onScanResult]);
 
   const resetToIdle = useCallback(() => {
     setScanState("idle");
-    setLastScanEvent(null);
-    setLocationStatus(null);
   }, []);
 
   const typedCode   = normalizeBarcode(typed);
@@ -132,12 +119,6 @@ export default function ScanTab({ onScanResult, products }: ScanTabProps) {
             <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Scanned Barcode</p>
             <p className="text-white font-mono font-bold text-sm tracking-wider">{scannedCode}</p>
           </div>
-          {lastScanEvent && (
-            <div className="mt-4 flex items-center gap-2 text-xs text-amber-300/60">
-              <Clock size={11} />
-              <span>Scan saved at {new Date(lastScanEvent.scanned_at).toLocaleTimeString()}</span>
-            </div>
-          )}
         </div>
 
         <div className="px-5 pb-8 flex-shrink-0">
@@ -198,13 +179,6 @@ export default function ScanTab({ onScanResult, products }: ScanTabProps) {
             : scanState === "error" ? "Couldn't reach the product databases. Check your connection and try again."
             : "Tap to scan"}
         </p>
-
-        {scanState === "scanning" && (
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-white/30">
-            <MapPin size={10} />
-            <span>{locationStatus === "pending" ? "Getting location…" : locationStatus === "granted" ? "Location captured" : "Location unavailable"}</span>
-          </div>
-        )}
       </div>
 
       <div className="px-5 pb-4 flex-shrink-0 space-y-3">
