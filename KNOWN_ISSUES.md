@@ -50,7 +50,7 @@
 | ~~**K-09**~~ ✅ | **Fixed in M1 (safety engine, `74e5d52`).** Lists and the product page show the same ingredient verdict; the score, percentage and letter grade are gone. *Original issue:* Two different numbers are presented as "the score": lists show `safetyScore` (the health dimension) as `%`, detail shows `overallScore` (Tide 38% vs 35/100; Lay's 62% vs 54/100). The letter grade comes from **ethics only**, so 15/51 products show a grade that contradicts their overall score. | `App.tsx:78,491`; `scoring.ts` grade thresholds; `ProductDetailScreen.tsx:745` |
 | **K-10** ✔ | A DB resource whose `type` isn't one of the 6 `CAT` keys crashes HomeTab (`cat.bg` of undefined), and with **no error boundary** the whole app goes blank. Still latent after step 2: the `resources` table allows the Map's 12 types, and Home shows the first 5 by id (currently all within App's 6). | `App.tsx` `rowToResource`, `HomeTab`; `main.tsx` |
 | **K-11** ✔ | *Partly fixed in step 2:* "Live" now appears only when catalog rows actually arrive (an empty result counts as offline). **Remaining:** "Offline — showing *cached* data" is inaccurate, because it's bundled data, not a cache. | `App.tsx` offline banner |
-| **K-12** ✔ | A scan waits on geolocation. The 4 s `timeout` doesn't cover the permission prompt, so the scanner can hang in "scanning". There is no try/finally, so any throw also leaves it stuck. | `ScanTab.tsx:107`; `scanService.ts:86,111` |
+| ~~**K-12**~~ ✅ | **Moot since M3: scans no longer request location.** *Original issue:* A scan waits on geolocation. The 4 s `timeout` doesn't cover the permission prompt, so the scanner can hang in "scanning". There is no try/finally, so any throw also leaves it stuck. | `ScanTab.tsx:107`; `scanService.ts:86,111` |
 | ~~**K-13**~~ ✅ | **Fixed in M2 (`b99eb13`).** The not-found screen now says "We couldn't find this barcode yet" (no review-queue claim), and the `error` state is used for unreachable lookups. *Original issue:* The unknown-barcode screen always says "We've saved it for review", even when the insert failed. The `error` scan state is declared and never set. | `ScanTab.tsx` |
 | **K-14** ✔ | The "Why Recommended?" modal is positioned inside the scrolling Home container, so for lower sections it opens off-screen. (Verifier-found; not runtime-checked.) | `App.tsx:543` |
 | **K-15** ▶✔ | Today's Deals cards open unrelated products (the Seventh Gen. deal opens KIND bars), and "See all" searches the literal word "deals" → "No results". | `App.tsx:626-650` |
@@ -98,7 +98,7 @@
 - Letters in a typed barcode are silently stripped and check digits aren't validated, so a typo becomes a different code.
 - USDA 429/403 (rate limit, bad key) show "check your connection"; under `DEMO_KEY` Open Food Facts silently takes over.
 - Switching tabs mid-lookup still pops the product page when the lookup finishes.
-- A scan can sit on "Looking up…" while the location permission prompt is unanswered (same root cause as K-12).
+- ~~A scan can sit on "Looking up…" while the location prompt is unanswered~~ (moot since M3: no location request).
 
 ### Future production: security and privacy (do **not** deploy publicly before these)
 
