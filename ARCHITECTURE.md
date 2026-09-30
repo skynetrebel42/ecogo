@@ -14,7 +14,7 @@ Figma Make. After a welcome screen and a 3-slide onboarding it has five tabs:
 |---|---|
 | **Home** | Hardcoded "Alex", 15 hardcoded Chicago recommendations with a SmartScore filter, 3 fake deals, a product search box, and the first 5 community resources (from the database). |
 | **Map** | A real Leaflet/OpenStreetMap map of **18 Chicago resources** drawn from `MapTab.tsx` `BASE_RESOURCES`. The database overrides only name, hours, phone and description by id, even though the `resources` table now also holds coordinates. |
-| **Scan** | **Simulated.** You pick a demo barcode or type one (8–14 digits); there is no camera or decoder yet (M4). The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Each scan is **saved to the `scan_events` table** (location rounded to ~100 m); looked-up and not-found barcodes are saved with `product_id` null. |
+| **Scan** | **Simulated.** You pick a demo barcode or type one (8–14 digits); there is no camera or decoder yet (M4). The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Scans are **not saved** (M3), and scanning never asks for location. |
 | **Saved** | Favorites and Scanned lists, in React state only (lost on reload). "Lists" is static. |
 | **Profile** | Entirely static (Alex Johnson, fake stats and badges). The settings rows do nothing. |
 
@@ -50,8 +50,8 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
  │   └─ ProductDetailScreen.tsx           │   lib/safety/* (ingredient verdict) │
  │ productImporter.ts ◄─ products.csv (bundled) ─► initial / offline catalog    │
  └──────────┬─────────────────────────────┬──┼──────────────────────────────────┘
-            │ (1) SELECT products,        │  │ (3) INSERT scan_events
-            │     prices, categories,     │  │     (6 columns, no read-back)
+            │ (1) SELECT products,        │  │ (3) no writes: scans aren't saved (M3)
+            │     prices, categories,     │  │
             │     resources               │  │
             │ (2) Realtime: any change on products / product_prices / resources
             │     → App re-runs loadData()│  │
@@ -59,7 +59,7 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
  ┌──────────────────────────────────────────────────────────────────────────────┐
  │ Supabase "ecogo"  (publishable key; access = explicit GRANTs + RLS)          │
  │   categories 1─* products 1─* product_prices      resources                  │
- │                     └─* scan_events (insert-only, private)                   │
+ │                     └─* scan_events (no longer written; service role only)   │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -90,7 +90,7 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 | `ATTRIBUTIONS.md`, `postcss.config.mjs` | — | Figma template leftovers | Leave alone |
 
 Removed in step 2: `utils/supabase/info.tsx` (key for the retired Figma project) and `supabase/functions/server/*`
-(the key-value edge function). Removed in M0 (`6497847`): the shadcn `ui/` kit (48 files), `figma/`, `guidelines/`,
+(the key-value edge function). Removed in M0 (`764271c`): the shadcn `ui/` kit (48 files), `figma/`, `guidelines/`,
 `pnpm-workspace.yaml`, `default_shadcn_theme.css`, `globals.css`. All remain available in the baseline commit `9ccf3ce`.
 
 ## 5. `App.tsx` responsibility map
@@ -111,7 +111,7 @@ App.tsx (1130)
 ├── 152–254   StatusBar (fake 9:41) · WelcomeScreen (Sign In has no onClick) · OnboardingScreen
 ├── 256–439   RECOMMENDATIONS (15 hardcoded places) · cards · WhyModal · sections
 ├── 440–467   ProductCard (shows safetyScore %; detail shows overallScore)
-├── 468–651   HomeTab: greeting, search, geolocation pill (coords unused), deals, nearby resources
+├── 468–651   HomeTab: greeting, search, static location pill, deals, nearby resources
 ├── 652–715   SearchResultsScreen (keywords/name/category; sort health/price/ethics)
 ├── 716–807   aliases → ProductDetailScreen / ScanTab · inline legacy MapTab ─── DEAD (718–806)
 ├── 809–870   SavedTab (favorites · scanned · static lists)
@@ -209,7 +209,7 @@ erDiagram
 | Table | Browser (`anon` / `authenticated`) | `service_role` / dashboard |
 |---|---|---|
 | categories, products, product_prices, resources | `SELECT` only (policy "Catalog is publicly readable") | full CRUD |
-| scan_events | `INSERT` of `barcode, product_id, store, price, latitude, longitude` only; **no SELECT** (policy "Anyone can record a scan") | full CRUD |
+| scan_events | **nothing**: the insert grant and policy were revoked in M3 (`stop_saving_scans`) | full CRUD |
 
 Verified live on 2026-09-23 with the publishable key. Reading `scan_events`, updating `products` and deleting
 `product_prices` all return `42501 permission denied`. The Supabase security advisor reports no issues.
@@ -239,7 +239,7 @@ CLI (`supabase link` then `supabase db push`) or by pasting them into the SQL ed
 | Looked-up products | fetched live per session from USDA FoodData Central (manufacturer label data) or Open Food Facts (crowd-sourced); never stored | `lookupBarcode()` (session cache) | — | error state with Try again | — | no (session list in App state) |
 | Scanned ids (Saved › Scanned) | React state, seeded `[2,6]` | — | `onScanResult` | — | — | **no** |
 | Favorites | React state, seeded `[3,5]` | — | bookmark toggle | — | — | **no** |
-| User location | Browser Geolocation (Home pill, Map "My Location", Scan) | — | stored only with scans, rounded to 3 decimals | "Chicago, IL (default)" / Chicago centre | — | no |
+| User location | Browser Geolocation, only when the user taps Map "My Location" | — | never stored | Chicago centre | — | no |
 | Scores | Replaced by the ingredient verdict (M1) | — | — | — | — | — |
 | Ingredient KB | `src/lib/safety/library.ts` (verified, sourced) | `analyzeIngredients` over `product.ingredients` at render | code + `verify:sources` | "Not enough data" verdict | — | yes |
 | Explanations / "AI" text | Replaced by the ingredient verdict (M1) | — | — | — | — | — |
@@ -256,7 +256,7 @@ static or a no-op; **broken**.
 | Welcome → onboarding → guest | `WelcomeScreen`, `OnboardingScreen` | partial | "Sign In" has no handler; onboarding re-runs on every reload |
 | Bottom-tab navigation | `BottomNav` | working | |
 | Home recommendations + SmartScore filter + "Why?" modal | `HomeTab` | placeholder | 15 hardcoded Chicago places |
-| Home location pill | `HomeTab` | placeholder | Label only; coords unused; Refresh can stick on "Locating…" |
+| Home location pill | `HomeTab` | static | "Chicago, IL (demo places)"; no location request since M3 |
 | Product search | `HomeTab` → `SearchResultsScreen` | partial | Works; brand not searched; Back loses results |
 | Today's Deals | `HomeTab` | placeholder | Cards open unrelated products; "See all" → "No results for deals" |
 | Nearby resources | `HomeTab` | partial | From the DB; would crash Home if one of the first 5 had a type outside App's 6 (K-10) |

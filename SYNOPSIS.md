@@ -62,7 +62,7 @@ in about 3 s.
 barcode scanning first; free tier only; no deadline. The prototype is **done** when you can scan a real food product
 with your phone's camera and get a trustworthy safety score. The full answers are in PROJECT_HANDOFF.md → "Owner goals".
 
-**Step 3: trustworthy safety analysis. ✅ Done 2026-09-25** (`6497847`…`74e5d52`). A sourced 17-ingredient library
+**Step 3: trustworthy safety analysis. ✅ Done 2026-09-25** (`764271c`…`74e5d52`). A sourced 17-ingredient library
 (IARC, EU, FDA; every entry has a verbatim quote), a parser that reads sub-ingredients, and a verdict computed from the
 ingredients. The product page shows flagged ingredients with their sources; lists show the same verdict; no AI labels.
 `npm test` checks all 51 products.
@@ -75,10 +75,10 @@ check. Every looked-up page says where its data came from.
 Pages, rebuilt by GitHub Actions on every push), repo github.com/skynetrebel42/ecogo. Scans are no longer saved.
 
 **Step 6: real camera scanning + mobile layout.** Phone-camera scanning on iPhone, Android and laptop; full-screen on
-phones; scans saved without location.
+phones. (Scans are no longer saved at all since M3.)
 
 **Later:** a map that follows the user's location (Los Angeles as the default, real places from OpenStreetMap),
-persistent favorites, cleanup, then accounts and rate limiting before going public.
+persistent favorites, cleanup; accounts only if a feature needs per-user data.
 
 ## 5. How to start the next session
 

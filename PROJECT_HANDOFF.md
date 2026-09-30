@@ -21,14 +21,14 @@
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), an ingredient safety
   verdict computed by the safety engine (`src/lib/safety`, sourced library, `npm test` over all 51 products), realtime
-  catalog updates, scans saved to `scan_events`, Leaflet map of 18 Chicago resources, simulated barcode scan,
+  catalog updates (scans are not saved), Leaflet map of 18 Chicago resources, simulated barcode scan,
   in-memory favorites.
 - **What's fake:** the camera scanner, Home recommendations (place "Rating" numbers and their reasons are invented) and deals, Profile, Sign In, Lists, Share, Call.
 - **Backend:** Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free). There are 5 normalized tables
-  with RLS and explicit grants, and the schema lives in `supabase/migrations/`. The browser reads the catalog and can only
-  insert scans. There is no edge function. The old Figma project is retired (decision 008).
-- **Security:** browsers can't modify the catalog or read scans (verified), and the security advisor is clean. Still open:
-  no user accounts (S-06) and no rate limit on scan inserts (S-04).
+  with RLS and explicit grants, and the schema lives in `supabase/migrations/`. The browser only reads the catalog
+  and writes nothing (scan inserts revoked in M3). There is no edge function. The old Figma project is retired (decision 008).
+- **Security:** browsers can't write anything (catalog read-only; scan inserts revoked in M3), and the security advisor's
+  only notice is the expected "RLS on, no policy" for `scan_events`. Accounts (S-06) aren't needed while nothing is written.
 
 ## Owner goals (captured 2026-09-23, from the owner directly)
 
@@ -86,7 +86,7 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 |---|---|---|---|
 | 001 | Keep the Figma-generated architecture for now *(ChatGPT)* | Preserve working prototype behavior while it's understood | Active default, unconfirmed |
 | 002 | Don't normalize the KV database yet *(ChatGPT)* | The coupling and live DB contents were unknown at the time | **Superseded by 009** (owner chose option A) |
-| 003 | Security hardening is required before any public deploy *(ChatGPT)* | S-04 (scan rate limit) and S-06 (auth) remain in KNOWN_ISSUES.md; S-01/02/03/05 are resolved | Active default |
+| 003 | Security hardening is required before any public deploy *(ChatGPT)* | S-01 to S-05 are resolved (S-04 by removing scan saving, M3); S-06 (auth) isn't needed while the app writes nothing | Done for launch (M3) |
 | 004 | Don't split App.tsx until behavior is pinned *(ChatGPT)* | Responsibility map now exists (ARCHITECTURE.md §5); start with the ~150 lines of dead code | Active default, unconfirmed |
 | 005 | Documentation follows stabilization *(ChatGPT)* | These are working docs, not final docs | Active default, unconfirmed |
 | 006 | The CSV `Product` (camelCase) shape is the canonical frontend product shape | It is the only shape the whole UI consumes | **Done**: `catalog.ts` maps DB rows into it |
@@ -123,7 +123,7 @@ npm run build    # production bundle in dist/
 ```
 
 The Supabase URL and publishable key come from `.env` (committed; public by design). The app never writes the
-catalog; only scans are inserted. If Supabase is unreachable, the app falls back to the bundled CSV and shows
+catalog or anything else (scans aren't saved since M3). If Supabase is unreachable, the app falls back to the bundled CSV and shows
 "Offline". To point at a different Supabase project, apply `supabase/migrations/` there in order and override
 the two variables in a gitignored `.env.local`.
 

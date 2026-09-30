@@ -1,7 +1,7 @@
 # Safety engine (roadmap M1) — design spec
 
 - **Date:** 2026-09-24
-- **Status:** implemented (`6497847`…`74e5d52`, branch `m1-safety-engine`)
+- **Status:** implemented (`764271c`…`74e5d52`, branch `m1-safety-engine`)
 - **Designed with:** the owner (Minh Bui), through a brainstorming session on 2026-09-23/24
 - **Roadmap context:** M1 of 4 toward "functional". The prototype is done when a real phone-camera scan of a food product
   gives a trustworthy safety result. M2 (Open Food Facts lookup) and M4 (camera) feed products into this engine.

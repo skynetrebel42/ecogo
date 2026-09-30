@@ -65,8 +65,8 @@
 | ~~K-18~~ ✅ | **Moot: hand-written explanations were deleted (M1, `74e5d52`).** *Original issue:* Hardcoded explanation text contradicts the data: Diet Coke "No phosphoric acid" (it has it), Lay's "17% of daily sodium" (170 mg ≈ 7%), Oscar Mayer cites turkey (not in its list), an "Affordability score" that doesn't exist. | `ProductDetailScreen.tsx:98,241,261,285` |
 | K-19 ▶✔ | Opening any sub-screen unmounts the active tab: Back from a search result lands on Home, and Saved resets to Favorites. | `App.tsx:1139,1174` |
 | K-20 ✔ | Search: a leading space matches every product, brand is not searched, and short keywords over-match ("steak" contains "tea"). | `App.tsx:686-690` |
-| K-21 ▶✔ | Dead controls: Sign In, all 5 Profile settings rows, Lists "New", Share, Map "Call", home Refresh (sticks on "Locating…" without geolocation). | `App.tsx:240,521,882,967`; `ProductDetailScreen.tsx:714`; `MapTab.tsx:260` |
-| K-22 ✔ | Leaving the Scan tab mid-scan still yanks you into product detail about 3 s later, and a late placeholder POST can show a false "Scan saved at" on a later scan. | `ScanTab.tsx:114-124` |
+| K-21 ▶✔ | Dead controls: Sign In, all 5 Profile settings rows, Lists "New", Share, Map "Call". (The home location Refresh was removed in M3.) | `App.tsx:240,521,882,967`; `ProductDetailScreen.tsx:714`; `MapTab.tsx:260` |
+| K-22 ✔ | Leaving the Scan tab mid-scan still yanks you into product detail about 3 s later, (The false "Scan saved at" part is moot: scans aren't saved since M3.) | `ScanTab.tsx:114-124` |
 | K-23 ✔ | Map details: the hours parser misreads "12–6pm" and "dawn–dusk"; open/closed uses the viewer's timezone and goes stale; "Smart Score" sort equals rating sort; the list shows 10 with no "more"; zoom-out and OSM attribution are covered by the sheet. | `MapTab.tsx:125-148,276-283,399-410,523-554` |
 | K-24 ✔ | Importer edge cases: rows sharing an id merge silently; `'1'` and `'01'` become duplicate ids; quoted newlines drop the row; an empty FB condition gives `''`; 27/51 barcodes fail the UPC-A check digit (matters only for a real scanner). | `productImporter.ts:158,372,496,509,575,642` |
 | ~~K-25~~ ✅ | **Moot: `scoring.ts` was deleted (the score is no longer computed).** *Original issue:* Floating-point rounding makes 58.5 → 58 (id 41 only). | (deleted) |
@@ -76,9 +76,9 @@
 
 ### Maintainability (not bugs; fix opportunistically)
 
-- ~~Dead code in `App.tsx`~~ Resolved by the M0 cleanup (`6497847`).
+- ~~Dead code in `App.tsx`~~ Resolved by the M0 cleanup (`764271c`).
 - Fallback data still lives in code next to the database: `App.tsx` RESOURCES (12, x/y), `MapTab.tsx` BASE_RESOURCES (18, lat/lng, drawn on the map), and the CSV (51 products). The DB now holds the canonical copy of all of it (step 2 retired the server's `DEFAULT_*` and `DEFAULT_PARTNERS`). Making the map read DB coordinates (K-06) would retire BASE_RESOURCES.
-- ~~53 of 59 runtime dependencies unused; pnpm leftovers, empty/unreferenced CSS, dead `figma:asset` resolver~~ Resolved by the M0 cleanup (`6497847`): 7 runtime dependencies remain. Still open: DM Mono is loaded but not wired to `font-mono`.
+- ~~53 of 59 runtime dependencies unused; pnpm leftovers, empty/unreferenced CSS, dead `figma:asset` resolver~~ Resolved by the M0 cleanup (`764271c`): 7 runtime dependencies remain. Still open: DM Mono is loaded but not wired to `font-mono`.
 - ~~No stable product identity~~ *(resolved in step 2: the DB and the CSV share ids 1–51, and the incompatible 7-row server seed is gone).*
 - ~~No git repo / `.gitignore`~~ *(resolved in step 0).*
 - ~~Product ids are coupled to hardcoded explanations~~ *(resolved in M1: the explanations were deleted; `src/lib/safety/fixtures/expected-flags.json` is keyed by id, so regenerate it if products are renumbered).*
@@ -91,6 +91,16 @@
 - A flag's `matchedText` is the normalized item, not the exact label span, so the highlight and "Listed as" break on newlines, double spaces and "parent (x) rest" joins. Newlines aren't separators yet, which matters for camera text (M4).
 - Zero-width spaces and soft hyphens aren't stripped; `Red&nbsp;40` splits on the `;`.
 - The alternatives sort computes `Infinity − Infinity = NaN` when two alternatives have no price (unstable order).
+
+### Deploy follow-ups (from the M3 final review, deferred)
+
+- Every Actions run warns that the Node 20 runtime is deprecated for checkout@v4, setup-node@v4 and the Pages actions. Bump each action to its current major before GitHub removes Node 20, or deploys stop.
+- Workflow hardening: move `pages: write` and `id-token: write` from workflow level to the `deploy` job (the build job runs `npm ci` install scripts), and use `cancel-in-progress: false` as GitHub's Pages starter does.
+- The secret check (`test -n`) accepts a whitespace-only secret. The app then trims it to empty and silently uses `DEMO_KEY`. Strip whitespace in the check.
+- Public docs name the owner's university ("the UCI email stays private", and in the M3 plan). They reveal the affiliation, not the address; reword to "personal email" if that's unwanted.
+- `.superpowers/` is ignored only through a nested `.gitignore`; add it to the root `.gitignore` so a new scratch folder can't be committed.
+- The README's "30 lookups an hour" for `DEMO_KEY` is loose: the limit is per IP (30 requests an hour, 50 a day), and one lookup can use 2 requests.
+- The OpenStreetMap attribution is hidden behind the map sheet (K-23), which matters more now the site is public. `index.html` has `noindex, nofollow`: decide whether the showcase should be findable.
 
 ### Lookup follow-ups (from the M2 final review, deferred)
 
@@ -120,7 +130,7 @@ food and drinks first. Each step is small and verified in the running app before
 0. ✅ **Safety net: done 2026-09-23.** Git repo on `main`: `9ccf3ce` is the untouched Figma baseline (restore with `git checkout 9ccf3ce -- <file>`), `f3aa31d` adds the docs, and `fe0027b` moves react/react-dom into `dependencies` (K-07).
 1. ✅ **Backend: resolved 2026-09-23 by starting fresh.** The Figma project `ipcbqjrceyqleuaufier` is in a Supabase account the owner can't access, and it held only prototype data, so it is **retired**. The new project is **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan) in the owner's org.
 2. ✅ **Normalized database + live mode: done 2026-09-23** (`3f33bb6`, `aa8206e`). Five tables (categories, products, product_prices, resources, scan_events) with constraints, timestamps, RLS, explicit grants and realtime. The app reads them through `src/lib/catalog.ts` and saves scans to `scan_events`. Fixes K-01 and K-04, and resolves S-01/S-02/S-03/S-05. All of it was verified in the live app.
-3. ✅ **Trustworthy safety analysis: done 2026-09-25** (`6497847`…`74e5d52`, plus the label/docs commit). M0 cleanup,
+3. ✅ **Trustworthy safety analysis: done 2026-09-25** (`764271c`…`74e5d52`, plus the label/docs commit). M0 cleanup,
    then the safety engine (`src/lib/safety`): a parser that keeps chemical names whole and reads sub-ingredients, whole-word
    matching against a 17-entry library where every entry cites an official source (IARC, EU, FDA) with a verbatim quote,
    and a verdict (high / some / none / no data / food only) computed from the ingredients. The product page shows the
