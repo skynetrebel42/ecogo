@@ -406,28 +406,6 @@ function HomeTab({ onSearch, onSelectProduct, onGoMap, products, resources }: {
   const [q, setQ] = useState("");
   const [threshold, setThreshold] = useState(DEFAULT_SCORE_THRESHOLD);
   const [whyRec, setWhyRec] = useState<Recommendation | null>(null);
-  const [locationLabel, setLocationLabel] = useState("Detecting location…");
-  const [locating, setLocating] = useState(true);
-
-  // Attempt real geolocation; fall back to a friendly default
-  useEffect(() => {
-    if (!navigator.geolocation) { setLocationLabel("Your Neighborhood"); setLocating(false); return; }
-    const id = navigator.geolocation.watchPosition(
-      () => { setLocationLabel("Your Neighborhood"); setLocating(false); },
-      () => { setLocationLabel("Chicago, IL (default)"); setLocating(false); },
-      { timeout: 6000, maximumAge: 60000 }
-    );
-    return () => navigator.geolocation.clearWatch(id);
-  }, []);
-
-  const refreshLocation = () => {
-    setLocating(true);
-    navigator.geolocation?.getCurrentPosition(
-      () => { setLocationLabel("Your Neighborhood"); setLocating(false); },
-      () => { setLocationLabel("Chicago, IL (default)"); setLocating(false); },
-      { timeout: 5000 }
-    );
-  };
 
   const bySection = (section: Recommendation["section"]) =>
     RECOMMENDATIONS.filter(r => r.section === section);
@@ -473,16 +451,10 @@ function HomeTab({ onSearch, onSelectProduct, onGoMap, products, resources }: {
           </button>
         </div>
 
-        {/* Location pill */}
-        <div className="flex items-center justify-between bg-muted rounded-2xl px-4 py-2.5 mb-1">
-          <div className="flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${locating ? "bg-yellow-400 animate-pulse" : "bg-green-500"}`} />
-            <MapPin size={12} className="text-muted-foreground" />
-            <span className="text-xs font-semibold text-foreground">{locationLabel}</span>
-          </div>
-          <button onClick={refreshLocation} className="text-[10px] text-primary font-bold">
-            {locating ? "Locating…" : "Refresh"}
-          </button>
+        {/* Location pill — static: the places below are demo data, so the app never asks for location here */}
+        <div className="flex items-center gap-2 bg-muted rounded-2xl px-4 py-2.5 mb-1">
+          <MapPin size={12} className="text-muted-foreground" />
+          <span className="text-xs font-semibold text-foreground">Chicago, IL (demo places)</span>
         </div>
       </div>
 
