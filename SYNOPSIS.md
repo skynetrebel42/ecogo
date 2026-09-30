@@ -71,7 +71,8 @@ ingredients. The product page shows flagged ingredients with their sources; list
 FoodData Central (manufacturer label data), then Open Food Facts (crowd-sourced, labelled), and get the same ingredient
 check. Every looked-up page says where its data came from.
 
-**Step 5: deploy + public GitHub repo.** A public link over HTTPS, which phones need for camera access.
+**Step 5: deploy + public GitHub repo. ✅ Done 2026-09-29.** Live at https://skynetrebel42.github.io/ecogo/ (GitHub
+Pages, rebuilt by GitHub Actions on every push), repo github.com/skynetrebel42/ecogo. Scans are no longer saved.
 
 **Step 6: real camera scanning + mobile layout.** Phone-camera scanning on iPhone, Android and laptop; full-screen on
 phones; scans saved without location.
@@ -83,7 +84,9 @@ persistent favorites, cleanup, then accounts and rate limiting before going publ
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–4 are done; my Supabase project is
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–5 are done; the live site is
+> https://skynetrebel42.github.io/ecogo/; my Supabase project is
 > `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
-> Do roadmap step 5 (M3): a public GitHub repo and free hosting, with `VITE_FDC_API_KEY` set on the host. Keep each
+> Do roadmap step 6 (M4): verify or replace the catalog barcodes (K-29) first, then real camera scanning and the mobile
+> layout. Every push to main publishes the site, so ask before pushing. Keep each
 > change small, commit each one, verify it in the running app, and keep `npm test` green.

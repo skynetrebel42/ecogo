@@ -107,9 +107,9 @@
 | ~~S-01~~ ✅ | **Resolved in step 2:** the unauthenticated, service-role edge function was deleted and is not deployed to the new project. *Was:* every edge-function write route unauthenticated, including a public catalog reset. | (deleted) |
 | ~~S-02~~ ✅ | **Resolved in step 2:** browsers can no longer write the catalog. They have `SELECT` only, and `UPDATE`/`DELETE` were verified to return `42501`. *Was:* the browser upserted the KV table with the anon key. | `supabase/migrations/…_catalog_schema.sql` |
 | ~~S-03~~ ✅ | **Resolved in step 2:** coordinates are rounded to 3 decimals (~100 m) before sending; clients can only `INSERT` scans and can't read them (verified `42501`); `scan_events` is not in the realtime publication. *Was:* full-precision GPS served back publicly. | `scanService.ts`; migration |
-| S-04 | *Mostly moot:* the edge-function problems (CORS `*`, spread bodies, prototype pollution, read-modify-write) left with the function. **Remaining:** anyone holding the public key can insert unlimited `scan_events` rows (they're shape-checked by column grants and `CHECK`s, but not rate-limited). Add rate limiting or auth before a public launch. | migration `scan_events` |
+| ~~S-04~~ ✅ | **Resolved in M3:** scans are no longer saved, and the anonymous insert grant and policy on `scan_events` are revoked (migration `20260929230347_stop_saving_scans`). *Was:* anyone holding the public key could insert unlimited `scan_events` rows. | migration `stop_saving_scans` |
 | ~~S-05~~ ✅ | **Resolved in step 2:** RLS is on for every table, the grants are explicit, the realtime publication is known, and migrations live in the repo. The security advisor is clean. (The previous session's sandbox patch was never used; the new design supersedes it.) | `supabase/migrations/` |
-| S-06 | No user accounts yet: favorites and scans are anonymous. Adding Supabase Auth (anonymous sign-in or email) is the prerequisite for per-user favorites/history and for tightening the scan insert policy. | — |
+| S-06 | **Not needed for launch:** the app writes nothing. Revisit with per-user favorites/history (Supabase Auth, anonymous sign-in or email). | — |
 
 ## 3. Roadmap
 
@@ -133,11 +133,13 @@ food and drinks first. Each step is small and verified in the running app before
    (`en:e951`) are checked too. Every looked-up product page says where its data came from. The not-found screen is
    honest (K-13), unreachable sources show "Couldn't reach…" with Try again, and the Doritos/Oreo barcodes that opened
    other products were replaced. Design: `docs/superpowers/specs/2026-09-28-m2-usda-lookup-design.md`.
-5. **Deploy + public repo.** Create a public GitHub repo and free hosting (e.g. Vercel/Netlify). This gives the HTTPS a
-   phone needs to open the camera, so step 6 can be tested on a real phone.
+5. ✅ **Deploy + public repo: done 2026-09-29.** Live at https://skynetrebel42.github.io/ecogo/, repo
+   github.com/skynetrebel42/ecogo, deployed by `.github/workflows/deploy.yml` (tests, build, GitHub Pages) on every push
+   to `main`. The history uses the owner's GitHub no-reply email. Scans are no longer saved (S-04). This gives the HTTPS
+   a phone needs to open the camera, so step 6 can be tested on a real phone.
 6. **Real camera scanning + mobile layout (done-criterion 1).** Use a JS barcode library that works on iPhone Safari,
    Android and webcams, keeping the demo picker as a fallback. Make the app full-screen on phones, with the frame on
-   desktop only (K-28). Drop location from scans (decision 014) and fix the scan-flow bugs found along the way (K-12, K-13, K-22).
+   desktop only (K-28). Fix the scan-flow bugs found along the way (K-22), and the catalog barcodes first (K-29).
 
 **Later (after "done"):**
 - Map: follow the user's location, with Los Angeles as the default, and real nearby places from OpenStreetMap. This also
@@ -147,5 +149,6 @@ food and drinks first. Each step is small and verified in the running app before
 - Extract `App.tsx` pieces one commit at a time (dead code and unused deps were removed in M0).
 - Acrylamide cooking note, Nutri-Score/NOVA and Baby Food category (deferred from M2; verified sources in
   `specs/2026-09-28-m2-open-food-facts-design.md`).
-- Before going public: accounts (S-06), scan rate limiting (S-04), final docs; set `VITE_FDC_API_KEY` on the host; put
-  the public repo URL in Open Food Facts' `X-User-Agent`.
+- Before going public: ~~scan rate limiting (S-04)~~ done by removing scan saving; ~~set `VITE_FDC_API_KEY` on the
+  host~~ done (repository secret); ~~put the public repo URL in Open Food Facts' `X-User-Agent`~~ done. Still open:
+  Nutri-Score permission (if that feature returns), final docs.
