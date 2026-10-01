@@ -10,7 +10,8 @@ import { VERDICT_RANK } from "../lib/safety/analyze";
 import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon } from "./components/verdict";
 import { NutritionChip } from "./components/NutritionPanel";
 import { topHigh } from "../lib/nutrition";
-import { knownNutrition } from "../lib/lookup";
+import { knownNutrition, searchUsda } from "../lib/lookup";
+import { searchCatalog } from "../lib/search";
 import {
   Home, Map, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
   Bookmark, Shield, DollarSign, Star, CheckCircle,
@@ -574,18 +575,24 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
   query: string; onBack: () => void; onSelectProduct: (p: Product) => void; products: Product[];
 }) {
   const [sortBy, setSortBy] = useState<"concerns" | "price">("concerns");
-  const q = query.toLowerCase();
-  const raw = products.filter(p =>
-    p.keywords.some(k => q.includes(k) || k.includes(q.split(" ")[0])) ||
-    p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
-  );
+  // "More from USDA": real products beyond our catalog (one request per search text per session).
+  const [usda, setUsda] = useState<{ status: "loading" | "ok" | "error"; products: Product[] }>({ status: "loading", products: [] });
+  useEffect(() => {
+    let live = true;
+    setUsda({ status: "loading", products: [] });
+    searchUsda(query, { fdcKey: import.meta.env.VITE_FDC_API_KEY }).then(r => {
+      if (live) setUsda(r.status === "ok" ? { status: "ok", products: r.products } : { status: "error", products: [] });
+    });
+    return () => { live = false; };
+  }, [query]);
+  const raw = searchCatalog(products, query);
   const results = raw
     .map(p => ({ p, a: safeAnalyze(p) }))
     .sort((x, y) => sortBy === "price"
       ? bestPrice(x.p) - bestPrice(y.p)
       : VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict] || x.a.flags.length - y.a.flags.length)
     .map(({ p }) => p);
-  const isEmpty = results.length === 0;
+  const isEmpty = results.length === 0 && usda.status !== "loading" && usda.products.length === 0;
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-background">
@@ -599,7 +606,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
           <span className="text-sm font-medium text-foreground">{query}</span>
         </div>
       </div>
-      {!isEmpty && (
+      {results.length > 0 && (
         <div className="px-4 py-2 flex items-center gap-2 border-b border-border">
           <span className="text-xs text-muted-foreground font-medium">Sort:</span>
           {([["concerns", "Fewest concerns"], ["price", "Price"]] as const).map(([key, label]) => (
@@ -626,6 +633,16 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
         ) : (
           <div className="px-4 py-3 space-y-3">
             {results.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} />)}
+            <div className="pt-2">
+              <p className="text-xs font-bold text-foreground">More from USDA FoodData Central</p>
+              <p className="text-[10px] text-muted-foreground mb-2">Label data supplied by manufacturers · not in our catalog</p>
+              {usda.status === "loading" && <p className="text-xs text-muted-foreground">Searching USDA…</p>}
+              {usda.status === "error" && <p className="text-xs text-muted-foreground">Couldn't reach USDA right now.</p>}
+              {usda.status === "ok" && usda.products.length === 0 && <p className="text-xs text-muted-foreground">No USDA matches.</p>}
+              <div className="space-y-3">
+                {usda.products.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} />)}
+              </div>
+            </div>
           </div>
         )}
       </div>

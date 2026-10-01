@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { knownNutrition, lookupBarcode, pickUsdaFood, mapOffResponse, normalizeBarcode, isBarcode, sameBarcode, tidyCase } from "./lookup.ts";
+import { knownNutrition, lookupBarcode, pickUsdaFood, mapOffResponse, normalizeBarcode, isBarcode, sameBarcode, tidyCase, mapUsdaSearch, searchUsda } from "./lookup.ts";
 import { analyzeIngredients } from "./safety/analyze.ts";
 
 const fixture = (path: string) => JSON.parse(readFileSync(new URL(`./fixtures/${path}.json`, import.meta.url), "utf8"));
@@ -217,4 +217,36 @@ test("a USDA find carries its nutrition, and list cards can read it afterwards w
   await new Promise(resolve => setTimeout(resolve, 0)); // the cache bookkeeping runs after the promise settles
   assert.equal(knownNutrition("0 44000-032029")?.nutrients[0].dv, 28);
   assert.equal(knownNutrition(""), null);
+});
+
+// ── USDA text search ("More from USDA" in search results) ─────────────────────
+
+test("a USDA text search maps to up to 10 distinct products, each with its source and nutrition", () => {
+  const products = mapUsdaSearch(fixture("usda/search-ice-cream"));
+  assert.equal(products.length, 10);
+  assert.equal(new Set(products.map(p => p.barcode.replace(/^0+/, ""))).size, 10, "distinct barcodes");
+  for (const p of products) {
+    assert.equal(p.source?.name, "USDA FoodData Central");
+    assert.ok(p.id < 0, "looked-up ids are negative");
+    assert.equal(p.name, "Ice Cream");
+  }
+  assert.ok(products.some(p => p.nutrition), "nutrition comes along");
+  assert.deepEqual(mapUsdaSearch(null), []);
+  assert.deepEqual(mapUsdaSearch({ foods: [{ description: "No barcode" }] }), [], "records without a barcode are dropped");
+});
+
+test("searchUsda: one request per text for the session; errors aren't cached; blank text makes no request", async () => {
+  const net = fakeNet({ "ice cream": fixture("usda/search-ice-cream") }, {});
+  const a = await searchUsda("Ice  Cream", { fdcKey: "TEST", fetchImpl: net.impl });
+  assert.equal(a.status === "ok" && a.products.length, 10);
+  await searchUsda("ice cream", { fdcKey: "TEST", fetchImpl: net.impl });
+  assert.equal(net.calls.length, 1, "the second search is served from the session cache");
+  assert.equal((await searchUsda("  ", { fdcKey: "TEST", fetchImpl: net.impl })).status, "ok");
+  assert.equal(net.calls.length, 1);
+
+  let calls = 0;
+  const down = (async () => { calls++; return json({}, 503); }) as typeof fetch;
+  assert.equal((await searchUsda("granola", { fdcKey: "TEST", fetchImpl: down })).status, "error");
+  await searchUsda("granola", { fdcKey: "TEST", fetchImpl: down });
+  assert.equal(calls, 2, "errors are retried");
 });

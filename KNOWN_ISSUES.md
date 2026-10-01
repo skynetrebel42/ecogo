@@ -211,11 +211,10 @@ food and drinks first. Each step is small and verified in the running app before
    desktop keeps the frame (K-28). No catalog product carries an invented barcode: non-food codes were removed too.
    Done-criterion 1 is met once the owner's phone check passes. Design: `docs/superpowers/specs/2026-10-01-m6-camera-mobile-design.md`.
 
-**Next:** the owner's phone check (iPhone, Android, laptop), the search fix below, then the Home redesign (mockup
+**Next:** the Home redesign (mockup
 first), then accounts and the real map.
 
-**Small item:** fix search matching: "ice cream" finds soda because `SearchResultsScreen` also matches any keyword that
-contains the query's first word (`k.includes(q.split(" ")[0])`, `App.tsx:567`). Related: K-20.
+**✔ Search fixed 2026-10-01:** whole-word matching (`src/lib/search.ts`: every typed word must be a whole word, plurals either way, of the name, brand, category or keywords; "ice cream" now finds only Ben & Jerry's) plus a "More from USDA FoodData Central" list of up to 10 real products (`searchUsda`, one request per search text per session).
 
 **Later (after "done"):**
 - Map: follow the user's location, with Los Angeles as the default, and real nearby places from OpenStreetMap. This also

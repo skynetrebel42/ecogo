@@ -50,7 +50,12 @@ export function pickUsdaFood(json: unknown, code: string): Product | null {
   const f = foods
     .filter(x => sameBarcode(str(x.gtinUpc), code)) // the search is full-text: drop anything that isn't this code
     .sort((a, b) => str(b.publishedDate).localeCompare(str(a.publishedDate)))[0];
-  if (!f) return null;
+  return f ? usdaFoodToProduct(f) : null;
+}
+
+/** One USDA Branded record → our Product (with source and nutrition), or null without a name and ingredients. */
+function usdaFoodToProduct(f: Record<string, unknown>): Product | null {
+  if (!normalizeBarcode(str(f.gtinUpc))) return null;
   const name = tidyCase(str(f.description));
   const ingredients = str(f.ingredients).replace(/^ingredients:\s*/i, "");
   if (!name && !ingredients) return null;
@@ -60,6 +65,41 @@ export function pickUsdaFood(json: unknown, code: string): Product | null {
   });
   const nutrition = usdaNutrition(f);
   return nutrition ? { ...product, nutrition } : product;
+}
+
+/** Pure: a USDA /foods/search body for a TEXT query → up to 10 distinct products (by barcode), in USDA's order. */
+export function mapUsdaSearch(json: unknown): Product[] {
+  const foods = Array.isArray(record(json).foods) ? (record(json).foods as unknown[]).map(record) : [];
+  const seen = new Set<string>();
+  const out: Product[] = [];
+  for (const f of foods) {
+    const p = usdaFoodToProduct(f);
+    if (!p || seen.has(key(p.barcode))) continue;
+    seen.add(key(p.barcode));
+    out.push(p);
+    if (out.length === 10) break;
+  }
+  return out;
+}
+
+export type SearchResult = { status: "ok"; products: Product[] } | { status: "error"; message: string };
+const searchCache = new Map<string, Promise<SearchResult>>();
+
+/** USDA products matching a text search; one request per text per session (rate limit); errors aren't cached. */
+export function searchUsda(text: string, opts: { fdcKey?: string; fetchImpl?: typeof fetch } = {}): Promise<SearchResult> {
+  const q = text.toLowerCase().trim().replace(/\s+/g, " ");
+  if (!q) return Promise.resolve({ status: "ok", products: [] });
+  const hit = searchCache.get(q);
+  if (hit) return hit;
+  const f = opts.fetchImpl ?? fetch;
+  const pending: Promise<SearchResult> = f(`${USDA}?api_key=${encodeURIComponent(opts.fdcKey || "DEMO_KEY")}&dataType=Branded&pageSize=15&query=${encodeURIComponent(q)}`)
+    .then(async res => res.ok
+      ? { status: "ok" as const, products: mapUsdaSearch(await res.json().catch(() => null)) }
+      : { status: "error" as const, message: `USDA returned HTTP ${res.status}` })
+    .catch((err: unknown) => ({ status: "error" as const, message: err instanceof Error ? err.message : String(err) }));
+  searchCache.set(q, pending);
+  pending.then(r => { if (r.status === "error") searchCache.delete(q); });
+  return pending;
 }
 
 /** USDA stores codes as 8, 12 or 14 digits, so try the typed digits, then the 14-digit form. */
