@@ -17,7 +17,7 @@
   owner requirements.** Its "previous session security fixes" were never in the code (ChatGPT's private sandbox copy).
   The owner's actual goals are still to be captured (see open questions).
 
-- **Phase:** M5 (nutrition, softer processed-meat rule, verified catalog barcodes) done; next is M6 (camera + mobile layout), the search fix, then the Home redesign. See the KNOWN_ISSUES.md roadmap.
+- **Phase:** M6 (camera scanning, phone layout, no invented barcodes) done; the owner's phone check decides prototype criterion 1. Next: the search fix, then the Home redesign. See the KNOWN_ISSUES.md roadmap.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), a concern level
   (strongest official finding: additives, processed meat; acrylamide marker) from the safety engine (`src/lib/safety`, sourced library, `npm test` over all 51 products), realtime
@@ -38,7 +38,7 @@ These override anything in the AI-written planning docs.
 |---|---|
 | Purpose | Personal project to **showcase build skills**, with the intent to grow it into a **public app**. A viable, running prototype is enough for now |
 | Core value | **Product safety** and **barcode scanning**. Everything else (prices, map, lists, profile) comes later |
-| Prototype "done" means | **1) Scan a real product with a phone camera → product page. 2) A trustworthy safety score** (no false alarms) |
+| Prototype "done" means | **1) Scan a real product with a phone camera → product page. 2) A trustworthy safety score** (no false alarms) · *Status 2026-10-01: 2 met (M1–M5); 1 built in M6, met once the owner's phone check passes* |
 | Scan devices | All: iPhone, Android and laptop webcam, so use a JS scanning library (Safari has no built-in barcode reader) |
 | Product data | Curated 51 stay as featured; any other barcode is looked up in **USDA FoodData Central** (official manufacturer label data), then **Open Food Facts** (crowd-sourced, labelled) |
 | Safety score | **Computed from ingredients** with transparent rules, the same engine for curated and Open Food Facts products |
@@ -105,6 +105,7 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 019 | One darkening concern badge, no green; level = strongest official finding (additives + food itself); acrylamide is a marker only | Owner, 2026-09-30: "Nothing flagged" isn't "healthy"; avoid flagging the whole bread aisle | **Done** (M4) |
 | 020 | Nutrition: FDA %DV per serving for added sugar, sat fat, sodium; High ≥ 20%, Low ≤ 5% (FDA's rule); separate from the concern badge | Owner, 2026-10-01 (mockup layout B + C) | **Done** (M5) |
 | 021 | Catalog food products use USDA-verified barcodes and their real labels; unverifiable codes removed | Owner, 2026-10-01: trust first; Figma text was invented | **Done** (M5) |
+| 022 | Camera scanning on-device with barcode-detector (native or ZXing WebAssembly, bundled .wasm, no CDN); a code counts after two identical reads | Owner, 2026-10-01 | **Done** (M6) |
 
 ## Open questions only the owner can answer
 

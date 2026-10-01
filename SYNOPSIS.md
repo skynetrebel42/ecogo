@@ -84,8 +84,10 @@ sodium as the FDA's % Daily Value per serving, marked High (20% or more) or Low 
 cards show one "High sugar"-style chip. Products that only contain processed meat (DiGiorno) now read High concern
 instead of Known carcinogen. 31 catalog foods carry their real USDA barcode and label; 3 unverifiable codes were removed.
 
-**Step 8: real camera scanning + mobile layout.** Phone-camera scanning on iPhone, Android and laptop; full-screen on
-phones. (Scans are no longer saved at all since M3.)
+**Step 8: real camera scanning + phone layout. ✅ Done 2026-10-01.** Tapping Scan opens the back camera; pointing it at a
+grocery barcode opens the product page. Barcodes are read on the device (nothing is uploaded), and typing a barcode still
+works. On phones the app fills the screen. No catalog product carries an invented barcode any more. Prototype goal 1 is
+met once the owner's iPhone/Android/laptop check passes.
 
 **Later:** a map that follows the user's location (Los Angeles as the default, real places from OpenStreetMap),
 persistent favorites, cleanup; accounts only if a feature needs per-user data.
@@ -94,9 +96,9 @@ persistent favorites, cleanup; accounts only if a feature needs per-user data.
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–7 are done; the live site is
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–8 are done; the live site is
 > https://skynetrebel42.github.io/ecogo/; my Supabase project is
 > `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
-> Do roadmap step 8 (M6): real camera scanning and the mobile
-> layout. Every push to main publishes the site, so ask before pushing. Keep each
+> Next: the search fix, then the Home redesign (mockup
+> first). Every push to main publishes the site, so ask before pushing. Keep each
 > change small, commit each one, verify it in the running app, and keep `npm test` green.

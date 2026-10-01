@@ -14,7 +14,7 @@ Figma Make. After a welcome screen and a 3-slide onboarding it has five tabs:
 |---|---|
 | **Home** | Hardcoded "Alex", 15 hardcoded Chicago recommendations with a SmartScore filter, 3 fake deals, a product search box, and the first 5 community resources (from the database). |
 | **Map** | A real Leaflet/OpenStreetMap map of **18 Chicago resources** drawn from `MapTab.tsx` `BASE_RESOURCES`. The database overrides only name, hours, phone and description by id, even though the `resources` table now also holds coordinates. |
-| **Scan** | **Simulated.** You pick a demo barcode or type one (8–14 digits); there is no camera or decoder yet (M4). The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Scans are **not saved** (M3), and scanning never asks for location. |
+| **Scan** | **Camera.** The Scan tab opens the back camera and reads EAN/UPC barcodes on the device (`CameraScanner`, `lib/barcodeReader.ts`: native BarcodeDetector or bundled ZXing WebAssembly; a code counts after two identical reads). Typing a barcode or a demo barcode does the same. The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Frames never leave the device; scans are **not saved** (M3), and scanning never asks for location. |
 | **Saved** | Favorites and Scanned lists, in React state only (lost on reload). "Lists" is static. |
 | **Profile** | Entirely static (Alex Johnson, fake stats and badges). The settings rows do nothing. |
 
@@ -79,6 +79,9 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 | `src/lib/catalog.ts` | 103 | **Database read layer**: `loadCatalog()` plus the row → `Product` mapper | SAFE TO EDIT |
 | `src/lib/productImporter.ts` | 595 | `parseProductsCSV(text)` → `Product[]`, `bestPrice`; defines the canonical `Product` type. App.tsx feeds it the bundled CSV (`?raw`); tests read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
 | `src/lib/lookup.ts` | 146 | USDA FoodData Central + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session (no request) | SAFE TO EDIT |
+| `src/lib/scanner.ts` | 38 | Pure scan logic: grocery formats, `normalizeScanned` (digits; UPC-E → UPC-A), `confirmReads` (two identical reads in a row) | SAFE TO EDIT |
+| `src/lib/barcodeReader.ts` | 25 | `createDetector()`: the native BarcodeDetector when it reads all four grocery formats, else the `barcode-detector` ponyfill with ZXing's `.wasm` bundled by Vite (no CDN) | SAFE TO EDIT |
+| `src/app/components/CameraScanner.tsx` | 151 | Live back-camera screen: detect loop, torch, denied/unsupported/paused states, drawer for typing; stops the camera on ✕, unmount and page hide | SAFE TO EDIT |
 | `src/lib/nutrition.ts` | 99 | Added sugar, saturated fat and sodium per serving as FDA %DV with FDA's 5/20 rule, from USDA search records and OFF `nutriments`; pure | SAFE TO EDIT |
 | `src/app/components/NutritionPanel.tsx` | 85 | Nutrition section, `useNutrition` (catalog foods look up nutrition once per session by their verified barcode) and the slate "High …" chip | SAFE TO EDIT |
 | `src/data/verified-barcodes.json` | — | Source of truth for catalog food barcodes: each USDA record's barcode, fdcId, name and full label (owner-approved 2026-10-01), plus the removed ones | Review; change only with a USDA match, then rerun the applier and add a migration |
@@ -284,9 +287,9 @@ static or a no-op; **broken**.
 | Map: open/closed badge | `MapTab` | partial | Hours parser edge cases; viewer's local timezone |
 | Map: Call, directions, search | `MapTab` | placeholder | no-op / absent |
 | Map reflects DB resources | `MapTab` | partial | Only 4 text fields by id; DB adds/deletes/coords ignored (K-06) |
-| Scan: demo barcode → product | `ScanTab` + `lookup.sameBarcode` | working (simulated) | 14 catalog barcodes (most invented, K-29) plus USDA, Open Food Facts and not-found demos |
+| Scan: demo barcode → product | `ScanTab` + `lookup.sameBarcode` | working | In the camera's drawer: 10 USDA-verified catalog codes plus USDA, Open Food Facts and not-found demos |
 | Scan: lookup of non-catalog barcodes | `ScanTab` + `lookup.ts` | **working** | USDA FoodData Central first, then Open Food Facts; session cache; source note on the product page; verified live 2026-09-28 |
-| Scan: camera/decoder | — | placeholder | none |
+| Scan: camera/decoder | `CameraScanner` + `lib/barcodeReader.ts` + `lib/scanner.ts` | **working** | On-device EAN/UPC reading (native or ZXing WebAssembly); two identical reads; UPC-E expanded; camera stops on ✕/leave/hide. Verified 2026-10-01 with a fake camera (Oreo in ~1 s); the owner's phone check is pending |
 | Scan: record scan event | — | **removed (M3)** | Scans aren't saved (decision 017); no location prompt |
 | Scan: barcode not found anywhere | `ScanTab` | working | Honest "We couldn't find this barcode yet" screen |
 | Scan history / stats / review queue UI | — | placeholder | Data is in `scan_events`; no screen (dashboard only) |

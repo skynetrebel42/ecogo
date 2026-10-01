@@ -72,7 +72,7 @@
 | ~~K-25~~ ✅ | **Moot: `scoring.ts` was deleted (the score is no longer computed).** *Original issue:* Floating-point rounding makes 58.5 → 58 (id 41 only). | (deleted) |
 | K-26 ✔ | *Mostly fixed in step 2:* realtime now re-fetches on INSERT/UPDATE/DELETE of products, prices and resources. **Remaining:** an open product detail keeps its snapshot until reopened; no subscribe-status check; overlapping re-fetches could resolve out of order (harmless at this scale). | `App.tsx` realtime effect |
 | K-27 ▶ | Icon-only buttons (back, save, share, search-QR, etc.) have no accessible names. | `ProductDetailScreen.tsx:707-714`, `App.tsx` |
-| K-28 ▶ | The fixed 390×844 phone frame clips on narrow or short viewports (not responsive). | `App.tsx:1098-1100` |
+| ~~K-28~~ ✅ | **Resolved in M6:** below 500 px wide the app fills the screen (no phone frame or fake status bar, safe-area insets); desktop keeps the frame. A phone first loaded in landscape still gets the frame (M6 follow-up). | `App.tsx` (`IS_PHONE`) |
 | K-30 | Catalog prices and store ratings (Amazon, Walmart, FB Marketplace) are still Figma-invented. | products.csv, DB `product_prices` |
 
 ### Maintainability (not bugs; fix opportunistically)
@@ -136,6 +136,16 @@
 - The M5 spec §3 names Lay's `028400421584` (the verified code is `028400199148`) and §6 names
   `catalog-barcodes.test.ts` (it's `verified-barcodes.test.ts`).
 
+### Camera follow-ups (from the M6 final review, deferred)
+
+- A `.wasm` load failure is silent: the camera keeps showing "Point at a barcode" and never reads (the ponyfill loads
+  it on the first detect, and per-frame detect errors are swallowed). Typing a barcode still works.
+- Hiding the page (locking the phone) while the camera is still starting leaves a dead view with no Resume button; the
+  tracks are stopped. Fix: `if (stopped) return;` after the `video.play()` and `createDetector()` awaits in
+  `CameraScanner.tsx`.
+- A phone first loaded in landscape gets the 390×844 desktop frame (`IS_PHONE` is `max-width: 499px`, decided once at
+  load).
+
 ### Hidden-risk candidates (each needs an official source before it's flagged)
 
 - Glycidyl esters, benzene and aflatoxins (process contaminants left out of M4).
@@ -189,11 +199,15 @@ food and drinks first. Each step is small and verified in the running app before
    chip on list cards; slate, never part of the concern badge). Products that only contain processed meat read High
    concern. 31 food catalog products carry USDA-verified barcodes and their real labels; 3 lost theirs (K-29). Design:
    `docs/superpowers/specs/2026-10-01-m5-nutrition-barcodes-design.md`.
-8. **M6: Real camera scanning + mobile layout (done-criterion 1).** Use a JS barcode library that works on iPhone Safari,
-   Android and webcams, keeping the demo picker as a fallback. Make the app full-screen on phones, with the frame on
-   desktop only (K-28). Fix the scan-flow bugs found along the way (K-22).
+8. ✅ **M6 camera scanning + phone layout: done 2026-10-01** (`74850b7`…`8e01eeb`, plus the docs commit). The Scan tab opens the back camera and reads
+   grocery barcodes on the device (the browser's BarcodeDetector where it reads EAN/UPC, else ZXing WebAssembly bundled
+   with the site, no CDN); a code counts after two identical reads, and UPC-E is expanded to UPC-A. Typing a barcode and
+   the demo list sit in a drawer; denied/no-camera states keep them open. Phones get the app full-screen (safe areas),
+   desktop keeps the frame (K-28). No catalog product carries an invented barcode: non-food codes were removed too.
+   Done-criterion 1 is met once the owner's phone check passes. Design: `docs/superpowers/specs/2026-10-01-m6-camera-mobile-design.md`.
 
-**Next:** M6 (step 8), the search fix below, then the Home redesign (mockup first).
+**Next:** the owner's phone check (iPhone, Android, laptop), the search fix below, then the Home redesign (mockup
+first), then accounts and the real map.
 
 **Small item:** fix search matching: "ice cream" finds soda because `SearchResultsScreen` also matches any keyword that
 contains the query's first word (`k.includes(q.split(" ")[0])`, `App.tsx:567`). Related: K-20.

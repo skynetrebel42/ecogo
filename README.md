@@ -2,8 +2,8 @@
 
 Scan a food barcode and see which ingredients carry an **official** health concern, with the source for every flag.
 
-**Live demo:** https://skynetrebel42.github.io/ecogo/ (phone-sized layout; camera scanning is coming in the next milestone,
-so use the demo barcodes or type one).
+**Live demo:** https://skynetrebel42.github.io/ecogo/ (open it on a phone and tap Scan to read a grocery barcode with the
+camera; on a laptop, use the webcam, the demo barcodes or type one).
 
 ## How it works
 

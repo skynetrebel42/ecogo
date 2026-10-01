@@ -1,7 +1,7 @@
 # M6: real camera scanning, phone layout, no invented non-food barcodes: design spec
 
 - **Date:** 2026-10-01
-- **Status:** draft, awaiting the owner's review
+- **Status:** implemented (`74850b7`…`8e01eeb`, plus the docs commit); the owner's phone check is pending
 - **Designed with:** the owner (Minh Bui), 2026-10-01, through multiple-choice questions. They'll test on **both
   iPhone and Android**, plus a laptop webcam.
 - **Builds on:** M2 lookup (`lookup.ts`), M5 verified barcodes (`src/data/verified-barcodes.json`, applier script),
