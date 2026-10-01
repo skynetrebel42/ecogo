@@ -110,6 +110,18 @@
 - Switching tabs mid-lookup still pops the product page when the lookup finishes.
 - ~~A scan can sit on "Looking up…" while the location prompt is unanswered~~ (moot since M3: no location request).
 
+### Concern-level follow-ups (from the M4 final review, deferred)
+
+- "Veggie", "vegan" and the like in a product name skip the ingredient scan, so "Sausage & Veggie Breakfast Bowl" with
+  pork sausage reads Nothing flagged (`foodConcerns.ts`, the `NOT_MEAT.test(p.name)` early return).
+- Flavouring-style ingredients such as "bacon seasoning" or "smoked meat flavor" still read Known (`NOT_MEAT` only knows
+  `<meat>-flavor` and `<meat>-free`).
+- Acrylamide marker edges (marker only): Cream of Wheat gets 🔥 (EU (d) excludes porridge); "Honey Bunches of Oats" and
+  "Oatmeal Squares" lose it (the `PORRIDGE` regex); USDA "Coffee Ice Cream" gets it (the coffee name fallback); catalog
+  fries filed under "Frozen" wouldn't get it (none today).
+- The "Alternatives with fewer concerns" header icon is green (`text-green-600`), against decision L2.
+- The product-page footer says "verified against IARC, EU and FDA sources"; WHO is now a source body too.
+
 ### Future production: security and privacy (do **not** deploy publicly before these)
 
 | ID | Issue | Where |
@@ -147,7 +159,7 @@ food and drinks first. Each step is small and verified in the running app before
    github.com/skynetrebel42/ecogo, deployed by `.github/workflows/deploy.yml` (tests, build, GitHub Pages) on every push
    to `main`. The history uses the owner's GitHub no-reply email. Scans are no longer saved (S-04). This gives the HTTPS
    a phone needs to open the camera, so step 6 can be tested on a real phone.
-6. ✅ **M4 concern levels: done 2026-09-30** (`639de14`…`3df28f9`, plus the docs commit). One badge that darkens with
+6. ✅ **M4 concern levels: done 2026-09-30** (`639de14`…`103c615`, plus the docs commits). One badge that darkens with
    the official finding: Nothing flagged → Some concern → High concern → Known carcinogen, always word + filled circle +
    shade, and no green. Processed meat reads Known carcinogen (IARC Group 1, also inside other foods). Fried and baked
    starchy foods get a 🔥 "forms when cooked" acrylamide marker that never changes the level. Design:

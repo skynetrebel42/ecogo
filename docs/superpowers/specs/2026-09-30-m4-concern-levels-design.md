@@ -1,7 +1,7 @@
 # M4: concern levels, processed meat, acrylamide marker: design spec
 
 - **Date:** 2026-09-30
-- **Status:** implemented (`639de14`…`3df28f9`, plus the docs commit)
+- **Status:** implemented (`639de14`…`103c615`, plus the docs commits)
 - **Designed with:** the owner (Minh Bui), in a brainstorm on 2026-09-30. Decisions are theirs unless marked
   *recommended default*.
 - **Builds on:** the M1 safety engine (`specs/2026-09-24-safety-engine-design.md`) and the M2 lookup
