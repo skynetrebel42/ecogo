@@ -29,12 +29,13 @@ test("Coke Zero (USDA, ml serving): all Low", () => {
   const n = usdaNutrition(usda("coke-zero-nutrition-00049000042566"))!;
   assert.equal(n.serving, "1 Can (355 ml)");
   assert.deepEqual(n.nutrients.map(x => x.level), ["low", "low", "low"]);
-  assert.equal(row(n, "sodium").amount, 39);
+  assert.equal(row(n, "sodium").amount, 40); // 11 mg/100 ml × 355 ml = 39 → the label declares 40 (nearest 5)
 });
 
 test("FDA 5/20 boundaries, classified on the rounded %DV as a label shows it", () => {
   assert.equal(nutrient("satFat", 1, true).level, "low");    // 5%
-  assert.equal(nutrient("satFat", 1.1, true).level, null);   // 6% (rounded 1.1 g = 5.5% → 6)
+  assert.equal(nutrient("satFat", 1.1, true).level, "low");  // a label declares 1 g (nearest 0.5) = 5%
+  assert.equal(nutrient("sodium", 140, true).level, null);   // 6%
   assert.equal(nutrient("satFat", 3.9, true).level, "high"); // 19.5% → 20
   assert.equal(nutrient("addedSugar", 10, true).level, "high"); // exactly 20%
   assert.equal(nutrient("sodium", 2300, true).dv, 100);
@@ -61,6 +62,22 @@ test("Open Food Facts: per 100 g when no serving data (Nutella); sodium converte
   assert.deepEqual(s.nutrients.map(x => [x.dv, x.level]), [[38, "high"], [20, "high"], [1, "low"]]);
   assert.equal(topHigh(s)?.id, "addedSugar");
   assert.equal(offNutrition({ nutriments: {} }), null);
+});
+
+// Final review I1: amounts follow FDA label rounding (21 CFR 101.9(c)) before %DV, so they match the printed label.
+test("per-serving amounts use FDA label increments, so they match the can and the 5/20 call", () => {
+  const coke = usdaNutrition({ servingSize: 355, servingSizeUnit: "MLT", householdServingFullText: "1 Can",
+    foodNutrients: [{ nutrientName: "Sugars, added", value: 11 }, { nutrientName: "Sodium, Na", value: 13 }] })!;
+  assert.deepEqual([row(coke, "addedSugar").amount, row(coke, "sodium").amount], [39, 45], "Coca-Cola label: 39 g, 45 mg");
+  assert.deepEqual([nutrient("sodium", 448, true).amount, nutrient("sodium", 448, true).level], [450, "high"], "450 mg label = 20% High");
+  assert.equal(nutrient("sodium", 127, true).amount, 125, "≤140 mg: nearest 5");
+  assert.equal(nutrient("sodium", 4, true).amount, 0, "<5 mg: 0");
+  assert.equal(nutrient("satFat", 0.4, true).amount, 0, "<0.5 g: 0");
+  assert.equal(nutrient("satFat", 1.3, true).amount, 1.5, "<5 g: nearest 0.5");
+  assert.equal(nutrient("satFat", 5.4, true).amount, 5, "≥5 g: nearest 1");
+  assert.equal(nutrient("addedSugar", 0.4, true).amount, 0, "<0.5 g: 0");
+  assert.equal(nutrient("addedSugar", 39.6, true).amount, 40, "nearest 1 g");
+  assert.equal(nutrient("addedSugar", 52.14, false).amount, 52.1, "per 100 g keeps 0.1 g (no label to match)");
 });
 
 test("a household serving that already names its weight isn't repeated", () => {

@@ -40,10 +40,20 @@ const ORDER: NutrientId[] = ["addedSugar", "satFat", "sodium"];
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 const record = (v: unknown) => (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
 
-/** One nutrient: amount rounded like a label (g to 0.1, mg whole), %DV rounded, then FDA's 5/20 rule. */
+const nearest = (v: number, step: number) => Math.round(v / step) * step;
+
+/** FDA label increments, 21 CFR 101.9(c): what the printed label declares for this per-serving amount. */
+function labelAmount(id: NutrientId, v: number): number {
+  if (id === "sodium") return v < 5 ? 0 : v <= 140 ? nearest(v, 5) : nearest(v, 10);
+  if (id === "satFat") return v < 0.5 ? 0 : v < 5 ? nearest(v, 0.5) : Math.round(v);
+  return v < 0.5 ? 0 : Math.round(v); // added sugars
+}
+
+/** One nutrient: per serving, the label's declared amount (FDA increments), %DV from it, then FDA's 5/20 rule.
+ *  Per 100 g there's no label to match, so amounts keep 0.1 g / 1 mg and get no %DV. */
 export function nutrient(id: NutrientId, amount: number | null, perServing: boolean): NutrientValue {
   const { label, short, unit } = META[id];
-  const rounded = amount === null ? null : unit === "mg" ? Math.round(amount) : Math.round(amount * 10) / 10;
+  const rounded = amount === null ? null : perServing ? labelAmount(id, amount) : unit === "mg" ? Math.round(amount) : Math.round(amount * 10) / 10;
   const dv = rounded === null || !perServing ? null : Math.round((rounded / DAILY_VALUE[id]) * 100);
   const level = dv === null ? null : dv >= 20 ? "high" : dv <= 5 ? "low" : null;
   return { id, label, short, amount: rounded, unit, dv, level };
