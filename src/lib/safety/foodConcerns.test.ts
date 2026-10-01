@@ -12,7 +12,7 @@ const off = (tags: string[]) => acrylamideMatch({ name: "x", category: "", ingre
 test("catalog: exactly the reviewed products are processed meat, with their reasons", () => {
   const hits = catalog.map(p => [p.id, foodConcerns(p).find(c => c.id === "processed-meat")?.reason] as const).filter(([, r]) => r);
   assert.deepEqual(hits, [
-    [6, "Processed meat: Hot Dogs"],
+    [6, "Processed meat: Franks"],
     [36, "Processed meat: SPAM"],
     [38, "Processed meat: Sausage"],
     [42, "Contains processed meat: Pepperoni"],
