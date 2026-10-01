@@ -85,8 +85,14 @@ const DEALS = [
 const scoreColor = (s: number) =>
   s >= 80 ? "#16a34a" : s >= 65 ? "#059669" : s >= 50 ? "#ca8a04" : s >= 35 ? "#ea580c" : "#dc2626";
 
+/** Phones get the app full-screen; desktop keeps the phone frame (M6 spec §4.5).
+ *  ponytail: decided once at load; a window resized across 500 px keeps its layout until reload. */
+const IS_PHONE = typeof window !== "undefined" && window.matchMedia("(max-width: 499px)").matches;
+
 // ── Status Bar ────────────────────────────────────────────────────────────────
 function StatusBar({ light = false }: { light?: boolean }) {
+  // On a real phone the device draws its own status bar: keep only the notch's safe area.
+  if (IS_PHONE) return <div className="flex-shrink-0" style={{ height: "env(safe-area-inset-top)" }} />;
   const cls = light ? "text-white" : "text-foreground";
   return (
     <div className={`flex items-center justify-between px-7 pt-3 pb-1 text-[11px] font-bold flex-shrink-0 ${cls}`}>
@@ -782,7 +788,8 @@ function BottomNav({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t
     { id: "profile", Icon: User,   label: "Profile" },
   ];
   return (
-    <div className="flex-shrink-0 bg-card border-t border-border flex items-center justify-around px-3 pt-2 pb-4">
+    <div className="flex-shrink-0 bg-card border-t border-border flex items-center justify-around px-3 pt-2 pb-4"
+      style={IS_PHONE ? { paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" } : undefined}>
       {TABS.map(({ id, Icon, label }) => {
         const active = activeTab === id;
         const isScan = id === "scan";
@@ -861,9 +868,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, #0a1a0f 0%, #1A5C39 50%, #0d3d2b 100%)" }}>
-      <div className="relative overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.7)] flex-shrink-0"
-        style={{ width: 390, height: 844, borderRadius: 44, background: "#F8F7F2", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className={IS_PHONE ? "fixed inset-0" : "min-h-screen flex items-center justify-center p-4"}
+      style={IS_PHONE ? undefined : { background: "linear-gradient(135deg, #0a1a0f 0%, #1A5C39 50%, #0d3d2b 100%)" }}>
+      <div className={IS_PHONE ? "absolute inset-0 overflow-hidden" : "relative overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.7)] flex-shrink-0"}
+        style={IS_PHONE
+          ? { background: "#F8F7F2", fontFamily: "'Plus Jakarta Sans', sans-serif" }
+          : { width: 390, height: 844, borderRadius: 44, background: "#F8F7F2", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
         {/* Welcome */}
         {appState === "welcome" && (
