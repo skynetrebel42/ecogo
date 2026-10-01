@@ -5,10 +5,22 @@
 export const SCAN_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e"] as const;
 
 /** A decoded value → digits, or null when it isn't an 8–14 digit product code. A UPC-A may come back as a
- *  13-digit EAN with a leading 0: kept as is, since the lookup matches both forms. */
-export function normalizeScanned(rawValue: string): string | null {
+ *  13-digit EAN with a leading 0: kept as is, since the lookup matches both forms. An 8-digit UPC-E (Chrome's built-in
+ *  detector returns the printed digits) is expanded to its UPC-A, the form catalog and USDA codes use. */
+export function normalizeScanned(rawValue: string, format?: string): string | null {
   const digits = (rawValue ?? "").replace(/\D/g, "");
+  if (format === "upc_e" && /^[01]\d{7}$/.test(digits)) return expandUpcE(digits);
   return digits.length >= 8 && digits.length <= 14 ? digits : null;
+}
+
+/** UPC-E (number system, 6 digits, check) → UPC-A, by the standard zero-suppression rules; the check digit is shared. */
+function expandUpcE(e: string): string {
+  const [ns, d1, d2, d3, d4, d5, d6, check] = e;
+  const body = d6 <= "2" ? `${d1}${d2}${d6}0000${d3}${d4}${d5}`
+    : d6 === "3" ? `${d1}${d2}${d3}00000${d4}${d5}`
+    : d6 === "4" ? `${d1}${d2}${d3}${d4}00000${d5}`
+    : `${d1}${d2}${d3}${d4}${d5}0000${d6}`;
+  return ns + body + check;
 }
 
 /**

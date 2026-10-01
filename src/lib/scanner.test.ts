@@ -26,6 +26,20 @@ test("decoded values become 8-14 digit codes or nothing", () => {
   assert.equal(normalizeScanned(""), null);
 });
 
+// Final review: Chrome's built-in detector (Android) returns UPC-E as its 8 printed digits; catalog and USDA codes are
+// UPC-A, so a UPC-E read is expanded (EAN-8 never is).
+test("an 8-digit UPC-E read is expanded to its UPC-A; EAN-8 isn't", () => {
+  const coke = normalizeScanned("04963406", "upc_e");
+  assert.equal(coke, "049000006346", "Coca-Cola 12 fl oz can");
+  assert.ok(sameBarcode(coke!, "049000006346"));
+  assert.equal(normalizeScanned("01234531", "upc_e"), "012300000451", "last digit 3: manufacturer d1-d3 + 00");
+  assert.equal(normalizeScanned("01234542", "upc_e"), "012340000052", "last digit 4: manufacturer d1-d4 + 0");
+  assert.equal(normalizeScanned("01234573", "upc_e"), "012345000073", "last digit 5-9: product 0000 + d6");
+  assert.equal(normalizeScanned("04963406", "ean_8"), "04963406", "EAN-8 stays");
+  assert.equal(normalizeScanned("0049000006346", "upc_e"), "0049000006346", "already expanded (ZXing): kept");
+  assert.equal(normalizeScanned("04963406"), "04963406", "no format: unchanged");
+});
+
 // Round trip through the same ZXing build the app ships: draw real catalog barcodes, read them back with ZXing's
 // reader (the engine behind the barcode-detector ponyfill on iPhone), and check they match the catalog codes. No network: the .wasm files
 // are read from node_modules.

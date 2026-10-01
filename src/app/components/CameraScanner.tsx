@@ -71,7 +71,7 @@ export default function CameraScanner({ onCode, onClose, children }: {
         if (video.readyState >= 2) {
           try {
             const found = await detector.detect(video);
-            const code = confirm(normalizeScanned(found[0]?.rawValue ?? ""));
+            const code = confirm(normalizeScanned(found[0]?.rawValue ?? "", found[0]?.format));
             if (code && !stopped) {
               navigator.vibrate?.(60);
               stop();

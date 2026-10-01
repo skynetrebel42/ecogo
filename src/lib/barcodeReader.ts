@@ -5,7 +5,7 @@ import { BarcodeDetector as Ponyfill, prepareZXingModule } from "barcode-detecto
 import readerWasmUrl from "zxing-wasm/reader/zxing_reader.wasm?url";
 import { SCAN_FORMATS } from "./scanner";
 
-export interface Detector { detect(source: HTMLVideoElement): Promise<{ rawValue: string }[]> }
+export interface Detector { detect(source: HTMLVideoElement): Promise<{ rawValue: string; format?: string }[]> }
 
 let configured = false;
 
