@@ -42,4 +42,4 @@ The original UI was designed in Figma Make.
 This is a personal project, not medical advice.
 
 Project docs: [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md) (start here), [ARCHITECTURE.md](ARCHITECTURE.md),
-[KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+[KNOWN_ISSUES.md](KNOWN_ISSUES.md), [FIXES_AND_UPDATES.md](FIXES_AND_UPDATES.md) (every fix and small update since the milestones).
