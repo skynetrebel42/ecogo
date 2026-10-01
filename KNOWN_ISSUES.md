@@ -56,7 +56,7 @@
 | **K-15** ▶✔ | Today's Deals cards open unrelated products (the Seventh Gen. deal opens KIND bars), and "See all" searches the literal word "deals" → "No results". | `App.tsx:626-650` |
 | **K-16** ▶✔ | Favorites and Scanned live only in React state, pre-seeded with fake ids `[3,5]`/`[2,6]`, and are lost on reload. Profile's "34 products scanned" and other stats are hardcoded and contradict the app's state. | `App.tsx:1024-1025`, `906` |
 | **K-17** ✔ | *Reframed by step 2 (now by design):* the database is the source of truth, and `products.csv` is only the offline fallback and seed source. Editing the CSV changes offline mode but **not** the live catalog. Change products in the Supabase dashboard or with a new migration, and keep the CSV in sync if the offline view matters. | `src/lib/catalog.ts`, `App.tsx` `PRODUCTS` |
-| K-29 ▶ | The Figma export invented the catalog barcodes. Doritos (`028400335799`) and Oreo (`044000032029`) now carry verified USDA codes, and their catalog text is pinned to the official label by `catalog.test.ts`. Of the other 49: 27 fail the GTIN check digit, so no real package can carry them (a real package opens its USDA record instead: correct data, no prices). **22 have valid check digits and real company prefixes, so a real package with one of those codes may open the wrong catalog product** (none matched a USDA record on 2026-09-28, but non-food and older products aren't in USDA): ids 2, 7, 9, 11, 12, 15, 16, 17, 18, 20, 23, 26, 28, 30, 36, 40, 41, 42, 43, 45, 48, 51. Fix before M4 (camera): verify each against the real package (or USDA by name) and replace or blank it, one migration per batch, adding each verified product to the catalog-vs-label test. | products.csv, DB |
+| ~~K-29~~ ✅ | **Resolved for food products in M5.** 31 food products carry the barcode, name and full ingredient label of a matched USDA FoodData Central record (same brand, product and flavour), listed in `src/data/verified-barcodes.json` (the source of truth, applied by `scripts/apply-verified-barcodes.mjs`, pinned by `verified-barcodes.test.ts`, migration `real_catalog_barcodes`). 3 with no reliable match lost their barcode: #3 KIND Bars Variety Pack, #4 Gatorade 12-pack, #44 Ben & Jerry's (still searchable). **Non-food barcodes** (cleaning, personal care, baby care including Gerber Puffs, medicine, pet food) are still the Figma export's and unverified; nutrition and hazard lookups don't apply to them. | `src/data/verified-barcodes.json`, products.csv, DB |
 
 ### Low
 
@@ -73,6 +73,7 @@
 | K-26 ✔ | *Mostly fixed in step 2:* realtime now re-fetches on INSERT/UPDATE/DELETE of products, prices and resources. **Remaining:** an open product detail keeps its snapshot until reopened; no subscribe-status check; overlapping re-fetches could resolve out of order (harmless at this scale). | `App.tsx` realtime effect |
 | K-27 ▶ | Icon-only buttons (back, save, share, search-QR, etc.) have no accessible names. | `ProductDetailScreen.tsx:707-714`, `App.tsx` |
 | K-28 ▶ | The fixed 390×844 phone frame clips on narrow or short viewports (not responsive). | `App.tsx:1098-1100` |
+| K-30 | Catalog prices and store ratings (Amazon, Walmart, FB Marketplace) are still Figma-invented. | products.csv, DB `product_prices` |
 
 ### Maintainability (not bugs; fix opportunistically)
 
@@ -122,6 +123,12 @@
 - The "Alternatives with fewer concerns" header icon is green (`text-green-600`), against decision L2.
 - The product-page footer says "verified against IARC, EU and FDA sources"; WHO is now a source body too.
 
+### Hidden-risk candidates (each needs an official source before it's flagged)
+
+- Glycidyl esters, benzene and aflatoxins (process contaminants left out of M4).
+- Uncured meats cured with celery juice or powder still contain nitrite (e.g. Oscar Mayer Uncured Beef Franks, now on
+  its real label): verify an official source before flagging.
+
 ### Future production: security and privacy (do **not** deploy publicly before these)
 
 | ID | Issue | Where |
@@ -164,11 +171,16 @@ food and drinks first. Each step is small and verified in the running app before
    shade, and no green. Processed meat reads Known carcinogen (IARC Group 1, also inside other foods). Fried and baked
    starchy foods get a 🔥 "forms when cooked" acrylamide marker that never changes the level. Design:
    `docs/superpowers/specs/2026-09-30-m4-concern-levels-design.md`.
-7. **M5: FDA nutrition line + catalog barcodes.** FDA %DV nutrition facts (e.g. "High in added sugar, 28% DV"), and
-   verify or replace the catalog barcodes (K-29).
+7. ✅ **M5 nutrition + verified barcodes: done 2026-10-01** (`61418f6`…`7f91169`, plus the docs commits). Product pages show added sugar, saturated
+   fat and sodium as FDA %DV per serving with FDA's 5/20 High/Low rule (layout B + C: a Nutrition section, one "High …"
+   chip on list cards; slate, never part of the concern badge). Products that only contain processed meat read High
+   concern. 31 food catalog products carry USDA-verified barcodes and their real labels; 3 lost theirs (K-29). Design:
+   `docs/superpowers/specs/2026-10-01-m5-nutrition-barcodes-design.md`.
 8. **M6: Real camera scanning + mobile layout (done-criterion 1).** Use a JS barcode library that works on iPhone Safari,
    Android and webcams, keeping the demo picker as a fallback. Make the app full-screen on phones, with the frame on
    desktop only (K-28). Fix the scan-flow bugs found along the way (K-22).
+
+**Next:** M6 (step 8), the search fix below, then the Home redesign (mockup first).
 
 **Small item:** fix search matching: "ice cream" finds soda because `SearchResultsScreen` also matches any keyword that
 contains the query's first word (`k.includes(q.split(" ")[0])`, `App.tsx:567`). Related: K-20.

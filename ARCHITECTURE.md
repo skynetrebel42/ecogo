@@ -78,7 +78,11 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 | `src/app/components/ScanTab.tsx` | 266 | Simulated scanner: demo barcodes, type-a-barcode, catalog → lookup, not-found and error states | SAFE TO EDIT |
 | `src/lib/catalog.ts` | 103 | **Database read layer**: `loadCatalog()` plus the row → `Product` mapper | SAFE TO EDIT |
 | `src/lib/productImporter.ts` | 595 | `parseProductsCSV(text)` → `Product[]`, `bestPrice`; defines the canonical `Product` type. App.tsx feeds it the bundled CSV (`?raw`); tests read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
-| `src/lib/lookup.ts` | 133 | USDA FoodData Central + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()`; import-free so Node tests load it | SAFE TO EDIT |
+| `src/lib/lookup.ts` | 146 | USDA FoodData Central + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session (no request) | SAFE TO EDIT |
+| `src/lib/nutrition.ts` | 99 | Added sugar, saturated fat and sodium per serving as FDA %DV with FDA's 5/20 rule, from USDA search records and OFF `nutriments`; pure | SAFE TO EDIT |
+| `src/app/components/NutritionPanel.tsx` | 85 | Nutrition section, `useNutrition` (catalog foods look up nutrition once per session by their verified barcode) and the slate "High …" chip | SAFE TO EDIT |
+| `src/data/verified-barcodes.json` | — | Source of truth for catalog food barcodes: each USDA record's barcode, fdcId, name and full label (owner-approved 2026-10-01), plus the removed ones | Review; change only with a USDA match, then rerun the applier and add a migration |
+| `scripts/apply-verified-barcodes.mjs` | 58 | Applies `verified-barcodes.json` to `products.csv` and prints the matching SQL migration | SAFE TO EDIT |
 | `src/lib/fixtures/{usda,off}/*.json` | — | Recorded real API responses (trimmed) for `lookup.test.ts` | Re-record, don't hand-edit |
 | `src/lib/supabase.ts` | 8 | Browser client from `.env` | SAFE TO EDIT |
 | `src/data/products.csv` | 113 | Seed source and offline fallback (112 rows → 51 products) | SAFE TO EDIT (DB won't change; see K-17) |
@@ -266,8 +270,9 @@ static or a no-op; **broken**.
 | Live/offline banner | `App` render | working | "Live" only when rows arrive; offline text still says "cached" (it's bundled data) |
 | Realtime updates | `App` effect | **working** | Re-fetch on any catalog change; verified live |
 | Concern badge (4 levels) | `verdict.tsx` + `lib/safety/assess.ts` | **working** | Nothing flagged (grey ○) → Some concern ◔ → High concern ◑ → Known carcinogen ●, one darkening hue, no green; readable in greyscale. Verified 2026-09-30: Diet Coke/Doritos some, Lay's nothing flagged, Tide "food only". `npm test` pins all 51 |
-| Processed meat | `lib/safety/foodConcerns.ts` | **working** | IARC Group 1 → "Known carcinogen": Oscar Mayer, SPAM, Jimmy Dean, and DiGiorno ("Contains processed meat: Pepperoni"); a name match needs meat in the ingredients, so hot dog buns and plant-based "sausage" don't match; meat-free versions and look-alike words excluded |
+| Processed meat | `lib/safety/foodConcerns.ts` | **working** | IARC Group 1: products that are processed meat read "Known carcinogen" (Oscar Mayer, SPAM, Jimmy Dean); products that only contain it read "High concern" (DiGiorno: "Contains processed meat: Pepperoni"); a name match needs meat in the ingredients, so hot dog buns and plant-based "sausage" don't match; meat-free versions and look-alike words excluded |
 | Acrylamide marker | `lib/safety/foodConcerns.ts` | **working** | 🔥 "forms when cooked" on EU 2017/2158 food types (Lay's, Oreo, Nature Valley, Pringles, Special K, Wonder, Goldfish), with IARC/EFSA/EU/FDA sources; never changes the level |
+| Nutrition (FDA %DV) | `NutritionPanel` + `lib/nutrition.ts` | **working** | Added sugar, sat fat, sodium per serving, High ≥ 20% / Low ≤ 5% (FDA), "not listed" when missing; catalog foods by verified barcode, looked-up products from USDA/OFF; one "High …" chip on cards once known this session (lists never fetch). Verified 2026-10-01: Oreo 28% added sugar High, DiGiorno sat fat 25% + sodium 33% High, Coke Zero Low ×3 |
 | Flagged ingredients + sources | `ProductDetailScreen` | **working** | Each flag expands to regulator context and source links with a "Source checked" date; flagged phrases highlighted in the ingredient text |
 | Verdict in lists + sort | `ProductCard`, `SearchResultsScreen` | **working** | Category icon, level icon + short label, 🔥 line when acrylamide matches; "Fewest concerns" / "Price" sort |
 | Price comparison | `ProductDetailScreen` | partial | DB prices, store rating or FB condition; no links |

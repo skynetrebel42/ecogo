@@ -79,8 +79,10 @@ finding: Nothing flagged (grey), Some concern, High concern, Known carcinogen. N
 "healthy". Processed meat reads Known carcinogen (IARC Group 1). Fried and baked starchy foods get a 🔥 "forms when
 cooked" acrylamide marker with sources, which never changes the badge.
 
-**Step 7: FDA nutrition + catalog barcodes.** An FDA %DV nutrition line (e.g. "High in added sugar"), and verify or
-replace the catalog barcodes (K-29).
+**Step 7: nutrition + real catalog barcodes. ✅ Done 2026-10-01.** Product pages show added sugar, saturated fat and
+sodium as the FDA's % Daily Value per serving, marked High (20% or more) or Low (5% or less) by the FDA's own rule; list
+cards show one "High sugar"-style chip. Products that only contain processed meat (DiGiorno) now read High concern
+instead of Known carcinogen. 31 catalog foods carry their real USDA barcode and label; 3 unverifiable codes were removed.
 
 **Step 8: real camera scanning + mobile layout.** Phone-camera scanning on iPhone, Android and laptop; full-screen on
 phones. (Scans are no longer saved at all since M3.)
@@ -92,9 +94,9 @@ persistent favorites, cleanup; accounts only if a feature needs per-user data.
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–6 are done; the live site is
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–7 are done; the live site is
 > https://skynetrebel42.github.io/ecogo/; my Supabase project is
 > `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
-> Do roadmap step 7 (M5): the FDA nutrition line and verifying or replacing the catalog barcodes (K-29); then step 8 (M6), real camera scanning and the mobile
+> Do roadmap step 8 (M6): real camera scanning and the mobile
 > layout. Every push to main publishes the site, so ask before pushing. Keep each
 > change small, commit each one, verify it in the running app, and keep `npm test` green.

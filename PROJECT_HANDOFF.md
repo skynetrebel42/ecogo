@@ -17,7 +17,7 @@
   owner requirements.** Its "previous session security fixes" were never in the code (ChatGPT's private sandbox copy).
   The owner's actual goals are still to be captured (see open questions).
 
-- **Phase:** M4 (concern levels) done; next is M5 (FDA nutrition line + K-29 barcodes), then M6 (camera + mobile layout). See the KNOWN_ISSUES.md roadmap.
+- **Phase:** M5 (nutrition, softer processed-meat rule, verified catalog barcodes) done; next is M6 (camera + mobile layout), the search fix, then the Home redesign. See the KNOWN_ISSUES.md roadmap.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), a concern level
   (strongest official finding: additives, processed meat; acrylamide marker) from the safety engine (`src/lib/safety`, sourced library, `npm test` over all 51 products), realtime
@@ -103,6 +103,8 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 017 | Scans are not saved at all; anonymous insert revoked | Nothing read them, and a public insert grant invites spam (S-04). Re-add with accounts when scans power a feature | **Done** (M3) |
 | 018 | GitHub Pages via GitHub Actions; history uses the owner's GitHub no-reply email | Free HTTPS, one account; the UCI email stays private | **Done** (M3) |
 | 019 | One darkening concern badge, no green; level = strongest official finding (additives + food itself); acrylamide is a marker only | Owner, 2026-09-30: "Nothing flagged" isn't "healthy"; avoid flagging the whole bread aisle | **Done** (M4) |
+| 020 | Nutrition: FDA %DV per serving for added sugar, sat fat, sodium; High ≥ 20%, Low ≤ 5% (FDA's rule); separate from the concern badge | Owner, 2026-10-01 (mockup layout B + C) | **Done** (M5) |
+| 021 | Catalog food products use USDA-verified barcodes and their real labels; unverifiable codes removed | Owner, 2026-10-01: trust first; Figma text was invented | **Done** (M5) |
 
 ## Open questions only the owner can answer
 
