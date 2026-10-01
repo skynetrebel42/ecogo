@@ -123,6 +123,19 @@
 - The "Alternatives with fewer concerns" header icon is green (`text-green-600`), against decision L2.
 - The product-page footer says "verified against IARC, EU and FDA sources"; WHO is now a source body too.
 
+### Nutrition and barcode follow-ups (from the M5 final review, deferred)
+
+- The renamed pack sizes no longer match the invented catalog prices (K-30): "Diet Coke 12 fl oz Can" carries the
+  12-pack price, Monster a 4-pack price, Nature Valley "(2-bar pouch)" the 12ct price, the SPAM 4-pack a single-can
+  price, Stouffer's Family Size 40oz the 12oz price. #17 Planters' description lists macadamias the real label doesn't.
+- Open Food Facts: a nutrient given only per 100 g (alongside a serving size), or salt without sodium, reads "not
+  listed" though it could be derived (`offNutrition`).
+- An Open Food Facts result found while USDA was unreachable keeps its nutrition in `knownNutrition` for the session.
+- Catalog barcodes that USDA stores as 14 digits (Coca-Cola, DiGiorno) cost 2 USDA requests on first open.
+- The per-100 g header reads "per · 100 g", and liquids are labelled g.
+- The M5 spec §3 names Lay's `028400421584` (the verified code is `028400199148`) and §6 names
+  `catalog-barcodes.test.ts` (it's `verified-barcodes.test.ts`).
+
 ### Hidden-risk candidates (each needs an official source before it's flagged)
 
 - Glycidyl esters, benzene and aflatoxins (process contaminants left out of M4).
@@ -171,7 +184,7 @@ food and drinks first. Each step is small and verified in the running app before
    shade, and no green. Processed meat reads Known carcinogen (IARC Group 1, also inside other foods). Fried and baked
    starchy foods get a 🔥 "forms when cooked" acrylamide marker that never changes the level. Design:
    `docs/superpowers/specs/2026-09-30-m4-concern-levels-design.md`.
-7. ✅ **M5 nutrition + verified barcodes: done 2026-10-01** (`61418f6`…`7f91169`, plus the docs commits). Product pages show added sugar, saturated
+7. ✅ **M5 nutrition + verified barcodes: done 2026-10-01** (`61418f6`…`ad7f633`, plus the docs commits). Product pages show added sugar, saturated
    fat and sodium as FDA %DV per serving with FDA's 5/20 High/Low rule (layout B + C: a Nutrition section, one "High …"
    chip on list cards; slate, never part of the concern badge). Products that only contain processed meat read High
    concern. 31 food catalog products carry USDA-verified barcodes and their real labels; 3 lost theirs (K-29). Design:

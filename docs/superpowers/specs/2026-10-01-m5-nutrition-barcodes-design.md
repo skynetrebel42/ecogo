@@ -1,7 +1,7 @@
 # M5: nutrition line, softer processed-meat rule, real catalog barcodes: design spec
 
 - **Date:** 2026-10-01
-- **Status:** implemented (`61418f6`…`7f91169`, plus the docs commits)
+- **Status:** implemented (`61418f6`…`ad7f633`, plus the docs commits)
 - **Designed with:** the owner (Minh Bui), 2026-10-01, through multiple-choice questions and the clickable mockup
   https://claude.ai/artifact/3tZQE5dWyfQFkfiu5dEjNB (they chose layout B + C).
 - **Builds on:** M4 (`specs/2026-09-30-m4-concern-levels-design.md`): the concern badge, `foodConcerns.ts`, `assess.ts`.
