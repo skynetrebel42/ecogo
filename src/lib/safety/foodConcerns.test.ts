@@ -105,3 +105,16 @@ test("food-level sources are complete (verify:sources checks the quotes)", () =>
   assert.equal(PROCESSED_MEAT.severity, "known");
   assert.equal(ACRYLAMIDE.severity, undefined, "acrylamide never sets a level (decision L6)");
 });
+
+// M5 decision N6: being processed meat is Known; only containing some is High.
+test("processed meat: products that ARE it read known; products that only contain it read high", () => {
+  const level = (p: Partial<FoodInput>) => foodConcerns({ name: "", category: "Meat", ingredients: "", ...p }).find(c => c.id === "processed-meat")?.severity ?? null;
+  assert.equal(level({ name: "Classic Beef Hot Dogs", ingredients: "Beef, water, salt" }), "known");
+  assert.equal(level({ name: "Pepperoni Pizza", category: "Frozen", ingredients: "Flour, water, pepperoni (pork, beef, salt)" }), "high");
+  assert.equal(level({ name: "Baked Beans", category: "Condiments", ingredients: "Beans, water, sugar, bacon (pork, salt, sodium nitrite)" }), "high");
+  assert.equal(level({ name: "Classic Beef Links", category: "", ingredients: "BEEF, WATER, SALT", source: { foodCategory: "Sausages, Hotdogs & Brats" } }), "known");
+  const digiorno = foodConcerns(catalog.find(p => p.id === 42)!).find(c => c.id === "processed-meat")!;
+  assert.equal(digiorno.severity, "high");
+  assert.match(digiorno.context, /much smaller than IARC's 50 g daily portion/);
+  for (const id of [6, 36, 38]) assert.equal(foodConcerns(catalog.find(p => p.id === id)!).find(c => c.id === "processed-meat")?.severity, "known", `#${id}`);
+});

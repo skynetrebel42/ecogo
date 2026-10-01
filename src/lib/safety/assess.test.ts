@@ -7,11 +7,11 @@ import { parseProductsCSV } from "../productImporter.ts";
 
 const catalog = parseProductsCSV(readFileSync(new URL("../../data/products.csv", import.meta.url), "utf8"));
 
-test("catalog: only the four processed-meat products change level (to known); acrylamide changes nothing", () => {
+test("catalog: only the three products that ARE processed meat change level (to known); DiGiorno (contains it) stays high; acrylamide changes nothing", () => {
   const changed = catalog
     .map(p => ({ id: p.id, before: analyzeIngredients(p).verdict, after: assessProduct(p).verdict }))
     .filter(r => r.before !== r.after);
-  assert.deepEqual(changed.map(r => [r.id, r.after]), [[6, "known"], [36, "known"], [38, "known"], [42, "known"]]);
+  assert.deepEqual(changed.map(r => [r.id, r.after]), [[6, "known"], [36, "known"], [38, "known"]]);
   const lays = assessProduct(catalog.find(p => p.id === 1)!);
   assert.ok(lays.concerns.some(c => c.id === "acrylamide"));
   assert.equal(lays.verdict, analyzeIngredients(catalog.find(p => p.id === 1)!).verdict);

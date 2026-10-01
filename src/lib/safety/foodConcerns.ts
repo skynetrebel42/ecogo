@@ -69,15 +69,23 @@ function processedMeat(p: FoodInput): FoodConcern | null {
   const items = parseIngredients(text).filter(item => !NOT_MEAT.test(item));
   const backed = !text.trim() || items.some(item => MEAT_INGREDIENT.test(item) || PM_WORD.test(item));
   const inName = backed && !ACCESSORY.test(p.name) ? p.name.match(PM_WORD) : null; // reasons keep the label's casing ("SPAM")
-  if (inName) return { ...PROCESSED_MEAT, reason: `${DISH.test(p.name) ? "Contains processed meat" : "Processed meat"}: ${inName[1]}` };
+  if (inName) return DISH.test(p.name) ? containsProcessedMeat(inName[1]) : { ...PROCESSED_MEAT, reason: `Processed meat: ${inName[1]}` };
   if (backed && p.source?.foodCategory && PM_USDA.has(p.source.foodCategory)) {
     return { ...PROCESSED_MEAT, reason: `Processed meat (USDA category "${p.source.foodCategory}")` };
   }
   for (const item of items) {
     const m = item.match(PM_WORD);
-    if (m) return { ...PROCESSED_MEAT, reason: `Contains processed meat: ${m[1]}` };
+    if (m) return containsProcessedMeat(m[1]);
   }
   return null;
+}
+
+/** A product that only CONTAINS processed meat reads High, not Known (owner decision N6, M5 spec §4.4). */
+function containsProcessedMeat(word: string): FoodConcern {
+  return {
+    ...PROCESSED_MEAT, severity: "high", reason: `Contains processed meat: ${word}`,
+    context: `${PROCESSED_MEAT.context} The amount here is likely much smaller than IARC's 50 g daily portion.`,
+  };
 }
 
 // ── Acrylamide (cooking marker) ──────────────────────────────────────────────
