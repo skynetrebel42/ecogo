@@ -106,6 +106,23 @@ test("food-level sources are complete (verify:sources checks the quotes)", () =>
   assert.equal(ACRYLAMIDE.severity, undefined, "acrylamide never sets a level (decision L6)");
 });
 
+// Final review I2 + re-graded minor: a dish word marks "contains", but not when the product IS the meat.
+test("processed meat: deli products named for a use stay known; mixed dishes named after their meat read high", () => {
+  const level = (p: Partial<FoodInput>) => foodConcerns({ name: "", category: "", ingredients: "Pork, beef, salt, spices, sodium nitrite", ...p }).find(c => c.id === "processed-meat")?.severity ?? null;
+  assert.equal(level({ name: "Hormel Sandwich Style Pepperoni", source: { foodCategory: "Pepperoni, Salami & Cold Cuts" } }), "known");
+  assert.equal(level({ name: "Hormel Pepperoni Pizza Topping" }), "known");
+  assert.equal(level({ name: "Boar's Head Pizza Style Pepperoni" }), "known");
+  assert.equal(level({ name: "Hebrew National Salami Sandwich Slices" }), "known");
+  assert.equal(level({ name: "Old Wisconsin Beef Sausage Bites", source: { foodCategory: "Sausages, Hotdogs & Brats" } }), "known");
+  assert.equal(level({ name: "Jack Link's Beef Jerky Bites" }), "known");
+  assert.equal(level({ name: "DiGiorno Pepperoni Pizza Slices", category: "Frozen", ingredients: "Crust (flour), pepperoni (pork, beef)" }), "high");
+  assert.equal(level({ name: "Totino's Pepperoni Pizza Bites", category: "Frozen" }), "high");
+  assert.equal(level({ name: "Jimmy Dean Sausage Breakfast Bowl", category: "Frozen", ingredients: "Potatoes, eggs, sausage (pork, salt)" }), "high");
+  assert.equal(level({ name: "Bush's Maple Cured Bacon Baked Beans", category: "Condiments", ingredients: "Beans, water, sugar, bacon (pork, salt, sodium nitrite)" }), "high");
+  assert.equal(level({ name: "Kraft Mac & Cheese with Bacon", category: "Frozen", ingredients: "Macaroni, cheese, bacon (pork, salt)" }), "high");
+  assert.equal(level({ name: "Stouffer's Sausage Lasagna", category: "Frozen", ingredients: "Pasta, sausage (pork, salt)" }), "high");
+});
+
 // M5 decision N6: being processed meat is Known; only containing some is High.
 test("processed meat: products that ARE it read known; products that only contain it read high", () => {
   const level = (p: Partial<FoodInput>) => foodConcerns({ name: "", category: "Meat", ingredients: "", ...p }).find(c => c.id === "processed-meat")?.severity ?? null;

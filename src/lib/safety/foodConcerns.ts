@@ -58,7 +58,10 @@ const MEAT_INGREDIENT = /\b(pork|beef|chicken|turkey|veal|lamb|mutton|goat|venis
 // bread: a "sausage roll" is meat.
 const ACCESSORY = new RegExp(PM_WORD.source + /\s+(buns?|relish|chili|sauce|seasoning|glaze|mix)\b|\bhot ?dogs? rolls?\b/.source, "i");
 // A dish named after its meat ("Pepperoni Pizza") contains processed meat rather than being it.
-const DISH = /\b(pizzas?|sandwich(es)?|wraps?|salads?|soups?|pasta|burritos?|calzones?|biscuits?|bagels?|pockets?|bites|kits?)\b/i;
+// "bites" isn't one: "Sausage Bites" and "Jerky Bites" are the meat itself ("Pizza Bites" still match "pizza").
+const DISH = /\b(pizzas?|sandwich(es)?|wraps?|salads?|soups?|pasta|burritos?|calzones?|biscuits?|bagels?|pockets?|kits?|bowls?|beans|mac(?:aroni)? (?:&|and) cheese|lasagnas?|pot pies?|casseroles?|skillets?|scrambles?|omelets?|quiches?|dressing|dips?)\b/i;
+// Named for a use, but still the meat itself: "Sandwich Style Pepperoni", "Pepperoni Pizza Topping", "Salami Sandwich Slices".
+const USE = /\b(?:style|toppings?)\b|\bsandwich (?:slices|sliced|size)\b/i;
 // USDA categories that are processed meat by definition (sampled from real records 2026-09-30).
 const PM_USDA = new Set(["Sausages, Hotdogs & Brats", "Frozen Sausages, Hotdogs & Brats", "Pepperoni, Salami & Cold Cuts", "Canned Meat"]);
 
@@ -69,10 +72,10 @@ function processedMeat(p: FoodInput): FoodConcern | null {
   const items = parseIngredients(text).filter(item => !NOT_MEAT.test(item));
   const backed = !text.trim() || items.some(item => MEAT_INGREDIENT.test(item) || PM_WORD.test(item));
   const inName = backed && !ACCESSORY.test(p.name) ? p.name.match(PM_WORD) : null; // reasons keep the label's casing ("SPAM")
-  if (inName) return DISH.test(p.name) ? containsProcessedMeat(inName[1]) : { ...PROCESSED_MEAT, reason: `Processed meat: ${inName[1]}` };
-  if (backed && p.source?.foodCategory && PM_USDA.has(p.source.foodCategory)) {
-    return { ...PROCESSED_MEAT, reason: `Processed meat (USDA category "${p.source.foodCategory}")` };
-  }
+  const pmCategory = backed && !!p.source?.foodCategory && PM_USDA.has(p.source.foodCategory);
+  const dish = DISH.test(p.name) && !USE.test(p.name) && !pmCategory; // a USDA processed-meat category says it IS the meat
+  if (inName) return dish ? containsProcessedMeat(inName[1]) : { ...PROCESSED_MEAT, reason: `Processed meat: ${inName[1]}` };
+  if (pmCategory) return { ...PROCESSED_MEAT, reason: `Processed meat (USDA category "${p.source!.foodCategory}")` };
   for (const item of items) {
     const m = item.match(PM_WORD);
     if (m) return containsProcessedMeat(m[1]);
