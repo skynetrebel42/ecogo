@@ -47,11 +47,16 @@ export const PROCESSED_MEAT: Omit<FoodConcern, "reason"> = {
 };
 
 // IARC's examples ("hot dogs (frankfurters), ham, sausages, corned beef, and biltong or beef jerky as well as canned
-// meat") plus common cured/smoked meats. Whole words only ("graham" is not ham). "franks" is left out: it matches
-// "Frank's RedHot".
-const PM_WORD = /\b(hot ?dogs?|frankfurters?|wieners?|bacon|hams?|sausages?|salami|pepperoni|chorizo|bologna|pastrami|corned beef|jerky|biltong|prosciutto|spam|luncheon meat|deli meats?|cold cuts?|(?:cured|smoked) (?:pork|beef|turkey|chicken|meat))\b/i;
+// meat") plus common cured/smoked meats. Whole words only ("graham" is not ham). "franks" never matches before an
+// apostrophe, so "Frank's RedHot" isn't meat.
+const PM_WORD = /\b(hot ?dogs?|frankfurters?|franks?(?!['’])|wieners?|bacon|hams?|sausages?|salami|pepperoni|chorizo|bologna|pastrami|corned beef|jerky|biltong|prosciutto|spam|luncheon meat|lunch ?meats?|deli meats?|cold cuts?|kielbasa|brat(?:wurst)?s?|mortadella|pancetta|(?:cured|smoked)[- ](?:pork|beef|turkey|chicken|meat))\b/i;
 // Meat-free versions and flavourings aren't meat.
-const NOT_MEAT = /\b(imitation|vegan|vegetarian|plant[- ]based|meatless|meat[- ]free|veggie)\b|\b(?:bacon|ham|sausage|pepperoni|salami|jerky)[- ]flavou?r/i;
+const NOT_MEAT = /\b(imitation|vegan|vegetarian|plant[- ]based|meatless|meat[- ]free|veggie)\b|\b(?:bacon|ham|sausage|pepperoni|salami|jerky)(?:[- ]flavou?r|[- ]free\b)|\bno (?:bacon|ham|sausage|pepperoni|salami|meat)\b/i;
+// A name match needs meat in the ingredients (when there are any): hot dog buns and plant-based "sausage" aren't meat.
+const MEAT_INGREDIENT = /\b(pork|beef|chicken|turkey|veal|lamb|mutton|goat|venison|bison|meat|poultry)\b/i;
+// Named after a meat but made to go with it: "Hot Dog Buns", "Ham Glaze", "Sausage Seasoning". Only hot dog rolls are
+// bread: a "sausage roll" is meat.
+const ACCESSORY = new RegExp(PM_WORD.source + /\s+(buns?|relish|chili|sauce|seasoning|glaze|mix)\b|\bhot ?dogs? rolls?\b/.source, "i");
 // A dish named after its meat ("Pepperoni Pizza") contains processed meat rather than being it.
 const DISH = /\b(pizzas?|sandwich(es)?|wraps?|salads?|soups?|pasta|burritos?|calzones?|biscuits?|bagels?|pockets?|bites|kits?)\b/i;
 // USDA categories that are processed meat by definition (sampled from real records 2026-09-30).
@@ -60,13 +65,15 @@ const PM_USDA = new Set(["Sausages, Hotdogs & Brats", "Frozen Sausages, Hotdogs 
 function processedMeat(p: FoodInput): FoodConcern | null {
   if (p.category && !FOOD_CATEGORIES.has(p.category)) return null;
   if (NOT_MEAT.test(p.name)) return null;
-  const inName = p.name.match(PM_WORD); // reasons keep the label's own casing ("SPAM", "Hot Dogs")
+  const text = p.ingredients || "";
+  const items = parseIngredients(text).filter(item => !NOT_MEAT.test(item));
+  const backed = !text.trim() || items.some(item => MEAT_INGREDIENT.test(item) || PM_WORD.test(item));
+  const inName = backed && !ACCESSORY.test(p.name) ? p.name.match(PM_WORD) : null; // reasons keep the label's casing ("SPAM")
   if (inName) return { ...PROCESSED_MEAT, reason: `${DISH.test(p.name) ? "Contains processed meat" : "Processed meat"}: ${inName[1]}` };
-  if (p.source?.foodCategory && PM_USDA.has(p.source.foodCategory)) {
+  if (backed && p.source?.foodCategory && PM_USDA.has(p.source.foodCategory)) {
     return { ...PROCESSED_MEAT, reason: `Processed meat (USDA category "${p.source.foodCategory}")` };
   }
-  for (const item of parseIngredients(p.ingredients)) {
-    if (NOT_MEAT.test(item)) continue;
+  for (const item of items) {
     const m = item.match(PM_WORD);
     if (m) return { ...PROCESSED_MEAT, reason: `Contains processed meat: ${m[1]}` };
   }

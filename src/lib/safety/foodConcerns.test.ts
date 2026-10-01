@@ -43,9 +43,30 @@ test("processed meat: real cases match, including inside other foods", () => {
   assert.equal(meat({ name: "Original Beef Jerky" }), "Processed meat: Jerky");
   assert.equal(meat({ name: "Club Sandwich Kit", ingredients: "Bread (wheat flour), ham (pork, water, salt, sodium nitrite)" }), "Contains processed meat: ham");
   assert.equal(meat({ name: "Breakfast Bowl", category: "Frozen", ingredients: "Potatoes, eggs, sausage (pork, salt, spices)" }), "Contains processed meat: sausage");
-  assert.equal(meat({ name: "Classic Franks", category: "", source: { foodCategory: "Sausages, Hotdogs & Brats" } }),
+  assert.equal(meat({ name: "Classic Beef Links", category: "", source: { foodCategory: "Sausages, Hotdogs & Brats" } }),
     'Processed meat (USDA category "Sausages, Hotdogs & Brats")');
   assert.equal(meat({ name: "Bacon Air Freshener", category: "Cleaning" }), null, "non-food never matches");
+});
+
+// Final review C1: a meat word in the name isn't enough when the ingredients show no meat.
+test("processed meat: the name needs meat in the ingredients; buns, sauces and plant-based versions don't match", () => {
+  assert.equal(meat({ name: "Hot Dog Buns", category: "", ingredients: "ENRICHED WHEAT FLOUR, WATER, SUGAR, YEAST", source: { foodCategory: "Breads & Buns" } }), null);
+  assert.equal(meat({ name: "Hot Dog Buns", category: "Bread" }), null, "no ingredient list: still a bun");
+  assert.equal(meat({ name: "Hot Dog Chili Sauce", category: "Condiments", ingredients: "Water, beef, tomato paste, chili powder" }), null);
+  assert.equal(meat({ name: "Beyond Sausage Brat Original", ingredients: "Water, pea protein, refined coconut oil, rice protein" }), null);
+  assert.equal(meat({ name: "Coconut Bacon", ingredients: "Coconut, liquid smoke, bacon flavor" }), null);
+  assert.equal(meat({ name: "Loaded Bacon & Cheddar Flavored Potato Chips", category: "Snacks", ingredients: "POTATOES, VEGETABLE OIL, SMOKE FLAVOR" }), null);
+  assert.equal(meat({ name: "Ham-Free Split Pea Soup" }), null);
+  assert.equal(meat({ name: "Plant Sausage", category: "", ingredients: "Soy protein, water", source: { foodCategory: "Sausages, Hotdogs & Brats" } }), null);
+});
+
+// Final review I1: common processed-meat names, including "uncured" ones, must not read "Nothing flagged".
+test("processed meat: franks, kielbasa, brats and other cured-meat names match", () => {
+  assert.equal(meat({ name: "Uncured Beef Franks", ingredients: "Beef, water, sea salt, cultured celery powder" }), "Processed meat: Franks");
+  assert.equal(meat({ name: "Uncured Polska Kielbasa", ingredients: "Pork, beef, water, salt" }), "Processed meat: Kielbasa");
+  assert.equal(meat({ name: "Johnsonville Bratwurst", ingredients: "Pork, water, salt, spices" }), "Processed meat: Bratwurst");
+  assert.equal(meat({ name: "Classic Corn Dogs", category: "Frozen", ingredients: "Batter (enriched flour, water), uncured beef franks (beef, water, salt)" }), "Contains processed meat: franks");
+  assert.equal(meat({ name: "Frank's RedHot Original", category: "Condiments", ingredients: "Aged cayenne red peppers, vinegar" }), null);
 });
 
 // Review Focus 3: corn chips share USDA's chip category with potato chips.
