@@ -211,9 +211,15 @@ food and drinks first. Each step is small and verified in the running app before
    desktop keeps the frame (K-28). No catalog product carries an invented barcode: non-food codes were removed too.
    Done-criterion 1 is met once the owner's phone check passes. Design: `docs/superpowers/specs/2026-10-01-m6-camera-mobile-design.md`.
 
-**Next:** M7 Home redesign (spec `specs/2026-10-01-m7-home-redesign-design.md`), then **M7.1** explainers on seed oils,
-pesticides and ultra-processed foods (official findings stated plainly; sources to research first), then accounts and
-the real map.
+9. ✅ **M7 Home redesign: done 2026-10-01** (`5244f9e`…`86ffce4`, plus the docs commit). Home shows only real
+   things: a time-based greeting, a big Scan card, search, "Recently scanned" (the last 10 products opened, kept on this
+   device only, with Clear) and two sourced explainers ("Nothing flagged" isn't "healthy"; what the badge levels
+   mean). The invented places, scores, deals, location pill and community resources are gone from Home; Saved › Scanned
+   reads the same recent list (no more fake seed). Design: `docs/superpowers/specs/2026-10-01-m7-home-redesign-design.md`.
+
+**Next:** **M7.1** explainers on seed oils, pesticides and ultra-processed foods (official findings stated plainly;
+sources verified first), then the Profile tab's fake content (next cleanup candidate, M7.2), then accounts and the real
+map.
 
 **✔ Search fixed 2026-10-01:** whole-word matching (`src/lib/search.ts`: every typed word must be a whole word, plurals either way, of the name, brand, category or keywords; "ice cream" now finds only Ben & Jerry's) plus a "More from USDA FoodData Central" list of up to 10 real products (`searchUsda`, one request per search text per session).
 

@@ -1,7 +1,7 @@
 # M7: Home redesign (scan first, recently scanned, explainers; no fake content): design spec
 
 - **Date:** 2026-10-01
-- **Status:** draft, awaiting the owner's review
+- **Status:** done (`5244f9e`…`86ffce4`, plus the docs commit)
 - **Designed with:** the owner (Minh Bui), 2026-10-01, through multiple-choice questions and the clickable mockup
   https://claude.ai/artifact/VVjduE8kRSBkUKimwFzEUf. They chose **layout A** ("Scan first"; its first-visit state is
   the second artboard).

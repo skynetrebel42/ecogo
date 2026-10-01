@@ -12,10 +12,10 @@ Figma Make. After a welcome screen and a 3-slide onboarding it has five tabs:
 
 | Tab | Reality |
 |---|---|
-| **Home** | Hardcoded "Alex", 15 hardcoded Chicago recommendations with a SmartScore filter, 3 fake deals, a product search box, and the first 5 community resources (from the database). |
+| **Home** | Real content only (M7): a time-based greeting, a Scan card, product search, "Recently scanned" (last 10 products opened, on this device, `lib/recent.ts`) and "Hidden risks, explained" cards that open sourced explainer pages (`Explainer.tsx`). |
 | **Map** | A real Leaflet/OpenStreetMap map of **18 Chicago resources** drawn from `MapTab.tsx` `BASE_RESOURCES`. The database overrides only name, hours, phone and description by id, even though the `resources` table now also holds coordinates. |
 | **Scan** | **Camera.** The Scan tab opens the back camera and reads EAN/UPC barcodes on the device (`CameraScanner`, `lib/barcodeReader.ts`: native BarcodeDetector or bundled ZXing WebAssembly; a code counts after two identical reads). Typing a barcode or a demo barcode does the same. The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Frames never leave the device; scans are **not saved** (M3), and scanning never asks for location. |
-| **Saved** | Favorites and Scanned lists, in React state only (lost on reload). "Lists" is static. |
+| **Saved** | Favorites (React state only, lost on reload, K-16) and Scanned (the same recent list as Home, kept on this device). "Lists" is static. |
 | **Profile** | Entirely static (Alex Johnson, fake stats and badges). The settings rows do nothing. |
 
 The product catalog is **51 products in the Supabase `products` table**, seeded from `src/data/products.csv`. The
@@ -80,6 +80,8 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 | `src/lib/productImporter.ts` | 595 | `parseProductsCSV(text)` → `Product[]`, `bestPrice`; defines the canonical `Product` type. App.tsx feeds it the bundled CSV (`?raw`); tests read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
 | `src/lib/lookup.ts` | 146 | USDA FoodData Central + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session (no request) | SAFE TO EDIT |
 | `src/lib/scanner.ts` | 38 | Pure scan logic: grocery formats, `normalizeScanned` (digits; UPC-E → UPC-A), `confirmReads` (two identical reads in a row) | SAFE TO EDIT |
+| `src/lib/recent.ts` | 49 | "Recently scanned": `addRecent` (newest first, no duplicates, 10 max), `resolveRecent` (catalog ids re-read, looked-up snapshots kept), `parseRecent`, and `loadRecent`/`saveRecent` around `localStorage["ecogo.recent.v1"]` that never throw | SAFE TO EDIT |
+| `src/app/components/Explainer.tsx` | — | Home's "Hidden risks, explained" pages: `EXPLAINERS`, `ExplainerId`, plain text over official sources only (each with its verbatim quote and "Source checked" date) | SAFE TO EDIT (text must match its sources word for word) |
 | `src/lib/barcodeReader.ts` | 25 | `createDetector()`: the native BarcodeDetector when it reads all four grocery formats, else the `barcode-detector` ponyfill with ZXing's `.wasm` bundled by Vite (no CDN) | SAFE TO EDIT |
 | `src/app/components/CameraScanner.tsx` | 151 | Live back-camera screen: detect loop, torch, denied/unsupported/paused states, drawer for typing; stops the camera on ✕, unmount and page hide | SAFE TO EDIT |
 | `src/lib/nutrition.ts` | 99 | Added sugar, saturated fat and sodium per serving as FDA %DV with FDA's 5/20 rule, from USDA search records and OFF `nutriments`; pure | SAFE TO EDIT |
@@ -246,7 +248,7 @@ CLI (`supabase link` then `supabase db push`) or by pasting them into the SQL ed
 | Resources (Map) | `MapTab.tsx BASE_RESOURCES` (18, lat/lng) | Overlays name/hours/phone/description from the DB list **by id** | — | static | via App prop | static |
 | Scan events | `scan_events` table | nobody (service role only) | **no longer written (M3)**; kept for history, anonymous insert revoked | — | not published | yes (server side) |
 | Looked-up products | fetched live per session from USDA FoodData Central (manufacturer label data) or Open Food Facts (crowd-sourced); never stored | `lookupBarcode()` (session cache) | — | error state with Try again | — | no (session list in App state) |
-| Scanned ids (Saved › Scanned) | React state, seeded `[2,6]` | — | `onScanResult` | — | — | **no** |
+| Recently scanned (Home, Saved › Scanned) | `localStorage["ecogo.recent.v1"]` on this device | — | `openProduct` (every product opened) | — | — | **yes** (this browser only) |
 | Favorites | React state, seeded `[3,5]` | — | bookmark toggle | — | — | **no** |
 | User location | Browser Geolocation, only when the user taps Map "My Location" | — | never stored | Chicago centre | — | no |
 | Scores | Replaced by the ingredient verdict (M1) | — | — | — | — | — |
@@ -264,8 +266,8 @@ static or a no-op; **broken**.
 |---|---|---|---|
 | Welcome → onboarding → guest | `WelcomeScreen`, `OnboardingScreen` | partial | "Sign In" has no handler; onboarding re-runs on every reload |
 | Bottom-tab navigation | `BottomNav` | working | |
-| Home recommendations + SmartScore filter + "Why?" modal | `HomeTab` | placeholder | 15 hardcoded Chicago places |
-| Home location pill | `HomeTab` | static | "Chicago, IL (demo places)"; no location request since M3 |
+| Home: greeting, Scan card, search, recently scanned | `HomeTab`, `lib/recent.ts` | **working** | Real content only (M7); recently scanned kept on this device, newest first, with Clear |
+| Home: hidden-risk explainers | `Explainer.tsx` | **working** | "Nothing flagged" isn't "healthy" (FDA 5/20 rule); what the badge levels mean (WHO/IARC, acrylamide); verbatim sources with dates |
 | Product search | `HomeTab` → `SearchResultsScreen` | partial | Works; brand not searched; Back loses results |
 | Today's Deals | `HomeTab` | placeholder | Cards open unrelated products; "See all" → "No results for deals" |
 | Nearby resources | `HomeTab` | partial | From the DB; would crash Home if one of the first 5 had a type outside App's 6 (K-10) |
@@ -293,7 +295,7 @@ static or a no-op; **broken**.
 | Scan: record scan event | — | **removed (M3)** | Scans aren't saved (decision 017); no location prompt |
 | Scan: barcode not found anywhere | `ScanTab` | working | Honest "We couldn't find this barcode yet" screen |
 | Scan history / stats / review queue UI | — | placeholder | Data is in `scan_events`; no screen (dashboard only) |
-| Saved › Favorites / Scanned | `SavedTab` | partial | In-memory, fake seeds |
+| Saved › Favorites / Scanned | `SavedTab` | partial | Favorites in memory (K-16); Scanned = the recent list on this device |
 | Saved › Lists | `SavedTab` | placeholder | static |
 | Profile, impact stats, badges, settings | `ProfileTab` | placeholder | static; settings rows no-op |
 | Partners | — | placeholder | no table, no screen |

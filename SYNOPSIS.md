@@ -89,6 +89,10 @@ grocery barcode opens the product page. Barcodes are read on the device (nothing
 works. On phones the app fills the screen. No catalog product carries an invented barcode any more. Prototype goal 1 is
 met once the owner's iPhone/Android/laptop check passes.
 
+**Step 9: Home redesign. ✅ Done 2026-10-01.** Home shows only real things: a greeting, a big Scan button, search, the
+products you recently opened (kept on your device only) and two short explainers with official sources. Every invented
+place, score and deal is gone.
+
 **Later:** a map that follows the user's location (Los Angeles as the default, real places from OpenStreetMap),
 persistent favorites, cleanup; accounts only if a feature needs per-user data.
 
@@ -96,9 +100,9 @@ persistent favorites, cleanup; accounts only if a feature needs per-user data.
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–8 are done; the live site is
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–9 are done; the live site is
 > https://skynetrebel42.github.io/ecogo/; my Supabase project is
 > `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
-> Next: the search fix, then the Home redesign (mockup
-> first). Every push to main publishes the site, so ask before pushing. Keep each
+> Next: the M7.1 explainers, then the Profile cleanup
+> (M7.2). Every push to main publishes the site, so ask before pushing. Keep each
 > change small, commit each one, verify it in the running app, and keep `npm test` green.
