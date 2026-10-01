@@ -1,7 +1,7 @@
 # M7.2: Profile cleanup (no fake user, stats or badges): design spec
 
 - **Date:** 2026-10-01
-- **Status:** approved by the owner 2026-10-01; plan to be written after M7 is built
+- **Status:** approved by the owner 2026-10-01; plan: `docs/superpowers/plans/2026-10-01-m72-m73-profile-welcome.md`
 - **Designed with:** the owner (Minh Bui), 2026-10-01, through multiple-choice questions and the mockup
   https://claude.ai/artifact/CMxtUdUwwMsP1LnD9Pr2Nk. They chose **"About & your data"**, **remove all** fake badges and
   dead buttons, and **layout A** ("All on one page"; they first picked B, then switched to A after viewing both).
