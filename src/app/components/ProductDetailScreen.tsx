@@ -1,32 +1,56 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // ProductDetailScreen.tsx — product page
 //
-// Ingredient safety verdict from the safety engine (src/lib/safety): only
-// ingredients with an official health concern are flagged, and every flag shows
-// its sources. Also: price comparison and same-category alternatives.
+// Concern level from the safety engine (src/lib/safety): the strongest official
+// finding among the ingredients (additives), the food itself (processed meat) and
+// what forms when it's cooked (acrylamide, a marker only). Every finding shows its
+// sources. Also: price comparison and same-category alternatives.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, Bookmark, Share2, ShoppingBag, DollarSign, Star,
-  TrendingUp, ChevronDown, ExternalLink, FlaskConical,
+  TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame,
 } from "lucide-react";
 import { bestPrice, type Product } from "../../lib/productImporter";
-import { VERDICT_RANK, escapeRegExp, type Analysis, type Flag } from "../../lib/safety/analyze";
-import { VERDICT_STYLE, safeAnalyze, verdictHeadline } from "./verdict";
+import { VERDICT_RANK, escapeRegExp, type Flag } from "../../lib/safety/analyze";
+import type { Severity, Source } from "../../lib/safety/library";
+import type { Assessment } from "../../lib/safety/assess";
+import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
 
 /** "fr" → "French" (native Intl; falls back to the code). */
 const languageName = (code: string) => {
   try { return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code; } catch { return code; }
 };
 
-const SMALL_PRINT: Record<Analysis["verdict"], (a: Analysis) => string> = {
-  high:       () => "Tap an ingredient to see its official sources.",
-  some:       () => "Tap an ingredient to see its official sources.",
-  none:       () => "This checks additives with an official health concern (IARC, EU, FDA). It doesn't yet rate nutrition or substances formed by cooking.",
-  "no-data":  () => "This product has no ingredient list yet.",
-  "non-food": () => "Checks for cleaning, personal-care and other products are coming later.",
+const SMALL_PRINT: Record<Assessment["verdict"], string> = {
+  known:      "Tap a finding to see its official sources.",
+  high:       "Tap a finding to see its official sources.",
+  some:       "Tap a finding to see its official sources.",
+  none:       "No hazard flags from IARC, EU or FDA. This doesn't rate nutrition (coming next).",
+  "no-data":  "This product has no ingredient list yet.",
+  "non-food": "Checks for cleaning, personal-care and other products are coming later.",
 };
+
+/** One row on the product page: an additive flag or a food-level concern. */
+interface Finding { id: string; name: string; severity?: Severity; concern: string; detail: string; context?: string; sources: Source[] }
+
+/** Findings grouped by where they come from; empty groups are dropped. */
+function findingGroups(a: Assessment): { title: string; findings: Finding[] }[] {
+  const fromConcerns = (kind: "food" | "cooking") => a.concerns.filter(c => c.kind === kind).map(c => ({
+    id: c.id, name: c.name, severity: c.severity, concern: c.concern, detail: c.reason, context: c.context, sources: c.sources,
+  }));
+  return [
+    { title: "In the ingredients", findings: a.flags.map(({ entry, matchedText }) => ({
+      id: entry.id, name: entry.name, severity: entry.severity, concern: entry.concern,
+      detail: `Listed as “${matchedText}”`, context: entry.context, sources: entry.sources,
+    })) },
+    { title: "The food itself", findings: fromConcerns("food") },
+    { title: "Formed when cooked", findings: fromConcerns("cooking") },
+  ].filter(g => g.findings.length > 0);
+}
+
+const COOKING_LOOK = { short: "Forms when cooked", color: "#4B5563", bg: "#F3F4F6", Icon: Flame };
 
 /** The full ingredient text with the label phrases that triggered flags highlighted. */
 function HighlightedIngredients({ text, flags }: { text: string; flags: Flag[] }) {
@@ -42,9 +66,8 @@ function HighlightedIngredients({ text, flags }: { text: string; flags: Flag[] }
   );
 }
 
-function FlagRow({ flag, open, onToggle }: { flag: Flag; open: boolean; onToggle: () => void }) {
-  const { entry, matchedText } = flag;
-  const look = VERDICT_STYLE[entry.severity];
+function FindingRow({ finding: entry, open, onToggle }: { finding: Finding; open: boolean; onToggle: () => void }) {
+  const look = entry.severity ? VERDICT_STYLE[entry.severity] : COOKING_LOOK;
   return (
     <div className="px-4 py-3">
       <button onClick={onToggle} aria-expanded={open} className="w-full flex items-start gap-3 text-left">
@@ -55,7 +78,7 @@ function FlagRow({ flag, open, onToggle }: { flag: Flag; open: boolean; onToggle
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: look.bg, color: look.color }}>{look.short}</span>
           </div>
           <p className="text-xs text-gray-600 mt-0.5 leading-snug">{entry.concern}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">Listed as “{matchedText}”</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">{entry.detail}</p>
         </div>
         <ChevronDown size={14} className={`flex-shrink-0 mt-1 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
@@ -91,7 +114,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
 
   // Same category, strictly better verdict; only offered when this product has concerns.
   const alternatives = useMemo(() => {
-    if (analysis.verdict !== "high" && analysis.verdict !== "some") return [];
+    if (analysis.verdict !== "known" && analysis.verdict !== "high" && analysis.verdict !== "some") return [];
     const mine = VERDICT_RANK[analysis.verdict];
     return products
       .filter(p => p.id !== product.id && p.category === product.category)
@@ -153,6 +176,9 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
                   {s.icon} {s.name === "FB Marketplace" ? "FB" : s.name}
                 </span>
               ))}
+              {formsWhenCooked(analysis) && (
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">🔥 Forms when cooked</span>
+              )}
             </div>
           </div>
           <div className="flex-shrink-0 w-[84px] flex flex-col items-center gap-1.5 text-center">
@@ -192,21 +218,21 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               <look.Icon size={18} style={{ color: look.color }} />
               <span className="font-extrabold text-sm" style={{ color: look.color }}>{verdictHeadline(analysis)}</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{SMALL_PRINT[analysis.verdict](analysis)}</p>
+            <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{SMALL_PRINT[analysis.verdict]}</p>
           </div>
 
-          {/* ── Flagged ingredients ── */}
-          {analysis.flags.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100 font-bold text-sm">Ingredients of concern</div>
+          {/* ── Findings, grouped by where they come from ── */}
+          {findingGroups(analysis).map(g => (
+            <div key={g.title} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 font-bold text-sm">{g.title}</div>
               <div className="divide-y divide-gray-50">
-                {analysis.flags.map(f => (
-                  <FlagRow key={f.entry.id} flag={f} open={openFlag === f.entry.id}
-                    onToggle={() => setOpenFlag(openFlag === f.entry.id ? null : f.entry.id)} />
+                {g.findings.map(f => (
+                  <FindingRow key={f.id} finding={f} open={openFlag === f.id}
+                    onToggle={() => setOpenFlag(openFlag === f.id ? null : f.id)} />
                 ))}
               </div>
             </div>
-          )}
+          ))}
 
           {/* ── Full ingredient list ── */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">

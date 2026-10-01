@@ -7,7 +7,7 @@ import ScanTab from "./components/ScanTab";
 import csvText from "../data/products.csv?raw";
 import { parseProductsCSV, bestPrice, type Product as CsvProduct } from "../lib/productImporter";
 import { VERDICT_RANK } from "../lib/safety/analyze";
-import { VERDICT_STYLE, safeAnalyze } from "./components/verdict";
+import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon } from "./components/verdict";
 import {
   Home, Map, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
   Bookmark, Shield, DollarSign, Star, CheckCircle,
@@ -373,12 +373,13 @@ function RecommendationSection({ title, emoji, items, threshold, onWhyClick }: {
 // ── Product Card (mini) ───────────────────────────────────────────────────────
 function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Product) => void }) {
   const bp = bestPrice(product);
-  const look = VERDICT_STYLE[safeAnalyze(product).verdict];
+  const a = safeAnalyze(product);
+  const look = VERDICT_STYLE[a.verdict];
   return (
     <button onClick={() => onSelect(product)}
       className="w-full bg-card border border-border rounded-2xl p-3.5 text-left shadow-sm flex items-center gap-3 active:scale-98 transition-transform">
-      <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: look.bg }}>
-        <ShoppingBag size={24} style={{ color: look.color }} />
+      <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center flex-shrink-0 text-2xl" aria-hidden="true">
+        {categoryIcon(product.category)}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-muted-foreground font-medium">{product.brand}</p>
@@ -390,9 +391,11 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
           </div>
         )}
       </div>
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <span className="w-2 h-2 rounded-full" style={{ background: look.color }} />
-        <span className="text-[10px] font-bold" style={{ color: look.color }}>{look.short}</span>
+      <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+        <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: look.color }}>
+          <look.Icon size={12} /> {look.short}
+        </span>
+        {formsWhenCooked(a) && <span className="text-[9px] text-muted-foreground">🔥 forms when cooked</span>}
       </div>
     </button>
   );
