@@ -4,6 +4,13 @@
 /** Grocery barcode formats, as named by the Barcode Detection API. */
 export const SCAN_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e"] as const;
 
+/** Back camera in HD: without a size, Safari and desktop Chrome give ~640x480, too few pixels per bar for ZXing
+ *  (the iPhone/PC reader) once a real camera blurs slightly. "ideal" lets the camera pick its nearest size. */
+export const CAMERA_CONSTRAINTS: MediaStreamConstraints = {
+  video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+  audio: false,
+};
+
 /** A decoded value → digits, or null when it isn't an 8–14 digit product code. A UPC-A may come back as a
  *  13-digit EAN with a leading 0: kept as is, since the lookup matches both forms. An 8-digit UPC-E (Chrome's built-in
  *  detector returns the printed digits) is expanded to its UPC-A, the form catalog and USDA codes use. */

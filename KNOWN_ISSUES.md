@@ -140,9 +140,14 @@
 
 - A `.wasm` load failure is silent: the camera keeps showing "Point at a barcode" and never reads (the ponyfill loads
   it on the first detect, and per-frame detect errors are swallowed). Typing a barcode still works.
-- Hiding the page (locking the phone) while the camera is still starting leaves a dead view with no Resume button; the
-  tracks are stopped. Fix: `if (stopped) return;` after the `video.play()` and `createDetector()` awaits in
-  `CameraScanner.tsx`.
+- ✔ Fixed 2026-10-01: hiding the page while the camera was still starting left a dead view (the start-up code set
+  "live" over "Camera paused."). It now stops after `video.play()` if it was paused meanwhile.
+- **iPhone and PC (ZXing path): "camera shows, never reads"** (owner, 2026-10-01; Android's built-in reader works).
+  Root-cause hypothesis, reproduced in Node: without a size, Safari and desktop Chrome capture ~640×480, and ZXing
+  can't read a slightly blurred barcode at ~2 px per bar (it reads it at 1920×1080). Fix shipped: ask for 1920×1080
+  (`CAMERA_CONSTRAINTS`) plus continuous autofocus where supported. Open the site with `?debug` to see the real camera
+  size, frames read, and any reader error. If it still fails, next: decode only the framing-box crop, then a sharper
+  focus hint.
 - A phone first loaded in landscape gets the 390×844 desktop frame (`IS_PHONE` is `max-width: 499px`, decided once at
   load).
 

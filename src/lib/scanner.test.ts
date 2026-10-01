@@ -2,10 +2,20 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { confirmReads, normalizeScanned } from "./scanner.ts";
+import { confirmReads, normalizeScanned, CAMERA_CONSTRAINTS } from "./scanner.ts";
 import { sameBarcode } from "./lookup.ts";
 
 const require = createRequire(import.meta.url);
+
+// Root cause of "camera shows, never reads" on iPhone and PC (2026-10-01): without a size, Safari and desktop Chrome
+// give ~640x480, too few pixels per bar for ZXing once a real camera blurs slightly (Android's built-in reader copes).
+test("the camera asks for the back camera in HD, with no audio", () => {
+  const video = CAMERA_CONSTRAINTS.video as MediaTrackConstraints;
+  assert.deepEqual(video.facingMode, { ideal: "environment" });
+  assert.deepEqual(video.width, { ideal: 1920 });
+  assert.deepEqual(video.height, { ideal: 1080 });
+  assert.equal(CAMERA_CONSTRAINTS.audio, false);
+});
 
 test("a code counts only when read twice in a row; empty frames don't break the pair", () => {
   const confirm = confirmReads();
