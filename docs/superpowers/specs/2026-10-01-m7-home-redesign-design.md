@@ -135,8 +135,8 @@ K-16).
   - Both explainers open with their sources.
   - Saved › Scanned shows the same list.
   - No console errors.
-- Add an entry to `FIXES_AND_UPDATES.md`? No: M7 is a milestone with this spec. Update the roadmap in
-  `KNOWN_ISSUES.md`.
+- Docs: M7 is a milestone with this spec, so it goes in the `KNOWN_ISSUES.md` roadmap. Any fix found during review
+  that isn't in this spec gets an entry in `FIXES_AND_UPDATES.md`.
 
 ## 7. Out of scope
 
