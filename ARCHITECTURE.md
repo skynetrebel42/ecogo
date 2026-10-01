@@ -47,7 +47,7 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
  │ main.tsx → App.tsx (state, navigation, Home/Search/Saved/Profile inline)     │
  │   ├─ loadData() ── lib/catalog.ts ──┐        MapTab.tsx ── Leaflet ──► OSM   │
  │   ├─ ScanTab.tsx ─ lib/lookup.ts (USDA → Open Food Facts; saves nothing)      │
- │   └─ ProductDetailScreen.tsx           │   lib/safety/* (ingredient verdict) │
+ │   └─ ProductDetailScreen.tsx           │   lib/safety/* (concern level)      │
  │ productImporter.ts ◄─ products.csv (bundled) ─► initial / offline catalog    │
  └──────────┬─────────────────────────────┬──┼──────────────────────────────────┘
             │ (1) SELECT products,        │  │ (3) no writes: scans aren't saved (M3)
@@ -68,9 +68,11 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 | Path | Lines | Role | Policy |
 |---|---:|---|---|
 | `src/app/App.tsx` | 976 | Shell: all state, navigation, Home/Search/Saved/Profile, catalog load + realtime | SAFE TO EDIT (carefully; see §5) |
-| `src/app/components/ProductDetailScreen.tsx` | 266 | Product page: verdict, flagged ingredients with sources, highlighted ingredient list, prices, alternatives | SAFE TO EDIT |
-| `src/app/components/verdict.tsx` | 37 | Verdict look (colours, labels, icons), `safeAnalyze` (never throws), headline text; shared by the product page and lists | SAFE TO EDIT |
-| `src/lib/safety/*` | 353 + tests | Safety engine: verified library, parser, analyzer; tested by `npm test` | SAFE TO EDIT (library changes must pass `npm run verify:sources` and `npm test`) |
+| `src/app/components/ProductDetailScreen.tsx` | 309 | Product page: concern badge, findings grouped by origin (ingredients / the food itself / formed when cooked) with sources, highlighted ingredient list, prices, alternatives | SAFE TO EDIT |
+| `src/app/components/verdict.tsx` | 66 | Concern-level look (one darkening hue, filled-circle icons, no green), `safeAnalyze` (never throws), headline text, 🔥 marker, category icons; shared by the product page and lists | SAFE TO EDIT |
+| `src/lib/safety/*` | 568 + tests | Safety engine: verified library, parser, analyzer; tested by `npm test` | SAFE TO EDIT (library changes must pass `npm run verify:sources` and `npm test`) |
+| `src/lib/safety/foodConcerns.ts` | 164 | Food-level concerns with sources: processed meat (IARC Group 1, raises the level) and the acrylamide marker (EU 2017/2158 food types, never sets a level) | SAFE TO EDIT (source changes must pass `npm run verify:sources`) |
+| `src/lib/safety/assess.ts` | 24 | Concern level = strongest of the additive check and food-level concerns; non-food stays non-food | SAFE TO EDIT |
 | `src/lib/safety/fixtures/expected-flags.json` | — | Hand-reviewed flags per product id; `catalog.test.ts` checks every product in `products.csv` against it | Review, never loosen |
 | `src/app/components/MapTab.tsx` | 593 | Leaflet map, 18 static resources, filters, bottom sheet | SAFE TO EDIT |
 | `src/app/components/ScanTab.tsx` | 266 | Simulated scanner: demo barcodes, type-a-barcode, catalog → lookup, not-found and error states | SAFE TO EDIT |
@@ -241,7 +243,7 @@ CLI (`supabase link` then `supabase db push`) or by pasting them into the SQL ed
 | Favorites | React state, seeded `[3,5]` | — | bookmark toggle | — | — | **no** |
 | User location | Browser Geolocation, only when the user taps Map "My Location" | — | never stored | Chicago centre | — | no |
 | Scores | Replaced by the ingredient verdict (M1) | — | — | — | — | — |
-| Ingredient KB | `src/lib/safety/library.ts` (verified, sourced) | `analyzeIngredients` over `product.ingredients` at render | code + `verify:sources` | "Not enough data" verdict | — | yes |
+| Ingredient KB | `src/lib/safety/library.ts` (verified, sourced) | `assessProduct` (additives + food-level concerns) over the product at render | code + `verify:sources` | "Not enough data" verdict | — | yes |
 | Explanations / "AI" text | Replaced by the ingredient verdict (M1) | — | — | — | — | — |
 | Partners | none (the Figma seed copy was removed; no screen uses partners) | — | — | — | — | n/a |
 | Recommendations, deals, profile | `App.tsx` constants | — | — | — | — | yes (static) |
@@ -263,9 +265,11 @@ static or a no-op; **broken**.
 | Catalog load from Supabase | `App.loadData` → `catalog.ts` | **working** | Verified live; identical to the CSV catalog |
 | Live/offline banner | `App` render | working | "Live" only when rows arrive; offline text still says "cached" (it's bundled data) |
 | Realtime updates | `App` effect | **working** | Re-fetch on any catalog change; verified live |
-| Product detail: safety verdict | `ProductDetailScreen` + `lib/safety` | **working** | Verified live: DiGiorno/Oscar Mayer high (sodium nitrite, found inside the pepperoni), Diet Coke/Doritos some, Horizon/Tropicana none, Tide/Tylenol "food only". `npm test` pins all 51 |
+| Concern badge (4 levels) | `verdict.tsx` + `lib/safety/assess.ts` | **working** | Nothing flagged (grey ○) → Some concern ◔ → High concern ◑ → Known carcinogen ●, one darkening hue, no green; readable in greyscale. Verified 2026-09-30: Diet Coke/Doritos some, Lay's nothing flagged, Tide "food only". `npm test` pins all 51 |
+| Processed meat | `lib/safety/foodConcerns.ts` | **working** | IARC Group 1 → "Known carcinogen": Oscar Mayer, SPAM, Jimmy Dean, and DiGiorno ("Contains processed meat: Pepperoni"); meat-free versions and look-alike words excluded |
+| Acrylamide marker | `lib/safety/foodConcerns.ts` | **working** | 🔥 "forms when cooked" on EU 2017/2158 food types (Lay's, Oreo, Nature Valley, Pringles, Special K, Wonder, Goldfish), with IARC/EFSA/EU/FDA sources; never changes the level |
 | Flagged ingredients + sources | `ProductDetailScreen` | **working** | Each flag expands to regulator context and source links with a "Source checked" date; flagged phrases highlighted in the ingredient text |
-| Verdict in lists + sort | `ProductCard`, `SearchResultsScreen` | **working** | Coloured dot + short label; "Fewest concerns" / "Price" sort |
+| Verdict in lists + sort | `ProductCard`, `SearchResultsScreen` | **working** | Category icon, level icon + short label, 🔥 line when acrylamide matches; "Fewest concerns" / "Price" sort |
 | Price comparison | `ProductDetailScreen` | partial | DB prices, store rating or FB condition; no links |
 | Alternatives with fewer concerns | `ProductDetailScreen` | **working** | Same category, strictly better verdict, tappable (page resets to top); hidden for products without concerns |
 | Save / bookmark | `toggleSave` | partial | Works in-session; not persisted |

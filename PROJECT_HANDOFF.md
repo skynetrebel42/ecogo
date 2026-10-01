@@ -17,10 +17,10 @@
   owner requirements.** Its "previous session security fixes" were never in the code (ChatGPT's private sandbox copy).
   The owner's actual goals are still to be captured (see open questions).
 
-- **Phase:** M3 (deploy) done; next is M4 (camera + mobile layout; fix K-29 barcodes first). See the KNOWN_ISSUES.md roadmap.
+- **Phase:** M4 (concern levels) done; next is M5 (FDA nutrition line + K-29 barcodes), then M6 (camera + mobile layout). See the KNOWN_ISSUES.md roadmap.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
-- **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), an ingredient safety
-  verdict computed by the safety engine (`src/lib/safety`, sourced library, `npm test` over all 51 products), realtime
+- **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), a concern level
+  (strongest official finding: additives, processed meat; acrylamide marker) from the safety engine (`src/lib/safety`, sourced library, `npm test` over all 51 products), realtime
   catalog updates (scans are not saved), Leaflet map of 18 Chicago resources, simulated barcode scan,
   in-memory favorites.
 - **What's fake:** the camera scanner, Home recommendations (place "Rating" numbers and their reasons are invented) and deals, Profile, Sign In, Lists, Share, Call.
@@ -102,6 +102,7 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 016 | USDA FoodData Central is the primary lookup, Open Food Facts a labelled fallback | Owner wants a diverse lineup from a trustworthy US source; OFF is crowd-sourced and worldwide | **Done** (M2) |
 | 017 | Scans are not saved at all; anonymous insert revoked | Nothing read them, and a public insert grant invites spam (S-04). Re-add with accounts when scans power a feature | **Done** (M3) |
 | 018 | GitHub Pages via GitHub Actions; history uses the owner's GitHub no-reply email | Free HTTPS, one account; the UCI email stays private | **Done** (M3) |
+| 019 | One darkening concern badge, no green; level = strongest official finding (additives + food itself); acrylamide is a marker only | Owner, 2026-09-30: "Nothing flagged" isn't "healthy"; avoid flagging the whole bread aisle | **Done** (M4) |
 
 ## Open questions only the owner can answer
 

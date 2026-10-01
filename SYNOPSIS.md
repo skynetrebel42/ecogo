@@ -74,7 +74,15 @@ check. Every looked-up page says where its data came from.
 **Step 5: deploy + public GitHub repo. ✅ Done 2026-09-29.** Live at https://skynetrebel42.github.io/ecogo/ (GitHub
 Pages, rebuilt by GitHub Actions on every push), repo github.com/skynetrebel42/ecogo. Scans are no longer saved.
 
-**Step 6: real camera scanning + mobile layout.** Phone-camera scanning on iPhone, Android and laptop; full-screen on
+**Step 6: concern levels. ✅ Done 2026-09-30.** Every product shows one badge that darkens with the strongest official
+finding: Nothing flagged (grey), Some concern, High concern, Known carcinogen. No green, because "nothing flagged" isn't
+"healthy". Processed meat reads Known carcinogen (IARC Group 1). Fried and baked starchy foods get a 🔥 "forms when
+cooked" acrylamide marker with sources, which never changes the badge.
+
+**Step 7: FDA nutrition + catalog barcodes.** An FDA %DV nutrition line (e.g. "High in added sugar"), and verify or
+replace the catalog barcodes (K-29).
+
+**Step 8: real camera scanning + mobile layout.** Phone-camera scanning on iPhone, Android and laptop; full-screen on
 phones. (Scans are no longer saved at all since M3.)
 
 **Later:** a map that follows the user's location (Los Angeles as the default, real places from OpenStreetMap),
@@ -84,9 +92,9 @@ persistent favorites, cleanup; accounts only if a feature needs per-user data.
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–5 are done; the live site is
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–6 are done; the live site is
 > https://skynetrebel42.github.io/ecogo/; my Supabase project is
 > `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
-> Do roadmap step 6 (M4): verify or replace the catalog barcodes (K-29) first, then real camera scanning and the mobile
+> Do roadmap step 7 (M5): the FDA nutrition line and verifying or replacing the catalog barcodes (K-29); then step 8 (M6), real camera scanning and the mobile
 > layout. Every push to main publishes the site, so ask before pushing. Keep each
 > change small, commit each one, verify it in the running app, and keep `npm test` green.

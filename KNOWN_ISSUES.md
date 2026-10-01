@@ -147,9 +147,19 @@ food and drinks first. Each step is small and verified in the running app before
    github.com/skynetrebel42/ecogo, deployed by `.github/workflows/deploy.yml` (tests, build, GitHub Pages) on every push
    to `main`. The history uses the owner's GitHub no-reply email. Scans are no longer saved (S-04). This gives the HTTPS
    a phone needs to open the camera, so step 6 can be tested on a real phone.
-6. **Real camera scanning + mobile layout (done-criterion 1).** Use a JS barcode library that works on iPhone Safari,
+6. ✅ **M4 concern levels: done 2026-09-30** (`639de14`…`3df28f9`, plus the docs commit). One badge that darkens with
+   the official finding: Nothing flagged → Some concern → High concern → Known carcinogen, always word + filled circle +
+   shade, and no green. Processed meat reads Known carcinogen (IARC Group 1, also inside other foods). Fried and baked
+   starchy foods get a 🔥 "forms when cooked" acrylamide marker that never changes the level. Design:
+   `docs/superpowers/specs/2026-09-30-m4-concern-levels-design.md`.
+7. **M5: FDA nutrition line + catalog barcodes.** FDA %DV nutrition facts (e.g. "High in added sugar, 28% DV"), and
+   verify or replace the catalog barcodes (K-29).
+8. **M6: Real camera scanning + mobile layout (done-criterion 1).** Use a JS barcode library that works on iPhone Safari,
    Android and webcams, keeping the demo picker as a fallback. Make the app full-screen on phones, with the frame on
-   desktop only (K-28). Fix the scan-flow bugs found along the way (K-22), and the catalog barcodes first (K-29).
+   desktop only (K-28). Fix the scan-flow bugs found along the way (K-22).
+
+**Small item:** fix search matching: "ice cream" finds soda because `SearchResultsScreen` also matches any keyword that
+contains the query's first word (`k.includes(q.split(" ")[0])`, `App.tsx:567`). Related: K-20.
 
 **Later (after "done"):**
 - Map: follow the user's location, with Los Angeles as the default, and real nearby places from OpenStreetMap. This also
@@ -157,7 +167,7 @@ food and drinks first. Each step is small and verified in the running app before
   Chicago pins off-screen, so it's one step.
 - Persist favorites (K-16); search improvements (K-20); a quick UX batch (K-10, K-11, K-15).
 - Extract `App.tsx` pieces one commit at a time (dead code and unused deps were removed in M0).
-- Acrylamide cooking note, Nutri-Score/NOVA and Baby Food category (deferred from M2; verified sources in
+- Nutri-Score/NOVA and Baby Food category (deferred from M2; the acrylamide note shipped in M4; verified sources in
   `specs/2026-09-28-m2-open-food-facts-design.md`).
 - Before going public: ~~scan rate limiting (S-04)~~ done by removing scan saving; ~~set `VITE_FDC_API_KEY` on the
   host~~ done (repository secret); ~~put the public repo URL in Open Food Facts' `X-User-Agent`~~ done. Still open:
