@@ -143,3 +143,13 @@ K-16).
 Accounts and synced history, favorites persistence (K-16), the real map (Los Angeles, OpenStreetMap), the Profile tab's
 fake content (next candidate), more explainers (processed meat and acrylamide cards were offered; the owner picked the
 two above).
+
+**Follow-up M7.1 (owner, 2026-10-01): three more explainers: seed oils, pesticides, ultra-processed foods.** Rule:
+state the **official findings plainly** (IARC, FDA, EFSA, EPA, AHA), name the real documented concern, and say clearly
+what is popular but not supported. Working notes, to be verified against primary sources before any text ships:
+- **Seed oils:** no authority classifies them as harmful, and the AHA recommends them over saturated fat. The
+  documented concern is refining contaminants (glycidyl esters, 3-MCPD; EFSA; EU limits).
+- **Pesticides:** residues aren't on labels, so EcoGo can't detect them. Regulators set limits. On glyphosate, IARC
+  says 2A, while EPA and EFSA say "not likely" a cancer risk.
+- **Ultra-processed foods:** strong observational links, but no official US definition yet (FDA/USDA started on one
+  in 2025). Processed meat (IARC 1) is the firm finding EcoGo already flags.
