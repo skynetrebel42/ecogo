@@ -8,6 +8,9 @@ import csvText from "../data/products.csv?raw";
 import { parseProductsCSV, bestPrice, type Product as CsvProduct } from "../lib/productImporter";
 import { VERDICT_RANK } from "../lib/safety/analyze";
 import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon } from "./components/verdict";
+import { NutritionChip } from "./components/NutritionPanel";
+import { topHigh } from "../lib/nutrition";
+import { knownNutrition } from "../lib/lookup";
 import {
   Home, Map, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
   Bookmark, Shield, DollarSign, Star, CheckCircle,
@@ -375,6 +378,8 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
   const bp = bestPrice(product);
   const a = safeAnalyze(product);
   const look = VERDICT_STYLE[a.verdict];
+  // Only nutrition already known this session: a list never triggers lookups (USDA rate limit).
+  const high = topHigh(product.nutrition ?? knownNutrition(product.barcode));
   return (
     <button onClick={() => onSelect(product)}
       className="w-full bg-card border border-border rounded-2xl p-3.5 text-left shadow-sm flex items-center gap-3 active:scale-98 transition-transform">
@@ -396,6 +401,7 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
           <look.Icon size={12} /> {look.short}
         </span>
         {formsWhenCooked(a) && <span className="text-[9px] text-muted-foreground">🔥 forms when cooked</span>}
+        {high && <NutritionChip text={high.short} />}
       </div>
     </button>
   );

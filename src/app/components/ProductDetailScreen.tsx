@@ -17,6 +17,8 @@ import { VERDICT_RANK, escapeRegExp, type Flag } from "../../lib/safety/analyze"
 import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
+import NutritionPanel, { NutritionChip, useNutrition } from "./NutritionPanel";
+import { topHigh } from "../../lib/nutrition";
 
 /** "fr" → "French" (native Intl; falls back to the code). */
 const languageName = (code: string) => {
@@ -113,6 +115,8 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
   const analysis = useMemo(() => safeAnalyze(product), [product]);
   const look = VERDICT_STYLE[analysis.verdict];
   const best = bestPrice(product);
+  const nutrition = useNutrition(product);
+  const highNutrient = topHigh(nutrition.status === "ready" ? nutrition.nutrition : null);
 
   // Same category, strictly better verdict; only offered when this product has concerns.
   const alternatives = useMemo(() => {
@@ -181,6 +185,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               {formsWhenCooked(analysis) && (
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">🔥 Forms when cooked</span>
               )}
+              {highNutrient && <NutritionChip onDark text={`High in ${highNutrient.label.toLowerCase()}`} />}
             </div>
           </div>
           <div className="flex-shrink-0 w-[84px] flex flex-col items-center gap-1.5 text-center">
@@ -235,6 +240,8 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               </div>
             </div>
           ))}
+
+          <NutritionPanel state={nutrition} />
 
           {/* ── Full ingredient list ── */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
