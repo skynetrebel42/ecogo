@@ -87,6 +87,8 @@ export interface ProductSource {
   crowdSourced: boolean;   // true for Open Food Facts
   ingredientsLang: string; // "en", or the label's language when no English text exists
   additiveCodes: string[]; // Open Food Facts additive tags, e.g. "en:e951"; always [] for USDA
+  foodCategory?: string;   // USDA only, e.g. "Chips, Pretzels & Snacks" (drives the food-level checks)
+  categoryTags?: string[]; // Open Food Facts only, e.g. ["en:snacks", "en:potato-crisps"]
 }
 
 /** The canonical Product shape consumed by the rest of the application. */

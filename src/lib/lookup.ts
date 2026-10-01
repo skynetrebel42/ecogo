@@ -10,7 +10,7 @@ export type LookupResult =
 
 const USDA = "https://api.nal.usda.gov/fdc/v1/foods/search";
 const OFF = "https://world.openfoodfacts.org/api/v3/product/";
-const OFF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_text,ingredients_text_en,additives_tags";
+const OFF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_text,ingredients_text_en,additives_tags,categories_tags";
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
@@ -55,7 +55,7 @@ export function pickUsdaFood(json: unknown, code: string): Product | null {
   if (!name && !ingredients) return null;
   return toProduct(str(f.gtinUpc), name, tidyCase(str(f.brandName) || str(f.brandOwner)), ingredients, {
     name: "USDA FoodData Central", url: `https://fdc.nal.usda.gov/food-details/${f.fdcId}/nutrients`,
-    crowdSourced: false, ingredientsLang: "en", additiveCodes: [],
+    crowdSourced: false, ingredientsLang: "en", additiveCodes: [], foodCategory: str(f.foodCategory),
   });
 }
 
@@ -88,7 +88,7 @@ export function mapOffResponse(json: unknown, httpStatus: number): LookupResult 
     status: "found",
     product: toProduct(code, name, str(p.brands).split(",")[0].trim(), ingredients, {
       name: "Open Food Facts", url: `https://world.openfoodfacts.org/product/${code}`, crowdSourced: true,
-      ingredientsLang: english ? "en" : str(p.lang) || "en", additiveCodes: strings(p.additives_tags),
+      ingredientsLang: english ? "en" : str(p.lang) || "en", additiveCodes: strings(p.additives_tags), categoryTags: strings(p.categories_tags),
     }),
   };
 }

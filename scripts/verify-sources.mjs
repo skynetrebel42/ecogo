@@ -2,6 +2,7 @@
 // Usage: npm run verify:sources   (needs the internet; run whenever src/lib/safety/library.ts changes)
 // "unverifiable" (blocked, PDF, JS-only page) means: open the page by hand and confirm the quote before keeping the entry.
 import { LIBRARY } from "../src/lib/safety/library.ts";
+import { PROCESSED_MEAT, ACRYLAMIDE } from "../src/lib/safety/foodConcerns.ts";
 
 const normalize = (s) => s
   .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -19,13 +20,13 @@ const normalize = (s) => s
   .trim();
 
 const totals = { pass: 0, fail: 0, unverifiable: 0 };
-for (const entry of LIBRARY) {
+for (const entry of [...LIBRARY, PROCESSED_MEAT, ACRYLAMIDE]) {
   for (const source of entry.sources) {
     let status;
     let detail = "";
     try {
       const res = await fetch(source.url, {
-        headers: { "User-Agent": "EcoGo source check (personal project)" },
+        headers: { "User-Agent": "EcoGo source check (personal project)", Accept: "text/html,application/xhtml+xml", "Accept-Language": "en" },
         signal: AbortSignal.timeout(20_000),
       });
       const type = res.headers.get("content-type") ?? "";

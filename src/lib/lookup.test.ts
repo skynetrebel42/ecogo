@@ -39,7 +39,7 @@ test("a USDA record maps to a Product with its source", () => {
   assert.match(p.ingredients, /^CARBONATED WATER, CARAMEL COLOR/);
   assert.deepEqual(p.source, {
     name: "USDA FoodData Central", url: "https://fdc.nal.usda.gov/food-details/2742717/nutrients",
-    crowdSourced: false, ingredientsLang: "en", additiveCodes: [],
+    crowdSourced: false, ingredientsLang: "en", additiveCodes: [], foodCategory: "Non Alcoholic Beverages - Ready to Drink",
   });
   assert.ok(analyzeIngredients({ ingredients: p.ingredients }).flags.some(f => f.entry.id === "aspartame"));
 });
@@ -86,7 +86,7 @@ test("an OFF product maps with English preferred and a crowd-sourced source", ()
   assert.match(r.product.ingredients, /^Sugar, vegetable fat \(palm\)/);
   assert.deepEqual(r.product.source, {
     name: "Open Food Facts", url: "https://world.openfoodfacts.org/product/3017620422003",
-    crowdSourced: true, ingredientsLang: "en", additiveCodes: ["en:e322", "en:e322i"],
+    crowdSourced: true, ingredientsLang: "en", additiveCodes: ["en:e322", "en:e322i"], categoryTags: ["en:breakfasts", "en:spreads", "en:sweet-spreads", "en:confectionary-based-spreads", "fr:Nutella"],
   });
 });
 
