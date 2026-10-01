@@ -132,7 +132,9 @@ Known). The `safeAnalyze` fallback is kept.
     "Source checked" dates;
   - processed meat shows both IARC context quotes (§3);
   - acrylamide shows the FDA advice;
-  - the grey state's text: "No hazard flags from IARC, EU or FDA. This doesn't rate nutrition (coming next)."
+  - the grey state's text: "No hazard flags from IARC, EU or FDA. This doesn't rate nutrition (coming next)." With the
+    🔥 marker it's scoped, so it doesn't contradict the acrylamide section: "No hazard flags from IARC, EU or FDA in the
+    ingredients or the food itself; see what forms when it's cooked below. …" (final-review fix).
 - **Sort "Fewest concerns" and alternatives:** use the new rank. A hot dog suggests same-category products ranked lower.
 
 ## 5. Error handling
