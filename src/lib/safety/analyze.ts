@@ -1,15 +1,15 @@
 // analyze.ts — ingredient text (+ optional additive codes) → verdict and flags.
 // Deterministic: no network, no AI. Spec: docs/superpowers/specs/2026-09-24-safety-engine-design.md §4, §6.
 
-import { LIBRARY, type LibraryEntry } from "./library.ts";
+import { LIBRARY, SEVERITY_RANK, type LibraryEntry } from "./library.ts";
 import { parseIngredients } from "./parse.ts";
 
-export type Verdict = "high" | "some" | "none" | "no-data" | "non-food";
+export type Verdict = "known" | "high" | "some" | "none" | "no-data" | "non-food";
 export interface Flag { entry: LibraryEntry; matchedText: string }
 export interface Analysis { verdict: Verdict; flags: Flag[]; checkedCount: number }
 
 /** "Fewest concerns first" order; lower is better. no-data / non-food sort last. */
-export const VERDICT_RANK: Record<Verdict, number> = { none: 0, some: 1, high: 2, "no-data": 3, "non-food": 4 };
+export const VERDICT_RANK: Record<Verdict, number> = { none: 0, some: 1, high: 2, known: 3, "no-data": 4, "non-food": 5 };
 
 /** Categories the library covers (food & drinks first). */
 export const FOOD_CATEGORIES: ReadonlySet<string> = new Set([
@@ -66,7 +66,8 @@ export function analyzeIngredients(
     for (const { entry } of matchers) if (entry.eCodes.includes(code)) flag(entry, code);
   }
 
-  flags.sort((a, b) => (a.entry.severity === b.entry.severity ? 0 : a.entry.severity === "high" ? -1 : 1));
-  const verdict: Verdict = flags.some(f => f.entry.severity === "high") ? "high" : flags.length > 0 ? "some" : "none";
+  flags.sort((a, b) => SEVERITY_RANK[b.entry.severity] - SEVERITY_RANK[a.entry.severity]);
+  const top = Math.max(0, ...flags.map(f => SEVERITY_RANK[f.entry.severity]));
+  const verdict: Verdict = (["none", "some", "high", "known"] as const)[top];
   return { verdict, flags, checkedCount };
 }

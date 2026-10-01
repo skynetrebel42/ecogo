@@ -145,3 +145,10 @@ test("the engine never throws on hostile input", () => {
   for (const text of nasty) assert.doesNotThrow(() => food(text));
   assert.doesNotThrow(() => analyzeIngredients({ ingredients: undefined as unknown as string }, LIB));
 });
+
+test("a Group 1 entry gives the 'known' verdict and sorts first", () => {
+  const known: LibraryEntry = { id: "group-one", name: "Group one", aliases: ["group one"], eCodes: [], severity: "known", concern: "t", sources: [{ ...src, basis: "iarc-1" }] };
+  const a = analyzeIngredients({ ingredients: "Aspartame, group one", category: "Snacks" }, [...LIB, known]);
+  assert.equal(a.verdict, "known");
+  assert.deepEqual(a.flags.map(f => f.entry.id), ["group-one", "aspartame"]);
+});

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LIBRARY } from "./library.ts";
+import { LIBRARY, deriveSeverity } from "./library.ts";
 
 const BODIES = new Set(["IARC", "EU", "FDA", "EFSA", "WHO/JECFA"]);
 
@@ -54,5 +54,11 @@ test("every entry is fully sourced", () => {
 });
 
 test("every entry has a severity-bearing source (context alone never flags)", () => {
-  for (const e of LIBRARY) assert.ok(e.severity === "high" || e.severity === "some", `${e.id}: needs an IARC/ban/warning-label source`);
+  for (const e of LIBRARY) assert.ok(e.severity === "known" || e.severity === "high" || e.severity === "some", `${e.id}: needs an IARC/ban/warning-label source`);
+});
+
+test("an IARC Group 1 source derives the 'known' level", () => {
+  const s = { body: "WHO", finding: "t", url: "https://example.org", quote: "t", checkedOn: "2026-09-30" } as const;
+  assert.equal(deriveSeverity([{ ...s, basis: "iarc-2a" }, { ...s, basis: "iarc-1" }]), "known");
+  assert.equal(deriveSeverity([{ ...s, basis: "iarc-2a" }]), "high");
 });

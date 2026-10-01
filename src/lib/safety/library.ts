@@ -2,7 +2,10 @@
 // Spec: docs/superpowers/specs/2026-09-24-safety-engine-design.md §5.
 // Every entry must pass `npm run verify:sources` and the integrity test before it ships.
 
-export type Severity = "high" | "some";
+export type Severity = "known" | "high" | "some";
+
+/** Stronger is higher; also orders flags on the product page. */
+export const SEVERITY_RANK: Record<Severity, number> = { some: 1, high: 2, known: 3 };
 
 /** What a source establishes. "context" = a regulator's intake position; it never sets severity. */
 export type Basis =
@@ -12,7 +15,7 @@ export type Basis =
   | "context";
 
 export interface Source {
-  body: "IARC" | "EU" | "FDA" | "EFSA" | "WHO/JECFA";
+  body: "IARC" | "EU" | "FDA" | "EFSA" | "WHO" | "WHO/JECFA";
   basis: Basis;
   finding: string;   // e.g. "Group 2B: possibly carcinogenic to humans"
   url: string;       // official page
@@ -31,11 +34,13 @@ export interface LibraryEntry {
   sources: Source[];
 }
 
-const HIGH_BASES: ReadonlySet<Basis> = new Set(["iarc-1", "iarc-2a", "banned-eu", "banned-us"]);
+const KNOWN_BASES: ReadonlySet<Basis> = new Set(["iarc-1"]);
+const HIGH_BASES: ReadonlySet<Basis> = new Set(["iarc-2a", "banned-eu", "banned-us"]);
 const SOME_BASES: ReadonlySet<Basis> = new Set(["iarc-2b", "eu-warning-label"]);
 
 /** Severity is mechanical: the strongest basis among an entry's sources. null = no severity-bearing source. */
 export function deriveSeverity(sources: Source[]): Severity | null {
+  if (sources.some(s => KNOWN_BASES.has(s.basis))) return "known";
   if (sources.some(s => HIGH_BASES.has(s.basis))) return "high";
   if (sources.some(s => SOME_BASES.has(s.basis))) return "some";
   return null;
