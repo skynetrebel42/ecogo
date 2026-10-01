@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { lookupBarcode, pickUsdaFood, mapOffResponse, normalizeBarcode, isBarcode, sameBarcode, tidyCase } from "./lookup.ts";
+import { knownNutrition, lookupBarcode, pickUsdaFood, mapOffResponse, normalizeBarcode, isBarcode, sameBarcode, tidyCase } from "./lookup.ts";
 import { analyzeIngredients } from "./safety/analyze.ts";
 
 const fixture = (path: string) => JSON.parse(readFileSync(new URL(`./fixtures/${path}.json`, import.meta.url), "utf8"));
@@ -207,4 +207,14 @@ test("codes outside 8–14 digits never hit the network", async () => {
   assert.equal((await lookupBarcode("1234", { fdcKey: "TEST", fetchImpl: net.impl })).status, "not-found");
   assert.equal((await lookupBarcode("abc", { fdcKey: "TEST", fetchImpl: net.impl })).status, "not-found");
   assert.equal(net.calls.length, 0);
+});
+
+test("a USDA find carries its nutrition, and list cards can read it afterwards without a request", async () => {
+  const net = fakeNet({ "044000032029": fixture("usda/oreo-nutrition-044000032029") }, {});
+  assert.equal(knownNutrition("044000032029"), null);
+  const r = await lookupBarcode("044000032029", { fdcKey: "TEST", fetchImpl: net.impl });
+  assert.equal(r.status === "found" && r.product.nutrition?.serving, "3 cookies (34 g)");
+  await new Promise(resolve => setTimeout(resolve, 0)); // the cache bookkeeping runs after the promise settles
+  assert.equal(knownNutrition("0 44000-032029")?.nutrients[0].dv, 28);
+  assert.equal(knownNutrition(""), null);
 });

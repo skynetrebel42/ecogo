@@ -107,6 +107,7 @@ export interface Product {
   walmart?:  { price: number; rating: number };
   facebook?: { price: number; condition: string };
   source?: ProductSource;
+  nutrition?: import("./nutrition.ts").Nutrition; // per serving, for looked-up products (catalog: fetched by barcode)
 }
 
 /** Lowest price across stores; Infinity when the product has none. */

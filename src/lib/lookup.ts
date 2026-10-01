@@ -2,6 +2,7 @@
 // manufacturers), then Open Food Facts (crowd-sourced). Spec: docs/superpowers/specs/2026-09-28-m2-usda-lookup-design.md.
 // Type-only imports, so Node tests can load this module.
 import type { Product, ProductSource } from "./productImporter.ts";
+import { usdaNutrition, offNutrition, type Nutrition } from "./nutrition.ts";
 
 export type LookupResult =
   | { status: "found"; product: Product }
@@ -10,7 +11,7 @@ export type LookupResult =
 
 const USDA = "https://api.nal.usda.gov/fdc/v1/foods/search";
 const OFF = "https://world.openfoodfacts.org/api/v3/product/";
-const OFF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_text,ingredients_text_en,additives_tags,categories_tags";
+const OFF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_text,ingredients_text_en,additives_tags,categories_tags,nutriments,serving_size";
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
@@ -53,10 +54,12 @@ export function pickUsdaFood(json: unknown, code: string): Product | null {
   const name = tidyCase(str(f.description));
   const ingredients = str(f.ingredients).replace(/^ingredients:\s*/i, "");
   if (!name && !ingredients) return null;
-  return toProduct(str(f.gtinUpc), name, tidyCase(str(f.brandName) || str(f.brandOwner)), ingredients, {
+  const product = toProduct(str(f.gtinUpc), name, tidyCase(str(f.brandName) || str(f.brandOwner)), ingredients, {
     name: "USDA FoodData Central", url: `https://fdc.nal.usda.gov/food-details/${f.fdcId}/nutrients`,
     crowdSourced: false, ingredientsLang: "en", additiveCodes: [], foodCategory: str(f.foodCategory),
   });
+  const nutrition = usdaNutrition(f);
+  return nutrition ? { ...product, nutrition } : product;
 }
 
 /** USDA stores codes as 8, 12 or 14 digits, so try the typed digits, then the 14-digit form. */
@@ -84,13 +87,12 @@ export function mapOffResponse(json: unknown, httpStatus: number): LookupResult 
   const english = str(p.ingredients_text_en);
   const ingredients = english || str(p.ingredients_text);
   if (!code || (!name && !ingredients)) return { status: "not-found" };
-  return {
-    status: "found",
-    product: toProduct(code, name, str(p.brands).split(",")[0].trim(), ingredients, {
-      name: "Open Food Facts", url: `https://world.openfoodfacts.org/product/${code}`, crowdSourced: true,
-      ingredientsLang: english ? "en" : str(p.lang) || "en", additiveCodes: strings(p.additives_tags), categoryTags: strings(p.categories_tags),
-    }),
-  };
+  const product = toProduct(code, name, str(p.brands).split(",")[0].trim(), ingredients, {
+    name: "Open Food Facts", url: `https://world.openfoodfacts.org/product/${code}`, crowdSourced: true,
+    ingredientsLang: english ? "en" : str(p.lang) || "en", additiveCodes: strings(p.additives_tags), categoryTags: strings(p.categories_tags),
+  });
+  const nutrition = offNutrition(p);
+  return { status: "found", product: nutrition ? { ...product, nutrition } : product };
 }
 
 async function fetchOff(code: string, f: typeof fetch): Promise<LookupResult> {
@@ -101,6 +103,10 @@ async function fetchOff(code: string, f: typeof fetch): Promise<LookupResult> {
 // ── Lookup ───────────────────────────────────────────────────────────────────
 
 const cache = new Map<string, Promise<LookupResult>>();
+const nutritionSeen = new Map<string, Nutrition>();
+
+/** Nutrition already fetched this session for a barcode (sync, for list cards); no request is made. */
+export const knownNutrition = (barcode: string): Nutrition | null => (barcode ? nutritionSeen.get(key(barcode)) ?? null : null);
 const safely = (p: Promise<LookupResult>): Promise<LookupResult> =>
   p.catch((err: unknown) => ({ status: "error", message: err instanceof Error ? err.message : String(err) }));
 
@@ -132,6 +138,9 @@ export function lookupBarcode(raw: string, opts: { fdcKey?: string; fetchImpl?: 
     return usda.status === "error" ? usda : off;
   })();
   cache.set(k, pending);
-  pending.then(r => { if (r.status === "error" || provisional) cache.delete(k); });
+  pending.then(r => {
+    if (r.status === "error" || provisional) cache.delete(k);
+    if (r.status === "found" && r.product.nutrition) nutritionSeen.set(k, r.product.nutrition);
+  });
   return pending;
 }
