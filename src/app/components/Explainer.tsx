@@ -111,7 +111,7 @@ function Body({ id, onOpen }: { id: ExplainerId; onOpen: (id: ExplainerId) => vo
     <>
       <p>Pesticide residues aren’t listed on ingredient labels, so EcoGo can’t check them for any product.</p>
       <p>In the US, EPA sets legal limits and FDA tests food: in fiscal year 2023, 97.2% of domestic samples were within them.</p>
-      <p><strong>Glyphosate (Roundup):</strong> IARC (2015) classified it “probably carcinogenic to humans” (Group 2A). EPA (2017) says it’s “not likely to be carcinogenic to humans” (a court vacated part of that review in 2022; EPA says that finding is still current), and EFSA (2023) found no critical areas of concern.</p>
+      <p><strong>Glyphosate (Roundup):</strong> IARC (2015) classified it “probably carcinogenic to humans” (Group 2A). EPA (2017) says it’s “not likely to be carcinogenic to humans”. In 2022 a court vacated the human health part of EPA’s review; EPA says that finding is still current. EFSA (2023) found no critical areas of concern.</p>
       <p>They disagree partly because IARC rates how strong the evidence of a hazard is, while EPA and EFSA judge the risk at real-world exposure. See{" "}
         <button onClick={() => onOpen("badge-levels")} aria-label="Open: What the badge levels mean" className="text-primary font-semibold underline">What the badge levels mean</button>.
       </p>

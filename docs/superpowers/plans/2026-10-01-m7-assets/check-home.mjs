@@ -98,6 +98,9 @@ try {
     const e = await run(`document.body.innerText`);
     check(`M7.1 explainer opens with sources: ${title}`, e.includes("Sources") && e.includes("Source checked") && e.includes(title));
     if (title.startsWith("Pesticides")) {
+      // Final review: the court ruling (2022, EPA's review) must not read as if it vacated the dated 2017 assessment.
+      check("pesticides: the 2022 court ruling isn't tied to the 2017 assessment",
+        e.includes("In 2022 a court vacated the human health part of EPA’s review") && !e.includes("(a court vacated part of that review"));
       await run(`(async () => { __btn("Open: What the badge levels mean").click(); await __sleep(400); })()`);
       const linked = await run(`[...document.querySelectorAll("h1")].map(h => h.innerText)`);
       await back();
