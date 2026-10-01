@@ -253,6 +253,10 @@
  ],
  "removed": [
   {
+   "id": 2,
+   "reason": "Tide PODS Laundry Detergent 42ct: non-food (Cleaning); USDA has no record to verify its barcode against"
+  },
+  {
    "id": 3,
    "reason": "KIND Bars Variety Pack: a variety pack, no single-flavour USDA record"
   },
@@ -261,8 +265,72 @@
    "reason": "Gatorade Thirst Quencher 12-pack: flavour unspecified, no matching record"
   },
   {
+   "id": 5,
+   "reason": "Seventh Generation Free & Clear Laundry: non-food (Cleaning); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 21,
+   "reason": "Method All-Purpose Cleaner 28oz: non-food (Cleaning); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 22,
+   "reason": "Clorox Regular Bleach 81oz: non-food (Cleaning); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 23,
+   "reason": "Dawn Ultra Original Dish Soap 19.4oz: non-food (Cleaning); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 24,
+   "reason": "Dove Beauty Bar Original 6pk: non-food (Personal Care); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 25,
+   "reason": "Colgate Total Whitening Toothpaste 4pk: non-food (Personal Care); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 26,
+   "reason": "Head & Shoulders Classic Clean Shampoo 23.7oz: non-food (Personal Care); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 27,
+   "reason": "Neutrogena Ultra Sheer Sunscreen SPF 55 3oz: non-food (Personal Care); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 28,
+   "reason": "Pantene Pro-V Moisture Mend Shampoo 27.7oz: non-food (Personal Care); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 29,
+   "reason": "Vaseline Original Petroleum Jelly 13oz: non-food (Personal Care); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 30,
+   "reason": "Secret Clinical Strength Antiperspirant 1.6oz: non-food (Personal Care); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 31,
+   "reason": "Gillette Fusion5 Men's Razor + 2 Blade Refills: non-food (Personal Care); USDA has no record to verify its barcode against"
+  },
+  {
    "id": 44,
    "reason": "Ben & Jerry's Chocolate Chip Cookie Dough: no current USDA record"
+  },
+  {
+   "id": 48,
+   "reason": "Pampers Sensitive Baby Wipes 504ct: non-food (Baby Care); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 49,
+   "reason": "Gerber Graduates Puffs Strawberry Apple 1.48oz: non-food (Baby Care); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 50,
+   "reason": "Tylenol Extra Strength Caplets 100ct: non-food (Medicine); USDA has no record to verify its barcode against"
+  },
+  {
+   "id": 51,
+   "reason": "Purina ONE SmartBlend Chicken & Rice Dog Food 8lb: non-food (Pet Food); USDA has no record to verify its barcode against"
   }
  ]
 }

@@ -5,7 +5,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { parseProductsCSV } from "../productImporter.ts";
-import { FOOD_CATEGORIES } from "./analyze.ts";
 
 const catalog = parseProductsCSV(readFileSync(new URL("../../data/products.csv", import.meta.url), "utf8"));
 const data = JSON.parse(readFileSync(new URL("../../data/verified-barcodes.json", import.meta.url), "utf8")) as {
@@ -13,9 +12,9 @@ const data = JSON.parse(readFileSync(new URL("../../data/verified-barcodes.json"
   removed: { id: number; reason: string }[];
 };
 
-test("every food catalog product has a verified barcode or none", () => {
+test("every catalog product (food and non-food) has a verified barcode or none", () => {
   const verified = new Map(data.verified.map(v => [v.id, v]));
-  for (const p of catalog.filter(p => FOOD_CATEGORIES.has(p.category))) {
+  for (const p of catalog) {
     if (p.barcode === "") continue;
     assert.equal(p.barcode, verified.get(p.id)?.barcode, `#${p.id} ${p.name}: barcode ${p.barcode} is not verified`);
   }
