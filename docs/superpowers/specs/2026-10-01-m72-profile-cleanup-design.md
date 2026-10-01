@@ -4,8 +4,8 @@
 - **Status:** draft, awaiting the owner's review
 - **Designed with:** the owner (Minh Bui), 2026-10-01, through multiple-choice questions and the mockup
   https://claude.ai/artifact/CMxtUdUwwMsP1LnD9Pr2Nk. They chose **"About & your data"**, **remove all** fake badges and
-  dead buttons, and **layout B** ("Short rows, details on tap").
-- **Builds on:** M7 (`recent.ts`, the `recent` state in `App.tsx`, `Explainer.tsx`). **M7 must be built first.**
+  dead buttons, and **layout A** ("All on one page"; they first picked B, then switched to A after viewing both).
+- **Builds on:** M7 (`recent.ts`, the `recent` state in `App.tsx`). **M7 must be built first.**
 
 ## 1. Why
 
@@ -16,15 +16,15 @@
 - 5 settings buttons that do nothing (Notifications, Dark Mode, Privacy, Achievements, App Settings).
 
 **Done for M7.2:** Profile shows only true things: how much is saved on this device (with Clear), where results come
-from, what leaves the phone, how a product is checked, and the source-code link.
+from, what leaves the phone, and the source-code link, all on one page.
 
 ## 2. Decisions (owner, 2026-10-01, unless marked *recommended default*)
 
 | # | Decision |
 |---|---|
-| P1 | Layout B, top to bottom: title "Profile" + "No account yet. What you do stays on this device." → green **data card** → a list of 4 rows → footer "A student project. Not medical advice." |
-| P2 | **Data card:** "N recently scanned · Saved in this browser only" with a **Clear** button (empties the M7 recent list). At 0: "Nothing scanned yet", no Clear button *(recommended default)* |
-| P3 | **Rows** (each opens a sub-screen with a back button, like the explainers): "Where results come from", "Privacy", "How EcoGo checks a product", and "Source code and updates" (opens https://github.com/skynetrebel42/ecogo in a new tab) |
+| P1 | Layout A, top to bottom: title "Profile" + "No account yet. What you do stays on this device." → **Your data** card → **Where results come from** card → **Privacy** card → footer "A student project. Not medical advice. Source code and updates" (link to https://github.com/skynetrebel42/ecogo, new tab) |
+| P2 | **Your data:** "Recently scanned · N products, saved in this browser only" with a **Clear** button (empties the M7 recent list); at 0: "Nothing scanned yet", no Clear button *(recommended default)*. Below it: "Favorites are kept until you close EcoGo. Saving them for good comes with accounts." |
+| P3 | No sub-screens: every section is visible on the page. "How EcoGo checks a product" stays on Home (M7) and isn't repeated here |
 | P4 | **Remove:** the fake user, level and stars, `STATS`, `BADGES`, and the 5 dead settings buttons. Badges return only with accounts and real activity |
 | P5 | No user name or avatar until accounts exist |
 
@@ -42,16 +42,11 @@ from, what leaves the phone, how a product is checked, and the source-code link.
   - To find a product, its barcode or search words are sent to USDA or Open Food Facts.
   - The catalog loads from EcoGo's database (Supabase). Recently scanned stays in this browser (M7). There's no account.
   - Don't claim "no tracking" or "no cookies" unless the plan checks it (Google Fonts and Supabase are outside hosts).
-- **How EcoGo checks a product:** the same 3 steps as M7's first-visit card (`HOW_STEPS`), plus a link to the "What the
-  badge levels mean" explainer.
 
 ## 4. Design
 
-- `ProfileTab({ recentCount, onClearRecent, onOpenPage })` replaces the current one in `App.tsx`.
-- The 3 sub-screens reuse the explainer screen: `Explainer.tsx` exports a second record, `PROFILE_PAGES` (ids
-  `"sources" | "privacy" | "how"`), rendered by the same component. It is separate from `EXPLAINERS`, so Home's
-  "Hidden risks, explained" list doesn't change. `HOW_STEPS` moves to `Explainer.tsx` so Home and Profile share it.
-- "How EcoGo checks a product" ends with a button to open the "badge-levels" explainer.
+- `ProfileTab({ recentCount, onClearRecent })` replaces the current one in `App.tsx`: plain markup, three cards and a
+  footer, as in mockup A. No new files.
 - Unused lucide icons are removed from the imports.
 
 ## 5. Testing
@@ -59,9 +54,9 @@ from, what leaves the phone, how a product is checked, and the source-code link.
 - Headless check (extend `check-home.mjs` or a new `check-profile.mjs`):
   - no "Alex", "Level 4", "Money Saved", "CO₂", "Ethical Purchases", "Achievements", "Notifications" or "Dark Mode" on
     Profile;
-  - with 2 recent products the card says "2 recently scanned"; Clear makes it "Nothing scanned yet", and Home shows the
+  - with 2 recent products the card says "2 products"; Clear makes it "Nothing scanned yet", and Home shows the
     first-visit card;
-  - each of the 3 rows opens its page and Back returns; the GitHub row's link is
+  - "Where results come from" and "Privacy" are on the page; the footer link is
     `https://github.com/skynetrebel42/ecogo` with `target="_blank"`;
   - no console errors.
 - `npm test` and `npm run build` green. Docs: roadmap entry in `KNOWN_ISSUES.md`.
