@@ -12,11 +12,13 @@ import { NutritionChip } from "./components/NutritionPanel";
 import { topHigh } from "../lib/nutrition";
 import { knownNutrition, searchUsda } from "../lib/lookup";
 import { searchCatalog } from "../lib/search";
+import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
+import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import {
   Home, Map, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
-  Bookmark, Shield, DollarSign, Star, CheckCircle,
-  ShoppingBag, Leaf, Package, Shirt, Bike, Building2, Wifi, Utensils,
-  Plus, Bell, Moon, QrCode, Award, Settings, Sparkles, MapPin
+  Bookmark, Shield, DollarSign, Star,
+  Leaf, Package, Shirt, Bike, Building2, Wifi, Utensils,
+  Plus, Bell, Moon, QrCode, Award, Settings
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -74,17 +76,6 @@ const ONBOARDING = [
   { color: "#0EA5E9", bg: "#E0F2FE", Icon: Leaf,       title: "Shop Healthier",      body: "Scan any barcode to see which ingredients carry an official health concern (IARC, EU, FDA), with sources." },
   { color: "#8B5CF6", bg: "#EDE9FE", Icon: Heart,      title: "Support Your Community", body: "Find food banks, free WiFi, bike repair, donation centers, and ethical local businesses near you." },
 ];
-
-const DEALS = [
-  { name: "Oat Milk Original", brand: "Oatly", price: "$3.99", was: "$5.49", score: 88, gradient: "#E6F2EC" },
-  { name: "Bamboo Toothbrush Set", brand: "Brush Green", price: "$8.99", was: "$12.00", score: 95, gradient: "#FEF3C7" },
-  { name: "Free & Clear Detergent", brand: "Seventh Gen.", price: "$12.99", was: "$18.49", score: 92, gradient: "#E0F2FE" },
-];
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-/** 0–100 place rating → colour (Home recommendations and deals). */
-const scoreColor = (s: number) =>
-  s >= 80 ? "#16a34a" : s >= 65 ? "#059669" : s >= 50 ? "#ca8a04" : s >= 35 ? "#ea580c" : "#dc2626";
 
 /** Phones get the app full-screen; desktop keeps the phone frame (M6 spec §4.5).
  *  ponytail: decided once at load; a window resized across 500 px keeps its layout until reload. */
@@ -196,190 +187,6 @@ function OnboardingScreen({ slide, onNext, onBack, onSkip }: { slide: number; on
   );
 }
 
-// ── Recommendation data ───────────────────────────────────────────────────────
-interface Recommendation {
-  id: number;
-  name: string;
-  category: string;
-  section: "near-you" | "healthy-food" | "farmers-market" | "sustainable" | "community";
-  smartScore: number;
-  distance: number;
-  photo: string; // Unsplash photo ID
-  isOpen: boolean;
-  priceLevel: string;
-  shortReason: string;
-  whyReasons: string[];
-}
-
-// Minimum rating for a recommendation to surface (configurable in HomeTab)
-const DEFAULT_SCORE_THRESHOLD = 70;
-
-const RECOMMENDATIONS: Recommendation[] = [
-  // ── Recommended Near You
-  { id: 1,  section: "near-you",       name: "GreenLeaf Organic Market",   category: "Organic Grocery",           smartScore: 94, distance: 0.3, isOpen: true,  priceLevel: "$$",   photo: "1681276145283-dc19e0ffb8d1", shortReason: "Top-rated organic grocer. 100% local sourcing, zero-waste packaging, and living-wage staff.", whyReasons: ["Sources 100% of produce within 150 miles — supports local farms and cuts carbon footprint", "Zero-waste packaging across all store-brand items since 2021", "Certified living-wage employer — all staff paid above market rate", "Surplus donated to the Community Food Pantry every Friday", "Rating 94/100 — highest-rated grocery in your area"] },
-  { id: 2,  section: "near-you",       name: "Fair Ground Coffee",          category: "Café",                      smartScore: 88, distance: 0.7, isOpen: true,  priceLevel: "$",    photo: "1766848605292-06f971164f51", shortReason: "Direct-trade café donating 10% of profits to the community fund. Free workspace Mon–Thu.", whyReasons: ["Direct-trade certified — farmers receive 40% above commodity price", "10% of all revenue donated to local community programs", "Free high-speed WiFi and workspace every Monday through Thursday", "Compostable cups and packaging — zero single-use plastic policy", "Rating 88 — outstanding ethics and community investment score"] },
-  { id: 3,  section: "near-you",       name: "City Cycles Cooperative",     category: "Bike Shop",                 smartScore: 91, distance: 1.2, isOpen: true,  priceLevel: "$",    photo: "1628243989859-db92e2de1340", shortReason: "Worker-owned co-op with pay-what-you-can repairs and a 30-day free bike lending library.", whyReasons: ["Worker-owned cooperative — all profits distributed equally to employees", "Pay-what-you-can repair rates ensure access regardless of income", "30-day bike lending library free for community card holders", "Diverts 200+ bikes from landfill per year through refurbishment program", "Rating 91 — exceptional community and sustainability rating"] },
-  // ── Healthy Places to Eat
-  { id: 4,  section: "healthy-food",   name: "Roots Kitchen & Bar",         category: "Farm-to-Table Restaurant",  smartScore: 87, distance: 0.4, isOpen: true,  priceLevel: "$$",   photo: "1560055932-595dab110124",    shortReason: "90% of ingredients sourced within 50 miles. No synthetic preservatives. Full farm-origin traceability.", whyReasons: ["90% of all ingredients sourced within a 50-mile radius — verified monthly", "Menu changes seasonally to eliminate out-of-season imports", "No synthetic preservatives or artificial coloring in any dish", "Scan any dish to see its exact farm origin and harvest date", "Rating 87 — top farm-to-table in the neighborhood"] },
-  { id: 5,  section: "healthy-food",   name: "The Green Bowl",              category: "Vegan & Vegetarian",        smartScore: 92, distance: 0.8, isOpen: true,  priceLevel: "$",    photo: "1543393786-6b9844cc148d",    shortReason: "100% plant-based. Zero IARC-flagged ingredients. Composts 98% of food waste.", whyReasons: ["100% plant-based menu — independently verified zero IARC Group 1/2A substances", "All proteins sourced from certified organic, non-GMO suppliers", "Composting program diverts 98% of food waste from landfill", "Free full nutrition breakdown available for every single menu item", "Rating 92 — highest-rated healthy restaurant near you"] },
-  { id: 6,  section: "healthy-food",   name: "Sunrise Health Café",         category: "Juice Bar & Café",          smartScore: 89, distance: 1.1, isOpen: false, priceLevel: "$",    photo: "1776659214764-19684cf77e0d", shortReason: "Cold-pressed juices made every 4 hours. No preservatives. Sliding-scale pricing for community members.", whyReasons: ["All juices cold-pressed within 4 hours of serving — no preservatives added", "Every item includes a full ingredient list and allergen breakdown", "Glass bottles only — zero single-use plastic in the entire operation", "Sliding-scale pricing for community card holders — no one turned away", "Rating 89 — excellent nutrition and transparency scores"] },
-  // ── Local Farmers Markets
-  { id: 7,  section: "farmers-market", name: "Lincoln Park Farmers Market", category: "Outdoor Market",            smartScore: 96, distance: 2.1, isOpen: true,  priceLevel: "$",    photo: "1506484381205-f7945653044d", shortReason: "Award-winning market. 40+ certified organic vendors. SNAP/EBT accepted at every stall.", whyReasons: ["40+ vendors — all certified organic or practicing verified sustainable agriculture", "Zero pesticide residue testing on all produce before the market opens each week", "SNAP/EBT accepted at all vendor stalls — accessible to all income levels", "Voted #1 farmers market in the region for 3 consecutive years", "Rating 96 — near-perfect rating for freshness, ethics, and community impact"] },
-  { id: 8,  section: "farmers-market", name: "Green City Market",           category: "Year-Round Market",         smartScore: 91, distance: 1.8, isOpen: true,  priceLevel: "$",    photo: "1774887679529-7fb933596f37", shortReason: "Year-round covered pavilion. Only regenerative farms admitted. Free Saturday cooking demos.", whyReasons: ["Year-round operation in a covered pavilion — accessible in all weather", "Strict vendor vetting: only regenerative and sustainable farms admitted", "Free cooking demonstrations every Saturday using locally sourced ingredients", "20% of vendor fees fund food access programs for low-income families", "Rating 91 — consistent quality and strong vendor accountability"] },
-  { id: 9,  section: "farmers-market", name: "Logan Square Market",         category: "Neighborhood Market",       smartScore: 83, distance: 3.4, isOpen: false, priceLevel: "$",    photo: "1687199129802-3e4cc27baac0", shortReason: "Specializes in heirloom varieties and small-batch preserves. All 22 vendors within 100 miles.", whyReasons: ["Specializes in heirloom and heritage crop varieties unavailable in grocery stores", "All 22 vendors are sourced from within 100 miles — ultra-local supply chain", "Free market bag provided to every first-time visitor", "Partners with local schools for educational farm visits each semester", "Rating 83 — strong ethics and freshness, good community engagement"] },
-  // ── Sustainable Businesses
-  { id: 10, section: "sustainable",    name: "ReThreaded Clothing Co.",     category: "Second-Hand Retail",        smartScore: 84, distance: 0.9, isOpen: true,  priceLevel: "$",    photo: "1651449815984-a2387dd0fcf4", shortReason: "Living-wage employer. 100% second-hand inventory. Diverts 15,000+ garments from landfill annually.", whyReasons: ["100% second-hand inventory — extends garment lifecycle and reduces textile waste", "Living-wage certified: all employees paid at or above $22/hr", "Diverts an estimated 15,000+ garments from landfill each year", "Clothing vouchers available for community members experiencing hardship", "Rating 84 — excellent sustainability and labor ethics rating"] },
-  { id: 11, section: "sustainable",    name: "Zero Waste Supply Co.",       category: "Eco Products Store",        smartScore: 90, distance: 1.5, isOpen: true,  priceLevel: "$$",   photo: "1651449816008-2cbdcf626b1f", shortReason: "Every product vetted against 200+ restricted chemicals. Bulk refill station. B Corp certified.", whyReasons: ["All products vetted against a 200+ restricted substance list — no IARC Group 1 chemicals", "Bulk refill station eliminates packaging waste for 80+ household products", "Carbon-neutral delivery via electric cargo bike within a 3-mile radius", "B Corp certified — independently verified for social and environmental performance", "Rating 90 — outstanding product safety and environmental score"] },
-  { id: 12, section: "sustainable",    name: "Sunrise Community Health",    category: "Community Healthcare",      smartScore: 95, distance: 0.6, isOpen: true,  priceLevel: "$",    photo: "1781785273371-a959f34bfab0", shortReason: "Sliding-scale clinic. Multilingual staff across 12 languages. Free quarterly screenings.", whyReasons: ["Sliding-scale fees ensure healthcare access regardless of income level", "Multilingual staff across 12 languages — highest language accessibility in the area", "Free health screenings every quarter for all community card holders", "Prescribes generic alternatives — independently verified ethical prescribing practices", "Rating 95 — highest-rated healthcare provider in the community"] },
-  // ── Community Resources
-  { id: 13, section: "community",      name: "Community Food Pantry",       category: "Food Bank",                 smartScore: 88, distance: 0.3, isOpen: true,  priceLevel: "Free", photo: "1506484381205-f7945653044d", shortReason: "No ID required. Serves 200+ families weekly with fresh produce, dry goods, and hot meals.", whyReasons: ["No ID required — removes barriers to access for all community members", "Fresh produce donated by GreenLeaf Market and local farms available daily", "Hot meals served Monday, Wednesday, and Friday from 11am–2pm", "Multilingual volunteers — assistance available in 8 languages", "Rating 88 — highly rated for accessibility, dignity, and food quality"] },
-  { id: 14, section: "community",      name: "Public Library & WiFi Hub",   category: "Public Resource",           smartScore: 86, distance: 1.1, isOpen: true,  priceLevel: "Free", photo: "1651449815984-a2387dd0fcf4", shortReason: "Free high-speed WiFi and 20 computers. No library card required for internet access.", whyReasons: ["High-speed internet access — no library card required to use WiFi or computers", "20 public computers available on a first-come, first-served basis", "Free printing up to 20 pages per day per visitor", "Quiet study rooms bookable online in 2-hour blocks at no cost", "Rating 86 — excellent digital equity and public access resource"] },
-  { id: 15, section: "community",      name: "Community Garden & Kitchen",  category: "Garden & Workshop",         smartScore: 82, distance: 0.5, isOpen: true,  priceLevel: "Free", photo: "1781785273371-a959f34bfab0", shortReason: "Free garden plot allocation. Community kitchen open weekends. 150-variety seed library.", whyReasons: ["Free 4×8 garden plot allocation for community members — waitlist under 2 weeks", "Community kitchen available for food preservation workshops every weekend", "Seed library open to all — 150+ varieties of vegetables and herbs free to borrow", "Composting program accepts household food scraps year-round", "Rating 82 — strong community engagement and environmental contribution"] },
-];
-
-// ── Recommendation Card ───────────────────────────────────────────────────────
-function RecommendationCard({ rec, onWhyClick }: { rec: Recommendation; onWhyClick: () => void }) {
-  const color = scoreColor(rec.smartScore);
-  return (
-    <div className="flex-shrink-0 w-52 bg-card rounded-2xl overflow-hidden border border-border shadow-sm">
-      {/* Image */}
-      <div className="relative h-[110px] bg-muted overflow-hidden">
-        <img
-          src={`https://images.unsplash.com/photo-${rec.photo}?w=420&h=220&fit=crop&auto=format&q=80`}
-          alt={rec.name}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-        {/* Open / Closed pill */}
-        <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[8px] font-bold backdrop-blur-sm ${rec.isOpen ? "bg-green-500/90 text-white" : "bg-black/60 text-white/80"}`}>
-          {rec.isOpen ? "Open Now" : "Closed"}
-        </div>
-        {/* Distance pill */}
-        <div className="absolute top-2 right-2 bg-black/55 backdrop-blur-sm px-2 py-0.5 rounded-full text-[8px] text-white font-semibold flex items-center gap-0.5">
-          <MapPin size={7} /> {rec.distance} mi
-        </div>
-        {/* Rating badge */}
-        <div className="absolute bottom-[-14px] right-3 w-[38px] h-[38px] rounded-full bg-white shadow-lg border-2 flex items-center justify-center" style={{ borderColor: color }}>
-          <span className="text-[11px] font-extrabold leading-none" style={{ color }}>{rec.smartScore}</span>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="pt-5 px-3 pb-3">
-        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{rec.category}</span>
-        <h3 className="font-bold text-[13px] leading-tight mt-0.5 mb-1.5 line-clamp-1">{rec.name}</h3>
-        <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 mb-2.5">{rec.shortReason}</p>
-        <button
-          onClick={onWhyClick}
-          className="w-full py-1.5 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95"
-          style={{ background: "rgba(26,92,57,0.08)", color: "#1A5C39" }}
-        >
-          <Sparkles size={9} /> Why Recommended?
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Why Recommended Modal ─────────────────────────────────────────────────────
-function WhyModal({ rec, onClose, threshold }: { rec: Recommendation; onClose: () => void; threshold: number }) {
-  const color = scoreColor(rec.smartScore);
-  return (
-    <div
-      className="absolute inset-0 z-[60] flex items-end"
-      style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}
-      onClick={onClose}
-    >
-      <div
-        className="bg-card rounded-t-3xl w-full px-5 pt-4 pb-8 overflow-y-auto"
-        style={{ maxHeight: "78%", scrollbarWidth: "none" }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Handle */}
-        <div className="w-8 h-1 bg-border rounded-full mx-auto mb-4" />
-
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="flex-1 min-w-0">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{rec.category}</span>
-            <h2 className="text-lg font-extrabold leading-tight">{rec.name}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <MapPin size={10} className="text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{rec.distance} mi away</span>
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${rec.isOpen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                {rec.isOpen ? "Open Now" : "Closed"}
-              </span>
-            </div>
-          </div>
-          <div className="text-right flex-shrink-0">
-            <div className="text-3xl font-extrabold leading-none" style={{ color }}>{rec.smartScore}</div>
-            <div className="text-[9px] text-muted-foreground mt-0.5">Rating</div>
-            <div className="w-16 h-1.5 rounded-full mt-1.5 overflow-hidden bg-muted">
-              <div className="h-full rounded-full" style={{ width: `${rec.smartScore}%`, background: color }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Image */}
-        <div className="rounded-2xl overflow-hidden h-32 mb-4 bg-muted">
-          <img
-            src={`https://images.unsplash.com/photo-${rec.photo}?w=600&h=250&fit=crop&auto=format&q=80`}
-            alt={rec.name} className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Why reasons */}
-        <div className="rounded-2xl p-4 mb-4" style={{ background: "rgba(26,92,57,0.06)" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={13} style={{ color: "#1A5C39" }} />
-            <span className="text-xs font-bold" style={{ color: "#1A5C39" }}>Why We Recommend This</span>
-          </div>
-          <ul className="space-y-2.5">
-            {rec.whyReasons.map((reason, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-foreground leading-relaxed">
-                <CheckCircle size={12} className="flex-shrink-0 mt-0.5" style={{ color: "#1A5C39" }} />
-                {reason}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Price level */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 px-1">
-          <span>Price level: <strong className="text-foreground">{rec.priceLevel}</strong></span>
-          <span>Rating threshold passed: <strong style={{ color }}>✓ {rec.smartScore} ≥ {threshold}</strong></span>
-        </div>
-
-        <button onClick={onClose} className="w-full py-3.5 bg-primary text-white rounded-2xl font-bold text-sm">
-          Got it
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Recommendation Section Row ────────────────────────────────────────────────
-function RecommendationSection({ title, emoji, items, threshold, onWhyClick }: {
-  title: string; emoji: string; items: Recommendation[]; threshold: number;
-  onWhyClick: (r: Recommendation) => void;
-}) {
-  const filtered = items.filter(r => r.smartScore >= threshold);
-  if (filtered.length === 0) return null;
-  return (
-    <div className="mb-5">
-      <div className="flex items-center justify-between px-5 mb-3">
-        <h2 className="font-bold text-base">{emoji} {title}</h2>
-        <span className="text-[10px] text-muted-foreground font-medium">{filtered.length} nearby</span>
-      </div>
-      <div className="flex gap-3 px-5 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
-        {filtered.map(rec => (
-          <RecommendationCard key={rec.id} rec={rec} onWhyClick={() => onWhyClick(rec)} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ── Product Card (mini) ───────────────────────────────────────────────────────
 function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Product) => void }) {
   const bp = bestPrice(product);
@@ -415,160 +222,105 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
 }
 
 // ── Home Tab ──────────────────────────────────────────────────────────────────
-function HomeTab({ onSearch, onSelectProduct, onGoMap, products, resources }: {
-  onSearch: (q: string) => void; onSelectProduct: (p: Product) => void; onGoMap: () => void;
-  products: Product[]; resources: Resource[];
+// Spec: docs/superpowers/specs/2026-10-01-m7-home-redesign-design.md §4.2 (layout A, real content only).
+const greeting = (h = new Date().getHours()) => h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+
+const HOW_STEPS = [
+  "Reads the real label from USDA (the maker's own data), or Open Food Facts, clearly marked crowd-sourced.",
+  "Checks ingredients and the food itself against official findings from IARC, the EU and the FDA.",
+  "Shows the strongest finding, with its source, plus sugar, fat and salt per serving.",
+];
+
+function RecentCard({ product, onSelect }: { product: Product; onSelect: (p: Product) => void }) {
+  const look = VERDICT_STYLE[safeAnalyze(product).verdict];
+  const high = topHigh(product.nutrition ?? knownNutrition(product.barcode));
+  return (
+    <button onClick={() => onSelect(product)}
+      className="flex-shrink-0 w-28 bg-card border border-border rounded-2xl p-2.5 text-left shadow-sm flex flex-col gap-1.5">
+      <span className="text-xs font-bold leading-tight line-clamp-2">{product.name}</span>
+      <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: look.color }}>
+        <look.Icon size={10} /> {look.short}
+      </span>
+      {high && <NutritionChip text={high.short} />}
+    </button>
+  );
+}
+
+function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearRecent, onOpenExplainer, recent }: {
+  onSearch: (q: string) => void; onSelectProduct: (p: Product) => void; onGoScan: () => void;
+  onSeeAllRecent: () => void; onClearRecent: () => void; onOpenExplainer: (id: ExplainerId) => void; recent: Product[];
 }) {
   const [q, setQ] = useState("");
-  const [threshold, setThreshold] = useState(DEFAULT_SCORE_THRESHOLD);
-  const [whyRec, setWhyRec] = useState<Recommendation | null>(null);
-
-  const bySection = (section: Recommendation["section"]) =>
-    RECOMMENDATIONS.filter(r => r.section === section);
-
-  const SECTIONS: { section: Recommendation["section"]; title: string; emoji: string }[] = [
-    { section: "near-you",       title: "Recommended Near You",    emoji: "📍" },
-    { section: "healthy-food",   title: "Healthy Places to Eat",   emoji: "🥗" },
-    { section: "farmers-market", title: "Local Farmers Markets",   emoji: "🌽" },
-    { section: "sustainable",    title: "Sustainable Businesses",  emoji: "🌿" },
-    { section: "community",      title: "Community Resources",     emoji: "🤝" },
-  ];
-
   return (
-    <div className="h-full overflow-y-auto bg-background relative" style={{ scrollbarWidth: "none" }}>
-      {/* Why Recommended modal — rendered inside the phone frame */}
-      {whyRec && <WhyModal rec={whyRec} onClose={() => setWhyRec(null)} threshold={threshold} />}
-
-      {/* ── Header ── */}
-      <div className="px-5 pt-4 pb-3">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-xs text-muted-foreground font-medium">Good morning,</p>
-            <h1 className="text-xl font-extrabold leading-tight">Alex 👋</h1>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">A</div>
-        </div>
-
-        {/* Search bar */}
-        <div className="flex gap-2 mb-4">
-          <div className="flex-1 flex items-center gap-2.5 bg-muted rounded-2xl px-4 py-3">
-            <Search size={15} className="text-muted-foreground flex-shrink-0" />
-            <input
-              className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
-              placeholder="Search products, brands…"
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && q.trim() && onSearch(q)}
-            />
-          </div>
-          <button onClick={() => q.trim() && onSearch(q)}
-            className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md">
-            <QrCode size={18} color="white" />
-          </button>
-        </div>
-
-        {/* Location pill — static: the places below are demo data, so the app never asks for location here */}
-        <div className="flex items-center gap-2 bg-muted rounded-2xl px-4 py-2.5 mb-1">
-          <MapPin size={12} className="text-muted-foreground" />
-          <span className="text-xs font-semibold text-foreground">Chicago, IL (demo places)</span>
-        </div>
+    <div className="h-full overflow-y-auto bg-background px-5 pt-4 pb-8 space-y-4" style={{ scrollbarWidth: "none" }}>
+      <div>
+        <p className="text-xs text-muted-foreground font-medium">{greeting()}</p>
+        <h1 className="text-xl font-extrabold leading-tight text-primary">What are you eating?</h1>
       </div>
 
-      {/* ── Score Threshold Filter ── */}
-      <div className="px-5 mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Shield size={11} className="text-primary" />
-          <span className="text-[10px] font-bold text-primary tracking-wider uppercase">Rating Filter</span>
-          <span className="ml-auto text-[10px] text-muted-foreground">
-            {RECOMMENDATIONS.filter(r => r.smartScore >= threshold).length} places qualify
-          </span>
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          {([0, 70, 80, 90] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setThreshold(t)}
-              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[10px] font-bold transition-all ${
-                threshold === t ? "bg-primary text-white shadow-sm" : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {t === 0 ? "All" : `${t}+ Score`}
-            </button>
-          ))}
-        </div>
-      </div>
+      <button onClick={onGoScan} className="w-full flex items-center gap-3.5 p-4 rounded-3xl bg-primary text-white text-left shadow-md active:scale-98 transition-transform">
+        <span className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center flex-shrink-0"><QrCode size={24} /></span>
+        <span className="flex flex-col">
+          <span className="text-base font-extrabold">Scan a product</span>
+          <span className="text-xs text-white/85">Point your camera at the barcode</span>
+        </span>
+      </button>
 
-      {/* ── Recommendation Sections ── */}
-      {SECTIONS.map(({ section, title, emoji }) => (
-        <RecommendationSection
-          key={section}
-          title={title}
-          emoji={emoji}
-          items={bySection(section)}
-          threshold={threshold}
-          onWhyClick={setWhyRec}
+      <div className="flex items-center gap-2.5 bg-muted rounded-2xl px-4 py-3">
+        <Search size={15} className="text-muted-foreground flex-shrink-0" />
+        <input
+          className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
+          placeholder="Search products, brands…"
+          aria-label="Search products"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && q.trim() && onSearch(q)}
         />
-      ))}
-
-      {/* ── Today's Deals (kept for product discovery) ── */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between px-5 mb-3">
-          <h2 className="font-bold text-base">🏷️ Today's Deals</h2>
-          <button onClick={() => onSearch("deals")} className="text-primary text-sm font-semibold">See all</button>
-        </div>
-        <div className="flex gap-3 px-5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          {DEALS.map((d, i) => (
-            <button key={i} onClick={() => products[i] && onSelectProduct(products[i])}
-              className="flex-shrink-0 w-36 rounded-2xl border border-border overflow-hidden text-left bg-card shadow-sm">
-              <div className="h-20 flex items-center justify-center" style={{ background: d.gradient }}>
-                <ShoppingBag size={28} style={{ color: "#1A5C39" }} />
-              </div>
-              <div className="p-2.5">
-                <p className="text-[9px] text-muted-foreground font-medium">{d.brand}</p>
-                <p className="text-[11px] font-semibold leading-tight">{d.name}</p>
-                <div className="flex items-center gap-1 mt-1.5">
-                  <span className="text-primary font-bold text-sm">{d.price}</span>
-                  <span className="text-muted-foreground text-[10px] line-through">{d.was}</span>
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="w-2 h-2 rounded-full" style={{ background: scoreColor(d.score) }} />
-                  <span className="text-[10px] text-muted-foreground">Score {d.score}</span>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* ── Nearby Resources shortcut ── */}
-      <div className="mb-10">
-        <div className="flex items-center justify-between px-5 mb-3">
-          <h2 className="font-bold text-base">🗺️ Nearby Resources</h2>
-          <button onClick={onGoMap} className="text-primary text-sm font-semibold">View Map</button>
+      {recent.length > 0 ? (
+        <div>
+          <div className="flex items-baseline justify-between mb-2">
+            <h2 className="font-bold text-base">Recently scanned</h2>
+            <span className="flex gap-3">
+              <button onClick={onClearRecent} aria-label="Clear recently scanned" className="text-xs font-semibold text-muted-foreground">Clear</button>
+              <button onClick={onSeeAllRecent} className="text-xs font-bold text-primary">See all</button>
+            </span>
+          </div>
+          <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
+            {recent.map(p => <RecentCard key={p.id} product={p} onSelect={onSelectProduct} />)}
+          </div>
         </div>
-        <div className="flex gap-3 px-5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          {resources.slice(0, 5).map(r => {
-            const cat = CAT[r.type];
-            return (
-              <button key={r.id} onClick={onGoMap} className="flex-shrink-0 w-44 bg-card rounded-2xl border border-border p-3 text-left shadow-sm active:opacity-70 transition-opacity">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-7 h-7 rounded-lg ${cat.bg} flex items-center justify-center`}>
-                    <cat.Icon size={13} className={cat.text} />
-                  </div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{cat.label}</span>
-                </div>
-                <p className="text-xs font-semibold leading-tight">{r.name}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">{r.address}</p>
-                <p className="text-[10px] text-primary mt-1 font-medium">{r.hours.split(",")[0]}</p>
-              </button>
-            );
-          })}
+      ) : (
+        <div className="bg-card border border-border rounded-2xl p-3.5 space-y-2.5">
+          <h2 className="font-bold text-base">How EcoGo checks a product</h2>
+          {HOW_STEPS.map((s, i) => (
+            <div key={i} className="flex gap-2.5 items-start text-xs leading-relaxed text-foreground/80">
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary font-extrabold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+              {s}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <h2 className="font-bold text-base mb-2">Hidden risks, explained</h2>
+        <div className="space-y-2.5">
+          {(Object.keys(EXPLAINERS) as ExplainerId[]).map(id => (
+            <button key={id} onClick={() => onOpenExplainer(id)}
+              className="w-full bg-card border border-border rounded-2xl p-3.5 text-left shadow-sm flex items-center gap-3">
+              <span className="flex-1">
+                <span className="block text-sm font-extrabold">{EXPLAINERS[id].title}</span>
+                <span className="block text-xs text-muted-foreground leading-relaxed mt-0.5">{EXPLAINERS[id].teaser}</span>
+              </span>
+              <ChevronRight size={15} className="text-muted-foreground flex-shrink-0" />
+            </button>
+          ))}
         </div>
       </div>
     </div>
   );
 }
-
 
 // ── Search Results ────────────────────────────────────────────────────────────
 function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
@@ -652,12 +404,12 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
 
 
 // ── Saved Tab ────────────────────────────────────────────────────────────────
-function SavedTab({ savedIds, scannedIds, onSelectProduct, products }: {
-  savedIds: number[]; scannedIds: number[]; onSelectProduct: (p: Product) => void; products: Product[];
+function SavedTab({ savedIds, scanned, initialTab = "favorites", onSelectProduct, products }: {
+  savedIds: number[]; scanned: Product[]; initialTab?: "favorites" | "scanned";
+  onSelectProduct: (p: Product) => void; products: Product[];
 }) {
-  const [tab, setTab] = useState<"favorites" | "scanned" | "lists">("favorites");
+  const [tab, setTab] = useState<"favorites" | "scanned" | "lists">(initialTab);
   const favs = products.filter(p => savedIds.includes(p.id));
-  const scanned = products.filter(p => scannedIds.includes(p.id));
 
   return (
     <div className="h-full overflow-y-auto bg-background" style={{ scrollbarWidth: "none" }}>
@@ -838,7 +590,11 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [savedIds, setSavedIds] = useState<number[]>([3, 5]);
-  const [scannedIds, setScannedIds] = useState<number[]>([2, 6]);
+  // Recently scanned / looked at: on this device only (M7 spec §4.1).
+  const [recent, setRecent] = useState<RecentEntry[]>(loadRecent);
+  useEffect(() => saveRecent(recent), [recent]);
+  const [savedInitialTab, setSavedInitialTab] = useState<"favorites" | "scanned">("favorites");
+  const [explainer, setExplainer] = useState<ExplainerId | null>(null);
   // Products looked up in USDA / Open Food Facts this session (not in the catalog; negative ids).
   const [lookedUp, setLookedUp] = useState<Product[]>([]);
 
@@ -876,7 +632,12 @@ export default function App() {
     return () => { supabase.removeChannel(channel); };
   }, [loadData]);
 
-  const openProduct = (p: Product) => { setSelectedProduct(p); setSubScreen("product-detail"); };
+  // Every product opened counts as "looked at": Scan, search (catalog or USDA), and the lists.
+  const openProduct = (p: Product) => {
+    setRecent(prev => addRecent(prev, p, Date.now()));
+    setSelectedProduct(p); setSubScreen("product-detail");
+  };
+  const recentProducts = resolveRecent(recent, products);
   const openSearch = (q: string) => { setSearchQuery(q); setSubScreen("search-results"); };
 
   const toggleSave = () => {
@@ -935,9 +696,11 @@ export default function App() {
                     <HomeTab
                       onSearch={openSearch}
                       onSelectProduct={openProduct}
-                      onGoMap={() => setActiveTab("map")}
-                      products={products}
-                      resources={resources}
+                      onGoScan={() => setActiveTab("scan")}
+                      onSeeAllRecent={() => { setSavedInitialTab("scanned"); setActiveTab("saved"); }}
+                      onClearRecent={() => setRecent([])}
+                      onOpenExplainer={setExplainer}
+                      recent={recentProducts}
                     />
                   )}
                   {activeTab === "map"     && <MapTab resources={resources} />}
@@ -946,17 +709,17 @@ export default function App() {
                       products={products}
                       onScanResult={(p) => {
                         if (p.source) setLookedUp(prev => prev.some(x => x.id === p.id) ? prev : [...prev, p]);
-                        setScannedIds(prev => prev.includes(p.id) ? prev : [...prev, p.id]);
                         openProduct(p);
                       }}
                     />
                   )}
-                  {activeTab === "saved"   && <SavedTab savedIds={savedIds} scannedIds={scannedIds} onSelectProduct={openProduct} products={[...products, ...lookedUp]} />}
+                  {activeTab === "saved"   && <SavedTab savedIds={savedIds} scanned={recentProducts} initialTab={savedInitialTab} onSelectProduct={openProduct} products={[...products, ...lookedUp]} />}
                   {activeTab === "profile" && <ProfileTab />}
                 </div>
               )}
 
               {/* Sub-screen overlays — fill content area, slide over tab content */}
+              {explainer && !subScreen && <Explainer id={explainer} onBack={() => setExplainer(null)} />}
               {subScreen === "search-results" && (
                 <SearchResultsScreen
                   query={searchQuery}
@@ -978,7 +741,7 @@ export default function App() {
               )}
             </div>
 
-            {!subScreen && <BottomNav activeTab={activeTab} onTabChange={(t) => { setActiveTab(t); }} />}
+            {!subScreen && !explainer && <BottomNav activeTab={activeTab} onTabChange={(t) => { setSavedInitialTab("favorites"); setActiveTab(t); }} />}
           </div>
         )}
       </div>
