@@ -216,6 +216,8 @@ first), then accounts and the real map.
 
 **✔ Search fixed 2026-10-01:** whole-word matching (`src/lib/search.ts`: every typed word must be a whole word, plurals either way, of the name, brand, category or keywords; "ice cream" now finds only Ben & Jerry's) plus a "More from USDA FoodData Central" list of up to 10 real products (`searchUsda`, one request per search text per session).
 
+**✔ "Looks wrong? Fix it on Open Food Facts" 2026-10-01 (owner idea, option A):** Open Food Facts product pages link to OFF's edit form, and the not-found screen to its add form, barcode filled in. Users edit with their own OFF account; OFF's AI (Robotoff) suggests nutrition values from label photos. **Later (option B, after accounts):** an in-app form + label photo sent through a small server function under a registered EcoGo app account, with rate limits and spam protection. Never store user-typed values in EcoGo itself (facts first).
+
 **Later (after "done"):**
 - Map: follow the user's location, with Los Angeles as the default, and real nearby places from OpenStreetMap. This also
   fixes K-05 and K-06, and retires the fictional Chicago data. Switching only the center would leave today's 18

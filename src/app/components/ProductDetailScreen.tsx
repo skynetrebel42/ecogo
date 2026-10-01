@@ -13,6 +13,7 @@ import {
   TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame,
 } from "lucide-react";
 import { bestPrice, type Product } from "../../lib/productImporter";
+import { offEditUrl } from "../../lib/lookup";
 import { VERDICT_RANK, escapeRegExp, type Flag } from "../../lib/safety/analyze";
 import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
@@ -216,6 +217,17 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
                 </span>
               )}
               {product.source.crowdSourced && <span className="block mt-1 opacity-70">Data © Open Food Facts contributors, ODbL.</span>}
+              {product.source.crowdSourced && (
+                <span className="block mt-2">
+                  <a href={offEditUrl(product.barcode)} target="_blank" rel="noreferrer" className="font-bold underline">
+                    Looks wrong? Fix it on Open Food Facts
+                  </a>
+                  <span className="block mt-0.5 opacity-80">
+                    Sign in there to correct the values or add a photo of the label (their AI suggests nutrition values from it). Fixes
+                    show here after you reload EcoGo.
+                  </span>
+                </span>
+              )}
             </div>
           )}
 

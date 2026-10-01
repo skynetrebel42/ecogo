@@ -14,7 +14,7 @@
 import { useState, useCallback } from "react";
 import { CheckCircle, QrCode, ChevronUp, ChevronDown, Database, X, WifiOff, ExternalLink } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
-import { lookupBarcode, normalizeBarcode, isBarcode, sameBarcode } from "../../lib/lookup";
+import { lookupBarcode, normalizeBarcode, isBarcode, sameBarcode, offAddUrl } from "../../lib/lookup";
 import CameraScanner from "./CameraScanner";
 
 interface DemoBarcode { barcode: string; label: string; category: string }
@@ -141,11 +141,12 @@ export default function ScanTab({ onScanResult, products }: ScanTabProps) {
           <h2 className="text-2xl font-extrabold text-white mb-2">We couldn't find this barcode yet</h2>
           <p className="text-white/60 text-sm mb-3 leading-relaxed max-w-xs">
             It isn't in our catalog, USDA FoodData Central or Open Food Facts. You can add it to Open Food Facts,
-            the free product database, so everyone can see its ingredients.
+            the free product database, so everyone can see its ingredients. You can add photos of the label: their AI
+            suggests the nutrition values from them.
           </p>
-          <a href="https://world.openfoodfacts.org/" target="_blank" rel="noreferrer"
+          <a href={offAddUrl(scannedCode)} target="_blank" rel="noreferrer"
             className="text-amber-300 text-xs font-bold mb-5 inline-flex items-center gap-1">
-            Add it at openfoodfacts.org <ExternalLink size={11} />
+            Add it to Open Food Facts (barcode filled in) <ExternalLink size={11} />
           </a>
           <div className="bg-white/8 border border-white/15 rounded-2xl px-5 py-3 w-full max-w-xs">
             <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Scanned Barcode</p>

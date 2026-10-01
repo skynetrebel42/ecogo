@@ -115,6 +115,12 @@ async function fetchUsda(code: string, fdcKey: string, f: typeof fetch): Promise
 
 // ── Open Food Facts ──────────────────────────────────────────────────────────
 
+/** Open Food Facts pages where a user, signed in with their own OFF account, can fix a product or add a missing one
+ *  (values or a label photo; OFF's own AI reads nutrition from photos). EcoGo itself never writes to OFF. */
+export const offEditUrl = (code: string) => `https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=${normalizeBarcode(code)}`;
+export const offAddUrl = (code: string) =>
+  `https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code=${normalizeBarcode(code)}`;
+
 /** Pure: an OFF v3 response body plus its HTTP status → our result. */
 export function mapOffResponse(json: unknown, httpStatus: number): LookupResult {
   if (httpStatus === 404) return { status: "not-found" };

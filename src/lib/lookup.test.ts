@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { knownNutrition, lookupBarcode, pickUsdaFood, mapOffResponse, normalizeBarcode, isBarcode, sameBarcode, tidyCase, mapUsdaSearch, searchUsda } from "./lookup.ts";
+import { knownNutrition, lookupBarcode, pickUsdaFood, mapOffResponse, normalizeBarcode, isBarcode, sameBarcode, tidyCase, mapUsdaSearch, searchUsda, offEditUrl, offAddUrl } from "./lookup.ts";
 import { analyzeIngredients } from "./safety/analyze.ts";
 
 const fixture = (path: string) => JSON.parse(readFileSync(new URL(`./fixtures/${path}.json`, import.meta.url), "utf8"));
@@ -249,4 +249,11 @@ test("searchUsda: one request per text for the session; errors aren't cached; bl
   assert.equal((await searchUsda("granola", { fdcKey: "TEST", fetchImpl: down })).status, "error");
   await searchUsda("granola", { fdcKey: "TEST", fetchImpl: down });
   assert.equal(calls, 2, "errors are retried");
+});
+
+// "Looks wrong? Fix it on Open Food Facts" (owner, 2026-10-01): users edit with their own OFF account; OFF's own AI
+// reads nutrition from label photos. Both forms open with the barcode filled in (checked live 2026-10-01).
+test("Open Food Facts edit and add links carry the cleaned barcode", () => {
+  assert.equal(offEditUrl("3017620422003"), "https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=3017620422003");
+  assert.equal(offAddUrl(" 30176-20429996 "), "https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code=3017620429996");
 });
