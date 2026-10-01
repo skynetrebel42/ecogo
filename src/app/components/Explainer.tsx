@@ -1,13 +1,14 @@
 // Explainer.tsx — Home's "Hidden risks, explained" pages. Plain text over official sources only.
-// Spec: docs/superpowers/specs/2026-10-01-m7-home-redesign-design.md §4.3.
+// Specs: docs/superpowers/specs/2026-10-01-m7-home-redesign-design.md §4.3; seed oils, pesticides and ultra-processed
+// foods: docs/superpowers/specs/2026-10-01-m71-explainers-design.md (sources §3, text §4).
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { FDA_RULE } from "../../lib/nutrition";
 import { PROCESSED_MEAT, ACRYLAMIDE } from "../../lib/safety/foodConcerns";
 import { VERDICT_STYLE } from "./verdict";
 
-export type ExplainerId = "not-healthy" | "badge-levels";
+export type ExplainerId = "not-healthy" | "badge-levels" | "seed-oils" | "pesticides" | "ultra-processed";
 
 interface Cite { body: string; finding: string; url: string; quote: string; checkedOn: string }
 
@@ -18,6 +19,49 @@ const WHO_EVIDENCE: Cite = {
   url: PROCESSED_MEAT.sources[0].url, checkedOn: "2026-10-01",
   quote: "The categories of the classification indicate the strength of the evidence as to whether a substance is capable of causing cancer",
 };
+
+// M7.1 sources (spec §3). Every quote was re-checked word for word on its live page on 2026-10-01; heart.org (blocks
+// scripts), EUR-Lex and HHS were read in a browser. Explainer-only: none of them changes the badge (spec E2).
+const M71_CHECKED = "2026-10-01";
+const AHA_URL = "https://www.heart.org/en/news/2024/08/20/theres-no-reason-to-avoid-seed-oils-and-plenty-of-reasons-to-eat-them";
+const AHA_OMEGA6: Cite = { body: "AHA", finding: "American Heart Association News (2024): omega-6 fats belong in a healthy diet", url: AHA_URL, checkedOn: M71_CHECKED,
+  quote: "The American Heart Association supports the inclusion of omega-6 fatty acids as part of a healthy diet." };
+const AHA_POLY: Cite = { body: "AHA", finding: "Polyunsaturated fats lower bad cholesterol and the risk of heart disease and stroke", url: AHA_URL, checkedOn: M71_CHECKED,
+  quote: "Polyunsaturated fats help the body reduce bad cholesterol, lowering the risk for heart disease and stroke." };
+const AHA_INFLAMMATION: Cite = { body: "AHA", finding: "Stanford's Christopher Gardner, quoted by the AHA: calling omega-6 fats pro-inflammatory is wrong", url: AHA_URL, checkedOn: M71_CHECKED,
+  quote: "But to flip that and suggest this means omega-6 fats are pro-inflammatory is wrong." };
+const EFSA_2016 = "https://www.efsa.europa.eu/en/press/news/160503a";
+const EFSA_GLYCIDOL: Cite = { body: "EFSA", finding: "2016 opinion: glycidol is genotoxic and carcinogenic", url: EFSA_2016, checkedOn: M71_CHECKED,
+  quote: "There is sufficient evidence that glycidol is genotoxic and carcinogenic" };
+const EFSA_PALM: Cite = { body: "EFSA", finding: "2016 opinion: the highest levels were in palm oils and palm fats", url: EFSA_2016, checkedOn: M71_CHECKED,
+  quote: "The highest levels of GE, as well as 3-MCPD and 2-MCPD (including esters) were found in palm oils and palm fats" };
+const EU_GE: Cite = { body: "EU", finding: "Regulation (EU) 2018/290 sets legal maximum levels for glycidyl esters in oils and fats",
+  url: "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32018R0290", checkedOn: M71_CHECKED,
+  quote: "Glycidyl fatty acid esters are food contaminants found at highest levels in refined vegetable oils and fats." };
+
+const EPA_GLY_URL = "https://www.epa.gov/ingredients-used-pesticide-products/glyphosate";
+const IARC_GLYPHOSATE: Cite = { body: "IARC", finding: "2015 (Monographs vol. 112): glyphosate is Group 2A",
+  url: "https://www.iarc.who.int/featured-news/media-centre-iarc-news-glyphosate/", checkedOn: M71_CHECKED,
+  quote: "probably carcinogenic to humans" };
+const EPA_GLYPHOSATE: Cite = { body: "EPA", finding: "2017 assessment of glyphosate's cancer risk", url: EPA_GLY_URL, checkedOn: M71_CHECKED,
+  quote: "glyphosate is not likely to be carcinogenic to humans" };
+const EPA_COURT: Cite = { body: "EPA", finding: "June 2022: a court vacated the human health part of EPA's review; EPA says its finding is still current", url: EPA_GLY_URL, checkedOn: M71_CHECKED,
+  quote: "The Ninth Circuit vacated the human health portion of EPA's ID" };
+const EFSA_GLYPHOSATE: Cite = { body: "EFSA", finding: "2023 peer review of glyphosate",
+  url: "https://www.efsa.europa.eu/en/news/glyphosate-no-critical-areas-concern-data-gaps-identified", checkedOn: M71_CHECKED,
+  quote: "EFSA did not identify any critical areas of concern" };
+const FDA_RESIDUES: Cite = { body: "FDA", finding: "FY 2023 residue monitoring: 97.2% of domestic samples were within EPA's limits",
+  url: "https://www.fda.gov/food/hfp-constituent-updates/fda-releases-fy-2023-pesticide-residue-monitoring-report", checkedOn: M71_CHECKED,
+  quote: "generally in compliance with EPA pesticide tolerances" };
+
+const FDA_UPF_URL = "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/ultra-processed-foods";
+const FDA_UPF_LINKS: Cite = { body: "FDA", finding: "Research links ultra-processed foods to heart disease, obesity and certain cancers", url: FDA_UPF_URL, checkedOn: M71_CHECKED,
+  quote: "Researchers have found links between the consumption of highly processed foods (commonly called ultra-processed foods, or UPFs) and a range of negative health outcomes, including cardiovascular disease, obesity and certain cancers." };
+const FDA_UPF_RFI: Cite = { body: "FDA", finding: "July 2025: the FDA and USDA asked for input toward a uniform definition of UPFs", url: FDA_UPF_URL, checkedOn: M71_CHECKED,
+  quote: "On July 24, 2025, the FDA and USDA issued a Request for Information" };
+const HHS_UPF: Cite = { body: "HHS", finding: "August 2026: the first proposed federal definition went for final review; not yet published",
+  url: "https://www.hhs.gov/press-room/hhs-announces-ultra-processed-foods-gras-reforms.html", checkedOn: M71_CHECKED,
+  quote: "HHS and USDA submitted for final review the federal government's first proposed definition of UPFs." };
 
 export const EXPLAINERS: Record<ExplainerId, { title: string; teaser: string; sources: Cite[] }> = {
   "not-healthy": {
@@ -30,6 +74,21 @@ export const EXPLAINERS: Record<ExplainerId, { title: string; teaser: string; so
     teaser: "Levels show how strong the evidence is, not how much harm one serving does.",
     sources: [WHO_EVIDENCE, PROCESSED_MEAT.sources[2], PROCESSED_MEAT.sources[0], ACRYLAMIDE.sources[0], ACRYLAMIDE.sources[4]],
   },
+  "seed-oils": {
+    title: "Seed oils: what the evidence says",
+    teaser: "No health authority calls them harmful. The real issue is a refining contaminant.",
+    sources: [AHA_OMEGA6, AHA_POLY, AHA_INFLAMMATION, EFSA_GLYCIDOL, EFSA_PALM, EU_GE],
+  },
+  "pesticides": {
+    title: "Pesticides: what a label can’t tell you",
+    teaser: "Residues aren’t on labels, so no scan can see them. Here’s what regulators found.",
+    sources: [FDA_RESIDUES, IARC_GLYPHOSATE, EPA_GLYPHOSATE, EPA_COURT, EFSA_GLYPHOSATE],
+  },
+  "ultra-processed": {
+    title: "Ultra-processed foods: no official line yet",
+    teaser: "Strong research links, but no official US definition yet.",
+    sources: [FDA_UPF_LINKS, FDA_UPF_RFI, HHS_UPF],
+  },
 };
 
 const LEVELS = [
@@ -39,7 +98,32 @@ const LEVELS = [
   { v: "known", basis: "IARC Group 1 (for example, a processed meat product)" },
 ] as const;
 
-function Body({ id }: { id: ExplainerId }): ReactNode {
+function Body({ id, onOpen }: { id: ExplainerId; onOpen: (id: ExplainerId) => void }): ReactNode {
+  if (id === "seed-oils") return (
+    <>
+      <p>Seed oils (canola, corn, soy, sunflower and others) are mostly polyunsaturated fat, including omega‑6.</p>
+      <p>The American Heart Association (2024) supports omega‑6 as part of a healthy diet: polyunsaturated fats lower bad cholesterol and the risk of heart disease and stroke. The popular claim that they cause inflammation isn’t supported.</p>
+      <p><strong>The documented concern:</strong> refining oils at high heat can create contaminants (glycidyl esters, 3‑MCPD). EFSA (2016) found glycidol genotoxic and carcinogenic. Levels are highest in palm oil (not a seed oil), and the EU has set legal maximum levels since 2018.</p>
+      <p><strong>What EcoGo can do:</strong> contaminant levels aren’t on a label, so EcoGo doesn’t flag oils.</p>
+    </>
+  );
+  if (id === "pesticides") return (
+    <>
+      <p>Pesticide residues aren’t listed on ingredient labels, so EcoGo can’t check them for any product.</p>
+      <p>In the US, EPA sets legal limits and FDA tests food: in fiscal year 2023, 97.2% of domestic samples were within them.</p>
+      <p><strong>Glyphosate (Roundup):</strong> IARC (2015) classified it “probably carcinogenic to humans” (Group 2A). EPA (2017) says it’s “not likely to be carcinogenic to humans” (a court vacated part of that review in 2022; EPA says that finding is still current), and EFSA (2023) found no critical areas of concern.</p>
+      <p>They disagree partly because IARC rates how strong the evidence of a hazard is, while EPA and EFSA judge the risk at real-world exposure. See{" "}
+        <button onClick={() => onOpen("badge-levels")} aria-label="Open: What the badge levels mean" className="text-primary font-semibold underline">What the badge levels mean</button>.
+      </p>
+    </>
+  );
+  if (id === "ultra-processed") return (
+    <>
+      <p>The FDA says researchers have found links between ultra-processed foods and heart disease, obesity and some cancers.</p>
+      <p>There’s no official US definition yet. The FDA and USDA asked for input in July 2025, and in August 2026 HHS sent the first proposed definition for final review; it hasn’t been published.</p>
+      <p><strong>What EcoGo can do:</strong> without an official definition, EcoGo doesn’t label foods “ultra-processed”. It does flag what has official backing: processed meat (IARC Group 1), additives with official findings, and high sugar, saturated fat and salt by the FDA’s 5/20 rule.</p>
+    </>
+  );
   if (id === "not-healthy") return (
     <>
       <p>EcoGo’s badge looks for hazards with an official finding: additives (IARC, EU, FDA) and processed meat. It doesn’t rate nutrition.</p>
@@ -74,17 +158,20 @@ function Body({ id }: { id: ExplainerId }): ReactNode {
 }
 
 export default function Explainer({ id, onBack }: { id: ExplainerId; onBack: () => void }) {
-  const e = EXPLAINERS[id];
+  // A link inside a page (pesticides → badge levels) opens that page here; Back returns to the page it came from.
+  const [linked, setLinked] = useState<ExplainerId | null>(null);
+  const shown = linked ?? id;
+  const e = EXPLAINERS[shown];
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-background">
       <div className="px-4 pt-3 pb-3 flex items-center gap-3 border-b border-border">
-        <button onClick={onBack} aria-label="Back" className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+        <button onClick={() => (linked ? setLinked(null) : onBack())} aria-label="Back" className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
           <ArrowLeft size={16} />
         </button>
         <h1 className="text-base font-extrabold leading-tight">{e.title}</h1>
       </div>
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 text-sm leading-relaxed" style={{ scrollbarWidth: "none" }}>
-        <Body id={id} />
+      <div key={shown} className="flex-1 overflow-y-auto px-5 py-4 space-y-3 text-sm leading-relaxed" style={{ scrollbarWidth: "none" }}>
+        <Body id={shown} onOpen={setLinked} />
         <h2 className="font-bold text-sm pt-2">Sources</h2>
         <ul className="space-y-2.5">
           {e.sources.map(s => (

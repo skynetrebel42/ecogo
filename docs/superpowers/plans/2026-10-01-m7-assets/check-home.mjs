@@ -1,6 +1,8 @@
 // M7 (headless Edge): Home has no fake content; first visit shows "How EcoGo checks"; Scan card opens Scan;
 // Oreo (search) then Diet Coke (typed barcode) appear newest first; survives reload; Clear; explainers; Saved › Scanned.
-// Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4)
+// M7.1: Home lists 5 explainer cards (M7's two first); seed oils, pesticides and ultra-processed open with sources;
+// the pesticides page's "What the badge levels mean" link opens it and Back returns.
+// Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 import { spawn } from "node:child_process";
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const URL_ = process.argv[2];
@@ -86,6 +88,26 @@ try {
     await back();
   }
 
+  // M7.1: five cards, M7's two first, then seed oils, pesticides, ultra-processed (spec E1)
+  const cards = await run(`(() => { const h = [...document.querySelectorAll("h2")].find(e => e.innerText === "Hidden risks, explained");
+    return h ? [...h.nextElementSibling.querySelectorAll("button")].map(b => b.innerText.split("\\n")[0]) : []; })()`);
+  check("Home lists 5 explainer cards, in order", cards.length === 5 && /isn’t “healthy”/.test(cards[0]) && /badge levels/.test(cards[1])
+    && /^Seed oils/.test(cards[2]) && /^Pesticides/.test(cards[3]) && /^Ultra-processed/.test(cards[4]), JSON.stringify(cards));
+  for (const title of ["Seed oils: what the evidence says", "Pesticides: what a label", "Ultra-processed foods: no official line yet"]) {
+    await run(`(async () => { __btn(${JSON.stringify(title)}).click(); await __sleep(500); })()`);
+    const e = await run(`document.body.innerText`);
+    check(`M7.1 explainer opens with sources: ${title}`, e.includes("Sources") && e.includes("Source checked") && e.includes(title));
+    if (title.startsWith("Pesticides")) {
+      await run(`(async () => { __btn("Open: What the badge levels mean").click(); await __sleep(400); })()`);
+      const linked = await run(`[...document.querySelectorAll("h1")].map(h => h.innerText)`);
+      await back();
+      const backTo = await run(`[...document.querySelectorAll("h1")].map(h => h.innerText)`);
+      check("pesticides → 'What the badge levels mean' link, Back returns to pesticides",
+        linked.includes("What the badge levels mean") && backTo.some(t => t.startsWith("Pesticides")), `${JSON.stringify(linked)} → ${JSON.stringify(backTo)}`);
+    }
+    await back();
+  }
+
   await run(`(async () => { __btn("Clear recently scanned").click(); await __sleep(400); })()`);
   const after = await run(`document.body.innerText`);
   check("Clear empties the list", after.includes("How EcoGo checks a product") && !after.includes("Recently scanned"));
@@ -93,4 +115,5 @@ try {
 } finally {
   console.log(`${ok}/${total} checks passed`);
   edge.kill();
+  process.exit(total > 0 && ok === total ? 0 : 1); // the open DevTools socket would otherwise keep Node alive until the 120 s timeout
 }
