@@ -142,7 +142,7 @@
   it on the first detect, and per-frame detect errors are swallowed). Typing a barcode still works.
 - ✔ Fixed 2026-10-01: hiding the page while the camera was still starting left a dead view (the start-up code set
   "live" over "Camera paused."). It now stops after `video.play()` if it was paused meanwhile.
-- **iPhone and PC (ZXing path): "camera shows, never reads"** (owner, 2026-10-01; Android's built-in reader works).
+- ✔ **Fixed and confirmed by the owner 2026-10-01: iPhone and PC (ZXing path) "camera shows, never reads"** (Android's built-in reader worked).
   Root-cause hypothesis, reproduced in Node: without a size, Safari and desktop Chrome capture ~640×480, and ZXing
   can't read a slightly blurred barcode at ~2 px per bar (it reads it at 1920×1080). Fix shipped: ask for 1920×1080
   (`CAMERA_CONSTRAINTS`) plus continuous autofocus where supported. Open the site with `?debug` to see the real camera

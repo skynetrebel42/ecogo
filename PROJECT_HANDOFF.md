@@ -17,7 +17,7 @@
   owner requirements.** Its "previous session security fixes" were never in the code (ChatGPT's private sandbox copy).
   The owner's actual goals are still to be captured (see open questions).
 
-- **Phase:** M6 (camera scanning, phone layout, no invented barcodes) done; the owner's phone check decides prototype criterion 1. Next: the search fix, then the Home redesign. See the KNOWN_ISSUES.md roadmap.
+- **Phase:** M6 (camera scanning, phone layout, no invented barcodes) done; **prototype done 2026-10-01**: the owner scanned real products on Android, iPhone and PC (iPhone/PC needed HD capture, `8cb7bec`). Next: the search fix, then the Home redesign. See the KNOWN_ISSUES.md roadmap.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), a concern level
   (strongest official finding: additives, processed meat; acrylamide marker) from the safety engine (`src/lib/safety`, sourced library, `npm test` over all 51 products), realtime
@@ -38,7 +38,7 @@ These override anything in the AI-written planning docs.
 |---|---|
 | Purpose | Personal project to **showcase build skills**, with the intent to grow it into a **public app**. A viable, running prototype is enough for now |
 | Core value | **Product safety** and **barcode scanning**. Everything else (prices, map, lists, profile) comes later |
-| Prototype "done" means | **1) Scan a real product with a phone camera → product page. 2) A trustworthy safety score** (no false alarms) · *Status 2026-10-01: 2 met (M1–M5); 1 built in M6, met once the owner's phone check passes* |
+| Prototype "done" means | **1) Scan a real product with a phone camera → product page. 2) A trustworthy safety score** (no false alarms) · *Status 2026-10-01: **both met** (2 by M1–M5; 1 by M6 + the HD-capture fix, confirmed by the owner on Android, iPhone and PC)* |
 | Scan devices | All: iPhone, Android and laptop webcam, so use a JS scanning library (Safari has no built-in barcode reader) |
 | Product data | Curated 51 stay as featured; any other barcode is looked up in **USDA FoodData Central** (official manufacturer label data), then **Open Food Facts** (crowd-sourced, labelled) |
 | Safety score | **Computed from ingredients** with transparent rules, the same engine for curated and Open Food Facts products |
@@ -98,7 +98,7 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 012 | The DB is the source of truth for the catalog; the CSV is the seed source and offline fallback | One writer; the offline demo still works | **Done**. CSV edits don't reach the live DB (K-17) |
 | 013 | Scan locations are rounded to 3 decimals (~100 m), and scans are insert-only for clients | Privacy (earlier audit S-03) | **Superseded by 014** |
 | 014 | Scans are saved **without** location (owner goal) | Location isn't needed for the core scan → safety flow | **Done** (superseded by 017) |
-| 015 | Prototype "done" = real camera scan → product page with a trustworthy, ingredient-computed safety score; free tier only | Owner goals 2026-09-23 | Active: drives the roadmap |
+| 015 | Prototype "done" = real camera scan → product page with a trustworthy, ingredient-computed safety score; free tier only | Owner goals 2026-09-23 | **Met** 2026-10-01 |
 | 016 | USDA FoodData Central is the primary lookup, Open Food Facts a labelled fallback | Owner wants a diverse lineup from a trustworthy US source; OFF is crowd-sourced and worldwide | **Done** (M2) |
 | 017 | Scans are not saved at all; anonymous insert revoked | Nothing read them, and a public insert grant invites spam (S-04). Re-add with accounts when scans power a feature | **Done** (M3) |
 | 018 | GitHub Pages via GitHub Actions; history uses the owner's GitHub no-reply email | Free HTTPS, one account; the UCI email stays private | **Done** (M3) |
