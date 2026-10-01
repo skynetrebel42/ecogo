@@ -217,9 +217,18 @@ food and drinks first. Each step is small and verified in the running app before
    mean). The invented places, scores, deals, location pill and community resources are gone from Home; Saved › Scanned
    reads the same recent list (no more fake seed). Design: `docs/superpowers/specs/2026-10-01-m7-home-redesign-design.md`.
 
-**Next:** **M7.1** explainers on seed oils, pesticides and ultra-processed foods (official findings stated plainly;
-sources verified first), then the Profile tab's fake content (next cleanup candidate, M7.2), then accounts and the real
-map.
+10. ✅ **M7.1 explainers: done 2026-10-01** (`25ac748`, plus the docs commit). Three more "Hidden risks, explained"
+    pages: seed oils (AHA supports omega-6; the documented concern is refining contaminants, highest in palm oil, EU
+    limits since 2018), pesticides (residues aren't on labels; FDA FY 2023 residue results; glyphosate: IARC 2A vs EPA and
+    EFSA) and ultra-processed foods (research links, but no official US definition yet). Every quote re-checked word for
+    word on its live page. No badge or engine change. Design: `docs/superpowers/specs/2026-10-01-m71-explainers-design.md`.
+
+**Next:** the Profile tab's fake content (M7.2, spec `specs/2026-10-01-m72-profile-cleanup-design.md`), then accounts
+and the real map.
+
+**Revisit:** when the official US definition of ultra-processed foods is published (HHS/USDA sent the first proposed
+definition for final review in August 2026), update the "Ultra-processed foods: no official line yet" explainer and
+decide whether EcoGo can apply the definition (M7.1 spec §5).
 
 **✔ Search fixed 2026-10-01:** whole-word matching (`src/lib/search.ts`: every typed word must be a whole word, plurals either way, of the name, brand, category or keywords; "ice cream" now finds only Ben & Jerry's) plus a "More from USDA FoodData Central" list of up to 10 real products (`searchUsda`, one request per search text per session).
 

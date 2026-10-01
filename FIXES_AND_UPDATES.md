@@ -8,9 +8,23 @@ checked**, and the **commit**.
 
 | Date | Fix / update | Commit |
 |---|---|---|
+| 2026-10-01 | `check-home.mjs` exits when done (it waited for its 120 s timeout) | `25ac748` |
 | 2026-10-01 | Open Food Facts "Looks wrong? Fix it" and "Add it" links | `39ff6e3` |
 | 2026-10-01 | Search: whole-word matching + "More from USDA" results | `9d32c29` |
 | 2026-10-01 | Camera: HD capture for iPhone/PC, start-up race, `?debug` readout | `8cb7bec` |
+
+---
+
+## 2026-10-01 — `check-home.mjs` exits when done (`25ac748`)
+
+- **Wrong:** M7's headless check (`docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs`) printed
+  "12/12 checks passed", then sat for two minutes and printed "TIMEOUT", exiting with code 1 although every check
+  passed.
+- **Root cause:** the DevTools WebSocket stayed open after the checks, so Node kept running until the script's 120 s
+  safety timer killed it.
+- **Changed:** the script calls `process.exit` at the end (0 when every check passed, 1 otherwise). Found while building
+  M7 and extending the check for M7.1; not in either spec.
+- **Checked:** against `npm run build` + `vite preview --port 4317`: 17/17 checks passed, exit code 0, no wait.
 
 ---
 

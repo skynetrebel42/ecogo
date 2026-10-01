@@ -81,7 +81,7 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 | `src/lib/lookup.ts` | 146 | USDA FoodData Central + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session (no request) | SAFE TO EDIT |
 | `src/lib/scanner.ts` | 38 | Pure scan logic: grocery formats, `normalizeScanned` (digits; UPC-E → UPC-A), `confirmReads` (two identical reads in a row) | SAFE TO EDIT |
 | `src/lib/recent.ts` | 49 | "Recently scanned": `addRecent` (newest first, no duplicates, 10 max), `resolveRecent` (catalog ids re-read, looked-up snapshots kept), `parseRecent`, and `loadRecent`/`saveRecent` around `localStorage["ecogo.recent.v1"]` that never throw | SAFE TO EDIT |
-| `src/app/components/Explainer.tsx` | — | Home's "Hidden risks, explained" pages: `EXPLAINERS`, `ExplainerId`, plain text over official sources only (each with its verbatim quote and "Source checked" date) | SAFE TO EDIT (text must match its sources word for word) |
+| `src/app/components/Explainer.tsx` | — | Home's "Hidden risks, explained" pages (5: "Nothing flagged" isn't "healthy", badge levels, seed oils, pesticides, ultra-processed foods): `EXPLAINERS`, `ExplainerId`, plain text over official sources only (each with its verbatim quote and "Source checked" date; the M7.1 sources are `Cite` constants in the file) | SAFE TO EDIT (text must match its sources word for word) |
 | `src/lib/barcodeReader.ts` | 25 | `createDetector()`: the native BarcodeDetector when it reads all four grocery formats, else the `barcode-detector` ponyfill with ZXing's `.wasm` bundled by Vite (no CDN) | SAFE TO EDIT |
 | `src/app/components/CameraScanner.tsx` | 151 | Live back-camera screen: detect loop, torch, denied/unsupported/paused states, drawer for typing; stops the camera on ✕, unmount and page hide | SAFE TO EDIT |
 | `src/lib/nutrition.ts` | 99 | Added sugar, saturated fat and sodium per serving as FDA %DV with FDA's 5/20 rule, from USDA search records and OFF `nutriments`; pure | SAFE TO EDIT |
@@ -267,7 +267,7 @@ static or a no-op; **broken**.
 | Welcome → onboarding → guest | `WelcomeScreen`, `OnboardingScreen` | partial | "Sign In" has no handler; onboarding re-runs on every reload |
 | Bottom-tab navigation | `BottomNav` | working | |
 | Home: greeting, Scan card, search, recently scanned | `HomeTab`, `lib/recent.ts` | **working** | Real content only (M7); recently scanned kept on this device, newest first, with Clear |
-| Home: hidden-risk explainers | `Explainer.tsx` | **working** | "Nothing flagged" isn't "healthy" (FDA 5/20 rule); what the badge levels mean (WHO/IARC, acrylamide); verbatim sources with dates |
+| Home: hidden-risk explainers | `Explainer.tsx` | **working** | 5 pages: "Nothing flagged" isn't "healthy" (FDA 5/20 rule); what the badge levels mean (WHO/IARC, acrylamide); seed oils (AHA, EFSA, EU); pesticides (FDA, IARC, EPA, EFSA; links to badge levels); ultra-processed foods (FDA, HHS). Verbatim sources with dates; none changes the badge |
 | Product search | `HomeTab` → `SearchResultsScreen` | partial | Works; brand not searched; Back loses results |
 | Today's Deals | `HomeTab` | placeholder | Cards open unrelated products; "See all" → "No results for deals" |
 | Nearby resources | `HomeTab` | partial | From the DB; would crash Home if one of the first 5 had a type outside App's 6 (K-10) |
