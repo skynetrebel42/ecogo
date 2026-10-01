@@ -1,7 +1,7 @@
 # M7.1: Three more explainers (seed oils, pesticides, ultra-processed foods): design spec
 
 - **Date:** 2026-10-01
-- **Status:** draft, awaiting the owner's review
+- **Status:** approved by the owner 2026-10-01; plan to be written after M7 is built
 - **Asked for by:** the owner, 2026-10-01: "hidden risk addition: seed oils, pesticides, processed foods, talk about the
   risks that come with them". They chose **"Official findings, plainly"** and **"Own follow-up"** (after M7).
 - **Builds on:** M7 (`Explainer.tsx`, `EXPLAINERS`, Home's "Hidden risks, explained" list). **M7 must be built first.**
