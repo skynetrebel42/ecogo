@@ -151,6 +151,12 @@
 - A phone first loaded in landscape gets the 390×844 desktop frame (`IS_PHONE` is `max-width: 499px`, decided once at
   load).
 
+### Home follow-ups (from the M7/M7.1 final review, deferred)
+
+- Bookmarking a looked-up product that was reopened from Recently scanned (or opened from a USDA search result) doesn't
+  show it in Saved › Favorites: favorites are filtered from the catalog plus `lookedUp`, which only Scan fills. Fix: add
+  looked-up products to `lookedUp` in `openProduct` (`App.tsx`). Related: K-16.
+
 ### Hidden-risk candidates (each needs an official source before it's flagged)
 
 - Glycidyl esters, benzene and aflatoxins (process contaminants left out of M4).
@@ -217,7 +223,7 @@ food and drinks first. Each step is small and verified in the running app before
    mean). The invented places, scores, deals, location pill and community resources are gone from Home; Saved › Scanned
    reads the same recent list (no more fake seed). Design: `docs/superpowers/specs/2026-10-01-m7-home-redesign-design.md`.
 
-10. ✅ **M7.1 explainers: done 2026-10-01** (`25ac748`, plus the docs commit). Three more "Hidden risks, explained"
+10. ✅ **M7.1 explainers: done 2026-10-01** (`25ac748`, review fix `c0612ed`, plus the docs commits). Three more "Hidden risks, explained"
     pages: seed oils (AHA supports omega-6; the documented concern is refining contaminants, highest in palm oil, EU
     limits since 2018), pesticides (residues aren't on labels; FDA FY 2023 residue results; glyphosate: IARC 2A vs EPA and
     EFSA) and ultra-processed foods (research links, but no official US definition yet). Every quote re-checked word for
