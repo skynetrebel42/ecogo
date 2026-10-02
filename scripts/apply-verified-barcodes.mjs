@@ -2,6 +2,7 @@
 // barcode) and prints the matching SQL migration. Usage: node scripts/apply-verified-barcodes.mjs > migration.sql
 // Rerun whenever the JSON changes; the DB change itself goes through a new migration (never edit applied ones).
 import { readFileSync, writeFileSync } from "node:fs";
+import { splitCSVLine as split } from "../src/lib/productImporter.ts";
 
 const root = new URL("../", import.meta.url);
 const data = JSON.parse(readFileSync(new URL("src/data/verified-barcodes.json", root), "utf8"));
@@ -9,23 +10,6 @@ const csvPath = new URL("src/data/products.csv", root);
 const text = readFileSync(csvPath, "utf8");
 const nl = text.includes("\r\n") ? "\r\n" : "\n";
 
-/** Split one CSV line into fields, keeping quoted commas; "" is an escaped quote. */
-function split(line) {
-  const out = [];
-  let cur = "", quoted = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (quoted) {
-      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-      else if (c === '"') quoted = false;
-      else cur += c;
-    } else if (c === '"') quoted = true;
-    else if (c === ",") { out.push(cur); cur = ""; }
-    else cur += c;
-  }
-  out.push(cur);
-  return out;
-}
 const quote = (v) => (/[",\n]/.test(v) || v !== v.trim() ? `"${v.replace(/"/g, '""')}"` : v);
 const quoteAlways = (v) => `"${v.replace(/"/g, '""')}"`;
 
