@@ -466,83 +466,61 @@ function SavedTab({ savedIds, scanned, initialTab = "favorites", onSelectProduct
 }
 
 // ── Profile Tab ───────────────────────────────────────────────────────────────
-function ProfileTab() {
-  const STATS = [
-    { label: "Money Saved",       value: "$47.80", Icon: DollarSign, color: "#10B981", bg: "#DCFCE7" },
-    { label: "CO₂ Reduced",       value: "12.4 kg", Icon: Leaf,       color: "#0EA5E9", bg: "#E0F2FE" },
-    { label: "Products Scanned",  value: "34",      Icon: QrCode,     color: "#8B5CF6", bg: "#EDE9FE" },
-    { label: "Ethical Purchases", value: "21",      Icon: Shield,     color: "#F59E0B", bg: "#FEF3C7" },
-  ];
-  const BADGES = [
-    { name: "Eco Warrior",     emoji: "🌿", earned: true },
-    { name: "Budget Pro",      emoji: "💰", earned: true },
-    { name: "Community Hero",  emoji: "🤝", earned: false },
-    { name: "Clean Eater",     emoji: "🥗", earned: true },
-    { name: "Label Reader",    emoji: "🔍", earned: false },
-    { name: "Ethical Shopper", emoji: "⭐", earned: true },
-  ];
+// Spec: docs/superpowers/specs/2026-10-01-m72-profile-cleanup-design.md (layout A). Only true things; no account yet.
+const SOURCES_INFO = [
+  { name: "USDA FoodData Central", text: "Label data supplied by the makers. Checked first." },
+  { name: "Open Food Facts", text: "Crowd-sourced, used when USDA has no match, and always marked." },
+  { name: "IARC, EU, FDA, EFSA, WHO", text: "The official findings behind every badge, each linked on the product page." },
+  { name: "FDA % Daily Value", text: "Sugar, saturated fat and salt per serving, by the FDA's 5/20 rule." },
+];
+
+function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onClearRecent: () => void }) {
+  const card = "bg-card border border-border rounded-2xl p-3.5 space-y-2.5";
   return (
-    <div className="h-full overflow-y-auto bg-background" style={{ scrollbarWidth: "none" }}>
-      <div className="px-5 pt-4 pb-6" style={{ background: "linear-gradient(160deg, #1A5C39, #10B981)" }}>
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-2xl font-extrabold text-white shadow-lg">A</div>
+    <div className="h-full overflow-y-auto bg-background px-5 pt-4 pb-8 space-y-3.5" style={{ scrollbarWidth: "none" }}>
+      <div>
+        <h1 className="text-xl font-extrabold leading-tight text-primary">Profile</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">No account yet. What you do stays on this device.</p>
+      </div>
+
+      <section className={card}>
+        <h2 className="font-bold text-base">Your data</h2>
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-extrabold text-white">Alex Johnson</h1>
-            <p className="text-white/60 text-sm">alex@email.com</p>
-            <div className="flex items-center gap-1 mt-1.5">
-              <div className="flex items-center gap-0.5">{[0,1,2,3,4].map(i => <Star key={i} size={10} className={i < 4 ? "fill-yellow-300 text-yellow-300" : "text-white/30"} />)}</div>
-              <span className="text-xs text-white/80 font-medium">Level 4 · Conscious Shopper</span>
-            </div>
+            <p className="text-sm font-bold">Recently scanned</p>
+            <p className="text-xs text-muted-foreground">
+              {recentCount === 0 ? "Nothing scanned yet" : `${recentCount} product${recentCount === 1 ? "" : "s"}, saved in this browser only`}
+            </p>
           </div>
+          {recentCount > 0 && (
+            <button onClick={onClearRecent} aria-label="Clear recently scanned"
+              className="px-3.5 rounded-xl border border-border text-xs font-bold flex-shrink-0" style={{ minHeight: 44 }}>Clear</button>
+          )}
         </div>
-      </div>
-      <div className="px-5">
-        <div className="grid grid-cols-2 gap-3 -mt-4 mb-5">
-          {STATS.map(s => (
-            <div key={s.label} className="bg-card border border-border rounded-2xl p-3.5 shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: s.bg }}>
-                  <s.Icon size={13} style={{ color: s.color }} />
-                </div>
-                <span className="text-[10px] text-muted-foreground font-medium leading-tight">{s.label}</span>
-              </div>
-              <p className="text-xl font-extrabold">{s.value}</p>
-            </div>
-          ))}
-        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">Favorites are kept until you close EcoGo. Saving them for good comes with accounts.</p>
+      </section>
 
-        <h2 className="font-bold text-base mb-3">Achievements</h2>
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          {BADGES.map(b => (
-            <div key={b.name} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border text-center ${b.earned ? "bg-card border-border shadow-sm" : "bg-muted/50 border-border/50 opacity-50"}`}>
-              <span className="text-2xl">{b.emoji}</span>
-              <span className="text-[10px] font-semibold leading-tight">{b.name}</span>
-              {b.earned && <span className="text-[9px] text-primary font-bold">Earned</span>}
-            </div>
-          ))}
-        </div>
+      <section className={card}>
+        <h2 className="font-bold text-base">Where results come from</h2>
+        {SOURCES_INFO.map(s => (
+          <div key={s.name}>
+            <p className="text-sm font-bold">{s.name}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{s.text}</p>
+          </div>
+        ))}
+      </section>
 
-        <h2 className="font-bold text-base mb-3">Settings</h2>
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm mb-8">
-          {[
-            { Icon: Bell, label: "Notifications" },
-            { Icon: Moon, label: "Dark Mode" },
-            { Icon: Shield, label: "Privacy" },
-            { Icon: Award, label: "Achievements" },
-            { Icon: Settings, label: "App Settings" },
-          ].map(({ Icon, label }, i, arr) => (
-            <button key={label} className={`w-full flex items-center justify-between px-4 py-3.5 text-left active:bg-muted transition-colors ${i < arr.length - 1 ? "border-b border-border" : ""}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center">
-                  <Icon size={15} className="text-muted-foreground" />
-                </div>
-                <span className="text-sm font-medium">{label}</span>
-              </div>
-              <ChevronRight size={14} className="text-muted-foreground" />
-            </button>
-          ))}
-        </div>
-      </div>
+      <section className={card}>
+        <h2 className="font-bold text-base">Privacy</h2>
+        <p className="text-xs text-foreground/80 leading-relaxed">The camera reads barcodes on your phone. No images are uploaded.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to USDA or Open Food Facts.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">The product catalog loads from EcoGo's database. Your recently scanned list stays in this browser.</p>
+      </section>
+
+      <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+        A student project. Not medical advice.{" "}
+        <a href="https://github.com/skynetrebel42/ecogo" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Source code and updates</a>
+      </p>
     </div>
   );
 }
@@ -714,7 +692,7 @@ export default function App() {
                     />
                   )}
                   {activeTab === "saved"   && <SavedTab savedIds={savedIds} scanned={recentProducts} initialTab={savedInitialTab} onSelectProduct={openProduct} products={[...products, ...lookedUp]} />}
-                  {activeTab === "profile" && <ProfileTab />}
+                  {activeTab === "profile" && <ProfileTab recentCount={recentProducts.length} onClearRecent={() => setRecent([])} />}
                 </div>
               )}
 
