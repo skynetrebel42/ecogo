@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase, USDA_RELAY_URL } from "../lib/supabase";
-import { loadCatalog } from "../lib/catalog";
+import { loadCatalog, type ResourceRow } from "../lib/catalog";
+import MapTab from "./components/MapTab";
 import ProductDetailScreen from "./components/ProductDetailScreen";
 import ScanTab from "./components/ScanTab";
 import csvText from "../data/products.csv?raw";
@@ -14,14 +15,14 @@ import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import {
-  Home, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
+  Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
   Bookmark, Wifi, QrCode
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type AppState = "welcome" | "main";
-// The Map tab is hidden until it shows real places (M7.4 spec M1); MapTab.tsx stays in the repo, unimported.
-type Tab = "home" | "scan" | "saved" | "profile";
+// The Map is back with real Los Angeles places from OpenStreetMap (M9).
+type Tab = "home" | "map" | "scan" | "saved" | "profile";
 type SubScreen = "search-results" | "product-detail" | null;
 
 // ── Data ─────────────────────────────────────────────────────────────────────
@@ -355,6 +356,7 @@ const SOURCES_INFO = [
   { name: "Open Food Facts", text: "Crowd-sourced, used when USDA has no match, and always marked." },
   { name: "IARC, EU, FDA, EFSA, WHO", text: "The official findings behind every badge, each linked on the product page." },
   { name: "FDA % Daily Value", text: "Sugar, saturated fat and salt per serving, by the FDA's 5/20 rule." },
+  { name: "OpenStreetMap", text: "Map places, community-edited. Hours can change." },
 ];
 
 function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onClearRecent: () => void }) {
@@ -398,6 +400,7 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
         <p className="text-xs text-foreground/80 leading-relaxed">The camera reads barcodes on your phone. No images are uploaded.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to USDA or Open Food Facts.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The product catalog loads from EcoGo's database. Your recently scanned list stays in this browser.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">The map asks for your location only when you tap My location. It stays on your phone. Map images load from OpenStreetMap.</p>
       </section>
 
       <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
@@ -412,6 +415,7 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
 function BottomNav({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t: Tab) => void }) {
   const TABS: { id: Tab; Icon: React.ElementType; label: string }[] = [
     { id: "home",    Icon: Home,   label: "Home"    },
+    { id: "map",     Icon: MapIcon, label: "Map"    },
     { id: "scan",    Icon: Camera, label: "Scan"    },
     { id: "saved",   Icon: Heart,  label: "Saved"   },
     { id: "profile", Icon: User,   label: "Profile" },
@@ -460,6 +464,8 @@ export default function App() {
 
   // ── Live data from Supabase ──────────────────────────────────────────────
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  // The Map's places come only from the database: no bundled copy (M9 spec D11).
+  const [places, setPlaces] = useState<ResourceRow[]>([]);
   const [dbStatus, setDbStatus] = useState<"loading" | "live" | "offline">("loading");
 
   const loadData = useCallback(async () => {
@@ -468,6 +474,7 @@ export default function App() {
       // An empty catalog means a misconfigured DB, not "live" data: keep the bundled copy.
       if (catalog.products.length === 0) throw new Error("catalog is empty");
       setProducts(catalog.products);
+      setPlaces(catalog.resources);
       setDbStatus("live");
     } catch (err) {
       console.warn("[catalog] using bundled data:", err);
@@ -555,6 +562,7 @@ export default function App() {
                       recent={recentProducts}
                     />
                   )}
+                  {activeTab === "map"     && <MapTab places={places} status={dbStatus} />}
                   {activeTab === "scan"    && (
                     <ScanTab products={products} onScanResult={openProduct} />
                   )}

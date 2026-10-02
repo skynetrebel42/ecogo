@@ -1,4 +1,4 @@
-// catalog.ts — reads the product catalog and community resources from Supabase.
+// catalog.ts — reads the product catalog and the Map's food places (`resources`) from Supabase.
 //
 // Schema: supabase/migrations/20260923221344_catalog_schema.sql. Rows are mapped
 // into the same Product shape the CSV importer produces. The legacy score
@@ -7,6 +7,7 @@
 
 import { supabase } from "./supabase";
 import type { Product } from "./productImporter";
+import type { Place } from "./osmPlaces";
 
 interface ProductRow {
   id: number;
@@ -20,18 +21,8 @@ interface ProductRow {
   categories: { name: string } | null;
 }
 
-export interface ResourceRow {
-  id: number;
-  name: string;
-  type: string;
-  address: string;
-  hours: string;
-  phone: string | null;
-  description: string;
-  latitude: number;
-  longitude: number;
-  rating: number | null;
-}
+/** A food place on the Map: an OpenStreetMap snapshot row (M9; see osmPlaces.ts). */
+export type ResourceRow = Place & { id: number };
 
 const PRODUCT_COLUMNS = "id, barcode, name, brand, description, ingredients, image_url, keywords, categories(name)";
 
