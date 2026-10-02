@@ -38,7 +38,8 @@ const META: Record<NutrientId, { label: string; short: string; unit: "g" | "mg" 
 const ORDER: NutrientId[] = ["addedSugar", "satFat", "sodium"];
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
-const record = (v: unknown) => (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+/** Any value → an object to read fields from ({} for null, strings, numbers). */
+export const record = (v: unknown) => (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
 
 const nearest = (v: number, step: number) => Math.round(v / step) * step;
 
