@@ -138,7 +138,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
     <div className="absolute inset-0 z-50 flex flex-col bg-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
       {/* ── Hero ── */}
-      <div className="flex-shrink-0 relative" style={{ background: look.gradient, minHeight: 268 }}>
+      <div className="flex-shrink-0 relative" style={{ background: look.gradient }}>
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4 z-10">
           <button onClick={onBack} aria-label="Back" className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
             <ArrowLeft size={18} color="white" />
