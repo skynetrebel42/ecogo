@@ -156,6 +156,8 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
     mapRef.current?.flyTo([p.latitude, p.longitude], Math.max(mapRef.current.getZoom(), 16), { duration: 0.7 });
   }
 
+  const toLa = () => mapRef.current?.flyTo(LA_CENTER, LA_ZOOM, { duration: 1 });
+
   // Location only on tap; never stored or sent anywhere.
   function locate() {
     if (!navigator.geolocation) { setLocateNote("off"); return; }
@@ -166,14 +168,14 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
         setUserLoc(pos); setLocateNote(null); setLocating(false);
         mapRef.current?.flyTo(pos, inLaCounty(pos[0], pos[1]) ? 14 : 10, { duration: 1 });
       },
-      () => { setLocateNote("off"); setLocating(false); mapRef.current?.flyTo(LA_CENTER, LA_ZOOM, { duration: 1 }); },
+      () => { setLocateNote("off"); setLocating(false); toLa(); },
       { timeout: 8000 },
     );
   }
 
   function backToLa() {
     setUserLoc(null);
-    mapRef.current?.flyTo(LA_CENTER, LA_ZOOM, { duration: 1 });
+    toLa();
   }
 
   const toggle = (t: PlaceType) => setActiveTypes(prev => { const next = new Set(prev); next.has(t) ? next.delete(t) : next.add(t); return next; });
