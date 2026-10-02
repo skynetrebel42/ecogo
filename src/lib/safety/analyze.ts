@@ -10,6 +10,8 @@ export interface Analysis { verdict: Verdict; flags: Flag[]; checkedCount: numbe
 
 /** "Fewest concerns first" order; lower is better. no-data / non-food sort last. */
 export const VERDICT_RANK: Record<Verdict, number> = { none: 0, some: 1, high: 2, known: 3, "no-data": 4, "non-food": 5 };
+/** Concern levels by severity rank (SEVERITY_RANK 0-3), weakest first. */
+export const LEVELS: readonly Verdict[] = ["none", "some", "high", "known"];
 
 /** Categories the library covers (food & drinks first). */
 export const FOOD_CATEGORIES: ReadonlySet<string> = new Set([
@@ -68,6 +70,6 @@ export function analyzeIngredients(
 
   flags.sort((a, b) => SEVERITY_RANK[b.entry.severity] - SEVERITY_RANK[a.entry.severity]);
   const top = Math.max(0, ...flags.map(f => SEVERITY_RANK[f.entry.severity]));
-  const verdict: Verdict = (["none", "some", "high", "known"] as const)[top];
+  const verdict: Verdict = LEVELS[top];
   return { verdict, flags, checkedCount };
 }

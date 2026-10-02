@@ -1,12 +1,10 @@
 // assess.ts — one product → its concern level: the strongest of the additive check and the food-level concerns.
 // Spec: docs/superpowers/specs/2026-09-30-m4-concern-levels-design.md §4.3. Pure, so Node tests can load it.
-import { analyzeIngredients, type Analysis, type Verdict } from "./analyze.ts";
+import { analyzeIngredients, LEVELS, type Analysis } from "./analyze.ts";
 import { SEVERITY_RANK } from "./library.ts";
 import { foodConcerns, type FoodConcern, type FoodInput } from "./foodConcerns.ts";
 
 export interface Assessment extends Analysis { concerns: FoodConcern[] }
-
-const LEVELS: readonly Verdict[] = ["none", "some", "high", "known"];
 
 export function assessProduct(p: FoodInput & { additiveCodes?: string[] }): Assessment {
   // Looked-up products have no catalog category (both sources are food databases).
