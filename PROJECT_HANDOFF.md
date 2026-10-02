@@ -13,7 +13,7 @@
   capstone wording in the pasted Figma Make prompt. Prioritize what makes the app useful, not demo value.
 - **Provenance of the planning docs:** the original "PROJECT HANDOFF" that started this work was **written by ChatGPT**
   from the owner's brainstorming, and the owner has not reviewed its contents. `src/imports/pasted_text/project-guidelines.md`
-  (the Figma Make prompt) appears to be the same kind of AI-written prompt. Treat both as **unverified hypotheses, not
+  (the Figma Make prompt; deleted 2026-10-02 as unreferenced, still in git history) appears to be the same kind of AI-written prompt. Treat both as **unverified hypotheses, not
   owner requirements.** Its "previous session security fixes" were never in the code (ChatGPT's private sandbox copy).
   The owner's actual goals are still to be captured (see open questions).
 
