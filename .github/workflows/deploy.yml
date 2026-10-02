@@ -26,13 +26,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - name: Check the USDA key secret
-        env:
-          VITE_FDC_API_KEY: ${{ secrets.VITE_FDC_API_KEY }}
-        run: test -n "$VITE_FDC_API_KEY" || { echo "::error::Add the VITE_FDC_API_KEY repository secret"; exit 1; }
+      # No USDA key here: the usda-relay Edge Function holds it as a Supabase secret (M7.5).
       - run: npm run build
-        env:
-          VITE_FDC_API_KEY: ${{ secrets.VITE_FDC_API_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
