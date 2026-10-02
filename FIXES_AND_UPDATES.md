@@ -8,12 +8,56 @@ checked**, and the **commit**.
 
 | Date | Fix / update | Commit |
 |---|---|---|
+| 2026-10-02 | Over-engineering cleanup (ponytail audit): importer 608 → 76 lines, price plumbing, unused files, tokens, a dependency | `5ea0ce8`…`4843e2b` |
+| 2026-10-02 | Product page header fits its content (empty band where the price was) | `06ab0d7` |
 | 2026-10-02 | `recent.ts` cleanup: unused `barcode`/`at` fields, `now` parameter and `RECENT_KEY` export removed | `f9ed15a` |
 | 2026-10-02 | `check-home.mjs`: fresh Edge profile every run (flaky first-visit check) | `ba8cc10` |
 | 2026-10-01 | `check-home.mjs` exits when done (it waited for its 120 s timeout) | `25ac748` |
 | 2026-10-01 | Open Food Facts "Looks wrong? Fix it" and "Add it" links | `39ff6e3` |
 | 2026-10-01 | Search: whole-word matching + "More from USDA" results | `9d32c29` |
 | 2026-10-01 | Camera: HD capture for iPhone/PC, start-up race, `?debug` readout | `8cb7bec` |
+
+---
+
+## 2026-10-02 — Over-engineering cleanup from a ponytail audit (`5ea0ce8`…`4843e2b`)
+
+- **Asked:** the PM chat relayed a whole-repo over-engineering audit, and the owner approved a no-behaviour-change
+  cleanup before M7.5: about −1,060 lines and one dependency fewer. Leaflet, leaflet.markercluster and `MapTab.tsx`
+  stay for M9.
+- **Why:** code nothing reads. The Figma export's CSV importer logged diagnostics no one looked at, the price code
+  outlived the prices on screen (M7.4), and the Figma template left unused theme tokens, an animation library, an
+  unused font, an empty PostCSS config and its build prompt.
+- **Changed (one commit each):**
+  - `5ea0ce8` price plumbing: `bestPrice`, the `amazon`/`walmart`/`facebook` fields on `Product`, `product_prices`
+    in `catalog.ts`'s select and mapping, and `product_prices` in the realtime loop. The DB rows stay; `resources`
+    stays in the loop for M9. `ProductSource` (asked for too) was **kept**: it describes a looked-up product's source
+    and is used by `lookup.ts` and the product page.
+  - `ca38c21` `productImporter.ts` 608 → 76 lines: split quoted lines (`splitCSVLine`, exported), first row per id,
+    build `Product`. The validation reports, warnings and `IMPORT_DIAGNOSTICS` are gone.
+  - `854ce20` `scripts/apply-verified-barcodes.mjs` imports `splitCSVLine` instead of its own copy.
+  - `3b5db9e` deleted `src/imports/pasted_text/project-guidelines.md` (the Figma Make prompt, unreferenced).
+  - `3cfc31b` `theme.css`: the unused `--sidebar-*`, `--chart-*`, `--popover*`, `--accent*`, `--destructive*`,
+    `--input-background` and `--switch-background` tokens and their `@theme` mappings.
+  - `935cbaf` deleted `postcss.config.mjs` (`export default {}`; no parent folder has a PostCSS config).
+  - `b2b5a6f` removed the `tw-animate-css` dependency and its `@import`.
+  - `e73ca51` DM Mono out of the Google Fonts URL; `fonts.css` and `tailwind.css` merged into `index.css`.
+  - `4843e2b` `App.tsx` imports `Product` directly (no `CsvProduct` alias).
+- **Checked:** every name grepped before deleting it. `npm test` 157/157 and `npm run build` green after each commit.
+  The parsed CSV catalog (51 products) is byte-for-byte identical before and after the importer changes; the barcode
+  script's SQL output is identical and `products.csv` unchanged. A declaration-level diff of the built CSS shows only
+  the removed tokens, tw-animate-css's own properties, a `.paused` rule Tailwind generated from a state string (never a
+  class), and the font URL. `check-home.mjs` 32/32 against `vite preview`. Net −1,066 lines (54 added, 1,120
+  removed); JS 572 → 565 KB, CSS 37.4 → 35.1 KB.
+
+---
+
+## 2026-10-02 — Product page header fits its content (`06ab0d7`)
+
+- **Asked:** after M7.4 took the price and store chips out of the product page's coloured header, its fixed 268 px
+  minimum height left an empty band. The owner asked to fix it before pushing.
+- **Changed:** the header's `minHeight: 268` is gone, so it takes its content's height (`ProductDetailScreen.tsx`).
+- **Checked:** `npm test` 157/157, `npm run build`, `check-home.mjs` 32/32 against `vite preview`; a 390 px
+  screenshot of Diet Coke shows the header ending just below the name and badge.
 
 ---
 

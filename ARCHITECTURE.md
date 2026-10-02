@@ -33,7 +33,7 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | Item | Value |
 |---|---|
 | Runtime | Node 24.21.0, npm 11.19.0 (`package-lock.json`) |
-| Frontend | React 18.3.1, Vite 6.3.5, Tailwind 4.1.12 via `@tailwindcss/vite`, lucide-react. 7 runtime dependencies (M0 removed 53 unused ones and the shadcn/ui kit) |
+| Frontend | React 18.3.1, Vite 6.3.5, Tailwind 4.1.12 via `@tailwindcss/vite`, lucide-react. 8 runtime dependencies (M0 removed 53 unused ones and the shadcn/ui kit; tw-animate-css went in the 2026-10-02 cleanup) |
 | Map | leaflet 1.9.4 + leaflet.markercluster 1.5.3 (used directly, no react-leaflet). Installed, but only the hidden `MapTab.tsx` imports them, so they're not in the bundle (M7.4) |
 | Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. There is **no edge function.** |
 | Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). `.env.local` (gitignored): `VITE_FDC_API_KEY`, the owner's free data.gov key for USDA FoodData Central (without it the app falls back to `DEMO_KEY`, 30 lookups/hour). Restart the dev server after changing it. |
@@ -53,9 +53,9 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
  │ productImporter.ts ◄─ products.csv (bundled) ─► initial / offline catalog    │
  └──────────┬─────────────────────────────┬──┼──────────────────────────────────┘
             │ (1) SELECT products,        │  │ (3) no writes: scans aren't saved (M3)
-            │     prices, categories,     │  │
+            │     categories,             │  │
             │     resources               │  │
-            │ (2) Realtime: any change on products / product_prices / resources
+            │ (2) Realtime: any change on products / resources
             │     → App re-runs loadData()│  │
             ▼                             ▼  ▼
  ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -79,7 +79,7 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | `src/app/components/MapTab.tsx` | 593 | **Unimported since M7.4** (Map tab hidden): Leaflet map, 18 invented Chicago resources, filters, bottom sheet; kept for the real map (M9) | SAFE TO EDIT |
 | `src/app/components/ScanTab.tsx` | 266 | Simulated scanner: demo barcodes, type-a-barcode, catalog → lookup, not-found and error states | SAFE TO EDIT |
 | `src/lib/catalog.ts` | 103 | **Database read layer**: `loadCatalog()` plus the row → `Product` mapper | SAFE TO EDIT |
-| `src/lib/productImporter.ts` | 595 | `parseProductsCSV(text)` → `Product[]`, `bestPrice` (unused by the UI since M7.4); defines the canonical `Product` type. App.tsx feeds it the bundled CSV (`?raw`); tests read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
+| `src/lib/productImporter.ts` | 76 | `parseProductsCSV(text)` → `Product[]` (first row per id; no price fields since the 2026-10-02 cleanup) and `splitCSVLine`; defines the canonical `Product` and `ProductSource` types. App.tsx feeds it the bundled CSV (`?raw`); tests and `scripts/apply-verified-barcodes.mjs` read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
 | `src/lib/lookup.ts` | 146 | USDA FoodData Central + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session (no request) | SAFE TO EDIT |
 | `src/lib/scanner.ts` | 38 | Pure scan logic: grocery formats, `normalizeScanned` (digits; UPC-E → UPC-A), `confirmReads` (two identical reads in a row) | SAFE TO EDIT |
 | `src/lib/recent.ts` | 49 | "Recently scanned": `addRecent` (newest first, no duplicates, 10 max), `resolveRecent` (catalog ids re-read, looked-up snapshots kept), `parseRecent`, and `loadRecent`/`saveRecent` around `localStorage["ecogo.recent.v1"]` that never throw | SAFE TO EDIT |
@@ -99,12 +99,14 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | `src/styles/*.css` | — | Tailwind entry, theme tokens, Google Fonts | EDIT WITH CAUTION |
 | `scripts/verify-sources.mjs` | — | Library source check (`npm run verify:sources`) | SAFE TO EDIT |
 | `.github/workflows/deploy.yml` | — | On every push to `main`: `npm ci`, `npm test`, check the `VITE_FDC_API_KEY` secret, build, deploy `dist/` to GitHub Pages | EDIT WITH CAUTION (every push publishes) |
-| `src/imports/pasted_text/project-guidelines.md` | 425 | Prompt pasted into Figma Make. Its "capstone/instructor" wording is template text: this is a **personal project**. Use it as engineering-style guidance, not as requirements | Reference only |
-| `ATTRIBUTIONS.md`, `postcss.config.mjs` | — | Figma template leftovers | Leave alone |
+| `ATTRIBUTIONS.md` | — | Figma template leftover | Leave alone |
 
 Removed in step 2: `utils/supabase/info.tsx` (key for the retired Figma project) and `supabase/functions/server/*`
 (the key-value edge function). Removed in M0 (`764271c`): the shadcn `ui/` kit (48 files), `figma/`, `guidelines/`,
 `pnpm-workspace.yaml`, `default_shadcn_theme.css`, `globals.css`. All remain available in the baseline commit `9ccf3ce`.
+Removed 2026-10-02 (cleanup): `src/imports/pasted_text/project-guidelines.md` (the Figma Make prompt, unreferenced;
+its "capstone" wording was template text), the empty `postcss.config.mjs`, and `src/styles/fonts.css` +
+`tailwind.css` (merged into `index.css`).
 
 ## 5. `App.tsx` responsibility map
 
@@ -231,7 +233,8 @@ Verified live on 2026-09-23 with the publishable key. Reading `scan_events`, upd
 ### Realtime
 
 `products`, `product_prices` and `resources` are in the `supabase_realtime` publication. The app opens one channel
-(`catalog-realtime`) and re-runs `loadData()` on any INSERT/UPDATE/DELETE, because events can be dropped and a
+(`catalog-realtime`) and re-runs `loadData()` on any INSERT/UPDATE/DELETE of `products` or `resources` (since the
+2026-10-02 cleanup it no longer listens to `product_prices`, which nothing reads), because events can be dropped and a
 re-fetch is always correct. `scan_events` is deliberately **not** published, since it holds locations. Verified live:
 a price changed in SQL showed up in the open app within about 3 s, without a reload.
 
@@ -246,7 +249,7 @@ CLI (`supabase link` then `supabase db push`) or by pasting them into the SQL ed
 
 | Data | Source of truth | Read path | Write path | Fallback | Realtime | Survives reload? |
 |---|---|---|---|---|---|---|
-| Products (+ category, prices) | `products`, `product_prices`, `categories` tables | `loadCatalog()` → `rowToProduct` (same shape as the CSV importer; verified identical for all 51). Prices are loaded but not shown (invented, K-30; M7.4) | Dashboard / SQL (service role) | Bundled CSV (initial render, or when Supabase fails or returns no rows) | Any change → re-fetch | yes |
+| Products (+ category) | `products`, `categories` tables (`product_prices` holds the invented prices, K-30: no longer read) | `loadCatalog()` → `rowToProduct` (same shape as the CSV importer; verified identical for all 51) | Dashboard / SQL (service role) | Bundled CSV (initial render, or when Supabase fails or returns no rows) | Any change → re-fetch | yes |
 | Resources (invented demo places) | `resources` table; `MapTab.tsx BASE_RESOURCES` (18, lat/lng) | `loadCatalog()` still reads the table; **nothing shows it** since M7.4 (Map hidden, `App.tsx RESOURCES`/`rowToResource` deleted) | Dashboard / SQL | — | Any change → re-fetch (harmless) | n/a |
 | Scan events | `scan_events` table | nobody (service role only) | **no longer written (M3)**; kept for history, anonymous insert revoked | — | not published | yes (server side) |
 | Looked-up products | fetched live per session from USDA FoodData Central (manufacturer label data) or Open Food Facts (crowd-sourced); never stored | `lookupBarcode()` (session cache) | — | error state with Try again | — | no (session list in App state) |
@@ -307,5 +310,5 @@ static or a no-op; **broken**.
 | Open Food Facts (`world.openfoodfacts.org/api/v3`) | `lookup.ts` | No key; crowd-sourced, labelled as such; ODbL credit on product pages; `X-User-Agent: EcoGo/0.1 (personal project)` |
 | tile.openstreetmap.org | MapTab (hidden since M7.4: no tiles load) | public tiles via the deprecated `{s}` subdomains; attribution hidden by UI |
 | images.unsplash.com | Home recommendations | hotlinked photo ids |
-| fonts.googleapis.com | `fonts.css` | Plus Jakarta Sans, DM Mono |
+| fonts.googleapis.com | `src/styles/index.css` | Plus Jakarta Sans (DM Mono dropped 2026-10-02: it was never wired to `font-mono`) |
 | Product/barcode APIs (Open Food Facts etc.) | — | **none**; offline-only |
