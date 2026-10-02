@@ -1,0 +1,4115 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-06-01T08:52:28Z",
+    "timestamp_areas_base": "2026-06-01T08:52:28Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 2247860156,
+  "lat": 34.0997432,
+  "lon": -118.3282980,
+  "tags": {
+    "addr:city": "Hollywood",
+    "addr:housenumber": "1600",
+    "addr:postcode": "90028",
+    "addr:street": "Ivar Avenue",
+    "amenity": "marketplace",
+    "name": "Hollywood Farmers Market",
+    "note": "Sunday mornings only.",
+    "opening_hours": "Su 08:00-13:00",
+    "website": "https://hfm.la/"
+  }
+},
+{
+  "type": "node",
+  "id": 2406529085,
+  "lat": 34.0542041,
+  "lon": -118.2408525,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "201",
+    "addr:state": "CA",
+    "addr:street": "North Main Street",
+    "amenity": "marketplace",
+    "name": "Los Angeles Mall (closed forever)"
+  }
+},
+{
+  "type": "node",
+  "id": 2772079846,
+  "lat": 34.2006316,
+  "lon": -118.1575822,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Altadena Farmer's Market"
+  }
+},
+{
+  "type": "node",
+  "id": 3362770643,
+  "lat": 33.7850560,
+  "lon": -118.1678896,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Cherry Market"
+  }
+},
+{
+  "type": "node",
+  "id": 3646860883,
+  "lat": 34.1905714,
+  "lon": -118.1590834,
+  "tags": {
+    "addr:city": "Altadena",
+    "addr:housenumber": "2609",
+    "addr:postcode": "91001",
+    "addr:state": "CA",
+    "addr:street": "North Lincoln Avenue",
+    "amenity": "social_facility",
+    "name": "Altadena S.D.A. Church - Food Bank",
+    "opening_hours": "Tu[2,4] 09:00-12:00",
+    "operator": "Altadena S.D.A. Church",
+    "phone": "+1-626-794-3953",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3646871294,
+  "lat": 34.0210673,
+  "lon": -118.1498999,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "701",
+    "addr:postcode": "90022",
+    "addr:state": "CA",
+    "addr:street": "Hoefner Avenue",
+    "amenity": "social_facility",
+    "name": "Eastmont Community Center - Food Bank",
+    "opening_hours": "Mo-Fr 09:00-11:00",
+    "operator": "Eastmont Community Center",
+    "phone": "+1-323-726-7998",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3646948889,
+  "lat": 34.0339159,
+  "lon": -118.2695622,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1835",
+    "addr:postcode": "90015",
+    "addr:state": "CA",
+    "addr:street": "South Hope Street",
+    "amenity": "social_facility",
+    "name": "St. Francis Center - Food Bank",
+    "opening_hours": "Tu-Th 11:00-24:00, Sa 11:00-24:00",
+    "operator": "St. Francis Center",
+    "phone": "+1-213-747-5347",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3646951250,
+  "lat": 34.1687097,
+  "lon": -118.1413392,
+  "tags": {
+    "addr:city": "Pasadena",
+    "addr:housenumber": "1330",
+    "addr:postcode": "91104",
+    "addr:state": "CA",
+    "addr:street": "Los Robles Avenue",
+    "amenity": "social_facility",
+    "name": "Ecumenical Council of Pasadena Area Congregations - Food Bank",
+    "opening_hours": "Tu,We 09:00-15:00",
+    "operator": "Ecumenical Council of Pasadena Area Congregations",
+    "phone": "+1-626-797-2402",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3646952322,
+  "lat": 34.0328208,
+  "lon": -118.3309917,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4211",
+    "addr:postcode": "90018",
+    "addr:state": "CA",
+    "addr:street": "West Adams Boulevard",
+    "amenity": "social_facility",
+    "name": "Berean S.D.A. Church Food Bank",
+    "opening_hours": "Th[3] 09:00-11:00",
+    "operator": "Berean S.D.A. Church",
+    "phone": "+1-323-735-0228",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3646956173,
+  "lat": 33.9444597,
+  "lon": -118.2459060,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "10122",
+    "addr:postcode": "90002",
+    "addr:state": "CA",
+    "addr:street": "Compton Avenue",
+    "amenity": "social_facility",
+    "denomination": "catholic",
+    "ele": "34",
+    "name": "Saint Lawrence of Brindisi Food Bank",
+    "opening_hours": "Tu,Th 07:00-08:30",
+    "operator": "Saint Lawrence of Brindisi",
+    "phone": "+1-323-567-1439",
+    "religion": "christian",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3646961456,
+  "lat": 34.3765458,
+  "lon": -118.5251322,
+  "tags": {
+    "addr:city": "Newhall",
+    "addr:housenumber": "24133",
+    "addr:postcode": "91321",
+    "addr:state": "CA",
+    "addr:street": "Railroad Avenue",
+    "amenity": "social_facility",
+    "name": "Santa Clarita Valley Food Pantry",
+    "opening_hours": "3rd Fri. 9:00 AM - 12:00 PM",
+    "phone": "+1-661-255-9078",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3646962244,
+  "lat": 34.1499888,
+  "lon": -118.3872871,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4390",
+    "addr:postcode": "91604",
+    "addr:state": "CA",
+    "addr:street": "Colfax Avenue",
+    "amenity": "social_facility",
+    "name": "North Hollywood Interfaith Food Pantry",
+    "opening_hours": "Mo,Fr 08:30-13:00",
+    "phone": "+1 818-760-3575",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3681611344,
+  "lat": 34.0469193,
+  "lon": -118.2989615,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2727",
+    "addr:postcode": "90006",
+    "addr:state": "CA",
+    "addr:street": "West Pico Boulevard",
+    "amenity": "social_facility",
+    "name": "Saint Thomas Center Food Bank",
+    "note": "#maptime, #maptimela",
+    "opening_hours": "Sa[1-3] 07:00-09:00",
+    "operator": "Saint Thomas Center",
+    "phone": "+1-323-737-3325",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3692741204,
+  "lat": 34.0506556,
+  "lon": -118.2744365,
+  "tags": {
+    "amenity": "social_facility",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3692741205,
+  "lat": 33.9599665,
+  "lon": -118.2423767,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1722",
+    "addr:postcode": "90001",
+    "addr:state": "CA",
+    "addr:street": "Firestone Boulevard",
+    "amenity": "social_facility",
+    "name": "Good News Prayer Center",
+    "opening_hours": "Sa[3] 10:00-12:00",
+    "phone": "+1-323-753-0117",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3692761519,
+  "lat": 33.9758947,
+  "lon": -118.2473770,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "7016",
+    "addr:postcode": "90001",
+    "addr:state": "CA",
+    "addr:street": "Compton Avenue",
+    "amenity": "social_facility",
+    "name": "Pilgrim's Hope Baptist Church",
+    "opening_hours": "We[2] 09:00-11:00",
+    "phone": "+1-323-581-7672",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3692761569,
+  "lat": 33.9814666,
+  "lon": -118.2497367,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "6406",
+    "addr:postcode": "90001",
+    "addr:state": "CA",
+    "addr:street": "Parmelee Avenue",
+    "amenity": "social_facility",
+    "name": "Presentation of Mary Catholic Church",
+    "opening_hours": "Sa[3] 07:30-08:30",
+    "phone": "+1-323-585-0570",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3692804594,
+  "lat": 33.9749574,
+  "lon": -118.2493437,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1417",
+    "addr:postcode": "90001",
+    "addr:state": "CA",
+    "addr:street": "East Florence Avenue",
+    "amenity": "social_facility",
+    "name": "Travelers Rest Missionary Baptist Church",
+    "opening_hours": "We 11:00-13:00",
+    "phone": "+1-323-582-7797",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3692812006,
+  "lat": 33.9677927,
+  "lon": -118.2479182,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "7807",
+    "addr:postcode": "90001",
+    "addr:state": "CA",
+    "addr:street": "Compton Avenue",
+    "amenity": "social_facility",
+    "name": "Food Net-Florence Firestone Center",
+    "opening_hours": "Tu[2] 09:00-13:00",
+    "phone": "+1-323-586-6502",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3694518547,
+  "lat": 34.0752878,
+  "lon": -118.2127842,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2808",
+    "addr:street": "Altura Street",
+    "amenity": "social_facility",
+    "name": "Church of the Epiphany Food Pantry",
+    "opening_hours": "Fr[2,4] 10:30-11:30",
+    "phone": "+1-323-227-9931",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3694520596,
+  "lat": 34.0702989,
+  "lon": -118.2126901,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2210",
+    "addr:street": "Sichel Street",
+    "amenity": "social_facility",
+    "name": "Sacred Heart Church Food Pantry",
+    "opening_hours": "Th[1,3] 10:00-12:30",
+    "phone": "+1-323-221-3179",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3694522871,
+  "lat": 34.0779254,
+  "lon": -118.2154895,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2635",
+    "addr:street": "Pasadena Avenue",
+    "amenity": "social_facility",
+    "name": "Los Angeles Boys & Girls Club Food Pantry",
+    "opening_hours": "Th 17:00-18:00",
+    "phone": "+1-323-221-9111",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3694529413,
+  "lat": 34.0861155,
+  "lon": -118.1902318,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4509",
+    "addr:street": "Mercury Avenue",
+    "amenity": "social_facility",
+    "name": "Our Lady of Guadalupe Church Food Bank",
+    "opening_hours": "Mo-We 07:30-08:30",
+    "phone": "+1-323-225-4201",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3697979357,
+  "lat": 34.0856733,
+  "lon": -118.1728243,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "3431",
+    "addr:street": "Portola Avenue",
+    "amenity": "social_facility",
+    "name": "All Saints Conference Food Pantry",
+    "opening_hours": "Fr[2,4] 15:00-17:00",
+    "phone": "+1 323-221-5452",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3697987807,
+  "lat": 34.0851667,
+  "lon": -118.1797553,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4810",
+    "addr:street": "Huntington Drive South",
+    "amenity": "social_facility",
+    "name": "Cory's Kitchen-El Sereno Food Pantry",
+    "opening_hours": "Mo 16:30-18:30",
+    "phone": "+1-323-972-1330",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3697988977,
+  "lat": 34.0496589,
+  "lon": -118.2158930,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "401",
+    "addr:street": "State Street",
+    "amenity": "social_facility",
+    "name": "White Memorial S.D.A. Church Food Pantry",
+    "opening_hours": "Tu 10:00-12:00",
+    "phone": "+1-323-264-2170",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3697992922,
+  "lat": 34.0368278,
+  "lon": -118.2048741,
+  "tags": {
+    "addr:housenumber": "427",
+    "addr:street": "South Evergreen Avenue",
+    "amenity": "social_facility",
+    "name": "Our Lady of Talpa Church Food Pantry",
+    "opening_hours": "Tu[3] 13:00-15:00",
+    "phone": "+1-323-268-7731",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3697993774,
+  "lat": 34.0521055,
+  "lon": -118.2201940,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1307",
+    "addr:street": "Warren Street",
+    "amenity": "social_facility",
+    "name": "Catholic Charities - Brownson House Food Pantry",
+    "opening_hours": "Mo-Fr 09:00-13:00",
+    "phone": "+1-323-264-8700",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3698750067,
+  "lat": 34.0397377,
+  "lon": -118.2024829,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "122",
+    "addr:street": "South Evergreen Avenue",
+    "amenity": "social_facility",
+    "name": "Iglesia Pentecostes Roca de Salvacion Food Pantry",
+    "opening_hours": "Sa 15:00-16:00",
+    "phone": "+1-323-832-5313",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3699223196,
+  "lat": 34.0547356,
+  "lon": -118.3848267,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "8846",
+    "addr:street": "Pico Boulevard",
+    "amenity": "social_facility",
+    "check_date": "2023-06-29",
+    "name": "JFS/SOVA Community Food & Resource Program Food Pantry",
+    "opening_hours": "Mo,We,Fr 10:00-13:30; Su[1,3] 09:00-12:00",
+    "phone": "+1 818-988-7682",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3699274203,
+  "lat": 34.0516144,
+  "lon": -118.2152050,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1815",
+    "addr:street": "Bridge Street",
+    "amenity": "social_facility",
+    "name": "Spanish American S.D.A. Church Food Pantry",
+    "opening_hours": "We 18:00-19:30",
+    "phone": "+1-323-222-7063",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3699274937,
+  "lat": 34.0306389,
+  "lon": -118.1995310,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "611",
+    "addr:street": "South Lorena Street",
+    "amenity": "social_facility",
+    "name": "East LA Community Corporation Food Pantry",
+    "opening_hours": "Fr 09:00-11:00",
+    "phone": "+1-323-269-4214",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3699276746,
+  "lat": 34.0111333,
+  "lon": -118.2957046,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1135",
+    "addr:street": "Martin Luther King Junior Boulevard",
+    "amenity": "social_facility",
+    "name": "University S.D.A. Church Food Pantry",
+    "opening_hours": "We 13:00 - 14:30",
+    "phone": "+1-323-766-9889",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3699281910,
+  "lat": 34.0008867,
+  "lon": -118.2743369,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "104",
+    "addr:street": "West 47th Street",
+    "amenity": "social_facility",
+    "name": "Holy Cross Center Food Pantry",
+    "opening_hours": "Mo,We,Fr 9:00-11:00",
+    "phone": "+1-323-232-3333",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3702219084,
+  "lat": 33.9585338,
+  "lon": -118.2561758,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "8724",
+    "addr:postcode": "90002",
+    "addr:state": "CA",
+    "addr:street": "S. Central Avenue",
+    "amenity": "social_facility",
+    "name": "Bethel Unspeakable Joy Christian Church",
+    "opening_hours": "Sa[2,4] 08:00-10:00",
+    "operator": "Bethel Unspeakable Joy Christian Church",
+    "phone": "+1-323-585-5939",
+    "social_facility": "food_bank",
+    "source": "#MaptimeLA, #Maptime",
+    "website": "https://www.g12joy.net/"
+  }
+},
+{
+  "type": "node",
+  "id": 3702240860,
+  "lat": 33.9525781,
+  "lon": -118.2557053,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "9218",
+    "addr:postcode": "90002",
+    "addr:state": "CA",
+    "addr:street": "S. Central Avenue",
+    "amenity": "social_facility",
+    "name": "Iglesia Macedonia Defenders of the Christian Faith",
+    "opening_hours": "Tu 19:00-20:00",
+    "phone": "+1-323-804-6615",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3702248893,
+  "lat": 33.9709509,
+  "lon": -118.2649790,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "7600",
+    "addr:postcode": "90003",
+    "addr:state": "CA",
+    "addr:street": "South Avalon Boulevard",
+    "amenity": "social_facility",
+    "name": "Estelle Van Meter Multipurpose Center",
+    "opening_hours": "We[1,3] 10:30-11:30",
+    "operator": "City of Los Angeles",
+    "phone": "+1-323-753-3881",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3702254727,
+  "lat": 33.9570828,
+  "lon": -118.2785032,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "8803-8807",
+    "addr:postcode": "90003",
+    "addr:state": "CA",
+    "addr:street": "South Broadway",
+    "amenity": "social_facility",
+    "name": "Celestial Church of Christ Ebenezery Parish",
+    "opening_hours": "Sa 11:00-13:30",
+    "phone": "+1-323-752-4400",
+    "social_facility": "food_bank",
+    "website": "http://www.cccebenezeryparish.com/394766082"
+  }
+},
+{
+  "type": "node",
+  "id": 3702280334,
+  "lat": 33.9744788,
+  "lon": -118.2765760,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "210",
+    "addr:postcode": "90003",
+    "addr:state": "CA",
+    "addr:street": "West Florence Avenue",
+    "amenity": "social_facility",
+    "name": "Greater New Morning Star Baptist Church",
+    "opening_hours": "Sa 08:00-11:00",
+    "phone": "+1-323-529-4446",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3704071714,
+  "lat": 33.9735424,
+  "lon": -118.2653434,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "7301",
+    "addr:postcode": "90003",
+    "addr:state": "CA",
+    "addr:street": "Avalon Boulevard",
+    "amenity": "social_facility",
+    "name": "Gospel Mission Baptist Church",
+    "opening_hours": "We[4] 11:00-12:00",
+    "phone": "+1-323-759-8087",
+    "social_facility": "food_bank",
+    "website": "https://www.gospelmissionmbc.org/"
+  }
+},
+{
+  "type": "node",
+  "id": 3704077901,
+  "lat": 33.9476905,
+  "lon": -118.2654242,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "9719",
+    "addr:postcode": "90003",
+    "addr:state": "CA",
+    "addr:street": "Avalon Boulevard",
+    "amenity": "social_facility",
+    "name": "Greater New Unity Baptist Church",
+    "opening_hours": "Sa[3] 08:30-10:00",
+    "phone": "+1-323-757-5094",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3704107937,
+  "lat": 33.9859366,
+  "lon": -118.2697051,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "5951",
+    "addr:postcode": "90003",
+    "addr:state": "CA",
+    "addr:street": "South San Pedro Street",
+    "amenity": "social_facility",
+    "name": "Vision of Hope Outreach Ministry",
+    "opening_hours": "Sa[2,4] 15:00-16:00",
+    "phone": "+1-323-233-4647",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3707405933,
+  "lat": 33.7427754,
+  "lon": -118.2987840,
+  "tags": {
+    "addr:city": "Long Beach",
+    "addr:housenumber": "138",
+    "addr:postcode": "90731",
+    "addr:state": "CA",
+    "addr:street": "South Bandini Street",
+    "amenity": "social_facility",
+    "name": "San Pedro Temple Corps",
+    "note": "#maptime #maptimela food bank added",
+    "opening_hours": "Fr 09:00-12:00,14:00-15:00",
+    "phone": "+1-310-832-7228",
+    "social_facility": "food_bank",
+    "social_facility:for": "abused"
+  }
+},
+{
+  "type": "node",
+  "id": 3707408683,
+  "lat": 33.8599800,
+  "lon": -118.1846555,
+  "tags": {
+    "addr:city": "Long Beach",
+    "addr:housenumber": "628",
+    "addr:postcode": "90805",
+    "addr:state": "CA",
+    "addr:street": "South Street",
+    "amenity": "social_facility",
+    "name": "Bread of Life Community Outreach",
+    "opening_hours": "We[2] 10:30-11:30",
+    "phone": "+1-562-428-5422",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3707416023,
+  "lat": 33.7963468,
+  "lon": -118.1851488,
+  "tags": {
+    "addr:city": "Long Beach",
+    "addr:housenumber": "2155",
+    "addr:postcode": "90806",
+    "addr:state": "CA",
+    "addr:street": "Atlantic Avenue",
+    "amenity": "social_facility",
+    "name": "Filipino Baptist Fellowship of Long Beach",
+    "opening_hours": "Sa[3] 10:00-13:00",
+    "phone": "+1-310-212-5175",
+    "social_facility": "food_bank",
+    "source": "#maptime #maptimela food bank added"
+  }
+},
+{
+  "type": "node",
+  "id": 3707422331,
+  "lat": 33.8197952,
+  "lon": -118.1209908,
+  "tags": {
+    "addr:city": "Long Beach",
+    "addr:housenumber": "3435",
+    "addr:postcode": "90808",
+    "addr:state": "CA",
+    "addr:street": "San Anseline Avenue",
+    "amenity": "social_facility",
+    "name": "First Southern Baptist Church of Long Beach",
+    "note": "3",
+    "opening_hours": "Sa[3] 10:00-12:00",
+    "phone": "+1-562-422-8027",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3707422332,
+  "lat": 33.8197952,
+  "lon": -118.1209908,
+  "tags": {
+    "addr:city": "Long Beach",
+    "addr:housenumber": "3435",
+    "addr:postcode": "90808",
+    "addr:state": "CA",
+    "addr:street": "San Anseline Avenue",
+    "amenity": "social_facility",
+    "name": "First Southern Baptist Church of Long Beach",
+    "note": "#maptime #maptimela food bank added",
+    "opening_hours": "Sa[3] 10:00-12:00",
+    "phone": "+1-562-422-8027",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3707424469,
+  "lat": 33.7867728,
+  "lon": -118.1742547,
+  "tags": {
+    "addr:city": "Long Beach",
+    "addr:housenumber": "1535",
+    "addr:postcode": "90813",
+    "addr:state": "CA",
+    "addr:street": "Gundry Avenue",
+    "amenity": "social_facility",
+    "name": "Helping In Services, Inc.",
+    "note": "#maptime #maptimela food  bank added",
+    "opening_hours": "Fr[1,3] 09:00-12:00",
+    "phone": "+1-562-591-8778",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3707440978,
+  "lat": 33.7874666,
+  "lon": -118.1925503,
+  "tags": {
+    "addr:city": "Long Beach",
+    "addr:housenumber": "1611",
+    "addr:postcode": "90813",
+    "addr:state": "CA",
+    "addr:street": "Pine Avenue",
+    "amenity": "social_facility",
+    "name": "Long Beach Lutheran Social Services",
+    "note": "#maptime #maptimela food bank added",
+    "opening_hours": "Mo-Th 10:00-12:00,12:30-14:00",
+    "phone": "+1-562-599-1321",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3707445798,
+  "lat": 33.7350778,
+  "lon": -118.2961376,
+  "tags": {
+    "addr:city": "San Pedro",
+    "addr:housenumber": "867",
+    "addr:postcode": "90731",
+    "addr:state": "CA",
+    "addr:street": "West 10th Street",
+    "amenity": "social_facility",
+    "name": "Rock Solid Christian Assembly",
+    "note": "#maptime #maptimela food bank added",
+    "opening_hours": "Su[2,4] 12:30-13:30",
+    "phone": "+1-310-832-2788",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3707452005,
+  "lat": 34.0793082,
+  "lon": -118.2933083,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4101",
+    "addr:postcode": "90004",
+    "addr:state": "CA",
+    "addr:street": "Rosewood Avenue",
+    "amenity": "social_facility",
+    "name": "Rosewood Revitalization Group",
+    "opening_hours": "Fr[3] 15:30-16:30",
+    "phone": "+1-323-662-1194",
+    "social_facility": "food_bank",
+    "website": "https://www.lowincomehousing.us/det/ca_Rosewood_Revitalization_Group"
+  }
+},
+{
+  "type": "node",
+  "id": 3707452006,
+  "lat": 33.7824325,
+  "lon": -118.2682216,
+  "tags": {
+    "addr:city": "Wilmington",
+    "addr:housenumber": "943",
+    "addr:postcode": "90744",
+    "addr:state": "CA",
+    "addr:street": "Lagoon Avenue",
+    "amenity": "social_facility",
+    "name": "St. Peter and Paul Poverty Program",
+    "note": "#maptime #maptimela food bank added",
+    "opening_hours": "Mo,Tu,Th 09:00-11:00",
+    "phone": "+1-310-952-0144",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3707452551,
+  "lat": 34.0792449,
+  "lon": -118.2939051,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "504",
+    "addr:postcode": "90004",
+    "addr:state": "CA",
+    "addr:street": "North Berendo Street",
+    "amenity": "social_facility",
+    "name": "Los Angeles Housing Partnership / Rosewood Gardens Senior Apartments",
+    "opening_hours": "Fr[1] 15:30-16:30",
+    "operator": "Los Angeles Regional Food Bank",
+    "phone": "+1-213-629-9172",
+    "social_facility": "food_bank",
+    "website": "https://www.lahousingpartnership.com/Property_RosewoodGardens.html"
+  }
+},
+{
+  "type": "node",
+  "id": 3707454541,
+  "lat": 33.7837528,
+  "lon": -118.2628791,
+  "tags": {
+    "addr:city": "Wilmington",
+    "addr:housenumber": "1035",
+    "addr:postcode": "90744",
+    "addr:state": "CA",
+    "addr:street": "North Avalon Boulevard",
+    "amenity": "social_facility",
+    "name": "Nuevo Amanecer",
+    "note": "#maptime #maptimela food bank added",
+    "opening_hours": "Sa[1,3] 10:00-11:00",
+    "phone": "+1-310-847-6937",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3707457056,
+  "lat": 33.8123413,
+  "lon": -118.2604819,
+  "tags": {
+    "addr:city": "Carson",
+    "addr:housenumber": "23400",
+    "addr:postcode": "90745",
+    "addr:state": "CA",
+    "addr:street": "South Avalon Boulevard",
+    "amenity": "social_facility",
+    "name": "City of Truth Ministries",
+    "note": "#maptime #maptimela food bank added",
+    "opening_hours": "Sa[3] 10:00-12:00",
+    "phone": "+1-310-617-2914",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3707460891,
+  "lat": 33.8406692,
+  "lon": -118.2549780,
+  "tags": {
+    "addr:city": "Carson",
+    "addr:housenumber": "1139 Suite D",
+    "addr:postcode": "90746",
+    "addr:state": "CA",
+    "addr:street": "East Dominguez Street",
+    "amenity": "social_facility",
+    "name": "City of Truth Ministries",
+    "note": "#maptime #maptimela food bank added",
+    "opening_hours": "Su[2,4] 12:30-14:00",
+    "phone": "+1-310-669-8300",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3714502465,
+  "lat": 34.0575414,
+  "lon": -118.2902212,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2936",
+    "addr:postcode": "90005",
+    "addr:state": "CA",
+    "addr:street": "W. 8th St",
+    "amenity": "social_facility",
+    "name": "First Unitarian Church of Los Angeles",
+    "opening_hours": "Sa 08:00-10:00",
+    "operator": "Hope Net",
+    "phone": "+1 213 389 1356",
+    "social_facility": "food_bank",
+    "website": "https://www.uula.org/"
+  }
+},
+{
+  "type": "node",
+  "id": 3714508380,
+  "lat": 34.0582733,
+  "lon": -118.2889654,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "760",
+    "addr:postcode": "90005",
+    "addr:state": "CA",
+    "addr:street": "South Westmoreland Avenue",
+    "amenity": "social_facility",
+    "name": "First Baptist Church of Los Angeles",
+    "note": "Food Pantry open at the Eighth Street door",
+    "opening_hours": "Fr 08:00-09:30",
+    "phone": "+1-213-384-2151",
+    "social_facility": "food_bank",
+    "website": "https://fbcofla.org/"
+  }
+},
+{
+  "type": "node",
+  "id": 3724115711,
+  "lat": 34.0456589,
+  "lon": -118.2834673,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1366",
+    "addr:postcode": "90006",
+    "addr:state": "CA",
+    "addr:street": "South Alvarado Street",
+    "amenity": "social_facility",
+    "name": "Central Spanish Seventh Day Adventist Church",
+    "opening_hours": "Sa[4] 17:00-18:00",
+    "phone": "+1-818-649-0893",
+    "social_facility": "food_bank",
+    "website": "https://www.centralspanish.org/"
+  }
+},
+{
+  "type": "node",
+  "id": 3724125231,
+  "lat": 34.0319144,
+  "lon": -118.2918378,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2625",
+    "addr:postcode": "90007",
+    "addr:state": "CA",
+    "addr:street": "S. Vermont Ave",
+    "amenity": "social_facility",
+    "name": "St Agnes Church",
+    "opening_hours": "Mo-Tu 9:00-10:30;Th-Fr 9:00-10:30",
+    "operator": "Los Angeles Regional Food Bank",
+    "phone": "+1-323-731-2464",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3724139450,
+  "lat": 34.0328124,
+  "lon": -118.2752610,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "650",
+    "addr:postcode": "90007-2030",
+    "addr:state": "CA",
+    "addr:street": "West 21st Street",
+    "amenity": "social_facility",
+    "name": "Los Angeles Central City Seventh-day Adventist Church",
+    "opening_hours": "Tu[3] 12:00-14:00",
+    "phone": "+1-213-749-9646",
+    "social_facility": "food_bank",
+    "website": "https://losangelescentralcity22.adventistchurchconnect.org/"
+  }
+},
+{
+  "type": "node",
+  "id": 3728605465,
+  "lat": 33.9480202,
+  "lon": -118.2779605,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "9706",
+    "addr:postcode": "90003",
+    "addr:state": "CA",
+    "addr:street": "South Broadway",
+    "amenity": "social_facility",
+    "name": "Holy Trinity Church of God in Christ",
+    "opening_hours": "Sa 12:00-14:00",
+    "operator": "Holy Trinity Church of God in Christ",
+    "phone": "+1-323-777-2965",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732301010,
+  "lat": 34.0274444,
+  "lon": -118.2756105,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "514",
+    "addr:postcode": "90007",
+    "addr:state": "CA",
+    "addr:street": "West Adams Boulevard",
+    "amenity": "social_facility",
+    "name": "St. John's Cathedral-Hope Net",
+    "opening_hours": "Su[1,3] 12:30-13:30",
+    "operator": "St. John's Cathedral-Hope Net",
+    "phone": "+1-213-747-6285",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732303744,
+  "lat": 34.0330405,
+  "lon": -118.2983637,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1631",
+    "addr:postcode": "90007",
+    "addr:state": "CA",
+    "addr:street": "West Adams Boulevard",
+    "amenity": "social_facility",
+    "name": "Redeemer Missionary Baptist Church",
+    "opening_hours": "Sa 10:00-13:00 \"biweekly\"",
+    "operator": "Redeemer Missionary Baptist Church",
+    "phone": "+1-323-732-4124",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732303798,
+  "lat": 34.0041338,
+  "lon": -118.3296221,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "3303",
+    "addr:postcode": "90008",
+    "addr:state": "CA",
+    "addr:street": "West Vernon Avenue",
+    "amenity": "social_facility",
+    "name": "Christ the Good Shepherd Episcopal",
+    "opening_hours": "Fr[4] 10:00-13:00",
+    "operator": "Christ the Good Shepherd Episcopal",
+    "phone": "+1-323-295-4139",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732307700,
+  "lat": 34.0069031,
+  "lon": -118.3408230,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "3740",
+    "addr:postcode": "90008",
+    "addr:state": "CA",
+    "addr:street": "Don Felipe Drive",
+    "amenity": "social_facility",
+    "name": "Crenshaw United Methodist Church",
+    "opening_hours": "Sa[3] 10:00-12:00",
+    "operator": "Crenshaw United Methodist Church",
+    "phone": "+1-323-292-0141",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732309098,
+  "lat": 34.0034278,
+  "lon": -118.3194002,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2400",
+    "addr:postcode": "90008",
+    "addr:state": "CA",
+    "addr:street": "West Vernon Avenue",
+    "amenity": "social_facility",
+    "name": "Good News Missionary Baptist Church",
+    "opening_hours": "Th[2,4] 11:00-13:00",
+    "operator": "Good News Missionary Baptist Church",
+    "phone": "+1-323-292-3589",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732360544,
+  "lat": 34.0256794,
+  "lon": -118.2565427,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "822",
+    "addr:postcode": "90011",
+    "addr:state": "CA",
+    "addr:street": "East 20th Street",
+    "amenity": "social_facility",
+    "name": "All Peoples Christian Center",
+    "opening_hours": "Fr 12:00-17:00",
+    "operator": "All Peoples Christian Center",
+    "phone": "+1 213-747-6357",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732371254,
+  "lat": 34.0192692,
+  "lon": -118.2602039,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2800",
+    "addr:postcode": "90011",
+    "addr:state": "CA",
+    "addr:street": "Stanford Avenue",
+    "amenity": "social_facility",
+    "name": "St. Philip's Episcopal Church",
+    "opening_hours": "Tu[2,4] 07:30-08:30",
+    "operator": "St. Philip's Episcopal Church",
+    "phone": "+1-323-291-8917",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732371731,
+  "lat": 34.0031354,
+  "lon": -118.2568565,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4425",
+    "addr:postcode": "90011",
+    "addr:state": "CA",
+    "addr:street": "Central Avenue",
+    "amenity": "social_facility",
+    "name": "Cover the Homeless Ministry",
+    "opening_hours": "Th[-1] 12:00-13:00",
+    "operator": "Cover the Homeless Ministry",
+    "phone": "+1-323-931-5468",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732372419,
+  "lat": 33.9970811,
+  "lon": -118.2480908,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "5017",
+    "addr:postcode": "90011",
+    "addr:state": "CA",
+    "addr:street": "Compton Avenue",
+    "amenity": "social_facility",
+    "name": "Saint Mark Missionary Baptist",
+    "opening_hours": "We 08:00-10:00",
+    "phone": "+1 323-231-1040",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732396908,
+  "lat": 33.9974462,
+  "lon": -118.2649809,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "5014",
+    "addr:postcode": "90011",
+    "addr:state": "CA",
+    "addr:street": "Avalon Boulevard",
+    "amenity": "social_facility",
+    "name": "HOAP Inc.",
+    "opening_hours": "Th 10:30- 12:30",
+    "operator": "HOAP Inc.",
+    "phone": "+1-323-232-7256",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732396909,
+  "lat": 34.0000902,
+  "lon": -118.2607215,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4802",
+    "addr:postcode": "90011",
+    "addr:state": "CA",
+    "addr:street": "McKinley Avenue",
+    "amenity": "social_facility",
+    "name": "Victory Baptist Church",
+    "opening_hours": "Fr 7:30-9:30",
+    "operator": "Victory Baptist Church",
+    "phone": "+1-323-231-2424",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732403713,
+  "lat": 34.0571561,
+  "lon": -118.2397573,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "535",
+    "addr:postcode": "90012",
+    "addr:state": "CA",
+    "addr:street": "North Main Street",
+    "amenity": "social_facility",
+    "name": "Our Lady Queen of Angels Catholic Church",
+    "opening_hours": "Fr 08:00-11:00",
+    "operator": "Our Lady Queen of Angels Catholic Church",
+    "phone": "+1-213-629-3101",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732406243,
+  "lat": 34.0433591,
+  "lon": -118.2420051,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "445",
+    "addr:postcode": "90013",
+    "addr:state": "CA",
+    "addr:street": "Towne Avenue",
+    "amenity": "social_facility",
+    "name": "Fred Jordan Mission",
+    "opening_hours": "Mo-Fr 12:00-13:00",
+    "operator": "Fred Jordan Mission",
+    "phone": "+1-213-489-7763",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3732412732,
+  "lat": 34.0467673,
+  "lon": -118.2647127,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "906",
+    "addr:postcode": "90015",
+    "addr:state": "CA",
+    "addr:street": "Francisco Street",
+    "amenity": "social_facility",
+    "name": "Salvation Army- L.A. Central Corp",
+    "opening_hours": "Mo-Th 09:00-12:00,13:00-16:00",
+    "operator": "The Salvation Army",
+    "operator:type": "charitable",
+    "operator:wikidata": "Q188307",
+    "phone": "+1-213-896-9178",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3734961159,
+  "lat": 34.0328042,
+  "lon": -118.3485190,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4959",
+    "addr:postcode": "90016",
+    "addr:state": "CA",
+    "addr:street": "West Adams Boulevard",
+    "amenity": "social_facility",
+    "name": "West Adams Church of Christ",
+    "opening_hours": "Fr[4] 10:00-11:00; Sa[3] 12:00-14:00",
+    "operator": "West Adams Church of Christ",
+    "phone": "+1-323-731-6672",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3734961926,
+  "lat": 34.0350070,
+  "lon": -118.3062260,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2270",
+    "addr:postcode": "90018",
+    "addr:state": "CA",
+    "addr:street": "South Harvard Boulevard",
+    "amenity": "social_facility",
+    "name": "First African Methodist Episcopal Church",
+    "opening_hours": "Sa[4] 09:00-12:00",
+    "operator": "First African Methodist Episcopal Church",
+    "phone": "+1-323-735-1251",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3734962088,
+  "lat": 34.0251586,
+  "lon": -118.3162896,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2040",
+    "addr:postcode": "90018",
+    "addr:state": "CA",
+    "addr:street": "West Jefferson Boulevard",
+    "amenity": "social_facility",
+    "name": "Trinity Baptist Church L.A.",
+    "opening_hours": "We 09:30-10:45",
+    "operator": "Trinity Baptist Church L.A.",
+    "phone": "+1-323-735-0044",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3734963076,
+  "lat": 34.0268869,
+  "lon": -118.3354459,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "3045",
+    "addr:postcode": "90016",
+    "addr:state": "CA",
+    "addr:street": "Crenshaw Boulevard",
+    "amenity": "social_facility",
+    "opening_hours": "Mo-Th 09:00-13:00",
+    "phone": "+1-323-751-3440",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3736232516,
+  "lat": 34.0406392,
+  "lon": -118.3371679,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1809",
+    "addr:postcode": "90019",
+    "addr:state": "CA",
+    "addr:street": "West Boulevard",
+    "amenity": "social_facility",
+    "name": "First Presbyterian Church",
+    "opening_hours": "Sa[3] 09:00-11:00; Su[1] 13:00-14:00",
+    "operator": "First Presbyterian Church",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3736234946,
+  "lat": 34.0401680,
+  "lon": -118.3080338,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2147",
+    "addr:postcode": "90018-1540",
+    "addr:state": "CA",
+    "addr:street": "West Washington Boulevard",
+    "amenity": "social_facility",
+    "name": "Koreatown Multipurpose Senior",
+    "opening_hours": "Tu 08:30-11:30",
+    "operator": "Koreatown Multipurpose Senior",
+    "phone": "+1-213-247-3560",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3744291525,
+  "lat": 34.0414850,
+  "lon": -118.3661857,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "5814",
+    "addr:postcode": "90019",
+    "addr:state": "CA",
+    "addr:street": "Venice Boulevard",
+    "amenity": "social_facility",
+    "name": "Christian Association for Social Services",
+    "opening_hours": "Fr[1,3],Sa[1,3] 10:00-13:00",
+    "operator": "Christian Association for Social Services",
+    "phone": "+1-323-936-9481",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3744301038,
+  "lat": 34.0483290,
+  "lon": -118.3237945,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1245",
+    "addr:postcode": "90019",
+    "addr:state": "CA",
+    "addr:street": "South Norton Avenue",
+    "amenity": "social_facility",
+    "name": "Ananda Marga of LA, Inc.",
+    "opening_hours": "Th,Fr 09:30-10:30",
+    "operator": "Ananda Marga of LA, Inc.",
+    "operator:type": "ngo",
+    "phone": "+1-818-414-7737",
+    "social_facility": "food_bank",
+    "wheelchair": "limited"
+  }
+},
+{
+  "type": "node",
+  "id": 3744303552,
+  "lat": 34.0695168,
+  "lon": -118.2899987,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "3401",
+    "addr:postcode": "90020",
+    "addr:state": "CA",
+    "addr:street": "West 3rd Street",
+    "amenity": "social_facility",
+    "name": "Los Angeles First Church of the Nazarene-Hope Net",
+    "opening_hours": "Fr 16:00-18:00",
+    "operator": "Los Angeles First Church of the Nazarene-Hope Net",
+    "phone": "+1-213-385-6345",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3744308818,
+  "lat": 34.0685936,
+  "lon": -118.3081733,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "309",
+    "addr:postcode": "90020",
+    "addr:state": "CA",
+    "addr:street": "South Oxford Avenue",
+    "amenity": "social_facility",
+    "name": "Wilshire Presbyterian Church-Hope Net",
+    "opening_hours": "Mo 11:00-12:00",
+    "operator": "Wilshire Presbyterian Church-Hope Net",
+    "phone": "+1-213-387-5387",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3744318766,
+  "lat": 34.0665228,
+  "lon": -118.2913424,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "434",
+    "addr:postcode": "90020",
+    "addr:state": "CA",
+    "addr:street": "South Vermont Avenue",
+    "amenity": "social_facility",
+    "name": "Islamic Center of Southern CA-Hope Net",
+    "operator": "Islamic Center of Southern CA-Hope Net",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3744322573,
+  "lat": 34.0688003,
+  "lon": -118.3096780,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4357",
+    "addr:postcode": "90020",
+    "addr:state": "CA",
+    "addr:street": "West 3rd Street",
+    "amenity": "social_facility",
+    "name": "Charismatic Ecumencial Ministries International",
+    "operator": "Charismatic Ecumencial Ministries International",
+    "phone": "+1-213-219-3228",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3755316270,
+  "lat": 33.9793326,
+  "lon": -118.4589084,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Marina del Rey Farmers Market",
+    "opening_hours": "Sa 09:00-14:00"
+  }
+},
+{
+  "type": "node",
+  "id": 3889304927,
+  "lat": 34.0173652,
+  "lon": -118.1621686,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "5017",
+    "addr:postcode": "90022",
+    "addr:street": "Olympic Boulevard",
+    "amenity": "social_facility",
+    "name": "Iglesia la Puerta Abierta Food Bank",
+    "opening_hours": "We 19:00-19:30",
+    "operator": "Iglesia la Puerta Abierta",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3889357557,
+  "lat": 34.0122988,
+  "lon": -118.1591451,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1414",
+    "addr:postcode": "90022",
+    "addr:street": "Atlantic Boulevard",
+    "amenity": "social_facility",
+    "name": "Door of Hope Community Center Food Bank",
+    "opening_hours": "Mo,Th 09:00-11:00",
+    "operator": "Door of Hope Community Center",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3889387183,
+  "lat": 34.0209760,
+  "lon": -118.1494998,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "700",
+    "addr:postcode": "90022",
+    "addr:street": "Hoefner Avenue",
+    "amenity": "social_facility",
+    "name": "East L.A. Bilingual S.D.A. Church Food Bank",
+    "opening_hours": "Sa[1,3] 12:00-12:45; We 17:30-18:30",
+    "operator": "East L.A. Bilingual S.D.A. Church",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3889405970,
+  "lat": 34.0134771,
+  "lon": -118.1428426,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "6034",
+    "addr:postcode": "90022",
+    "addr:street": "East Olympic Boulevard",
+    "amenity": "social_facility",
+    "name": "Iglesia Apostolica Manantial de Vida Food Bank",
+    "opening_hours": "Tu 19:00-20:00",
+    "operator": "Iglesia Apostolica Manantial de Vida",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3889411360,
+  "lat": 34.0134104,
+  "lon": -118.1376123,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1021",
+    "addr:postcode": "90022",
+    "addr:street": "Westside Drive",
+    "amenity": "social_facility",
+    "name": "Eastmont S.D.A. Spanish Church Food Bank",
+    "opening_hours": "Mo 19:30-20:00",
+    "operator": "Eastmont S.D.A. Spanish Church",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3889417340,
+  "lat": 34.0408160,
+  "lon": -118.1645470,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4716",
+    "addr:postcode": "90022",
+    "addr:street": "Cesar E Chavez Avenue",
+    "amenity": "social_facility",
+    "name": "Food Net-Centro Maravilla food bank",
+    "opening_hours": "Mo,Tu,Fr 08:30-16:00",
+    "operator": "Food Net-Centro Maravilla",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3889783157,
+  "lat": 34.0214922,
+  "lon": -118.2086505,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "3232",
+    "addr:postcode": "90023",
+    "addr:street": "Hunter Street",
+    "amenity": "social_facility",
+    "name": "Estrada Courts Community Center Food Bank",
+    "operator": "Estrada Courts Community Center",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3889786452,
+  "lat": 34.0653936,
+  "lon": -118.2665761,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1725",
+    "addr:postcode": "90026",
+    "addr:street": "Beverly Boulevard",
+    "amenity": "social_facility",
+    "name": "Chinese Community Service Center",
+    "opening_hours": "7/1, Tuesdays and 8/3 Sundays 9 a.m. - 12 p.m.",
+    "operator": "Chinese Community Service Center",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3889788317,
+  "lat": 34.0731222,
+  "lon": -118.2594227,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "840",
+    "addr:postcode": "90026",
+    "addr:street": "Echo Park Avenue",
+    "amenity": "social_facility",
+    "name": "St. Athanasius & St. Paul Church",
+    "opening_hours": "Fr 08:00-10:30",
+    "operator": "St. Athanasius & St. Paul Church",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3889792242,
+  "lat": 34.0675421,
+  "lon": -118.2643284,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "301",
+    "addr:postcode": "90026",
+    "addr:street": "North Union Avenue",
+    "amenity": "social_facility",
+    "name": "Filipino Christian Church Food Bank",
+    "operator": "Filipino Christian Church",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3889805494,
+  "lat": 34.0634381,
+  "lon": -118.2601764,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "153",
+    "addr:postcode": "90026",
+    "addr:street": "Glendale Boulevard",
+    "amenity": "social_facility",
+    "name": "Pilipino Worker Center of Southern California Food Bank",
+    "opening_hours": "Fr 18:00-19:00",
+    "operator": "Pilipino Worker Center of Southern California",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 3961399901,
+  "lat": 34.2007394,
+  "lon": -118.6089202,
+  "tags": {
+    "amenity": "marketplace"
+  }
+},
+{
+  "type": "node",
+  "id": 4265283713,
+  "lat": 34.0612707,
+  "lon": -118.2945281,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "3300",
+    "addr:postcode": "90010",
+    "addr:state": "CA",
+    "addr:street": "Wilshire Boulevard",
+    "amenity": "social_facility",
+    "name": "Immanuel Presbyterian Church-Hope Net",
+    "opening_hours": "Sa 9:30 - 11:30",
+    "operator": "Immanuel Presbyterian Church-Hope Net",
+    "phone": "+1-213-389-3191",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 4569861297,
+  "lat": 34.0769108,
+  "lon": -118.2585944,
+  "tags": {
+    "addr:street": "Logan Street",
+    "amenity": "marketplace",
+    "building": "no",
+    "check_date": "2024-09-27",
+    "image": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.RlRlTbWDhA9v0pOxnAYA8wHaE8%26pid%3DApi&f=1&ipt=685c2ae230a6bcfd271a0d73799e1b833c17e8ef3f11a894f3005757fce9b3c2&ipo=images",
+    "name": "Echo Park Farmers' Market",
+    "opening_hours": "Fr 15:00-19:30",
+    "operator": "Sustainable Economic Enterprise of Los Angeles",
+    "phone": "+1-323-463-3171",
+    "website": "https://seela.org/markets-echo-park/"
+  }
+},
+{
+  "type": "node",
+  "id": 4580741352,
+  "lat": 34.0905618,
+  "lon": -118.2773790,
+  "tags": {
+    "addr:postcode": "90026",
+    "amenity": "marketplace",
+    "check_date": "2024-09-30",
+    "contact:instagram": "https://www.instagram.com/silverlakefarmersmarket",
+    "name": "Silverlake Farmers Market",
+    "opening_hours": "Mo,We-Fr,Su off; Tu 01:30-19:00; Sa 08:00-13:30",
+    "phone": "+1-213-484-4002"
+  }
+},
+{
+  "type": "node",
+  "id": 5469666744,
+  "lat": 33.8572565,
+  "lon": -118.0910634,
+  "tags": {
+    "addr:housenumber": "11540",
+    "addr:street": "South Street",
+    "amenity": "marketplace",
+    "building": "no",
+    "description": "Food Trucks",
+    "name": "Atomic Eats",
+    "opening_hours": "We 17:30-20:30",
+    "website": "https://www.facebook.com/pages/Atomic-Eats/205755962814066"
+  }
+},
+{
+  "type": "node",
+  "id": 5469671513,
+  "lat": 33.8677925,
+  "lon": -118.0623149,
+  "tags": {
+    "amenity": "marketplace",
+    "building": "no",
+    "description": "farmer market with some fast food vendors",
+    "name": "Cerritos Certified Farmers Market",
+    "opening_hours": "Sa 8:00-12:00",
+    "phone": "+1-562-916-1254",
+    "website": "http://www.cerritos.us/RESIDENTS/recreation/events/farmers_market.php"
+  }
+},
+{
+  "type": "node",
+  "id": 5471193112,
+  "lat": 34.1476179,
+  "lon": -118.1495983,
+  "tags": {
+    "amenity": "marketplace",
+    "description": "No animals allowed except service dogs",
+    "name": "Southland Farmers' Market",
+    "opening_hours": "Su 09:00-14:00",
+    "payment:ebt": "yes",
+    "phone": "+1-310-455-0181"
+  }
+},
+{
+  "type": "node",
+  "id": 6215022320,
+  "lat": 34.0875424,
+  "lon": -117.8886172,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Claro's Italian Market"
+  }
+},
+{
+  "type": "node",
+  "id": 6488926473,
+  "lat": 34.0347170,
+  "lon": -118.2418146,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "777",
+    "addr:postcode": "90021",
+    "addr:state": "CA",
+    "addr:street": "South Alameda Street",
+    "amenity": "marketplace",
+    "name": "Smorgasburg",
+    "note": "Parking entrance at Alameda/Center",
+    "opening_hours": "Su 10:00-16:00",
+    "website": "https://la.smorgasburg.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 6761019986,
+  "lat": 34.0406186,
+  "lon": -118.2554400,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "California Market Center",
+    "website": "https://www.californiamarketcenter.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 6894156804,
+  "lat": 34.0895210,
+  "lon": -118.6034542,
+  "tags": {
+    "addr:city": "Topanga",
+    "addr:housenumber": "120",
+    "addr:postcode": "90290",
+    "addr:state": "CA",
+    "addr:street": "South Topanga Canyon Boulevard",
+    "addr:unit": "110",
+    "amenity": "marketplace",
+    "name": "Canyon Gourmet",
+    "opening_hours": "Mo-Su 10:00-19:00",
+    "website": "https://www.canyongourmet.com"
+  }
+},
+{
+  "type": "node",
+  "id": 7454934100,
+  "lat": 34.0252623,
+  "lon": -118.4728412,
+  "tags": {
+    "addr:city": "Santa Monica",
+    "addr:housenumber": "1710",
+    "addr:postcode": "90404",
+    "addr:state": "CA",
+    "addr:street": "22nd Street",
+    "amenity": "social_facility",
+    "description": "Social Service Organization Westside Food Bank provides food assistance to those in need during the COVID-19 emergency. Please call before visiting",
+    "name": "Westside Food Bank",
+    "opening_hours": "Mo-Th, 07:00-14:00",
+    "phone": "+1-310-828-6016",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 8014712089,
+  "lat": 34.2309452,
+  "lon": -118.5365473,
+  "tags": {
+    "amenity": "marketplace"
+  }
+},
+{
+  "type": "node",
+  "id": 8048823882,
+  "lat": 33.8424113,
+  "lon": -118.2877712,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Swapmeet"
+  }
+},
+{
+  "type": "node",
+  "id": 8048823883,
+  "lat": 33.8422426,
+  "lon": -118.2877619,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Alpine Market"
+  }
+},
+{
+  "type": "node",
+  "id": 8382278869,
+  "lat": 34.0289456,
+  "lon": -118.4113021,
+  "tags": {
+    "amenity": "marketplace",
+    "building": "no",
+    "name": "Motor Avenue Farmers Market",
+    "opening_hours": "Su 09:00-14:00",
+    "website": "https://www.motoravenuemarket.com/",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 8406712242,
+  "lat": 34.0575542,
+  "lon": -118.2378858,
+  "tags": {
+    "amenity": "marketplace",
+    "check_date": "2025-07-16",
+    "contact:facebook": "https://www.facebook.com/pages/Olvera-Street/122321044457734",
+    "contact:instagram": "https://instagram.com/olverastreetofficial/",
+    "email": "osmaf.info@gmail.com",
+    "name": "Olvera Street Mexican Marketplace",
+    "website": "https://www.olveraevents.com/about-osmaf"
+  }
+},
+{
+  "type": "node",
+  "id": 8596747660,
+  "lat": 34.0764902,
+  "lon": -118.2961899,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "4013",
+    "addr:postcode": "90004",
+    "addr:state": "CA",
+    "addr:street": "Beverly Boulevard",
+    "amenity": "marketplace",
+    "name": "Beverly Mart"
+  }
+},
+{
+  "type": "node",
+  "id": 9130489297,
+  "lat": 34.0246277,
+  "lon": -118.3943995,
+  "tags": {
+    "amenity": "marketplace",
+    "building": "no",
+    "check_date:opening_hours": "2024-05-09",
+    "name": "Culver City Farmers' Market",
+    "opening_hours": "Tu 14:00-19:00",
+    "website": "https://www.culvercityfarmersmarket.org/"
+  }
+},
+{
+  "type": "node",
+  "id": 9499533109,
+  "lat": 33.9982539,
+  "lon": -118.4674929,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "node",
+  "id": 9559516415,
+  "lat": 34.0455828,
+  "lon": -118.4505626,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "West LA Farmers Market",
+    "opening_hours": "Su 09:00-14:00"
+  }
+},
+{
+  "type": "node",
+  "id": 9906488254,
+  "lat": 34.0432968,
+  "lon": -118.3179805,
+  "tags": {
+    "amenity": "social_facility",
+    "name": "World Harvest Food Bank",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 9906973046,
+  "lat": 34.0180401,
+  "lon": -118.4957024,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "626 Night Market Mini",
+    "note": "Only certain weekends",
+    "opening_hours": "\"it's seasonal and is only a bunch of stalls that are set up occasionally\""
+  }
+},
+{
+  "type": "node",
+  "id": 10124701049,
+  "lat": 34.0177747,
+  "lon": -118.4453134,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Santa Monica Airport Antique Market"
+  }
+},
+{
+  "type": "node",
+  "id": 10181219315,
+  "lat": 34.0506705,
+  "lon": -118.4755331,
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "741",
+    "addr:postcode": "90049",
+    "addr:state": "CA",
+    "addr:street": "South Gretna Green Way",
+    "amenity": "marketplace",
+    "check_date:currency:XBT": "2026-02-04",
+    "contact:email": "info@rawinspiration.org",
+    "contact:facebook": "https://www.facebook.com/Brentwoodfm/",
+    "contact:instagram": "https://www.instagram.com/thebrentwoodfm/",
+    "currency:XBT": "yes",
+    "name": "Brentwood Farmers Market",
+    "opening_hours": "Su 06:00-15:00",
+    "payment:lightning": "yes",
+    "payment:lightning:operator": "square",
+    "payment:lightning_contactless": "no",
+    "payment:onchain": "no",
+    "phone": "+1-818-591-8161",
+    "website": "https://rawinspiration.org/locations/brentwood-farmers-market/"
+  }
+},
+{
+  "type": "node",
+  "id": 10925657805,
+  "lat": 34.0617580,
+  "lon": -118.4464374,
+  "tags": {
+    "amenity": "marketplace",
+    "check_date": "2026-03-23",
+    "contact:facebook": "https://www.facebook.com/westwoodvillagefm/",
+    "contact:instagram": "https://www.instagram.com/farmhabitwv",
+    "name": "Westwood Village Farmers Market",
+    "opening_hours": "Mo-We,Fr-Su off; Th 12:00-17:00",
+    "url": "https://www.farmhabit.com/westwoodvillage",
+    "website": "https://thewestwoodvillage.com/westwood-village-farmers-market/"
+  }
+},
+{
+  "type": "node",
+  "id": 10929779005,
+  "lat": 34.1598085,
+  "lon": -118.1666423,
+  "tags": {
+    "addr:city": "Pasadena",
+    "addr:housenumber": "1001",
+    "addr:postcode": "91103",
+    "addr:state": "CA",
+    "addr:street": "Rose Bowl Drive",
+    "amenity": "marketplace",
+    "check_date": "2026-01-28",
+    "contact:yelp": "https://www.yelp.com/biz/rose-bowl-flea-market-pasadena",
+    "name": "Rose Bowl Flea Market",
+    "opening_hours": "Su[2] 05:00-16:30",
+    "phone": "+1 323-560-7469",
+    "street_vendor": "yes",
+    "website": "https://www.rgcshows.com/rose-bowl/"
+  }
+},
+{
+  "type": "node",
+  "id": 11232256641,
+  "lat": 34.0998497,
+  "lon": -117.8265435,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "operator": "New Song",
+    "operator:type": "religious"
+  }
+},
+{
+  "type": "node",
+  "id": 11345417100,
+  "lat": 34.0045841,
+  "lon": -118.4309913,
+  "tags": {
+    "amenity": "marketplace",
+    "building": "no",
+    "name": "Mar Vista Farmers' Market",
+    "opening_hours": "Su 09:00-14:00",
+    "website": "https://www.marvistafarmersmarket.org/"
+  }
+},
+{
+  "type": "node",
+  "id": 11446564974,
+  "lat": 33.9637011,
+  "lon": -118.2088417,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "node",
+  "id": 11446564975,
+  "lat": 33.9634408,
+  "lon": -118.2090301,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "node",
+  "id": 11446564976,
+  "lat": 33.9634258,
+  "lon": -118.2088242,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "node",
+  "id": 11446564977,
+  "lat": 33.9633880,
+  "lon": -118.2085379,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "node",
+  "id": 11446564978,
+  "lat": 33.9636354,
+  "lon": -118.2090945,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "node",
+  "id": 11446564979,
+  "lat": 33.9635114,
+  "lon": -118.2095254,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "node",
+  "id": 11446564980,
+  "lat": 33.9635291,
+  "lon": -118.2096179,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "node",
+  "id": 11757296435,
+  "lat": 34.1019792,
+  "lon": -118.3003442,
+  "tags": {
+    "addr:housenumber": "5075",
+    "addr:postcode": "90027",
+    "addr:street": "Hollywood Boulevard",
+    "amenity": "marketplace",
+    "check_date": "2024-10-03",
+    "cuisine": "Meat;Deli",
+    "delivery": "yes",
+    "description": "Meat, Deli, Grocery, Fish, We cook meat or fish by pounds a small supermarket",
+    "name": "Nairi Market",
+    "opening_hours": "Mo 08:00-18:00; Tu-Sa 08:00-19:00; Su 08:00-17:00",
+    "phone": "+1 323-666-9966",
+    "website": "https://m.yelp.com/biz_redir?url=http%3A%2F%2Fnairimarket.mobile-webview1.com&cachebuster=1727990527&website_link_type=website&src_bizid=goLMgI32aesov_2OzaNERg&s=d661b2bf48c027f29952b8717c58c0de36068ecfe01e2cac5516c81e7675d34d",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 11981709979,
+  "lat": 33.7752000,
+  "lon": -118.1961714,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Chestnut Community Garden"
+  }
+},
+{
+  "type": "node",
+  "id": 11988998884,
+  "lat": 33.7904565,
+  "lon": -118.1799950,
+  "tags": {
+    "amenity": "marketplace"
+  }
+},
+{
+  "type": "node",
+  "id": 13012340415,
+  "lat": 34.0577771,
+  "lon": -117.7614042,
+  "tags": {
+    "amenity": "social_facility",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "node",
+  "id": 13072815001,
+  "lat": 33.9958381,
+  "lon": -117.9149171,
+  "tags": {
+    "addr:housenumber": "17835",
+    "addr:postcode": "91748",
+    "addr:street": "Gale Avenue",
+    "amenity": "marketplace",
+    "opening_hours": "Su 10:00-17:00; Sa 09:00-18:00; We 15:00-21:00",
+    "website": "https://www.frankandsonshow.net"
+  }
+},
+{
+  "type": "node",
+  "id": 13370965931,
+  "lat": 33.9596040,
+  "lon": -118.4478097,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Local Market & Deli"
+  }
+},
+{
+  "type": "node",
+  "id": 13406916631,
+  "lat": 33.8385608,
+  "lon": -118.1019551,
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "node",
+  "id": 13456921079,
+  "lat": 33.8176312,
+  "lon": -118.3861087,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Riviera Village Farmers Market",
+    "opening_hours": "Su 08:30-13:00; Mo-Sa off",
+    "website": "https://www.rivieravillagefarmersmarket.com"
+  }
+},
+{
+  "type": "node",
+  "id": 13456939810,
+  "lat": 33.8363911,
+  "lon": -118.3896384,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Redondo Beach Farmers Market",
+    "opening_hours": "Th 08:00-13:00; Fr-Mo off",
+    "website": "https://redondopier.com/farmers-market-by-the-pier/"
+  }
+},
+{
+  "type": "node",
+  "id": 13456944543,
+  "lat": 33.8268327,
+  "lon": -118.3272941,
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Torrance Certified Farmers' Market",
+    "opening_hours": "Su-Mo off; Tu 08:00-13:00; We-Fr off; Sa 08:13:00",
+    "website": "https://www.torranceca.gov/our-city/cultural-services/farmers-market"
+  }
+},
+{
+  "type": "node",
+  "id": 13511258401,
+  "lat": 34.1871713,
+  "lon": -118.4331682,
+  "tags": {
+    "addr:housenumber": "13747",
+    "addr:postcode": "91401",
+    "addr:street": "Victory Boulevard",
+    "amenity": "marketplace",
+    "name": "Tigranakert",
+    "opening_hours": "Mo-Sa 08:00-20:00; Su 08:00-18:00",
+    "phone": "+1-818-781-4411"
+  }
+},
+{
+  "type": "node",
+  "id": 13511838701,
+  "lat": 34.2009846,
+  "lon": -118.4295863,
+  "tags": {
+    "addr:housenumber": "13624",
+    "addr:postcode": "91405",
+    "addr:street": "Sherman Way",
+    "amenity": "marketplace",
+    "name": "Sherman Way Market Place",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 08:00-20:00; Su 08:00-18:00",
+    "phone": "+1-818-904-0578"
+  }
+},
+{
+  "type": "node",
+  "id": 13526927280,
+  "lat": 33.9768919,
+  "lon": -118.0493977,
+  "tags": {
+    "addr:city": "Whittier",
+    "addr:housenumber": "7012",
+    "addr:postcode": "90601",
+    "addr:state": "CA",
+    "addr:street": "Walnut Grove Drive",
+    "amenity": "marketplace",
+    "name": "Rodeo 72",
+    "website": "https://www.rodeopublicmarket.com/rodeo-72"
+  }
+},
+{
+  "type": "way",
+  "id": 43968258,
+  "center": {
+    "lat": 34.0209181,
+    "lon": -118.4678354
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "area": "yes",
+    "highway": "pedestrian",
+    "lit": "yes",
+    "name": "Pico Farmer's Market",
+    "opening_hours": "Sa",
+    "surface": "compacted"
+  }
+},
+{
+  "type": "way",
+  "id": 132693067,
+  "center": {
+    "lat": 34.5789982,
+    "lon": -118.0832851
+  },
+  "tags": {
+    "addr:city": "Palmdale",
+    "addr:housenumber": "2616",
+    "addr:postcode": "93550",
+    "addr:state": "CA",
+    "addr:street": "East Palmdale Boulevard",
+    "amenity": "marketplace",
+    "building": "retail",
+    "lacounty:ain": "3018026038",
+    "lacounty:bld_id": "PLM21221",
+    "name": "Palmdale International Shopping Mall",
+    "start_date": "1981",
+    "website": "http://www.palmdalemall.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 132789281,
+  "center": {
+    "lat": 34.0720135,
+    "lon": -118.3602298
+  },
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "6333",
+    "addr:postcode": "90036",
+    "addr:state": "CA",
+    "addr:street": "West 3rd Street",
+    "amenity": "marketplace",
+    "landuse": "retail",
+    "name": "Farmers Market",
+    "opening_hours": "Mo-Fr 09:00-21:00; Sa 09:00-20:00; Su 10:00-19:00",
+    "website": "https://www.farmersmarketla.com/",
+    "wikidata": "Q5435793"
+  }
+},
+{
+  "type": "way",
+  "id": 160146695,
+  "center": {
+    "lat": 33.9574316,
+    "lon": -118.4158172
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Westchester Farmers Market (Wednesdays)"
+  }
+},
+{
+  "type": "way",
+  "id": 194336662,
+  "center": {
+    "lat": 34.0166333,
+    "lon": -118.4982368
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Santa Monica Farmers Market",
+    "opening_hours": "We Sa"
+  }
+},
+{
+  "type": "way",
+  "id": 209967563,
+  "center": {
+    "lat": 34.1436109,
+    "lon": -118.1456973
+  },
+  "tags": {
+    "amenity": "marketplace"
+  }
+},
+{
+  "type": "way",
+  "id": 259300234,
+  "center": {
+    "lat": 33.8103412,
+    "lon": -118.3557596
+  },
+  "tags": {
+    "access": "private",
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Torrance Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 259300411,
+  "center": {
+    "lat": 33.8101428,
+    "lon": -118.3553040
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "building": "yes",
+    "building:levels": "1",
+    "ele": "26.2",
+    "height": "3.2",
+    "lacounty:ain": "7529017903",
+    "lacounty:bld_id": "453732753481",
+    "roof:shape": "flat"
+  }
+},
+{
+  "type": "way",
+  "id": 351574053,
+  "center": {
+    "lat": 33.8477346,
+    "lon": -118.2123414
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "building": "retail",
+    "ele": "20.5",
+    "height": "8.0",
+    "lacounty:ain": "7306018032",
+    "lacounty:bld_id": "497197767027",
+    "name": "Del Amo Swap Meet",
+    "official_name": "Del Amo Plaza",
+    "start_date": "1966"
+  }
+},
+{
+  "type": "way",
+  "id": 369605186,
+  "center": {
+    "lat": 34.2601270,
+    "lon": -118.3285646
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Sunland Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 377288503,
+  "center": {
+    "lat": 34.2603881,
+    "lon": -118.3282156
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Sunland Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 378067075,
+  "center": {
+    "lat": 34.1723283,
+    "lon": -118.6183957
+  },
+  "tags": {
+    "garden:type": "community",
+    "landuse": "community garden",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 380023148,
+  "center": {
+    "lat": 34.1571844,
+    "lon": -118.6386442
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Calabasas Saturday Farmers Market",
+    "opening_hours": "Sa 09:00-13:00",
+    "operator": "Calif Certified Farmers Markets (Raw Inspiration)",
+    "parking": "surface"
+  }
+},
+{
+  "type": "way",
+  "id": 381643990,
+  "center": {
+    "lat": 34.1741011,
+    "lon": -118.5935852
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Warner Business Center Certified Wednesday Farmers Market",
+    "opening_hours": "We 10:00-14:00",
+    "operator": "Enriched Farms",
+    "parking": "surface",
+    "shop": "farm"
+  }
+},
+{
+  "type": "way",
+  "id": 385737288,
+  "center": {
+    "lat": 34.2022082,
+    "lon": -118.6015906
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Canoga Saturday Farmers Market",
+    "opening_hours": "Sa 09:00-13:00",
+    "operator": "Coastal Pacific"
+  }
+},
+{
+  "type": "way",
+  "id": 385737310,
+  "center": {
+    "lat": 34.1855876,
+    "lon": -118.5126288
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "amenity_1": "parking",
+    "name": "Encino Sunday Farmers Market",
+    "opening_hours": "Su 08:00-13:00",
+    "operator": "OneGeneration",
+    "parking": "surface"
+  }
+},
+{
+  "type": "way",
+  "id": 392321902,
+  "center": {
+    "lat": 34.2183154,
+    "lon": -118.6381477
+  },
+  "tags": {
+    "garden:type": "community",
+    "landuse": "allotments",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 407316795,
+  "center": {
+    "lat": 34.0222803,
+    "lon": -118.2561788
+  },
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "2300",
+    "addr:postcode": "90011",
+    "addr:state": "CA",
+    "addr:street": "Griffith Avenue",
+    "amenity": "social_facility",
+    "building": "apartments",
+    "building:units": "7",
+    "ele": "75.1",
+    "height": "8.0",
+    "lacounty:ain": "5131019012",
+    "lacounty:bld_id": "484029830575",
+    "name": "Visions Community Outreach",
+    "opening_hours": "Sa[2,4] 10:00-12:00",
+    "operator": "Visions Community Outreach",
+    "phone": "+1-310-920-1026",
+    "social_facility": "food_bank",
+    "start_date": "1904"
+  }
+},
+{
+  "type": "way",
+  "id": 407324111,
+  "center": {
+    "lat": 34.0173511,
+    "lon": -118.2783989
+  },
+  "tags": {
+    "addr:housenumber": "3655",
+    "addr:postcode": "90007",
+    "addr:street": "South Grand Avenue",
+    "amenity": "marketplace",
+    "building": "retail",
+    "building:levels": "1",
+    "ele": "70.7",
+    "height": "11.6",
+    "lacounty:ain": "5122023028",
+    "lacounty:bld_id": "477328828791",
+    "name": "Mercado la Paloma",
+    "office": "yes",
+    "opening_hours": "Su-Th 09:00-21:00; Fr-Sa 09:00-22:00",
+    "start_date": "1966",
+    "website": "http://mercadolapaloma.com"
+  }
+},
+{
+  "type": "way",
+  "id": 407388006,
+  "center": {
+    "lat": 33.7139249,
+    "lon": -118.3042591
+  },
+  "tags": {
+    "addr:city": "San Pedro",
+    "addr:housenumber": "1118",
+    "addr:postcode": "90731",
+    "addr:state": "CA",
+    "addr:street": "West 37th Street",
+    "amenity": "marketplace",
+    "building": "retail",
+    "building:units": "3",
+    "ele": "49.8",
+    "height": "5.2",
+    "lacounty:ain": "7469022089;7469022090",
+    "lacounty:bld_id": "469135718414;469129718455",
+    "name": "The Corner Store",
+    "website": "https://www.thecornerstoresp.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 419969539,
+  "center": {
+    "lat": 34.0733571,
+    "lon": -118.2591215
+  },
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "840",
+    "addr:postcode": "90026",
+    "addr:street": "Echo Park Avenue",
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "building:units": "2",
+    "ele": "121",
+    "gnis:feature_id": "1744817",
+    "height": "22.8",
+    "lacounty:ain": "5404019024",
+    "lacounty:bld_id": "483191849159",
+    "name": "St. Athanasius & St. Paul Church",
+    "opening_hours": "Fr 08:00-10:30",
+    "operator": "St. Athanasius & St. Paul Church",
+    "religion": "christian",
+    "social_facility": "food_bank",
+    "start_date": "1994"
+  }
+},
+{
+  "type": "way",
+  "id": 427290102,
+  "center": {
+    "lat": 34.0570613,
+    "lon": -118.2894568
+  },
+  "tags": {
+    "ele": "73.6",
+    "garden:type": "community",
+    "height": "4.3",
+    "lacounty:ain": "5077023900",
+    "lacounty:bld_id": "473992843239",
+    "leisure": "garden",
+    "name": "Francis Avenue Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 428152658,
+  "center": {
+    "lat": 34.0412933,
+    "lon": -118.2498993
+  },
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "742",
+    "addr:postcode": "90014",
+    "addr:state": "CA",
+    "addr:street": "Maple Avenue",
+    "alt_name": "Los Angeles Wholesale Flower Terminal",
+    "amenity": "marketplace",
+    "building": "retail",
+    "ele": "91.1",
+    "height": "15.5",
+    "lacounty:ain": "5145004034;5145004035;5145004033",
+    "lacounty:bld_id": "486005837554;486018837543;485848837471",
+    "name": "Southern California Flower Market",
+    "start_date": "1962",
+    "website": "http://www.socalflowermarket.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 428152740,
+  "center": {
+    "lat": 34.0402884,
+    "lon": -118.2495656
+  },
+  "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "754",
+    "addr:postcode": "90014",
+    "addr:state": "CA",
+    "addr:street": "Wall Street",
+    "alt_name": "American Florists’ Exchange Los Angeles Flower Market",
+    "amenity": "marketplace",
+    "building": "retail",
+    "ele": "86.0",
+    "height": "10.8",
+    "lacounty:ain": "5145005008;5145005011;5145005010;5145005009;5145005021;5145005022;5145005015;5145005015;5145005019",
+    "lacounty:bld_id": "486061837210;485938837106;485974837128;485987837144;486003837053;486028837031;486058837053;486076837066;486186837078",
+    "name": "The Original Los Angeles Flower Market",
+    "operator": "American Florists Exchange, Ltd.",
+    "website": "https://www.originallaflowermarket.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 431668730,
+  "center": {
+    "lat": 34.2275305,
+    "lon": -118.4525339
+  },
+  "tags": {
+    "addr:city": "Panorama City",
+    "addr:housenumber": "14650",
+    "addr:postcode": "91402",
+    "addr:state": "CA",
+    "addr:street": "Parthenia Street",
+    "air_conditioning": "yes",
+    "amenity": "marketplace",
+    "building": "retail",
+    "building:levels": "2",
+    "ele": "264.1",
+    "email": "info@indoorswap.com",
+    "height": "13.1",
+    "lacounty:ain": "2653017059",
+    "lacounty:bld_id": "424910905504",
+    "name": "Valley Indoor Swap Meet",
+    "opening_hours": "Mo-Su 10:00-18:00",
+    "phone": "+1-818-892-0183",
+    "start_date": "1964;1986",
+    "website": "https://www.indoorswap.com/panorama"
+  }
+},
+{
+  "type": "way",
+  "id": 439624433,
+  "center": {
+    "lat": 34.6976880,
+    "lon": -118.1432853
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Thursday Evening Market",
+    "opening_hours": "Th 16:00-21:00",
+    "parking": "street_side"
+  }
+},
+{
+  "type": "way",
+  "id": 450413697,
+  "center": {
+    "lat": 33.9036584,
+    "lon": -118.2149484
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "ele": "26.1",
+    "height": "4.3",
+    "lacounty:ain": "6167022021",
+    "lacounty:bld_id": "496435787397",
+    "name": "intra Market",
+    "start_date": "1958"
+  }
+},
+{
+  "type": "way",
+  "id": 468497292,
+  "center": {
+    "lat": 34.4338672,
+    "lon": -118.5236454
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Central Park Gardens"
+  }
+},
+{
+  "type": "way",
+  "id": 470292233,
+  "center": {
+    "lat": 34.1066276,
+    "lon": -117.7343477
+  },
+  "tags": {
+    "addr:city": "Claremont",
+    "addr:housenumber": "994",
+    "addr:postcode": "91711",
+    "addr:state": "CA",
+    "addr:street": "W Foothill Boulevard",
+    "amenity": "marketplace",
+    "building": "yes",
+    "ele": "371.7",
+    "height": "3.6",
+    "internet_access": "wlan",
+    "internet_access:fee": "customers",
+    "lacounty:ain": "8311006022",
+    "lacounty:bld_id": "642088861324",
+    "name": "Wild Clay Ceramics Studio",
+    "opening_hours": "Mo-Sa 13:00-20:00; Su Closed",
+    "outdoor_seating": "yes",
+    "phone": "+1-909-392-9453",
+    "start_date": "2025",
+    "website": "https://wildclayla.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 470594875,
+  "center": {
+    "lat": 34.1044266,
+    "lon": -117.9603269
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "building": "yes",
+    "building:units": "1",
+    "height": "3.0",
+    "lacounty:ain": "8414008029",
+    "lacounty:bld_id": "573682860392",
+    "name": "Frank's Market"
+  }
+},
+{
+  "type": "way",
+  "id": 471050374,
+  "center": {
+    "lat": 34.0876526,
+    "lon": -117.8886160
+  },
+  "tags": {
+    "addr:city": "Covina",
+    "addr:housenumber": "159",
+    "addr:postcode": "91723",
+    "addr:state": "CA",
+    "addr:street": "East College Street",
+    "amenity": "marketplace",
+    "building": "yes",
+    "ele": "173.1",
+    "height": "4.7",
+    "lacounty:ain": "8445001039",
+    "lacounty:bld_id": "595394854294",
+    "name": "Claro's Italian Market",
+    "start_date": "1955"
+  }
+},
+{
+  "type": "way",
+  "id": 472796697,
+  "center": {
+    "lat": 34.5604152,
+    "lon": -118.0716666
+  },
+  "tags": {
+    "access": "yes",
+    "building:units": "1",
+    "ele": "816.9",
+    "fee": "no",
+    "garden:type": "community",
+    "height": "3.5",
+    "lacounty:ain": "7415010033",
+    "lacounty:bld_id": "2014181336090000",
+    "leisure": "garden",
+    "name": "Old Town Community Garden",
+    "operator": "Old Town",
+    "start_date": "2023"
+  }
+},
+{
+  "type": "way",
+  "id": 472939218,
+  "center": {
+    "lat": 34.7549821,
+    "lon": -118.2906814
+  },
+  "tags": {
+    "addr:housenumber": "48011",
+    "addr:street": "90th Street West",
+    "amenity": "marketplace",
+    "building": "retail",
+    "building:units": "1",
+    "description": "Antelope Acres Market is family owned and operated. A small grocery store with a deli, meat department, ice cream bar, gas and propane.",
+    "ele": "745.6",
+    "height": "6.0",
+    "lacounty:ain": "2127014017",
+    "lacounty:bld_id": "201423306980000",
+    "name": "Antelope Acres Market",
+    "phone": "+1-661-948-4190",
+    "website": "https://www.facebook.com/AntelopeAcresMarket/"
+  }
+},
+{
+  "type": "way",
+  "id": 503629937,
+  "center": {
+    "lat": 33.8076034,
+    "lon": -118.0829511
+  },
+  "tags": {
+    "addr:city": "Long Beach",
+    "addr:housenumber": "7700b",
+    "addr:postcode": "90815",
+    "addr:state": "CA",
+    "addr:street": "East Spring Street",
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Long Beach Community Gardens"
+  }
+},
+{
+  "type": "way",
+  "id": 519453754,
+  "center": {
+    "lat": 34.2477593,
+    "lon": -118.4593251
+  },
+  "tags": {
+    "access": "private",
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 669014755,
+  "center": {
+    "lat": 33.9933227,
+    "lon": -118.4065126
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 681320314,
+  "center": {
+    "lat": 34.1512936,
+    "lon": -118.0749143
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Foothill Rosemead Marketplace"
+  }
+},
+{
+  "type": "way",
+  "id": 707120559,
+  "center": {
+    "lat": 34.2398399,
+    "lon": -118.5278388
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Tuesday Market",
+    "opening_hours": "Tu 10:00-14:00"
+  }
+},
+{
+  "type": "way",
+  "id": 745528017,
+  "center": {
+    "lat": 33.9092821,
+    "lon": -118.0137921
+  },
+  "tags": {
+    "crop": "corn;cactus;berries;poultry;seasonal",
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Upper Campus Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 800851643,
+  "center": {
+    "lat": 33.7796496,
+    "lon": -118.1494349
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 817738192,
+  "center": {
+    "lat": 34.2586548,
+    "lon": -118.3001210
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Howard Finn Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 819902732,
+  "center": {
+    "lat": 34.1467994,
+    "lon": -118.1048082
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 819902733,
+  "center": {
+    "lat": 34.1466232,
+    "lon": -118.1047992
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 828596737,
+  "center": {
+    "lat": 34.0755477,
+    "lon": -118.2310969
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Solano Canyon Community Garden",
+    "note": "https://www.facebook.com/solanogarden/\nhttps://www.solanocanyon.org/aboutsolanocanyon.html\nhttps://www.lacompost.org/solano-canyon-community-garden\nhttp://lagardencouncil.org/tag/solano-canyon/\nhttps://latimesblogs.latimes.com/home_blog/2010/11/solano-can",
+    "website": "https://www.solanocanyon.org/aboutsolanocanyon.html"
+  }
+},
+{
+  "type": "way",
+  "id": 832991886,
+  "center": {
+    "lat": 34.0809355,
+    "lon": -117.8922036
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 836264605,
+  "center": {
+    "lat": 33.9486990,
+    "lon": -118.2533258
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 836264608,
+  "center": {
+    "lat": 33.9475726,
+    "lon": -118.2533362
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 844450859,
+  "center": {
+    "lat": 34.2577234,
+    "lon": -118.4584642
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "MHCC Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 860439990,
+  "center": {
+    "lat": 33.8616128,
+    "lon": -118.3451264
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 866159284,
+  "center": {
+    "lat": 33.7585721,
+    "lon": -118.2911752
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Gaffey Street Community Gardens"
+  }
+},
+{
+  "type": "way",
+  "id": 866159285,
+  "center": {
+    "lat": 33.7567458,
+    "lon": -118.2914545
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Gaffey Street Community Gardens"
+  }
+},
+{
+  "type": "way",
+  "id": 873279800,
+  "center": {
+    "lat": 34.0929626,
+    "lon": -118.2900140
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Madison Avenue Park Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 896014661,
+  "center": {
+    "lat": 34.0104583,
+    "lon": -118.4048465
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Culver City Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 898624139,
+  "center": {
+    "lat": 34.0879940,
+    "lon": -118.2758150
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Micheltorena Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 901371814,
+  "center": {
+    "lat": 34.0287418,
+    "lon": -118.4100892
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Motor Avenue Urban Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 904226187,
+  "center": {
+    "lat": 34.0508624,
+    "lon": -118.2489965
+  },
+  "tags": {
+    "access": "yes",
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "317",
+    "addr:postcode": "90013",
+    "addr:state": "CA",
+    "addr:street": "South Broadway",
+    "amenity": "marketplace",
+    "email": "info@grandcentralmarket.com",
+    "level": "-1;0",
+    "name": "Grand Central Market",
+    "name:zh": "中央市场",
+    "opening_hours": "Mo-Su 08:00-21:00",
+    "phone": "+1 213-359-6007",
+    "website": "https://www.grandcentralmarket.com/",
+    "wikidata": "Q136955229",
+    "wikipedia": "en:Grand Central Market"
+  }
+},
+{
+  "type": "way",
+  "id": 911094183,
+  "center": {
+    "lat": 34.1086075,
+    "lon": -118.1932572
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Milagro Allegro Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 919773565,
+  "center": {
+    "lat": 34.1191952,
+    "lon": -118.1819957
+  },
+  "tags": {
+    "access": "private",
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 921409735,
+  "center": {
+    "lat": 34.0873360,
+    "lon": -118.1910792
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 923188730,
+  "center": {
+    "lat": 34.0276828,
+    "lon": -118.4378128
+  },
+  "tags": {
+    "access": "private",
+    "fee": "no",
+    "garden:type": "community",
+    "leisure": "garden",
+    "operator": "Richland Avenue Elementary School"
+  }
+},
+{
+  "type": "way",
+  "id": 940208417,
+  "center": {
+    "lat": 34.0153669,
+    "lon": -118.4469543
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Airport Avenue Demonstration Gardens"
+  }
+},
+{
+  "type": "way",
+  "id": 943718578,
+  "center": {
+    "lat": 34.1663432,
+    "lon": -118.3915658
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 943814794,
+  "center": {
+    "lat": 34.1674910,
+    "lon": -118.3774245
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "NoHo Saturday AM Farmers Market"
+  }
+},
+{
+  "type": "way",
+  "id": 1000023278,
+  "center": {
+    "lat": 34.0514251,
+    "lon": -118.3907843
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1043256254,
+  "center": {
+    "lat": 34.1732646,
+    "lon": -118.6116508
+  },
+  "tags": {
+    "amenity": "social_facility",
+    "social_facility": "food_bank"
+  }
+},
+{
+  "type": "way",
+  "id": 1053225572,
+  "center": {
+    "lat": 34.1390730,
+    "lon": -118.1284067
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Catalina Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1060176636,
+  "center": {
+    "lat": 34.0187537,
+    "lon": -118.4617941
+  },
+  "tags": {
+    "barrier": "fence",
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1080170232,
+  "center": {
+    "lat": 33.7658286,
+    "lon": -118.1669430
+  },
+  "tags": {
+    "addr:city": "Long Beach",
+    "addr:housenumber": "130",
+    "addr:postcode": "90802",
+    "addr:state": "CA",
+    "addr:street": "Cherry Avenue",
+    "amenity": "marketplace",
+    "name": "Bixby Park Local Harvest Farmers Market",
+    "opening_hours": "Tu 15:00-19:00, Sa 10:00-15:00"
+  }
+},
+{
+  "type": "way",
+  "id": 1127939445,
+  "center": {
+    "lat": 34.0290357,
+    "lon": -118.4611462
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Ishihara Park Learning Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1153649460,
+  "center": {
+    "lat": 33.9912781,
+    "lon": -118.4588204
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "SPY Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1154413037,
+  "center": {
+    "lat": 33.9904955,
+    "lon": -118.4722637
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1164528031,
+  "center": {
+    "lat": 34.0353052,
+    "lon": -118.4707415
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Yale Street Urban Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1172270086,
+  "center": {
+    "lat": 34.0322011,
+    "lon": -118.4783311
+  },
+  "tags": {
+    "access": "private",
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1208212561,
+  "center": {
+    "lat": 34.2828337,
+    "lon": -118.4415561
+  },
+  "tags": {
+    "addr:city": "San Fernando",
+    "addr:postcode": "91340",
+    "addr:state": "CA",
+    "addr:street": "San Fernando Road",
+    "amenity": "marketplace",
+    "building": "no",
+    "description": "The San Fernando Outdoor Market brings together local business owners and artisans throughout the area once a month from April to January.",
+    "name": "San Fernando Outdoor Market",
+    "opening_hours": "Sat[-1] 17:00-21:00; Feb-Mar off",
+    "pets": "yes",
+    "toilets": "yes",
+    "website": "https://www.myvalleypass.com/sf-outdoor-market"
+  }
+},
+{
+  "type": "way",
+  "id": 1227194891,
+  "center": {
+    "lat": 33.9885399,
+    "lon": -118.1694303
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "GrowGood Urban Farm"
+  }
+},
+{
+  "type": "way",
+  "id": 1248980190,
+  "center": {
+    "lat": 34.1733282,
+    "lon": -118.6141894
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Woodland Hills Saturday 9-2 Farmers Market",
+    "opening_hours": "Sa 08:30-14:00",
+    "operator": "Calif Certified Farmers Markets (Raw Inspiration)"
+  }
+},
+{
+  "type": "way",
+  "id": 1252148917,
+  "center": {
+    "lat": 34.0047768,
+    "lon": -118.4662531
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Marine Park Community Garden",
+    "operator": "City of Santa Monica",
+    "operator:type": "government",
+    "website": "https://www.santamonica.gov/places/community-gardens/marine-park-community-garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1265751950,
+  "center": {
+    "lat": 34.0764859,
+    "lon": -118.2967170
+  },
+  "tags": {
+    "addr:city": "Wilshire Center",
+    "addr:housenumber": "4021",
+    "addr:postcode": "90004",
+    "addr:state": "CA",
+    "addr:street": "Beverly Boulevard",
+    "amenity": "marketplace",
+    "indoor": "room",
+    "name": "Milkman Market"
+  }
+},
+{
+  "type": "way",
+  "id": 1306683490,
+  "center": {
+    "lat": 33.9129105,
+    "lon": -118.1746116
+  },
+  "tags": {
+    "access": "yes",
+    "addr:city": "Paramount",
+    "addr:housenumber": "7200",
+    "addr:postcode": "90723",
+    "addr:state": "CA",
+    "addr:street": "Cortland Avenue",
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Paramount Cortland Community Garden",
+    "operator": "LA Compost",
+    "operator:type": "private_non_profit",
+    "website": "https://www.lacompost.org/"
+  }
+},
+{
+  "type": "way",
+  "id": 1311921250,
+  "center": {
+    "lat": 33.8917365,
+    "lon": -118.1474376
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1323733873,
+  "center": {
+    "lat": 33.8577017,
+    "lon": -118.3951796
+  },
+  "tags": {
+    "access": "private",
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Jeff Duclos Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1360762415,
+  "center": {
+    "lat": 33.8024045,
+    "lon": -118.3036471
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1362653573,
+  "center": {
+    "lat": 34.1181246,
+    "lon": -118.1558482
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "South Pasadena Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1366720192,
+  "center": {
+    "lat": 33.9420166,
+    "lon": -118.2385912
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Heart of Watts Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1382696913,
+  "center": {
+    "lat": 34.1320493,
+    "lon": -118.2467588
+  },
+  "tags": {
+    "access": "private",
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Palmer Park Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1387934101,
+  "center": {
+    "lat": 34.2394863,
+    "lon": -118.5563539
+  },
+  "tags": {
+    "addr:city": "Northridge",
+    "addr:housenumber": "9301",
+    "addr:postcode": "91324",
+    "addr:state": "CA",
+    "addr:street": "Tampa Avenue",
+    "addr:unit": "46",
+    "amenity": "social_facility",
+    "indoor": "room",
+    "level": "0",
+    "name": "Christy's Foundation",
+    "social_facility": "food_bank",
+    "website": "https://christysfoundation.org/northridge/"
+  }
+},
+{
+  "type": "way",
+  "id": 1425705923,
+  "center": {
+    "lat": 34.0243220,
+    "lon": -118.1821480
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1425705924,
+  "center": {
+    "lat": 34.0243214,
+    "lon": -118.1820645
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1425705925,
+  "center": {
+    "lat": 34.0243201,
+    "lon": -118.1819539
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1425705926,
+  "center": {
+    "lat": 34.0242615,
+    "lon": -118.1821470
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1425705927,
+  "center": {
+    "lat": 34.0242615,
+    "lon": -118.1820639
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1425705928,
+  "center": {
+    "lat": 34.0242645,
+    "lon": -118.1819529
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1425705929,
+  "center": {
+    "lat": 34.0242902,
+    "lon": -118.1818872
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1425705931,
+  "center": {
+    "lat": 34.0232630,
+    "lon": -118.1823721
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1433882022,
+  "center": {
+    "lat": 33.9665950,
+    "lon": -118.4044447
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Emerson Ave Community Garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1443411370,
+  "center": {
+    "lat": 33.9948866,
+    "lon": -118.4635149
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1443411371,
+  "center": {
+    "lat": 33.9947820,
+    "lon": -118.4634258
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1467881132,
+  "center": {
+    "lat": 34.0205166,
+    "lon": -118.1858457
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1473561620,
+  "center": {
+    "lat": 34.2655401,
+    "lon": -118.5197470
+  },
+  "tags": {
+    "addr:city": "Granada Hills",
+    "addr:postcode": "91344",
+    "addr:state": "CA",
+    "addr:street": "White Oak Avenue",
+    "amenity": "marketplace",
+    "building": "no",
+    "name": "Granada Hills Farmers Market",
+    "opening_hours": "Fr 18:00-22:00",
+    "operator": "Granada Hills Chamber of Commerce",
+    "website": "https://www.granadachamber.com/56292-2/"
+  }
+},
+{
+  "type": "way",
+  "id": 1473561621,
+  "center": {
+    "lat": 34.2648938,
+    "lon": -118.5206910
+  },
+  "tags": {
+    "addr:city": "Granada Hills",
+    "addr:postcode": "91344",
+    "addr:state": "CA",
+    "addr:street": "Chatsworth Street",
+    "amenity": "marketplace",
+    "building": "no",
+    "contact:facebook": "https://www.facebook.com/GranadaGrubfest/",
+    "contact:instagram": "https://www.instagram.com/granadagrubfest",
+    "instagram": "https://www.instagram.com/granadagrubfest",
+    "name": "Granada Hills Grubfest",
+    "opening_hours": "Fr 17:00-22:00",
+    "website": "https://www.granadachamber.com/food-trucks/"
+  }
+},
+{
+  "type": "way",
+  "id": 1492117788,
+  "center": {
+    "lat": 34.2229462,
+    "lon": -118.4286044
+  },
+  "tags": {
+    "access": "customers",
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Cottonwood Urban Farm",
+    "operator": "Cottonwood Urban Farm",
+    "operator:type": "private",
+    "website": "https://www.cufarm.org/"
+  }
+},
+{
+  "type": "way",
+  "id": 1493512577,
+  "center": {
+    "lat": 34.0245721,
+    "lon": -118.1815208
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1493512625,
+  "center": {
+    "lat": 34.0233561,
+    "lon": -118.1827725
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+  }
+},
+{
+  "type": "way",
+  "id": 1510191201,
+  "center": {
+    "lat": 34.2804836,
+    "lon": -118.4296858
+  },
+  "tags": {
+    "access": "permissive",
+    "garden:type": "community",
+    "leisure": "garden",
+    "operator": "San Fernando Valley Garden Project",
+    "operator:type": "community",
+    "start_date": "2026-04"
+  }
+},
+{
+  "type": "relation",
+  "id": 12316520,
+  "center": {
+    "lat": 34.0143230,
+    "lon": -118.4408528
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Ocean View Farms",
+    "type": "multipolygon",
+    "website": "https://www.oceanviewfarms.net/"
+  }
+},
+{
+  "type": "relation",
+  "id": 17641935,
+  "center": {
+    "lat": 34.1027760,
+    "lon": -118.3545120
+  },
+  "tags": {
+    "access": "permit",
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "1714",
+    "addr:postcode": "90046",
+    "addr:state": "CA",
+    "addr:street": "North Curson Avenue",
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Wattles Farm",
+    "operator": "Wattles Farm and Neighborhood Gardeners Incorporated",
+    "operator:type": "private_non_profit",
+    "phone": "+1-323-663-7441",
+    "start_date": "1975",
+    "type": "multipolygon",
+    "website": "https://wattlesfarm.com"
+  }
+},
+{
+  "type": "relation",
+  "id": 20138167,
+  "center": {
+    "lat": 34.1337809,
+    "lon": -118.0669879
+  },
+  "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 20671279,
+  "center": {
+    "lat": 34.2877925,
+    "lon": -118.4236264
+  },
+  "tags": {
+    "addr:city": "San Fernando",
+    "addr:state": "CA",
+    "amenity": "marketplace",
+    "name": "San Fernando Swap Meet",
+    "type": "multipolygon"
+  }
+}
+
+  ]
+}

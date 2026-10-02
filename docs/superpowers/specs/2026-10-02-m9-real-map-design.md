@@ -3,7 +3,11 @@
 - **Date:** 2026-10-02
 - **Status:** approved by the owner 2026-10-02 (including D8 Google Maps directions). **Builds after M7.4**
   (`2026-10-02-m74-trust-cleanup-design.md`), which hides the Map tab and removes prices, Saved › Lists and the fake
-  favorites seed. M9 brings the Map back with real places. Plan: written and dry-run once M7.4 is on `main`.
+  favorites seed. M9 brings the Map back with real places. Plan: `docs/superpowers/plans/2026-10-02-m9-real-map.md`
+  (dry-run on `4843e2b`). Settled while planning: the snapshot is **OSM data as of 2026-06-01** (on 2026-10-02 the main
+  Overpass server was overloaded and the mirrors lagged; "as of" is the data's own date); the © credit sits in the bottom
+  sheet, always visible (Leaflet's box would hide under it); the map's checks are their own `check-map.mjs`; the script
+  reports one combined "skipped" count; close up (zoom ≥ 16) pins stop grouping.
 - **Decided with:** the owner (Minh Bui), 2026-10-02, in the planning chat: **real map first** (before accounts);
   **food places only**; **snapshot into Supabase**; **show OSM data, labelled**; **LA default, locate on tap**. Then,
   on finding a parallel M7.4 spec: **M7.4 first, then this map as M9** (prices, Lists and favorites stay in M7.4).
