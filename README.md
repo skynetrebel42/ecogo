@@ -24,8 +24,9 @@ npm run dev        # http://localhost:5173
 npm test
 ```
 
-For product lookups, create `.env.local` with `VITE_FDC_API_KEY=<your free key from
-https://fdc.nal.usda.gov/api-key-signup>`. Without it the app uses USDA's shared `DEMO_KEY` (30 lookups an hour).
+Running it needs no API key: USDA lookups go through EcoGo's relay, a small Supabase Edge Function
+(`supabase/functions/usda-relay`) that keeps the USDA key as a server-side secret and accepts calls from the live site
+and from `localhost`.
 The Supabase URL and publishable key in `.env` are public by design; the database only allows reading the catalog.
 
 ## Built with

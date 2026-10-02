@@ -35,8 +35,8 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | Runtime | Node 24.21.0, npm 11.19.0 (`package-lock.json`) |
 | Frontend | React 18.3.1, Vite 6.3.5, Tailwind 4.1.12 via `@tailwindcss/vite`, lucide-react. 8 runtime dependencies (M0 removed 53 unused ones and the shadcn/ui kit; tw-animate-css went in the 2026-10-02 cleanup) |
 | Map | leaflet 1.9.4 + leaflet.markercluster 1.5.3 (used directly, no react-leaflet). Installed, but only the hidden `MapTab.tsx` imports them, so they're not in the bundle (M7.4) |
-| Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. There is **no edge function.** |
-| Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). `.env.local` (gitignored): `VITE_FDC_API_KEY`, the owner's free data.gov key for USDA FoodData Central (without it the app falls back to `DEMO_KEY`, 30 lookups/hour). Restart the dev server after changing it. |
+| Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. One Edge Function since M7.5: **`usda-relay`** (`supabase/functions/usda-relay/index.ts`, `verify_jwt` off) relays the app's two USDA searches and holds the USDA key as the Supabase secret `FDC_API_KEY`. |
+| Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). No key is needed to run or build the app (M7.5): the USDA key is a Supabase secret the owner sets in the dashboard, and `.env.local` no longer needs `VITE_FDC_API_KEY`. |
 | Barcode / camera | **None** |
 | Types / lint / tests | Tests: Node's built-in `node --test` with native TypeScript type stripping (no test framework). No TypeScript package, tsconfig or ESLint |
 | Scripts | `npm run dev` (vite), `npm run build` (vite build), `npm test` (everything under `src/lib/**`: safety engine, 51-product check, lookup client), `npm run verify:sources` (re-fetches every library source and checks its quote; needs internet) |
@@ -48,7 +48,7 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
  ┌──────────────────────────────────────────────────────────────────────────────┐
  │ main.tsx → App.tsx (state, navigation, Home/Search/Saved/Profile inline)     │
  │   ├─ loadData() ── lib/catalog.ts ──┐        (MapTab.tsx: hidden, M7.4)      │
- │   ├─ ScanTab.tsx ─ lib/lookup.ts (USDA → Open Food Facts; saves nothing)      │
+ │   ├─ ScanTab.tsx ─ lib/lookup.ts (USDA via usda-relay → Open Food Facts)      │
  │   └─ ProductDetailScreen.tsx           │   lib/safety/* (concern level)      │
  │ productImporter.ts ◄─ products.csv (bundled) ─► initial / offline catalog    │
  └──────────┬─────────────────────────────┬──┼──────────────────────────────────┘
@@ -80,7 +80,8 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | `src/app/components/ScanTab.tsx` | 266 | Simulated scanner: demo barcodes, type-a-barcode, catalog → lookup, not-found and error states | SAFE TO EDIT |
 | `src/lib/catalog.ts` | 103 | **Database read layer**: `loadCatalog()` plus the row → `Product` mapper | SAFE TO EDIT |
 | `src/lib/productImporter.ts` | 76 | `parseProductsCSV(text)` → `Product[]` (first row per id; no price fields since the 2026-10-02 cleanup) and `splitCSVLine`; defines the canonical `Product` and `ProductSource` types. App.tsx feeds it the bundled CSV (`?raw`); tests and `scripts/apply-verified-barcodes.mjs` read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
-| `src/lib/lookup.ts` | 146 | USDA FoodData Central + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session (no request) | SAFE TO EDIT |
+| `src/lib/lookup.ts` | 187 | USDA FoodData Central (through `relayUrl`, M7.5) + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session (no request) | SAFE TO EDIT |
+| `supabase/functions/usda-relay/index.ts` | 43 | The USDA relay (M7.5): pure `handle(req, { key }, fetch)` + `Deno.serve`; GET/OPTIONS only, allowed origins, `query` + `pageSize` 5\|15 only, fixed upstream URL, never returns the key; tested by `index.test.ts` | EDIT WITH CAUTION (security surface; redeploy with `verify_jwt` off) |
 | `src/lib/scanner.ts` | 38 | Pure scan logic: grocery formats, `normalizeScanned` (digits; UPC-E → UPC-A), `confirmReads` (two identical reads in a row) | SAFE TO EDIT |
 | `src/lib/recent.ts` | 49 | "Recently scanned": `addRecent` (newest first, no duplicates, 10 max), `resolveRecent` (catalog ids re-read, looked-up snapshots kept), `parseRecent`, and `loadRecent`/`saveRecent` around `localStorage["ecogo.recent.v1"]` that never throw | SAFE TO EDIT |
 | `src/app/components/Explainer.tsx` | — | Home's "Hidden risks, explained" pages (5: "Nothing flagged" isn't "healthy", badge levels, seed oils, pesticides, ultra-processed foods): `EXPLAINERS`, `ExplainerId`, plain text over official sources only (each with its verbatim quote and "Source checked" date; the M7.1 sources are `Cite` constants in the file) | SAFE TO EDIT (text must match its sources word for word) |
@@ -98,7 +99,7 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | `vite.config.ts` | 7 | React + Tailwind plugins | EDIT WITH CAUTION |
 | `src/styles/*.css` | — | Tailwind entry, theme tokens, Google Fonts | EDIT WITH CAUTION |
 | `scripts/verify-sources.mjs` | — | Library source check (`npm run verify:sources`) | SAFE TO EDIT |
-| `.github/workflows/deploy.yml` | — | On every push to `main`: `npm ci`, `npm test`, check the `VITE_FDC_API_KEY` secret, build, deploy `dist/` to GitHub Pages | EDIT WITH CAUTION (every push publishes) |
+| `.github/workflows/deploy.yml` | — | On every push to `main`: `npm ci`, `npm test`, build, deploy `dist/` to GitHub Pages (no USDA key since M7.5) | EDIT WITH CAUTION (every push publishes) |
 | `ATTRIBUTIONS.md` | — | Figma template leftover | Leave alone |
 
 Removed in step 2: `utils/supabase/info.tsx` (key for the retired Figma project) and `supabase/functions/server/*`
@@ -306,7 +307,7 @@ static or a no-op; **broken**.
 |---|---|---|
 | Supabase (PostgREST, Realtime) | `catalog.ts`, App realtime (read only) | see §6 |
 | GitHub Pages + Actions | `.github/workflows/deploy.yml` | Hosts https://skynetrebel42.github.io/ecogo/ |
-| USDA FoodData Central (`api.nal.usda.gov/fdc/v1/foods/search`) | `lookup.ts` | Branded foods; key `VITE_FDC_API_KEY` in `.env.local` (3,600 requests/hour); codes tried as typed and 14-digit |
+| USDA FoodData Central (`api.nal.usda.gov/fdc/v1/foods/search`) | `usda-relay` Edge Function, called by `lookup.ts` | Branded foods; the key is the Supabase secret `FDC_API_KEY` (M7.5); all visitors share USDA's limit for the relay (plan for 1,000 requests an hour in total); codes tried as typed and 14-digit |
 | Open Food Facts (`world.openfoodfacts.org/api/v3`) | `lookup.ts` | No key; crowd-sourced, labelled as such; ODbL credit on product pages; `X-User-Agent: EcoGo/0.1 (personal project)` |
 | tile.openstreetmap.org | MapTab (hidden since M7.4: no tiles load) | public tiles via the deprecated `{s}` subdomains; attribution hidden by UI |
 | images.unsplash.com | Home recommendations | hotlinked photo ids |

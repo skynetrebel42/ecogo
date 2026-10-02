@@ -19,9 +19,9 @@
 
 - **Phase:** **prototype done 2026-10-01** (camera scans confirmed by the owner on Android, iPhone and PC). M7–M7.3
   made Home, Profile and the welcome honest; **M7.4 trust cleanup (2026-10-02): nothing the app shows is invented.**
-  Next, in the PM chat's order: M7.5 USDA key relay (spec awaiting the owner's approval), M9 real map (Los Angeles,
-  OpenStreetMap), then M8 add-a-product. See the
-  KNOWN_ISSUES.md roadmap.
+  **M7.5 (2026-10-02): the USDA key left the public JavaScript** (the `usda-relay` Edge Function holds it). Next, in the
+  PM chat's order: M9 real map (Los Angeles, OpenStreetMap), M10 data ownership (EcoGo's own copy of USDA Branded
+  Foods, which retires the relay), then M8 add-a-product. See the KNOWN_ISSUES.md roadmap.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (31 food products with USDA-verified barcodes and labels),
   USDA FoodData Central and Open Food Facts lookup for any other barcode, on-device camera scanning, a concern level
@@ -32,7 +32,8 @@
   and the Map's Chicago places (`resources`, `MapTab.tsx`; the Map tab is hidden until M9).
 - **Backend:** Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free). There are 5 normalized tables
   with RLS and explicit grants, and the schema lives in `supabase/migrations/`. The browser only reads the catalog
-  and writes nothing (scan inserts revoked in M3). There is no edge function. The old Figma project is retired (decision 008).
+  and writes nothing (scan inserts revoked in M3). One Edge Function since M7.5, `usda-relay`, holds the USDA key as
+  the Supabase secret `FDC_API_KEY` (decision 026). The old Figma project is retired (decision 008).
 - **Security:** browsers can't write anything (catalog read-only; scan inserts revoked in M3), and the security advisor's
   only notice is the expected "RLS on, no policy" for `scan_events`. Accounts (S-06) aren't needed while nothing is written.
 
@@ -115,6 +116,7 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 023 | Home shows only real content; recent products kept on the device (localStorage, last 10), no account | Owner, 2026-10-01 | **Done** (M7) |
 | 024 | No invented content outside the Map: Profile and the welcome say only what EcoGo does today | Owner, 2026-10-01 | **Done** (M7.2, M7.3) |
 | 025 | Nothing the app shows is invented or promises a missing feature: prices out of the UI (the data stays), Map tab hidden until it has real places (M9), Saved › Lists and Share removed, favorites start empty, "AI" wording gone | Owner, 2026-10-02 (architecture review) | **Done** (M7.4) |
+| 026 | The USDA key leaves the public JavaScript: the `usda-relay` Edge Function relays the app's two USDA searches with the key as the Supabase secret `FDC_API_KEY`; the browser never sends a key, and `DEMO_KEY` is gone. All visitors share USDA's quota for the relay (plan for 1,000 requests an hour) until M10 | USDA deactivates keys found public; owner, 2026-10-02 (via the PM chat), shared-quota trade-off accepted | **Done** (M7.5) |
 
 ## Open questions only the owner can answer
 
@@ -126,8 +128,8 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 
 ## How to run
 
-Live site: https://skynetrebel42.github.io/ecogo/ (rebuilt by GitHub Actions on every push to `main`; the USDA key is
-the repository secret `VITE_FDC_API_KEY`). Repo: https://github.com/skynetrebel42/ecogo.
+Live site: https://skynetrebel42.github.io/ecogo/ (rebuilt by GitHub Actions on every push to `main`; the build needs no
+USDA key since M7.5). Repo: https://github.com/skynetrebel42/ecogo.
 
 ```bash
 npm install
@@ -140,5 +142,6 @@ catalog or anything else (scans aren't saved since M3). If Supabase is unreachab
 "Offline". To point at a different Supabase project, apply `supabase/migrations/` there in order and override
 the two variables in a gitignored `.env.local`.
 
-Barcode lookup: create `.env.local` with `VITE_FDC_API_KEY=<free key from https://fdc.nal.usda.gov/api-key-signup>`;
-without it the app uses USDA's `DEMO_KEY` (30 lookups/hour). Restart `npm run dev` after changing it.
+Barcode lookup needs no key (M7.5): the app calls the `usda-relay` Edge Function, which accepts the live site and
+`localhost`. The USDA key is the Supabase secret `FDC_API_KEY` (Dashboard → Edge Functions → Secrets), set by the owner;
+no chat ever reads or types it. Redeploy the function with `verify_jwt` off after changing its code.

@@ -100,17 +100,21 @@ device, where results come from, privacy, the source code), and a new visitor se
 and the Map's made-up Chicago places are off the screens (the Map tab is hidden until it has real places), Saved has no
 fake shopping lists or favorites, and the do-nothing Share button and the "researched with AI" line are gone.
 
-**Next:** a USDA key relay (M7.5, spec pending), the real map (M9: Los Angeles, real places from OpenStreetMap), then
-adding a missing product (M8); later
-persistent favorites and accounts, only if a feature needs per-user data.
+**Step 12: USDA key relay (M7.5). ✅ Done 2026-10-02.** The USDA key is no longer in the public website code (USDA
+switches off keys it finds online): a small Supabase function now asks USDA on the app's behalf and keeps the key
+secret. Nothing looks different; all visitors now share one USDA allowance (about 1,000 requests an hour).
+
+**Next:** the real map (M9: Los Angeles, real places from OpenStreetMap), EcoGo's own copy of USDA's product data
+(M10, which removes the shared allowance), then adding a missing product (M8); later persistent favorites and
+accounts, only if a feature needs per-user data.
 
 ## 5. How to start the next session
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–11 are done; the live site is
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–12 are done; the live site is
 > https://skynetrebel42.github.io/ecogo/; my Supabase project is
 > `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
-> Next: M7.5 USDA key relay, then M9, the real map (Los Angeles,
-> OpenStreetMap), then M8 add-a-product. Every push to main publishes the site, so ask before pushing. Keep each
+> Next: M9, the real map (Los Angeles,
+> OpenStreetMap), then M10 data ownership, then M8 add-a-product. Every push to main publishes the site, so ask before pushing. Keep each
 > change small, commit each one, verify it in the running app, and keep `npm test` green.

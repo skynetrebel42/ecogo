@@ -99,17 +99,32 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 
 - Every Actions run warns that the Node 20 runtime is deprecated for checkout@v4, setup-node@v4 and the Pages actions. Bump each action to its current major before GitHub removes Node 20, or deploys stop.
 - Workflow hardening: move `pages: write` and `id-token: write` from workflow level to the `deploy` job (the build job runs `npm ci` install scripts), and use `cancel-in-progress: false` as GitHub's Pages starter does.
-- The secret check (`test -n`) accepts a whitespace-only secret. The app then trims it to empty and silently uses `DEMO_KEY`. Strip whitespace in the check.
+- ~~The secret check (`test -n`) accepts a whitespace-only secret. The app then trims it to empty and silently uses `DEMO_KEY`. Strip whitespace in the check.~~
+  Moot since M7.5: the check and `DEMO_KEY` are gone; the relay trims its secret and answers 500 "relay is not
+  configured" when it's empty.
 - Public docs name the owner's university ("the UCI email stays private", and in the M3 plan). They reveal the affiliation, not the address; reword to "personal email" if that's unwanted.
 - `.superpowers/` is ignored only through a nested `.gitignore`; add it to the root `.gitignore` so a new scratch folder can't be committed.
-- The README's "30 lookups an hour" for `DEMO_KEY` is loose: the limit is per IP (30 requests an hour, 50 a day), and one lookup can use 2 requests.
+- ~~The README's "30 lookups an hour" for `DEMO_KEY` is loose: the limit is per IP (30 requests an hour, 50 a day), and one lookup can use 2 requests.~~
+  Moot since M7.5 (`DEMO_KEY` removed; the README says no key is needed).
 - The OpenStreetMap attribution is hidden behind the map sheet (K-23; the Map is hidden since M7.4, so M9 must show it). `index.html` has `noindex, nofollow`: decide whether the showcase should be findable.
 
 ### Lookup follow-ups (from the M2 final review, deferred)
 
 - A 200 response with an unparseable body reads as "not found" instead of an error (`lookup.ts` `fetchUsda`/`fetchOff`).
 - Letters in a typed barcode are silently stripped and check digits aren't validated, so a typo becomes a different code.
-- USDA 429/403 (rate limit, bad key) show "check your connection"; under `DEMO_KEY` Open Food Facts silently takes over.
+- USDA 429/403 (rate limit, bad key) show "check your connection". ~~Under `DEMO_KEY` Open Food Facts silently takes
+  over.~~ (moot since M7.5: no `DEMO_KEY`). The relay passes USDA's status through, so a 429 from the shared quota (see
+  "USDA relay" below) shows the same generic message.
+
+### USDA relay (M7.5, accepted trade-off)
+
+- All visitors share USDA's limit for the relay's outbound address(es): plan for **1,000 requests an hour in total**
+  (each visitor had their own 1,000 before; Supabase may spread calls over several addresses, unverified). A first-time
+  lookup costs 1-2 requests, a catalog product's nutrition 1-2, a text search 1. Beyond that USDA answers 429 and the app
+  shows its error state; Open Food Facts still covers 12+ digit codes. M10 (EcoGo's own copy of USDA Branded Foods)
+  removes the limit.
+- The origin check stops other *websites*, not scripts: anyone with `curl` and a forged `Origin` can spend the shared
+  quota. If that happens: a per-IP limit in the function, or pull M10 forward.
 - Switching tabs mid-lookup still pops the product page when the lookup finishes.
 - ~~A scan can sit on "Looking up…" while the location prompt is unanswered~~ (moot since M3: no location request).
 
@@ -248,13 +263,20 @@ food and drinks first. Each step is small and verified in the running app before
     dead Share button, the "researched with AI" footer, "(coming next)", "coming later" and "cached data" are gone, and
     `src/lib/honesty.test.ts` keeps them out. Design: `docs/superpowers/specs/2026-10-02-m74-trust-cleanup-design.md`.
 
+14. ✅ **M7.5 USDA key relay: done 2026-10-02** (`94a2af0`…`74c0fb5`, plus the docs commit). The USDA key left the
+    public JavaScript: the `usda-relay` Supabase Edge Function (`verify_jwt` off) relays the app's two USDA searches
+    with the key as the Supabase secret `FDC_API_KEY`. It answers only the live site and `localhost`, reads only `query`
+    and `pageSize` 5|15, and never returns the key; `DEMO_KEY` is gone. Trade-off: all visitors share USDA's quota (see
+    "USDA relay" above) until M10. Design: `docs/superpowers/specs/2026-10-02-m75-usda-key-relay-design.md`.
+
 **Nothing the app shows is invented** (M7.4). The invented prices (K-30) and the Map's Chicago places are still in the
 database and the CSV, but no screen shows them.
 
-**Next** (the PM chat's order, 2026-10-02): M7.5 USDA key relay (spec awaiting the owner's approval), then M9 real
-map (Los Angeles, OpenStreetMap;
-`docs/superpowers/specs/2026-10-02-m9-real-map-design.md`), then M8 add-a-product / no-barcode ingredient check
-(`docs/superpowers/specs/2026-10-02-m8-add-product-design.md`). Accounts come later.
+**Next** (the PM chat's order, 2026-10-02): M9 real map (Los Angeles, OpenStreetMap;
+`docs/superpowers/specs/2026-10-02-m9-real-map-design.md`), M10 data ownership (EcoGo's own copy of USDA Branded
+Foods, which retires the relay; `docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md`), then M8
+add-a-product / no-barcode ingredient check (`docs/superpowers/specs/2026-10-02-m8-add-product-design.md`). Accounts
+come later.
 
 **Revisit:** when the official US definition of ultra-processed foods is published (HHS/USDA sent the first proposed
 definition for final review in August 2026), update the "Ultra-processed foods: no official line yet" explainer and

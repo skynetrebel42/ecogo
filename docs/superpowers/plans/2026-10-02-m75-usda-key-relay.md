@@ -31,4 +31,12 @@
 
 - **Key echo guard (adds to R3):** if USDA's 200 body ever contains the key, the relay answers 502 instead of passing it
   through. USDA's fixtures were trimmed, so whether it echoes request parameters isn't known; the guard makes "never the
-  key" hold either way. One test.
+  key" hold either way. One test. (Live check: USDA's full answer has `foodSearchCriteria` but no `api_key`.)
+- **Final review (opus, effort medium): ship.** Two Minors, both fixed in `74c0fb5`: `searchUsda` cuts the text to the
+  relay's 100-character limit; the 403 test asserts no CORS header.
+- **KNOWN_ISSUES, partly moot:** of "USDA 429/403 show 'check your connection'; under `DEMO_KEY` OFF silently takes
+  over", only the `DEMO_KEY` half is moot. The generic message for a relayed 429 is still true (and likelier with the
+  shared quota), so that half stays.
+- **Results:** deployed `usda-relay` v1 (`verify_jwt` off; source identical to the repo). curl: allowed origin 200
+  with `foods` (Coke Zero by 14 digits; "oreo" 15 foods), other or no origin 403, `pageSize=99` 400, OPTIONS 204, no
+  `api_key` in any answer. `check-home.mjs` 32/32 against `vite preview` through the live relay.
