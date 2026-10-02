@@ -4,7 +4,7 @@ import { loadCatalog } from "../lib/catalog";
 import ProductDetailScreen from "./components/ProductDetailScreen";
 import ScanTab from "./components/ScanTab";
 import csvText from "../data/products.csv?raw";
-import { parseProductsCSV, type Product as CsvProduct } from "../lib/productImporter";
+import { parseProductsCSV, type Product } from "../lib/productImporter";
 import { VERDICT_RANK } from "../lib/safety/analyze";
 import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon } from "./components/verdict";
 import { NutritionChip } from "./components/NutritionPanel";
@@ -23,10 +23,6 @@ type AppState = "welcome" | "main";
 // The Map tab is hidden until it shows real places (M7.4 spec M1); MapTab.tsx stays in the repo, unimported.
 type Tab = "home" | "scan" | "saved" | "profile";
 type SubScreen = "search-results" | "product-detail" | null;
-
-// Re-export the canonical Product type from the import pipeline so the rest of
-// the file can use it without a separate import statement.
-type Product = CsvProduct;
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 // Bundled CSV catalog: shown until Supabase answers, and kept as the offline
