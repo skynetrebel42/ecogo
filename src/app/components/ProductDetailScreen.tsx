@@ -4,15 +4,15 @@
 // Concern level from the safety engine (src/lib/safety): the strongest official
 // finding among the ingredients (additives), the food itself (processed meat) and
 // what forms when it's cooked (acrylamide, a marker only). Every finding shows its
-// sources. Also: price comparison and same-category alternatives.
+// sources. Also: same-category alternatives with fewer concerns.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useMemo, useState } from "react";
 import {
-  ArrowLeft, Bookmark, Share2, ShoppingBag, DollarSign, Star,
+  ArrowLeft, Bookmark, Share2, ShoppingBag,
   TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame,
 } from "lucide-react";
-import { bestPrice, type Product } from "../../lib/productImporter";
+import type { Product } from "../../lib/productImporter";
 import { offEditUrl } from "../../lib/lookup";
 import { VERDICT_RANK, escapeRegExp, type Flag } from "../../lib/safety/analyze";
 import type { Severity, Source } from "../../lib/safety/library";
@@ -115,7 +115,6 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
   const [openFlag, setOpenFlag] = useState<string | null>(null);
   const analysis = useMemo(() => safeAnalyze(product), [product]);
   const look = VERDICT_STYLE[analysis.verdict];
-  const best = bestPrice(product);
   const nutrition = useNutrition(product);
   const highNutrient = topHigh(nutrition.status === "ready" ? nutrition.nutrition : null);
 
@@ -129,15 +128,9 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
       .filter(({ a }) => VERDICT_RANK[a.verdict] < mine)
       .sort((x, y) => VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict]
         || x.a.flags.length - y.a.flags.length
-        || bestPrice(x.p) - bestPrice(y.p))
+        || x.p.name.localeCompare(y.p.name))
       .slice(0, 3);
   }, [products, product, analysis]);
-
-  const stores = [
-    product.amazon   ? { name: "Amazon",         icon: "📦", price: product.amazon.price,   color: "#FF9900", rating: product.amazon.rating,  condition: "" } : null,
-    product.walmart  ? { name: "Walmart",        icon: "🛒", price: product.walmart.price,  color: "#0071CE", rating: product.walmart.rating, condition: "" } : null,
-    product.facebook ? { name: "FB Marketplace", icon: "👥", price: product.facebook.price, color: "#1877F2", rating: 0, condition: product.facebook.condition } : null,
-  ].filter((s): s is NonNullable<typeof s> => s !== null);
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -171,18 +164,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               </>)}
             </div>
             <h1 className="text-lg font-extrabold text-white leading-tight mb-2">{product.name}</h1>
-            {Number.isFinite(best) && (
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl font-extrabold text-white">${best.toFixed(2)}</span>
-                <span className="text-sm text-white/60">best price</span>
-              </div>
-            )}
             <div className="flex gap-1.5 flex-wrap">
-              {stores.map(s => (
-                <span key={s.name} className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">
-                  {s.icon} {s.name === "FB Marketplace" ? "FB" : s.name}
-                </span>
-              ))}
               {formsWhenCooked(analysis) && (
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">🔥 Forms when cooked</span>
               )}
@@ -270,31 +252,6 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
             </p>
           </div>
 
-          {/* ── Price Comparison ── */}
-          {stores.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-                <DollarSign size={15} className="text-primary" />
-                <span className="font-bold text-sm">Price Comparison</span>
-                <span className="ml-auto text-primary font-extrabold text-sm">${best.toFixed(2)} best</span>
-              </div>
-              {stores.map(store => (
-                <div key={store.name} className="flex items-center justify-between px-4 py-3 border-b last:border-0 border-gray-50">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-base leading-none">{store.icon}</span>
-                    <div>
-                      <p className="text-[11px] font-bold leading-tight">{store.name}</p>
-                      {store.rating
-                        ? <div className="flex items-center gap-0.5 mt-0.5"><Star size={8} className="fill-amber-400 text-amber-400" /><span className="text-[9px] text-gray-400">{store.rating}</span></div>
-                        : store.condition && <p className="text-[9px] text-gray-400 mt-0.5">{store.condition}</p>}
-                    </div>
-                  </div>
-                  <span className="text-sm font-extrabold" style={{ color: store.color }}>${store.price.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* ── Alternatives with fewer concerns ── */}
           {alternatives.length > 0 && (
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -305,7 +262,6 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               <div className="divide-y divide-gray-50">
                 {alternatives.map(({ p, a }) => {
                   const altLook = VERDICT_STYLE[a.verdict];
-                  const altPrice = bestPrice(p);
                   return (
                     <button key={p.id} onClick={() => onSelectProduct(p)} className="w-full px-4 py-3 flex items-center gap-3 text-left">
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: altLook.bg }}>
@@ -314,7 +270,6 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
                       <div className="flex-1 min-w-0">
                         <p className="text-[10px] text-gray-400 font-medium">{p.brand}</p>
                         <p className="text-sm font-semibold leading-tight">{p.name}</p>
-                        {Number.isFinite(altPrice) && <p className="text-xs text-gray-500 mt-0.5">from ${altPrice.toFixed(2)}</p>}
                       </div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: altLook.bg, color: altLook.color }}>{altLook.short}</span>
                     </button>

@@ -5,7 +5,7 @@ import MapTab from "./components/MapTab";
 import ProductDetailScreen from "./components/ProductDetailScreen";
 import ScanTab from "./components/ScanTab";
 import csvText from "../data/products.csv?raw";
-import { parseProductsCSV, bestPrice, type Product as CsvProduct } from "../lib/productImporter";
+import { parseProductsCSV, type Product as CsvProduct } from "../lib/productImporter";
 import { VERDICT_RANK } from "../lib/safety/analyze";
 import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon } from "./components/verdict";
 import { NutritionChip } from "./components/NutritionPanel";
@@ -146,7 +146,6 @@ function WelcomeScreen({ onScan, onLookAround }: { onScan: () => void; onLookAro
 
 // ── Product Card (mini) ───────────────────────────────────────────────────────
 function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Product) => void }) {
-  const bp = bestPrice(product);
   const a = safeAnalyze(product);
   const look = VERDICT_STYLE[a.verdict];
   // Only nutrition already known this session: a list never triggers lookups (USDA rate limit).
@@ -160,12 +159,6 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-muted-foreground font-medium">{product.brand}</p>
         <p className="text-sm font-semibold leading-tight line-clamp-2">{product.name}</p>
-        {Number.isFinite(bp) && (
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-primary font-bold">${bp.toFixed(2)}</span>
-            <span className="text-[10px] text-muted-foreground">best price</span>
-          </div>
-        )}
       </div>
       <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
         <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: look.color }}>
@@ -283,7 +276,6 @@ function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearR
 function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
   query: string; onBack: () => void; onSelectProduct: (p: Product) => void; products: Product[];
 }) {
-  const [sortBy, setSortBy] = useState<"concerns" | "price">("concerns");
   // "More from USDA": real products beyond our catalog (one request per search text per session).
   const [usda, setUsda] = useState<{ status: "loading" | "ok" | "error"; products: Product[] }>({ status: "loading", products: [] });
   useEffect(() => {
@@ -297,9 +289,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
   const raw = searchCatalog(products, query);
   const results = raw
     .map(p => ({ p, a: safeAnalyze(p) }))
-    .sort((x, y) => sortBy === "price"
-      ? bestPrice(x.p) - bestPrice(y.p)
-      : VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict] || x.a.flags.length - y.a.flags.length)
+    .sort((x, y) => VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict] || x.a.flags.length - y.a.flags.length)
     .map(({ p }) => p);
   const isEmpty = results.length === 0 && usda.status !== "loading" && usda.products.length === 0;
 
@@ -317,13 +307,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
       </div>
       {results.length > 0 && (
         <div className="px-4 py-2 flex items-center gap-2 border-b border-border">
-          <span className="text-xs text-muted-foreground font-medium">Sort:</span>
-          {([["concerns", "Fewest concerns"], ["price", "Price"]] as const).map(([key, label]) => (
-            <button key={key} onClick={() => setSortBy(key)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${sortBy === key ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
-              {label}
-            </button>
-          ))}
+          <span className="text-xs text-muted-foreground font-medium">Sorted by fewest concerns</span>
           <span className="ml-auto text-xs text-muted-foreground">{results.length} found</span>
         </div>
       )}
