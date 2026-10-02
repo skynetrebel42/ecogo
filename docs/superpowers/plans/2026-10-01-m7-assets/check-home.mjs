@@ -2,13 +2,19 @@
 // Oreo (search) then Diet Coke (typed barcode) appear newest first; survives reload; Clear; explainers; Saved › Scanned.
 // M7.1: Home lists 5 explainer cards (M7's two first); seed oils, pesticides and ultra-processed open with sources;
 // the pesticides page's "What the badge levels mean" link opens it and Back returns.
+// M7.2/M7.3: the welcome screen is honest and shows once per device; Profile shows only true things.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 import { spawn } from "node:child_process";
+import { rmSync } from "node:fs";
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const URL_ = process.argv[2];
 const PORT = 9600 + Math.floor(Math.random() * 90);
+// A fresh profile every run: a reused one can keep an old "Recently scanned" list (Edge is killed before it flushes
+// storage), so "first visit" wouldn't be a first visit.
+const PROFILE = `${process.env.TEMP}\\ecogo-home-${PORT}`;
+rmSync(PROFILE, { recursive: true, force: true });
 const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, "--window-size=900,1000",
-  `--user-data-dir=${process.env.TEMP}\\ecogo-home-${PORT}`, "about:blank"], { stdio: "ignore" });
+  `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
 setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 120000).unref?.();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
@@ -31,7 +37,9 @@ try {
   const helpers = () => run(`window.__sleep = ms => new Promise(r => setTimeout(r, ms));
     window.__until = async (fn, ms = 10000) => { for (let t = 0; t < ms; t += 100) { const v = fn(); if (v) return v; await __sleep(100); } return null; };
     window.__btn = s => [...document.querySelectorAll("button")].find(b => b.innerText.includes(s) || b.getAttribute("aria-label") === s);
-    window.__guest = async () => (await __until(() => __btn("Continue as Guest"))).click(); true`);
+    // Welcome shows on the first visit only: tap "Look around first" when it's there, else Home is already showing.
+    window.__guest = async () => { const b = await __until(() => __btn("Look around first") || __btn("Scan a product"));
+      const welcomed = b?.innerText.includes("Look around first"); if (welcomed) { b.click(); await __sleep(400); } return welcomed; }; true`);
   const type = async text => {
     await send("Input.insertText", { text });
     await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
@@ -45,7 +53,11 @@ try {
   await send("Runtime.enable");
   await send("Page.navigate", { url: URL_ });
   await sleep(4000);
-  await helpers(); await run(`__guest()`); await sleep(800);
+  await helpers();
+  const w = await run(`(async () => { await __until(() => __btn("Look around first")); return document.body.innerText; })()`);
+  check("welcome is honest: what EcoGo does, no fake promises", w.includes("Know what's in your food") && w.includes("Start scanning")
+    && !/Sign In|Save Money|better prices|Best Price|Amazon|Walmart|Get Started/i.test(w));
+  await run(`__guest()`); await sleep(800);
 
   const t = await run(`document.body.innerText`);
   check("Home has no invented content", !/Alex|Chicago|Rating|Why Recommended|Deals|Nearby Resources/i.test(t));
@@ -72,7 +84,8 @@ try {
   const badge = await run(`[...document.querySelectorAll("h2")].find(e => e.innerText === "Recently scanned").parentElement.nextElementSibling.innerText`);
   check("…with badges", /Nothing flagged|concern|carcinogen/.test(badge), badge.replace(/\n/g, " / "));
 
-  await send("Page.reload"); await sleep(4000); await helpers(); await run(`__guest()`); await sleep(800);
+  await send("Page.reload"); await sleep(4000); await helpers();
+  check("welcome doesn't show again on this device", (await run(`__guest()`)) === false); await sleep(800);
   names = await recentNames();
   check("a reload keeps them", names?.length === 2, JSON.stringify(names));
 
@@ -111,9 +124,20 @@ try {
     await back();
   }
 
+  // M7.2: Profile shows only true things
+  await run(`(async () => { __btn("Profile").click(); await __sleep(500); })()`);
+  const p = await run(`document.body.innerText`);
+  check("Profile has no invented content", !/Alex|Level 4|Money Saved|CO₂|Ethical Purchases|Achievements|Notifications|Dark Mode/i.test(p));
+  check("Profile: your data, sources and privacy", p.includes("2 products, saved in this browser only") && p.includes("Where results come from") && p.includes("Privacy"));
+  const gh = await run(`(() => { const a = [...document.querySelectorAll("a")].find(a => a.innerText.includes("Source code")); return a ? a.href + " " + a.target : null; })()`);
+  check("Profile: source-code link opens GitHub in a new tab", gh === "https://github.com/skynetrebel42/ecogo _blank", gh);
+  await home();
+
   await run(`(async () => { __btn("Clear recently scanned").click(); await __sleep(400); })()`);
   const after = await run(`document.body.innerText`);
   check("Clear empties the list", after.includes("How EcoGo checks a product") && !after.includes("Recently scanned"));
+  await run(`(async () => { __btn("Profile").click(); await __sleep(500); })()`);
+  check("…and Profile says Nothing scanned yet", (await run(`document.body.innerText`)).includes("Nothing scanned yet"));
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {
   console.log(`${ok}/${total} checks passed`);
