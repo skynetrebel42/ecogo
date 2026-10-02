@@ -15,7 +15,7 @@ import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } fr
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import {
   Home, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
-  Bookmark, Wifi, Plus, QrCode
+  Bookmark, Wifi, QrCode
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -313,7 +313,7 @@ function SavedTab({ savedIds, scanned, initialTab = "favorites", onSelectProduct
   savedIds: number[]; scanned: Product[]; initialTab?: "favorites" | "scanned";
   onSelectProduct: (p: Product) => void; products: Product[];
 }) {
-  const [tab, setTab] = useState<"favorites" | "scanned" | "lists">(initialTab);
+  const [tab, setTab] = useState<"favorites" | "scanned">(initialTab);
   const favs = products.filter(p => savedIds.includes(p.id));
 
   return (
@@ -321,7 +321,7 @@ function SavedTab({ savedIds, scanned, initialTab = "favorites", onSelectProduct
       <div className="px-5 pt-4">
         <h1 className="text-xl font-extrabold mb-4">Saved</h1>
         <div className="flex gap-1 bg-muted rounded-xl p-1 mb-4">
-          {(["favorites", "scanned", "lists"] as const).map(t => (
+          {(["favorites", "scanned"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${tab === t ? "bg-white shadow text-foreground" : "text-muted-foreground"}`}>
               {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -346,24 +346,6 @@ function SavedTab({ savedIds, scanned, initialTab = "favorites", onSelectProduct
               <p className="font-semibold text-foreground">No scanned products yet</p>
             </div>
           ) : scanned.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} />)
-        )}
-        {tab === "lists" && (
-          <>
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-semibold text-sm">Shopping Lists</p>
-              <button className="text-primary text-sm font-semibold flex items-center gap-1"><Plus size={13} /> New</button>
-            </div>
-            {[{ name: "Weekly Groceries", count: 6, emoji: "🛒" }, { name: "Eco Products", count: 3, emoji: "🌿" }, { name: "Medicine Cabinet", count: 2, emoji: "💊" }].map(l => (
-              <div key={l.name} className="flex items-center gap-3 p-3.5 bg-card border border-border rounded-2xl shadow-sm">
-                <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center text-xl">{l.emoji}</div>
-                <div className="flex-1">
-                  <p className="font-semibold text-sm">{l.name}</p>
-                  <p className="text-xs text-muted-foreground">{l.count} items</p>
-                </div>
-                <ChevronRight size={15} className="text-muted-foreground" />
-              </div>
-            ))}
-          </>
         )}
       </div>
     </div>
@@ -470,7 +452,7 @@ export default function App() {
   const [subScreen, setSubScreen] = useState<SubScreen>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [savedIds, setSavedIds] = useState<number[]>([3, 5]);
+  const [savedIds, setSavedIds] = useState<number[]>([]);
   // Recently scanned / looked at: on this device only (M7 spec §4.1).
   const [recent, setRecent] = useState<RecentEntry[]>(loadRecent);
   useEffect(() => saveRecent(recent), [recent]);
@@ -511,9 +493,11 @@ export default function App() {
     return () => { supabase.removeChannel(channel); };
   }, [loadData]);
 
-  // Every product opened counts as "looked at": Scan, search (catalog or USDA), and the lists.
+  // Every product opened counts as "looked at": Scan, search (catalog or USDA), and the lists. A looked-up product
+  // (negative id) joins lookedUp however it was opened, so bookmarking it shows it in Saved › Favorites.
   const openProduct = (p: Product) => {
     setRecent(prev => addRecent(prev, p));
+    if (p.id < 0) setLookedUp(prev => prev.some(x => x.id === p.id) ? prev : [...prev, p]);
     setSelectedProduct(p); setSubScreen("product-detail");
   };
   const recentProducts = resolveRecent(recent, products);
@@ -576,13 +560,7 @@ export default function App() {
                     />
                   )}
                   {activeTab === "scan"    && (
-                    <ScanTab
-                      products={products}
-                      onScanResult={(p) => {
-                        if (p.source) setLookedUp(prev => prev.some(x => x.id === p.id) ? prev : [...prev, p]);
-                        openProduct(p);
-                      }}
-                    />
+                    <ScanTab products={products} onScanResult={openProduct} />
                   )}
                   {activeTab === "saved"   && <SavedTab savedIds={savedIds} scanned={recentProducts} initialTab={savedInitialTab} onSelectProduct={openProduct} products={[...products, ...lookedUp]} />}
                   {activeTab === "profile" && <ProfileTab recentCount={recentProducts.length} onClearRecent={() => setRecent([])} />}
