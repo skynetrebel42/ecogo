@@ -3,6 +3,8 @@
 // M7.1: Home lists 5 explainer cards (M7's two first); seed oils, pesticides and ultra-processed open with sources;
 // the pesticides page's "What the badge levels mean" link opens it and Back returns.
 // M7.2/M7.3: the welcome screen is honest and shows once per device; Profile shows only true things.
+// M7.4: no Map in the nav; no prices, Share or AI claims; Saved has only Favorites (empty at first) and Scanned; a USDA
+// search result, opened and bookmarked, is listed in Favorites.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
@@ -65,13 +67,28 @@ try {
   check("greeting matches the time", t.includes(g) && t.includes("What are you eating?"), g);
   check("first visit shows How EcoGo checks a product", t.includes("How EcoGo checks a product") && !t.includes("Recently scanned"));
 
+  // M7.4 (spec 2026-10-02-m74-trust-cleanup-design.md §4): nothing invented, nothing promised.
+  const nav = await run(`[...document.querySelectorAll("button")].map(b => b.innerText.trim()).filter(s => ["Home", "Map", "Scan", "Saved", "Profile"].includes(s))`);
+  check("bottom nav is Home, Scan, Saved, Profile (no Map)", JSON.stringify(nav) === '["Home","Scan","Saved","Profile"]', JSON.stringify(nav));
+  check("Home shows no prices", !t.includes("$"));
+  await run(`(async () => { __btn("Saved").click(); await __sleep(500); })()`);
+  const sv = await run(`({ tabs: [...document.querySelectorAll("button")].map(b => b.innerText.trim()).filter(s => ["Favorites", "Scanned", "Lists"].includes(s)), text: document.body.innerText })`);
+  check("Saved: only Favorites and Scanned; Favorites empty on a fresh profile", JSON.stringify(sv.tabs) === '["Favorites","Scanned"]'
+    && sv.text.includes("No saved items") && !/Weekly Groceries|Shopping Lists/.test(sv.text), JSON.stringify(sv.tabs));
+  await home();
+
   await run(`__btn("Scan a product").click(); true`); await sleep(600);
   check("Scan card opens the Scan tab", !!(await run(`(async () => !!(await __until(() => __btn("Close camera") || document.querySelector('input[aria-label="Barcode number"]'), 5000)))()`)));
   await home();
 
   await run(`document.querySelector('input[placeholder^="Search products"]').focus(); true`);
   await type("oreo"); await sleep(800);
+  const sr = await run(`(async () => { await __until(() => __btn("Oreo Original")); return document.body.innerText; })()`);
+  check("search results: no prices, sorted by fewest concerns", !sr.includes("$") && sr.includes("Sorted by fewest concerns") && !sr.includes("Sort:"));
   await run(`(async () => { (await __until(() => __btn("Oreo Original"))).click(); await __sleep(600); })()`);
+  const op = await run(`({ text: document.body.innerText, share: !!__btn("Share") })`);
+  check("Oreo page: no prices, Price Comparison, Share or AI", !op.text.includes("$") && !op.text.includes("Price Comparison") && !op.share
+    && !/\bAI\b/.test(op.text) && op.text.includes("Findings are matched against official sources"));
   await back(); await back(); // product → search → home
   await run(`(async () => { __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
     __btn("Close camera")?.click(); await __sleep(800); const i = await __until(() => document.querySelector('input[aria-label="Barcode number"]'));
@@ -138,6 +155,21 @@ try {
   check("Clear empties the list", after.includes("How EcoGo checks a product") && !after.includes("Recently scanned"));
   await run(`(async () => { __btn("Profile").click(); await __sleep(500); })()`);
   check("…and Profile says Nothing scanned yet", (await run(`document.body.innerText`)).includes("Nothing scanned yet"));
+
+  // M7.4 D3: a looked-up product opened from search (not Scan), then bookmarked, is listed in Saved › Favorites.
+  await home();
+  await run(`document.querySelector('input[placeholder^="Search products"]').focus(); true`);
+  await type("oreo");
+  const usdaName = await run(`(async () => {
+    const first = () => [...document.querySelectorAll("p")].find(e => e.innerText === "More from USDA FoodData Central")?.parentElement.querySelector("button");
+    const b = await __until(first, 20000); if (!b) return null;
+    b.click(); await __sleep(800); const name = document.querySelector("h1")?.innerText;
+    __btn("Save")?.click(); await __sleep(300); return name; })()`);
+  await back(); await back(); // product → search → home
+  await run(`(async () => { __btn("Saved").click(); await __sleep(500); })()`);
+  const fav = await run(`document.body.innerText`);
+  check("a USDA search result, opened and bookmarked, is listed in Favorites", !!usdaName && fav.includes(usdaName) && !fav.includes("No saved items"),
+    usdaName ?? "no USDA result");
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {
   console.log(`${ok}/${total} checks passed`);
