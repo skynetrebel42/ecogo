@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase, USDA_RELAY_URL } from "../lib/supabase";
 import { loadCatalog } from "../lib/catalog";
 import ProductDetailScreen from "./components/ProductDetailScreen";
 import ScanTab from "./components/ScanTab";
@@ -241,7 +241,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
   useEffect(() => {
     let live = true;
     setUsda({ status: "loading", products: [] });
-    searchUsda(query, { fdcKey: import.meta.env.VITE_FDC_API_KEY }).then(r => {
+    searchUsda(query, { relayUrl: USDA_RELAY_URL }).then(r => {
       if (live) setUsda(r.status === "ok" ? { status: "ok", products: r.products } : { status: "error", products: [] });
     });
     return () => { live = false; };

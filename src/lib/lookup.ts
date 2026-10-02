@@ -1,6 +1,7 @@
 // lookup.ts — find a barcode that isn't in our catalog. USDA FoodData Central first (label data supplied by
 // manufacturers), then Open Food Facts (crowd-sourced). Spec: docs/superpowers/specs/2026-09-28-m2-usda-lookup-design.md.
-// Type-only imports, so Node tests can load this module.
+// USDA is reached only through EcoGo's relay (supabase/functions/usda-relay, M7.5), which holds the API key: callers
+// pass its URL as `relayUrl`, and the browser never sends a key. Type-only imports, so Node tests can load this module.
 import type { Product, ProductSource } from "./productImporter.ts";
 import { usdaNutrition, offNutrition, type Nutrition } from "./nutrition.ts";
 
@@ -9,7 +10,6 @@ export type LookupResult =
   | { status: "not-found" }
   | { status: "error"; message: string };
 
-const USDA = "https://api.nal.usda.gov/fdc/v1/foods/search";
 const OFF = "https://world.openfoodfacts.org/api/v3/product/";
 const OFF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_text,ingredients_text_en,additives_tags,categories_tags,nutriments,serving_size";
 
@@ -86,13 +86,13 @@ export type SearchResult = { status: "ok"; products: Product[] } | { status: "er
 const searchCache = new Map<string, Promise<SearchResult>>();
 
 /** USDA products matching a text search; one request per text per session (rate limit); errors aren't cached. */
-export function searchUsda(text: string, opts: { fdcKey?: string; fetchImpl?: typeof fetch } = {}): Promise<SearchResult> {
+export function searchUsda(text: string, opts: { relayUrl: string; fetchImpl?: typeof fetch }): Promise<SearchResult> {
   const q = text.toLowerCase().trim().replace(/\s+/g, " ");
   if (!q) return Promise.resolve({ status: "ok", products: [] });
   const hit = searchCache.get(q);
   if (hit) return hit;
   const f = opts.fetchImpl ?? fetch;
-  const pending: Promise<SearchResult> = f(`${USDA}?api_key=${encodeURIComponent(opts.fdcKey || "DEMO_KEY")}&dataType=Branded&pageSize=15&query=${encodeURIComponent(q)}`)
+  const pending: Promise<SearchResult> = f(`${opts.relayUrl}?query=${encodeURIComponent(q)}&pageSize=15`)
     .then(async res => res.ok
       ? { status: "ok" as const, products: mapUsdaSearch(await res.json().catch(() => null)) }
       : { status: "error" as const, message: `USDA returned HTTP ${res.status}` })
@@ -103,9 +103,9 @@ export function searchUsda(text: string, opts: { fdcKey?: string; fetchImpl?: ty
 }
 
 /** USDA stores codes as 8, 12 or 14 digits, so try the typed digits, then the 14-digit form. */
-async function fetchUsda(code: string, fdcKey: string, f: typeof fetch): Promise<LookupResult> {
+async function fetchUsda(code: string, relayUrl: string, f: typeof fetch): Promise<LookupResult> {
   for (const q of new Set([code, code.padStart(14, "0")])) {
-    const res = await f(`${USDA}?api_key=${encodeURIComponent(fdcKey)}&dataType=Branded&pageSize=5&query=${q}`);
+    const res = await f(`${relayUrl}?query=${q}&pageSize=5`);
     if (!res.ok) return { status: "error", message: `USDA returned HTTP ${res.status}` };
     const product = pickUsdaFood(await res.json().catch(() => null), code);
     if (product) return { status: "found", product };
@@ -160,21 +160,16 @@ const safely = (p: Promise<LookupResult>): Promise<LookupResult> =>
  * USDA → Open Food Facts → not found. Cached per barcode for the session (rate limits); errors aren't cached, so
  * Try again can succeed. An unreachable source gives "error", never "not found".
  */
-export function lookupBarcode(raw: string, opts: { fdcKey?: string; fetchImpl?: typeof fetch } = {}): Promise<LookupResult> {
+export function lookupBarcode(raw: string, opts: { relayUrl: string; fetchImpl?: typeof fetch }): Promise<LookupResult> {
   const code = normalizeBarcode(raw);
   if (!isBarcode(code)) return Promise.resolve({ status: "not-found" });
   const k = key(code);
   const hit = cache.get(k);
   if (hit) return hit;
   const f = opts.fetchImpl ?? fetch;
-  let fdcKey = opts.fdcKey?.trim(); // a pasted secret can carry a newline, which USDA rejects (403 API_KEY_INVALID)
-  if (!fdcKey) {
-    console.warn("[lookup] VITE_FDC_API_KEY is not set; using USDA's DEMO_KEY (30 lookups an hour)");
-    fdcKey = "DEMO_KEY";
-  }
   let provisional = false; // an OFF find while USDA was unreachable: show it, but look again next time
   const pending = (async (): Promise<LookupResult> => {
-    const usda = await safely(fetchUsda(code, fdcKey, f));
+    const usda = await safely(fetchUsda(code, opts.relayUrl, f));
     if (usda.status === "found") return usda;
     // 8-digit codes are ambiguous worldwide (US UPC-E vs store-internal EAN-8): OFF answered the Heinz UPC-E
     // 01311501 with a UK store product. Those go to USDA only.

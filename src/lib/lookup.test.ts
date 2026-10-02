@@ -6,6 +6,7 @@ import { analyzeIngredients } from "./safety/analyze.ts";
 
 const fixture = (path: string) => JSON.parse(readFileSync(new URL(`./fixtures/${path}.json`, import.meta.url), "utf8"));
 const EMPTY_USDA = { totalHits: 0, foods: [] };
+const RELAY = "https://relay.test/functions/v1/usda-relay"; // M7.5: USDA is reached only through EcoGo's relay
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 /** A fake network: USDA answers from `usda` by exact query string, OFF from `off` by barcode; everything else is empty/404. */
@@ -14,7 +15,7 @@ function fakeNet(usda: Record<string, unknown>, off: Record<string, { httpStatus
   const impl = (async (input: RequestInfo | URL) => {
     const url = String(input);
     calls.push(url);
-    if (url.startsWith("https://api.nal.usda.gov/")) {
+    if (url.startsWith(RELAY)) {
       const q = new URL(url).searchParams.get("query") ?? "";
       return json(usda[q] ?? EMPTY_USDA);
     }
@@ -127,46 +128,46 @@ test("barcodes compare by digits, ignoring spaces, dashes and leading zeros", ()
 // Review Focus 1: USDA stores Coke Zero only as 14 digits.
 test("USDA is tried as typed, then 14-digit; a USDA find never asks OFF", async () => {
   const net = fakeNet({ "00049000042566": fixture("usda/coke-zero-00049000042566") }, {});
-  const r = await lookupBarcode("049000042566", { fdcKey: "TEST", fetchImpl: net.impl });
+  const r = await lookupBarcode("049000042566", { relayUrl: RELAY, fetchImpl: net.impl });
   assert.equal(r.status === "found" && r.product.source?.name, "USDA FoodData Central");
   assert.deepEqual(net.calls.map(u => new URL(u).searchParams.get("query")), ["049000042566", "00049000042566"]);
-  assert.ok(net.calls.every(u => u.includes("api_key=TEST")));
+  assert.ok(net.calls.every(u => u.startsWith(`${RELAY}?`) && new URL(u).searchParams.get("pageSize") === "5"));
 });
 
 test("USDA miss falls back to OFF; a miss in both is not found", async () => {
   const net = fakeNet({}, { "3017620422003": fixture("off/nutella-3017620422003") });
-  const r = await lookupBarcode("3017620422003", { fdcKey: "TEST", fetchImpl: net.impl });
+  const r = await lookupBarcode("3017620422003", { relayUrl: RELAY, fetchImpl: net.impl });
   assert.equal(r.status === "found" && r.product.source?.name, "Open Food Facts");
-  assert.equal((await lookupBarcode("3017620429996", { fdcKey: "TEST", fetchImpl: net.impl })).status, "not-found");
+  assert.equal((await lookupBarcode("3017620429996", { relayUrl: RELAY, fetchImpl: net.impl })).status, "not-found");
 });
 
 // Review Focus 2 and 3.
 test("results are cached per barcode; errors are not, and are never 'not found'", async () => {
   const net = fakeNet({ "00049000042566": fixture("usda/coke-zero-00049000042566") }, {});
-  await lookupBarcode("049000042566", { fdcKey: "TEST", fetchImpl: net.impl });
+  await lookupBarcode("049000042566", { relayUrl: RELAY, fetchImpl: net.impl });
   const before = net.calls.length;
-  assert.equal((await lookupBarcode("0 49000-042566", { fdcKey: "TEST", fetchImpl: net.impl })).status, "found");
+  assert.equal((await lookupBarcode("0 49000-042566", { relayUrl: RELAY, fetchImpl: net.impl })).status, "found");
   assert.equal(net.calls.length, before, "second lookup served from the session cache");
 
   let calls = 0;
   const down = (async () => { calls++; throw new TypeError("Failed to fetch"); }) as typeof fetch;
-  assert.equal((await lookupBarcode("012000161155", { fdcKey: "TEST", fetchImpl: down })).status, "error");
+  assert.equal((await lookupBarcode("012000161155", { relayUrl: RELAY, fetchImpl: down })).status, "error");
   const again = calls;
-  assert.equal((await lookupBarcode("012000161155", { fdcKey: "TEST", fetchImpl: down })).status, "error");
+  assert.equal((await lookupBarcode("012000161155", { relayUrl: RELAY, fetchImpl: down })).status, "error");
   assert.ok(calls > again, "errors are retried, not cached");
 
-  const usda503 = (async (input: RequestInfo | URL) => String(input).startsWith("https://api.nal.usda.gov/")
+  const usda503 = (async (input: RequestInfo | URL) => String(input).startsWith(RELAY)
     ? json({}, 503) : json(fixture("off/not-found-3017620429996").body, 404)) as typeof fetch;
-  assert.equal((await lookupBarcode("041500000251", { fdcKey: "TEST", fetchImpl: usda503 })).status, "error",
+  assert.equal((await lookupBarcode("041500000251", { relayUrl: RELAY, fetchImpl: usda503 })).status, "error",
     "USDA down + OFF not found = try again, not 'not found'");
 });
 
 test("USDA down but OFF has it: show OFF", async () => {
   const f = (async (input: RequestInfo | URL) => {
-    if (String(input).startsWith("https://api.nal.usda.gov/")) throw new TypeError("Failed to fetch");
+    if (String(input).startsWith(RELAY)) throw new TypeError("Failed to fetch");
     return json(fixture("off/nutella-3017620422003").body);
   }) as typeof fetch;
-  const r = await lookupBarcode("03017620422003", { fdcKey: "TEST", fetchImpl: f });
+  const r = await lookupBarcode("03017620422003", { relayUrl: RELAY, fetchImpl: f });
   assert.equal(r.status === "found" && r.product.source?.name, "Open Food Facts");
 });
 
@@ -175,43 +176,47 @@ test("USDA down but OFF has it: show OFF", async () => {
 test("8-digit codes are looked up in USDA only, never Open Food Facts", async () => {
   const sweetcorn = { httpStatus: 200, body: { status: "success", product: { code: "01311501", product_name: "Sainsbury's Organic Sweetcorn", ingredients_text: "Sweetcorn" } } };
   const net = fakeNet({}, { "01311501": sweetcorn });
-  assert.equal((await lookupBarcode("01311501", { fdcKey: "TEST", fetchImpl: net.impl })).status, "not-found");
-  assert.ok(net.calls.every(u => u.startsWith("https://api.nal.usda.gov/")), "no OFF request");
+  assert.equal((await lookupBarcode("01311501", { relayUrl: RELAY, fetchImpl: net.impl })).status, "not-found");
+  assert.ok(net.calls.every(u => u.startsWith(RELAY)), "no OFF request");
 });
 
 test("an OFF find made while USDA was unreachable is shown but not cached", async () => {
   let calls = 0;
   const f = (async (input: RequestInfo | URL) => {
     calls++;
-    if (String(input).startsWith("https://api.nal.usda.gov/")) throw new TypeError("Failed to fetch");
+    if (String(input).startsWith(RELAY)) throw new TypeError("Failed to fetch");
     return json(fixture("off/nutella-3017620422003").body);
   }) as typeof fetch;
-  assert.equal((await lookupBarcode("4006381333931", { fdcKey: "TEST", fetchImpl: f })).status, "found");
+  assert.equal((await lookupBarcode("4006381333931", { relayUrl: RELAY, fetchImpl: f })).status, "found");
   const first = calls;
-  assert.equal((await lookupBarcode("4006381333931", { fdcKey: "TEST", fetchImpl: f })).status, "found");
+  assert.equal((await lookupBarcode("4006381333931", { relayUrl: RELAY, fetchImpl: f })).status, "found");
   assert.ok(calls > first, "looked up again once USDA may be back");
 });
 
-// M3: the first deploy's key secret carried a trailing newline and USDA answered 403 API_KEY_INVALID.
-test("a USDA key with stray whitespace (e.g. a pasted newline) is trimmed before use", async () => {
+// M7.5: the key is a Supabase secret inside the relay, so the browser never sends one or talks to USDA directly.
+test("USDA requests go only to the relay with query and pageSize (5 for a barcode, 15 for text): no key, no USDA host", async () => {
   const net = fakeNet({}, {});
-  await lookupBarcode("036000291452", { fdcKey: " KEY\n", fetchImpl: net.impl });
-  const usda = net.calls.filter(u => u.startsWith("https://api.nal.usda.gov/"));
-  assert.ok(usda.length > 0);
-  assert.ok(usda.every(u => new URL(u).searchParams.get("api_key") === "KEY"));
+  await lookupBarcode("036000291452", { relayUrl: RELAY, fetchImpl: net.impl });
+  await searchUsda("Relay  Check", { relayUrl: RELAY, fetchImpl: net.impl });
+  const usda = net.calls.filter(u => u.startsWith(`${RELAY}?`));
+  assert.equal(usda.length, 3, "the barcode as typed and as 14 digits, then one text search");
+  for (const u of usda) assert.deepEqual([...new URL(u).searchParams.keys()], ["query", "pageSize"]);
+  assert.deepEqual(usda.map(u => new URL(u).searchParams.get("pageSize")), ["5", "5", "15"]);
+  assert.equal(new URL(usda[2]).searchParams.get("query"), "relay check");
+  assert.ok(net.calls.every(u => !u.includes("api_key") && !u.includes("api.nal.usda.gov") && !u.includes("DEMO_KEY")));
 });
 
 test("codes outside 8–14 digits never hit the network", async () => {
   const net = fakeNet({}, {});
-  assert.equal((await lookupBarcode("1234", { fdcKey: "TEST", fetchImpl: net.impl })).status, "not-found");
-  assert.equal((await lookupBarcode("abc", { fdcKey: "TEST", fetchImpl: net.impl })).status, "not-found");
+  assert.equal((await lookupBarcode("1234", { relayUrl: RELAY, fetchImpl: net.impl })).status, "not-found");
+  assert.equal((await lookupBarcode("abc", { relayUrl: RELAY, fetchImpl: net.impl })).status, "not-found");
   assert.equal(net.calls.length, 0);
 });
 
 test("a USDA find carries its nutrition, and list cards can read it afterwards without a request", async () => {
   const net = fakeNet({ "044000032029": fixture("usda/oreo-nutrition-044000032029") }, {});
   assert.equal(knownNutrition("044000032029"), null);
-  const r = await lookupBarcode("044000032029", { fdcKey: "TEST", fetchImpl: net.impl });
+  const r = await lookupBarcode("044000032029", { relayUrl: RELAY, fetchImpl: net.impl });
   assert.equal(r.status === "found" && r.product.nutrition?.serving, "3 cookies (34 g)");
   await new Promise(resolve => setTimeout(resolve, 0)); // the cache bookkeeping runs after the promise settles
   assert.equal(knownNutrition("0 44000-032029")?.nutrients[0].dv, 28);
@@ -236,17 +241,17 @@ test("a USDA text search maps to up to 10 distinct products, each with its sourc
 
 test("searchUsda: one request per text for the session; errors aren't cached; blank text makes no request", async () => {
   const net = fakeNet({ "ice cream": fixture("usda/search-ice-cream") }, {});
-  const a = await searchUsda("Ice  Cream", { fdcKey: "TEST", fetchImpl: net.impl });
+  const a = await searchUsda("Ice  Cream", { relayUrl: RELAY, fetchImpl: net.impl });
   assert.equal(a.status === "ok" && a.products.length, 10);
-  await searchUsda("ice cream", { fdcKey: "TEST", fetchImpl: net.impl });
+  await searchUsda("ice cream", { relayUrl: RELAY, fetchImpl: net.impl });
   assert.equal(net.calls.length, 1, "the second search is served from the session cache");
-  assert.equal((await searchUsda("  ", { fdcKey: "TEST", fetchImpl: net.impl })).status, "ok");
+  assert.equal((await searchUsda("  ", { relayUrl: RELAY, fetchImpl: net.impl })).status, "ok");
   assert.equal(net.calls.length, 1);
 
   let calls = 0;
   const down = (async () => { calls++; return json({}, 503); }) as typeof fetch;
-  assert.equal((await searchUsda("granola", { fdcKey: "TEST", fetchImpl: down })).status, "error");
-  await searchUsda("granola", { fdcKey: "TEST", fetchImpl: down });
+  assert.equal((await searchUsda("granola", { relayUrl: RELAY, fetchImpl: down })).status, "error");
+  await searchUsda("granola", { relayUrl: RELAY, fetchImpl: down });
   assert.equal(calls, 2, "errors are retried");
 });
 

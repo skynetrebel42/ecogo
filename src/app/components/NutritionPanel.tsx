@@ -6,6 +6,7 @@ import { ExternalLink } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
 import { FOOD_CATEGORIES } from "../../lib/safety/analyze";
 import { knownNutrition, lookupBarcode } from "../../lib/lookup";
+import { USDA_RELAY_URL } from "../../lib/supabase";
 import { FDA_RULE, type Nutrition } from "../../lib/nutrition";
 
 export type NutritionState =
@@ -24,7 +25,7 @@ export function useNutrition(product: Product): NutritionState {
     if (!canLookUp) { setState({ status: "none" }); return; }
     let live = true;
     setState({ status: "loading" });
-    lookupBarcode(product.barcode, { fdcKey: import.meta.env.VITE_FDC_API_KEY }).then(r => {
+    lookupBarcode(product.barcode, { relayUrl: USDA_RELAY_URL }).then(r => {
       if (!live) return;
       const n = r.status === "found" ? r.product.nutrition : undefined;
       setState(n ? { status: "ready", nutrition: n } : { status: "unavailable" });
