@@ -8,13 +8,13 @@
 ## 1. What the app does today
 
 EcoGo! is a **single-screen phone mock-up** (a fixed 390×844 frame centred on a desktop page) built by
-Figma Make. After a one-time welcome screen (first visit on this device) it has four tabs (Home, Scan, Saved, Profile;
-the Map tab is hidden since M7.4):
+Figma Make. After a one-time welcome screen (first visit on this device) it has five tabs (Home, Map, Scan, Saved, Profile;
+the Map came back with real places in M9):
 
 | Tab | Reality |
 |---|---|
 | **Home** | Real content only (M7): a time-based greeting, a Scan card, product search, "Recently scanned" (last 10 products opened, on this device, `lib/recent.ts`) and "Hidden risks, explained" cards that open sourced explainer pages (`Explainer.tsx`). |
-| **Map** | **Hidden (M7.4):** it showed 18 invented Chicago places (`MapTab.tsx` `BASE_RESOURCES`, (555) numbers, star ratings). `MapTab.tsx` stays in the repo, unimported, so Leaflet isn't in the bundle; the real map (Los Angeles, OpenStreetMap) is M9. |
+| **Map** | Real LA County food places (162) from an OpenStreetMap snapshot (OSM data as of 2026-06-01) in `resources`; credited, dated, no ratings or open/closed (M9). Food banks, farmers markets, named community gardens; filter chips; My location (asked only on tap, never stored or sent) sorts nearest first; cards with hours in plain words, Call / Website / Directions (Google Maps, the place's position only) and "Fix it on OSM". No connection → "Places need a connection", never fake places. |
 | **Scan** | **Camera.** The Scan tab opens the back camera and reads EAN/UPC barcodes on the device (`CameraScanner`, `lib/barcodeReader.ts`: native BarcodeDetector or bundled ZXing WebAssembly; a code counts after two identical reads). Typing a barcode or a demo barcode does the same. The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Frames never leave the device; scans are **not saved** (M3), and scanning never asks for location. |
 | **Saved** | Favorites (React state only, start empty, lost on reload, K-16; a looked-up product shows here however it was opened) and Scanned (the same recent list as Home, kept on this device). The static "Lists" tab is gone (M7.4). |
 | **Profile** | Only true things (M7.2): your data on this device (Recently scanned count with Clear; a favorites note), where results come from, what leaves the phone (privacy), and the source-code link. No account, name or stats. |
@@ -34,7 +34,7 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 |---|---|
 | Runtime | Node 24.21.0, npm 11.19.0 (`package-lock.json`) |
 | Frontend | React 18.3.1, Vite 6.3.5, Tailwind 4.1.12 via `@tailwindcss/vite`, lucide-react. 8 runtime dependencies (M0 removed 53 unused ones and the shadcn/ui kit; tw-animate-css went in the 2026-10-02 cleanup) |
-| Map | leaflet 1.9.4 + leaflet.markercluster 1.5.3 (used directly, no react-leaflet). Installed, but only the hidden `MapTab.tsx` imports them, so they're not in the bundle (M7.4) |
+| Map | leaflet 1.9.4 + leaflet.markercluster 1.5.3 (used directly, no react-leaflet). Back in the bundle with the Map (M9) |
 | Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. One Edge Function since M7.5: **`usda-relay`** (`supabase/functions/usda-relay/index.ts`, `verify_jwt` off) relays the app's two USDA searches and holds the USDA key as the Supabase secret `FDC_API_KEY`. |
 | Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). No key is needed to run or build the app (M7.5): the USDA key is a Supabase secret the owner sets in the dashboard, and `.env.local` no longer needs `VITE_FDC_API_KEY`. |
 | Barcode / camera | **None** |
@@ -76,7 +76,9 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | `src/lib/safety/foodConcerns.ts` | 164 | Food-level concerns with sources: processed meat (IARC Group 1, raises the level) and the acrylamide marker (EU 2017/2158 food types, never sets a level) | SAFE TO EDIT (source changes must pass `npm run verify:sources`) |
 | `src/lib/safety/assess.ts` | 24 | Concern level = strongest of the additive check and food-level concerns; non-food stays non-food | SAFE TO EDIT |
 | `src/lib/safety/fixtures/expected-flags.json` | — | Hand-reviewed flags per product id; `catalog.test.ts` checks every product in `products.csv` against it | Review, never loosen |
-| `src/app/components/MapTab.tsx` | 593 | **Unimported since M7.4** (Map tab hidden): Leaflet map, 18 invented Chicago resources, filters, bottom sheet; kept for the real map (M9) | SAFE TO EDIT |
+| `src/app/components/MapTab.tsx` | 265 | The Map (M9): Leaflet + clusters of the `resources` rows only, three type chips, My location, list sheet, place card, © OSM credit | SAFE TO EDIT |
+| `src/lib/osmPlaces.ts` | 172 | Pure: OSM element → `resources` row (`toPlace`), hours in plain words (`formatHours`, unknown patterns kept as written), address, LA box, sorting, OSM / edit / directions links; tested by `osmPlaces.test.ts` | SAFE TO EDIT |
+| `scripts/fetch-osm-places.mjs` | 62 | Hand-run snapshot: Overpass query (LA County boundary) or a saved response → migration SQL replacing every `resources` row | SAFE TO EDIT (the output is a new migration; never edit an applied one) |
 | `src/app/components/ScanTab.tsx` | 266 | Simulated scanner: demo barcodes, type-a-barcode, catalog → lookup, not-found and error states | SAFE TO EDIT |
 | `src/lib/catalog.ts` | 103 | **Database read layer**: `loadCatalog()` plus the row → `Product` mapper | SAFE TO EDIT |
 | `src/lib/productImporter.ts` | 76 | `parseProductsCSV(text)` → `Product[]` (first row per id; no price fields since the 2026-10-02 cleanup) and `splitCSVLine`; defines the canonical `Product` and `ProductSource` types. App.tsx feeds it the bundled CSV (`?raw`); tests and `scripts/apply-verified-barcodes.mjs` read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
@@ -191,14 +193,16 @@ erDiagram
     resources {
         int id PK
         text name
-        text type "12 allowed values"
+        text type "food-bank, farmers-market, community-garden"
         text address
-        text hours
+        text hours "plain words or as written in OSM"
         text phone
-        text description
         float latitude
         float longitude
-        numeric rating
+        text osm_type "node, way, relation"
+        bigint osm_id "unique with osm_type"
+        text website
+        date as_of "snapshot date"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -251,12 +255,12 @@ CLI (`supabase link` then `supabase db push`) or by pasting them into the SQL ed
 | Data | Source of truth | Read path | Write path | Fallback | Realtime | Survives reload? |
 |---|---|---|---|---|---|---|
 | Products (+ category) | `products`, `categories` tables (`product_prices` holds the invented prices, K-30: no longer read) | `loadCatalog()` → `rowToProduct` (same shape as the CSV importer; verified identical for all 51) | Dashboard / SQL (service role) | Bundled CSV (initial render, or when Supabase fails or returns no rows) | Any change → re-fetch | yes |
-| Resources (invented demo places) | `resources` table; `MapTab.tsx BASE_RESOURCES` (18, lat/lng) | `loadCatalog()` still reads the table; **nothing shows it** since M7.4 (Map hidden, `App.tsx RESOURCES`/`rowToResource` deleted) | Dashboard / SQL | — | Any change → re-fetch (harmless) | n/a |
+| Map places (M9) | `resources` table: an OpenStreetMap snapshot (162 rows, OSM data as of 2026-06-01) | `loadCatalog()` → `places` state → `MapTab` | migrations generated by `scripts/fetch-osm-places.mjs` | **none** (no connection → "Places need a connection") | Any change → re-fetch | yes |
 | Scan events | `scan_events` table | nobody (service role only) | **no longer written (M3)**; kept for history, anonymous insert revoked | — | not published | yes (server side) |
 | Looked-up products | fetched live per session from USDA FoodData Central (manufacturer label data) or Open Food Facts (crowd-sourced); never stored | `lookupBarcode()` (session cache) | — | error state with Try again | — | no (session list in App state) |
 | Recently scanned (Home, Saved › Scanned) | `localStorage["ecogo.recent.v1"]` on this device | — | `openProduct` (every product opened) | — | — | **yes** (this browser only) |
 | Favorites | React state, starts empty (M7.4; was a fake `[3,5]` seed) | — | bookmark toggle | — | — | **no** |
-| User location | Not requested: only the hidden Map asked for it ("My Location") | — | never stored | — | — | no |
+| User location | Browser Geolocation, only when the user taps My location on the Map | — | never stored or sent | LA centre | — | no |
 | Scores | Replaced by the ingredient verdict (M1) | — | — | — | — | — |
 | Ingredient KB | `src/lib/safety/library.ts` (verified, sourced) | `assessProduct` (additives + food-level concerns) over the product at render | code + `verify:sources` | "Not enough data" verdict | — | yes |
 | Explanations / "AI" text | Replaced by the ingredient verdict (M1) | — | — | — | — | — |
@@ -289,7 +293,7 @@ static or a no-op; **broken**.
 | Alternatives with fewer concerns | `ProductDetailScreen` | **working** | Same category, strictly better verdict, then fewer flags, then name; tappable (page resets to top); hidden for products without concerns |
 | Save / bookmark | `toggleSave` | partial | Works in-session for catalog and looked-up products; starts empty; not persisted |
 | Share | — | **removed (M7.4)** | Did nothing (K-21); returns with links |
-| Map | `MapTab` (unimported) | **hidden (M7.4)** | Invented Chicago data with K-05, K-06 and K-23; the real map is M9 |
+| Map | `MapTab` + `lib/osmPlaces.ts` | **working** (M9) | 162 real LA County food places from OSM, labelled community-edited and dated; verified by `check-map.mjs` (19 checks) |
 | Scan: demo barcode → product | `ScanTab` + `lookup.sameBarcode` | working | In the camera's drawer: 10 USDA-verified catalog codes plus USDA, Open Food Facts and not-found demos |
 | Scan: lookup of non-catalog barcodes | `ScanTab` + `lookup.ts` | **working** | USDA FoodData Central first, then Open Food Facts; session cache; source note on the product page; verified live 2026-09-28 |
 | Scan: camera/decoder | `CameraScanner` + `lib/barcodeReader.ts` + `lib/scanner.ts` | **working** | On-device EAN/UPC reading (native or ZXing WebAssembly); two identical reads; UPC-E expanded; camera stops on ✕/leave/hide. Verified 2026-10-01 with a fake camera (Oreo in ~1 s); the owner's phone check is pending |
@@ -309,7 +313,9 @@ static or a no-op; **broken**.
 | GitHub Pages + Actions | `.github/workflows/deploy.yml` | Hosts https://skynetrebel42.github.io/ecogo/ |
 | USDA FoodData Central (`api.nal.usda.gov/fdc/v1/foods/search`) | `usda-relay` Edge Function, called by `lookup.ts` | Branded foods; the key is the Supabase secret `FDC_API_KEY` (M7.5); all visitors share USDA's limit for the relay (plan for 1,000 requests an hour in total); codes tried as typed and 14-digit |
 | Open Food Facts (`world.openfoodfacts.org/api/v3`) | `lookup.ts` | No key; crowd-sourced, labelled as such; ODbL credit on product pages; `X-User-Agent: EcoGo/0.1 (personal project)` |
-| tile.openstreetmap.org | MapTab (hidden since M7.4: no tiles load) | public tiles via the deprecated `{s}` subdomains; attribution hidden by UI |
+| tile.openstreetmap.org | MapTab | public tiles, `https://tile.openstreetmap.org/{z}/{x}/{y}.png` (no `{s}` subdomains); © OpenStreetMap contributors credit always visible (M9) |
+| Overpass API | `scripts/fetch-osm-places.mjs` | snapshot time only (by hand); the app never calls it |
+| Google Maps | MapTab "Directions" link | opens `google.com/maps/dir/?api=1&destination=<lat>,<lng>`: the place's position only |
 | images.unsplash.com | Home recommendations | hotlinked photo ids |
 | fonts.googleapis.com | `src/styles/index.css` | Plus Jakarta Sans (DM Mono dropped 2026-10-02: it was never wired to `font-mono`) |
 | Product/barcode APIs (Open Food Facts etc.) | — | **none**; offline-only |

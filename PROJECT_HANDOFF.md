@@ -117,6 +117,7 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 024 | No invented content outside the Map: Profile and the welcome say only what EcoGo does today | Owner, 2026-10-01 | **Done** (M7.2, M7.3) |
 | 025 | Nothing the app shows is invented or promises a missing feature: prices out of the UI (the data stays), Map tab hidden until it has real places (M9), Saved › Lists and Share removed, favorites start empty, "AI" wording gone | Owner, 2026-10-02 (architecture review) | **Done** (M7.4) |
 | 026 | The USDA key leaves the public JavaScript: the `usda-relay` Edge Function relays the app's two USDA searches with the key as the Supabase secret `FDC_API_KEY`; the browser never sends a key, and `DEMO_KEY` is gone. All visitors share USDA's quota for the relay (plan for 1,000 requests an hour) until M10 | USDA deactivates keys found public; owner, 2026-10-02 (via the PM chat), shared-quota trade-off accepted | **Done** (M7.5) |
+| 027 | Map: Los Angeles County food places (food banks, farmers markets, named community gardens) from an OpenStreetMap snapshot in `resources`, labelled community-edited and dated; no ratings, no open/closed; location only on tap, never stored or sent | Owner, 2026-10-02 (planning chat; real map first, food places only) | **Done** (M9) |
 
 ## Open questions only the owner can answer
 

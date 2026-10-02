@@ -104,7 +104,11 @@ fake shopping lists or favorites, and the do-nothing Share button and the "resea
 switches off keys it finds online): a small Supabase function now asks USDA on the app's behalf and keeps the key
 secret. Nothing looks different; all visitors now share one USDA allowance (about 1,000 requests an hour).
 
-**Next:** the real map (M9: Los Angeles, real places from OpenStreetMap), EcoGo's own copy of USDA's product data
+**Step 13: real map (M9). ✅ Done 2026-10-02.** The Map is back with 162 real Los Angeles County food places (food
+banks, farmers markets, community gardens) from OpenStreetMap, credited and dated, with no star ratings or open/closed
+guesses. It asks for your location only when you tap My location.
+
+**Next:** EcoGo's own copy of USDA's product data
 (M10, which removes the shared allowance), then adding a missing product (M8); later persistent favorites and
 accounts, only if a feature needs per-user data.
 
@@ -112,9 +116,8 @@ accounts, only if a feature needs per-user data.
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–12 are done; the live site is
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–13 are done; the live site is
 > https://skynetrebel42.github.io/ecogo/; my Supabase project is
 > `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
-> Next: M9, the real map (Los Angeles,
-> OpenStreetMap), then M10 data ownership, then M8 add-a-product. Every push to main publishes the site, so ask before pushing. Keep each
+> Next: M10 data ownership, then M8 add-a-product. Every push to main publishes the site, so ask before pushing. Keep each
 > change small, commit each one, verify it in the running app, and keep `npm test` green.

@@ -1,7 +1,7 @@
 # M9: Real map (Los Angeles food places from OpenStreetMap): design spec
 
 - **Date:** 2026-10-02
-- **Status:** approved by the owner 2026-10-02 (including D8 Google Maps directions). **Builds after M7.4**
+- **Status:** **done 2026-10-02** (`f24f92e`…`b0aebed` + docs; migration `20261002174017_m9_real_map`). Approved by the owner 2026-10-02 (including D8 Google Maps directions). **Builds after M7.4**
   (`2026-10-02-m74-trust-cleanup-design.md`), which hides the Map tab and removes prices, Saved › Lists and the fake
   favorites seed. M9 brings the Map back with real places. Plan: `docs/superpowers/plans/2026-10-02-m9-real-map.md`
   (dry-run on `4843e2b`). Settled while planning: the snapshot is **OSM data as of 2026-06-01** (on 2026-10-02 the main

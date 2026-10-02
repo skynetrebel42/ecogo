@@ -38,8 +38,8 @@
 | ~~**K-02**~~ ✅ | **Fixed in M1 (safety engine, `74e5d52`).** Whole-word matching against a sourced library (no alias under 3 characters); `npm test` checks all 51 products against hand-reviewed flags. *Original issue:* **Ingredient matcher produces false HIGH-risk labels.** `alias.includes(key.split(" ")[0])` is a reverse-substring test, the 2-letter alias `"mi"` exists, and the first match wins. A replay over all 51 products gives **70 false HIGH labels on 31 products** (Seventh Generation shows "Sodium Nitrite"; milk/vitamin D3 and Tylenol "acetaMInophen" show Methylisothiazolinone). | `ProductDetailScreen.tsx:344`, `:61` | The app's core "Shop Healthier" claim is wrong for most products |
 | ~~**K-03**~~ ✅ | **Fixed in M1 (safety engine, `74e5d52`).** The parser keeps "1,4-dioxane" whole, splits on `;`, and reads sub-ingredients inside parentheses (nitrite in pepperoni is now flagged). *Original issue:* **Ingredient parser splits chemical names.** "1,4-dioxane (trace)" becomes "1" + "4-dioxane"; "1" then matches **Blue 1 food dye** (seen live on Tide PODS). Parentheticals are stripped, so "pepperoni (… sodium nitrite)" hides nitrite, and `;` is not a separator. | `ProductDetailScreen.tsx:331-343` | ▶ Tide PODS detail |
 | ~~**K-04**~~ ✅ | **Fixed in `aa8206e` (step 2).** Scans now `INSERT` straight into `scan_events` (verified: row saved). The edge function is gone. *Original issue:* **Scan history very likely never saved.** `SERVER` = `/functions/v1/server/make-server-504b3bba`, but the Hono routes have no `basePath` and Supabase passes the slug in the path, so it 404s under either deploy name. No `Authorization`/`apikey` header is sent either (401 under the default `verify_jwt`). All errors are swallowed to `console.warn`. | `src/lib/supabase.ts:10`, `scanService.ts:134,145` | ▶ POST attempted on every scan; no UI feedback (live?) |
-| **K-05** ✔ | *Hidden since M7.4 (the Map tab is out of the nav; the real map, M9, replaces it).* **Map "My Location" empties the map for anyone more than 50 mi from downtown Chicago** (the radius filter applies whenever a location is known, and all 18 resources are in the Loop). There is no way to undo it. The owner is in California. | `MapTab.tsx:401-404` | Tap My Location → "0 resources" |
-| **K-06** ✔ | *Hidden since M7.4 (M9 replaces the map).* **Map ignores the database.** It iterates its own 18 hardcoded `BASE_RESOURCES` and overlays only name/hours/phone/description **by id**. DB adds, deletes, address/type/coordinate changes never show, and a new DB resource (next id 13) overwrites the text of unrelated static pin 13. | `MapTab.tsx:389-393` | Undermines any CRUD or realtime demo |
+| ~~**K-05**~~ ✅ | **Closed by M9** (real LA County places; outside LA a note + Back to LA). *Was:* **Map "My Location" empties the map for anyone more than 50 mi from downtown Chicago** (the radius filter applies whenever a location is known, and all 18 resources are in the Loop). There is no way to undo it. The owner is in California. | `MapTab.tsx:401-404` | Tap My Location → "0 resources" |
+| ~~**K-06**~~ ✅ | **Closed by M9:** the Map draws only database rows; `BASE_RESOURCES` is gone. *Was:* **Map ignores the database.** It iterates its own 18 hardcoded `BASE_RESOURCES` and overlays only name/hours/phone/description **by id**. DB adds, deletes, address/type/coordinate changes never show, and a new DB resource (next id 13) overwrites the text of unrelated static pin 13. | `MapTab.tsx:389-393` | Undermines any CRUD or realtime demo |
 
 ### Medium
 
@@ -67,7 +67,7 @@
 | K-20 ✔ | Search: a leading space matches every product, brand is not searched, and short keywords over-match ("steak" contains "tea"). | `App.tsx:686-690` |
 | ~~K-21~~ ✅ | **Resolved:** Sign In and the Profile settings rows went in M7.2/M7.3; Lists "New" and Share in M7.4; Map "Call" is hidden with the Map (M9 decides). Share returns when links work. *Was:* dead controls: Sign In, all 5 Profile settings rows, Lists "New", Share, Map "Call". (The home location Refresh was removed in M3.) | `App.tsx:240,521,882,967`; `ProductDetailScreen.tsx:714`; `MapTab.tsx:260` |
 | K-22 ✔ | Leaving the Scan tab mid-scan still yanks you into product detail about 3 s later, (The false "Scan saved at" part is moot: scans aren't saved since M3.) | `ScanTab.tsx:114-124` |
-| K-23 ✔ | *Hidden since M7.4 (M9 replaces the map).* Map details: the hours parser misreads "12–6pm" and "dawn–dusk"; open/closed uses the viewer's timezone and goes stale; "Smart Score" sort equals rating sort; the list shows 10 with no "more"; zoom-out and OSM attribution are covered by the sheet. | `MapTab.tsx:125-148,276-283,399-410,523-554` |
+| ~~K-23~~ ✅ | **Closed by M9:** no open/closed badge, ratings or Smart Score; the © credit is always visible. *Was:* Map details: the hours parser misreads "12–6pm" and "dawn–dusk"; open/closed uses the viewer's timezone and goes stale; "Smart Score" sort equals rating sort; the list shows 10 with no "more"; zoom-out and OSM attribution are covered by the sheet. | `MapTab.tsx:125-148,276-283,399-410,523-554` |
 | K-24 ✔ | Importer edge cases (still true after the 2026-10-02 rewrite, which kept the behaviour): rows sharing an id are one product read from its first row; `'1'` and `'01'` become duplicate ids; quoted newlines drop the row. *Moot:* the empty FB condition (store fields are gone) and the invented barcodes' check digits (M5/M6 removed them). | `productImporter.ts` `parseProductsCSV` |
 | ~~K-25~~ ✅ | **Moot: `scoring.ts` was deleted (the score is no longer computed).** *Original issue:* Floating-point rounding makes 58.5 → 58 (id 41 only). | (deleted) |
 | K-26 ✔ | *Mostly fixed in step 2:* realtime now re-fetches on INSERT/UPDATE/DELETE of products, prices and resources. **Remaining:** an open product detail keeps its snapshot until reopened; no subscribe-status check; overlapping re-fetches could resolve out of order (harmless at this scale). | `App.tsx` realtime effect |
@@ -269,11 +269,26 @@ food and drinks first. Each step is small and verified in the running app before
     and `pageSize` 5|15, and never returns the key; `DEMO_KEY` is gone. Trade-off: all visitors share USDA's quota (see
     "USDA relay" above) until M10. Design: `docs/superpowers/specs/2026-10-02-m75-usda-key-relay-design.md`.
 
-**Nothing the app shows is invented** (M7.4). The invented prices (K-30) and the Map's Chicago places are still in the
-database and the CSV, but no screen shows them.
+15. ✅ **M9 real map: done 2026-10-02** (`f24f92e`…`b0aebed`, plus the docs commit; migration `m9_real_map`). The Map is
+    back with 162 real Los Angeles County food places (99 food banks, 28 farmers markets, 35 named community gardens)
+    from an OpenStreetMap snapshot (OSM data as of 2026-06-01) in `resources`, labelled community-edited and dated, with
+    no ratings or open/closed guesses. Closes K-05, K-06, K-23. Design: `docs/superpowers/specs/2026-10-02-m9-real-map-design.md`.
 
-**Next** (the PM chat's order, 2026-10-02): M9 real map (Los Angeles, OpenStreetMap;
-`docs/superpowers/specs/2026-10-02-m9-real-map-design.md`), M10 data ownership (EcoGo's own copy of USDA Branded
+**Nothing the app shows is invented** (M7.4, M9). The invented prices (K-30) are still in the database and the CSV,
+but no screen shows them.
+
+### Map follow-ups (M9)
+
+- Refresh the OSM snapshot: rerun `scripts/fetch-osm-places.mjs`, add a new migration (public Overpass mirrors can lag
+  months; the main server is often overloaded).
+- OSM hours the converter doesn't know show as written (6 of the 118 places with hours, e.g. `Sa`, `We Sa`,
+  `3rd Fri. 9:00 AM - 12:00 PM`; 44 places list no hours).
+- From the M9 final review (Minor): Silverlake Farmers Market reads "Tue, 1:30 am–7 pm" because OSM says `Tu 01:30-19:00`
+  (likely a typo for 13:30; fix it on OSM, then re-snapshot). If My location fails after an earlier success, the old
+  position still sorts the list and shows the blue dot (`MapTab.tsx` error callback: add `setUserLoc(null)`).
+  `Fr[1,3],Sa[1,3]` reads "1st & 3rd Fri & 1st & 3rd Sat" (accurate, clumsy).
+
+**Next** (the PM chat's order, 2026-10-02): M10 data ownership (EcoGo's own copy of USDA Branded
 Foods, which retires the relay; `docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md`), then M8
 add-a-product / no-barcode ingredient check (`docs/superpowers/specs/2026-10-02-m8-add-product-design.md`). Accounts
 come later.
