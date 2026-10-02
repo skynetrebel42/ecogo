@@ -15,24 +15,26 @@ table from USDA's download. The product page still computes the badge in the bro
 No new dependencies.
 
 **Spec:** `docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md`. Read it first: it holds the decisions (O1-O9),
-the spike numbers and the table. **Milestone: M10** (order: M7.4 → M7.5 USDA key relay → M9 real map → M10 → M8).
+the spike numbers and the table. **Milestone: M10** (order: M7.4 ✓ → M7.5 ✓ → M9 ✓ → **M10** → M8).
 
-> **Do not build from this plan until it is re-verified.** It was written before M7.5 and M9 and checked against `main`
-> at `854ce20`. When M9 has landed: re-run the Task 4 "still matches" greps (the three call sites will then pass the
-> relay URL, not `fdcKey`, so those `old_string`s change), recount the baseline tests, and re-run the scratch dry-run.
-> Task 2 replaces `lookup.ts` as a whole file, which drops M7.5's relay code. **Task 6 also retires the relay:** remove the
-> relay URL export from `src/lib/supabase.ts` and, with the owner's OK, delete the `usda-relay` Edge Function and its
-> `FDC_API_KEY` secret (and check `supabase/functions/usda-relay/` is gone and the extra test glob in `package.json` is
-> removed if nothing else uses it). M8 lands after this plan, so its own plan must use `{ foods: supabaseFoods }`.
+**Re-verified 2026-10-02 against `main` at `f5e6fdf`** (M7.5, the USDA key relay, and M9, the real map, have landed). What
+changed since this plan was first written: the three call sites now pass `{ relayUrl: USDA_RELAY_URL }` (the Task 4 anchors
+are rewritten); `supabase/functions/usda-relay/` exists and `npm test` also runs its tests (Task 4 removes the function's
+code and the extra test glob; Task 6 deletes the deployed function and its secret, with the owner's OK); the decision log
+is at 027, so this milestone's row is 028; the docs already describe the relay (Task 6's doc edits are rewritten).
+**Re-check once more when the Knight's audit batch lands** (it removes the realtime channel from `App.tsx` and makes
+`lookup.ts` import `record` from `nutrition.ts`): Task 2 replaces both files as wholes, so if `nutrition.ts` then exports
+`record`, keep that export in the replacement and import it in the new `lookup.ts` instead of its own copy; and re-run the
+Task 4 greps.
 
-**How this plan was checked (2026-10-02, on a scratch copy of `main` at `854ce20`; the Task 4 greps were re-run on
-`63d2e2a`):** every new or replaced file below was copied from that copy, where `npm test` passed (157 before, **169** after: this plan adds 12 net), `vite build` succeeded,
-the built JavaScript contains no `api.nal.usda.gov` and no `DEMO_KEY`, and
-`npm run import:usda -- <sample file> --dry-run` printed the expected counts. Every one-line `old_string` below was applied
-to that copy. **Not checked:** the SQL (it was not run: Task 1 runs it in a rolled-back transaction first), the headless
-checks (they need the loaded table), and the import of the real 195 MB file (it was measured by a throwaway script
-earlier: 431,302 products, about 235 MB). `main` moves quickly (other chats commit cleanups), so run the "still
-matches" greps in Task 4 before editing.
+**How this plan was checked (on a scratch copy of `main` at `f5e6fdf`):** every new or replaced file below was copied from
+a copy where this plan's edits were applied and the relay removed: `npm test` passed with **178** tests (166 in `src/lib`
+on `main`, plus 12 added by this plan; `main` itself runs 174 because 8 more are the relay's), `vite build` succeeded, the
+built JavaScript contains none of `api.nal.usda.gov`, `usda-relay` and `DEMO_KEY`, and
+`npm run import:usda -- <sample file> --dry-run` printed the expected counts. Every `old_string` below was applied to that
+copy (the files have CRLF line endings: the Edit tool copes, a script must too). **Not checked:** the SQL (Task 1 runs it in
+a rolled-back transaction first), the headless checks (they need the loaded table), and the import of the real 195 MB file
+(measured earlier by a throwaway script: 431,302 products, about 235 MB).
 
 ## Global Constraints
 
@@ -53,10 +55,15 @@ matches" greps in Task 4 before editing.
   never go to Open Food Facts.
 - **Text rules:** product pages say "USDA label data, supplied by the manufacturer (snapshot Mon YYYY)"; Profile says
   barcodes and search words go to EcoGo's database (hosted on Supabase) and, if not there, to Open Food Facts.
-- **Scope:** only builder/debugger chats edit `src/` and `scripts/`, and never two at once. This plan touches
-  `lookup.ts`, `ScanTab.tsx`, `NutritionPanel.tsx`, `ProductDetailScreen.tsx` and search in `App.tsx`: tell the PM chat so
-  nothing else edits them meanwhile (M8, add a product, also builds on `lookupBarcode`; whichever lands second follows the
-  new option shape `{ foods, fetchImpl }` with no `fdcKey`).
+- **Scope:** only the builder edits `src/` and `scripts/`. This plan touches `lookup.ts`, `ScanTab.tsx`,
+  `NutritionPanel.tsx`, `ProductDetailScreen.tsx`, `supabase.ts` and search in `App.tsx`: nothing else may edit them
+  meanwhile. M8 (add a product) comes after this plan: its own plan must call `lookupBarcode(code, { foods: supabaseFoods })`
+  (no key, no relay URL).
+- **M7.5's relay goes away here.** The app stops calling `usda-relay` in Task 4, and its code is removed there; the
+  deployed function and its secret `FDC_API_KEY` are deleted in Task 6 **after** the live checks, and only with the owner's
+  OK (asked in chat right before, like a deploy). Until then a revert of the app commits still works.
+- **Decision log:** one row in PROJECT_HANDOFF's decision log (number 028 at the time of writing; use the next free number)
+  that supersedes 016's live USDA lookup and 026 (the relay). Specs link to the log; don't repeat decisions elsewhere.
 - **Commits:** one per task, only your own files, by path (`git add <path>`; never `git add -A` or `commit -a`).
   End each message with the attribution line your session gives you.
 - **Fixes log:** any fix found during review that isn't in this plan gets an entry in `FIXES_AND_UPDATES.md`.
@@ -93,9 +100,11 @@ Failure modes the spec implies that a person using the app would hit; each is pi
 | `src/lib/productImporter.ts` | `ProductSource.snapshot?` |
 | `src/app/components/useAlternatives.ts` | New: alternatives from `foods` |
 | `NutritionPanel.tsx`, `ScanTab.tsx`, `ProductDetailScreen.tsx`, `App.tsx` | Small edits (Task 4) |
-| `.github/workflows/deploy.yml`, `keep-alive.yml` | Key check removed; weekly keep-alive added |
+| `supabase/functions/usda-relay/index.ts`, `index.test.ts` | Deleted (Task 4); the deployed function and its secret are deleted in Task 6, with the owner's OK |
+| `src/lib/supabase.ts`, `package.json` | `USDA_RELAY_URL` removed; `import:usda` script added, and the `test` script goes back to `src/lib` only |
+| `.github/workflows/deploy.yml`, `keep-alive.yml` | One comment line about the relay removed; weekly keep-alive added |
 | Tests | `foods.test.ts`, `foodsImport.test.ts` new; `lookup.test.ts`, `nutrition.test.ts` replaced; fixture `usda-download/sample-branded_2025-12-18.json` |
-| Docs | README, PROJECT_HANDOFF (decision 026), KNOWN_ISSUES, ARCHITECTURE |
+| Docs | README, PROJECT_HANDOFF (a decision row), KNOWN_ISSUES, ARCHITECTURE, SYNOPSIS: relay text becomes table text |
 
 ---
 
@@ -120,7 +129,8 @@ New-Item -ItemType Junction -Path node_modules -Target "C:\Users\minhb\Downloads
 - [ ] **Step 3: Baseline**
 
 Run `npm test` and `npm run build` in `EcoGo-foods`.
-Expected: `# pass 157`, `# fail 0` (recount if `main` has moved), and a successful build.
+Expected: all pass, and a successful build. Note the count N0 (174 on `f5e6fdf`: 166 in `src/lib` plus 8 for the relay);
+the counts below are relative to it.
 
 All the paths below are relative to the worktree. No commit.
 
@@ -291,9 +301,9 @@ git commit -m "foods: read-only table for USDA Branded Foods, with search and al
 
 - [ ] **Step 1: Check nobody else changed the files you replace**
 
-Run `git diff 854ce20 -- src/lib/nutrition.ts src/lib/lookup.ts src/lib/nutrition.test.ts src/lib/lookup.test.ts`.
-Expected: empty (only the one-line `p.amazon` removal in `lookup.test.ts` is already in `854ce20`). If not empty, merge
-those changes into the new files by hand.
+Run `git diff f5e6fdf -- src/lib/nutrition.ts src/lib/lookup.ts src/lib/nutrition.test.ts src/lib/lookup.test.ts`.
+Expected: empty. If the Knight's audit batch changed them, merge those changes into the new files by hand (see the note
+under "Re-verified" at the top: `record` may now be exported from `nutrition.ts`).
 
 - [ ] **Step 2: Write the tests**
 
@@ -1094,8 +1104,8 @@ In `src/lib/productImporter.ts`, in `interface ProductSource`, add one line afte
 - [ ] **Step 6: Run the whole suite**
 
 Run `npm test`.
-Expected: `# pass 159`, `# fail 0` (157 before; the `foodsImport` tests arrive in Task 3). `npm run build` is expected to
-FAIL until Task 4 because the three call sites still pass `fdcKey`.
+Expected: all pass, N0 + 2 tests (176 on `f5e6fdf`; the `foodsImport` tests arrive in Task 3). `npm run build` is expected
+to FAIL until Task 4 because the three call sites still pass `relayUrl`.
 
 - [ ] **Step 7: Commit**
 
@@ -1464,7 +1474,7 @@ In `package.json`, in `"scripts"`, after the `verify:sources` line (add a comma 
 
 - [ ] **Step 5: Run the suite and the sample**
 
-Run `npm test`. Expected: `# pass 169`, `# fail 0`.
+Run `npm test`. Expected: all pass, N0 + 12 tests (186 on `f5e6fdf`; Task 4 then drops the relay's 8).
 
 Run `npm run import:usda -- src/lib/fixtures/usda-download/sample-branded_2025-12-18.json --dry-run`.
 Expected output:
@@ -1488,7 +1498,8 @@ git commit -m "scripts: import-usda loads USDA Branded Foods into the foods tabl
 
 **Files:**
 - Create: `src/lib/foodsDb.ts`, `src/app/components/useAlternatives.ts`
-- Modify: `src/app/components/NutritionPanel.tsx`, `src/app/components/ScanTab.tsx`, `src/app/components/ProductDetailScreen.tsx`, `src/app/App.tsx`
+- Modify: `src/app/components/NutritionPanel.tsx`, `src/app/components/ScanTab.tsx`, `src/app/components/ProductDetailScreen.tsx`, `src/app/App.tsx`, `src/lib/supabase.ts`, `package.json`
+- Delete: `supabase/functions/usda-relay/index.ts`, `supabase/functions/usda-relay/index.test.ts` (M7.5's relay)
 
 **Interfaces:**
 - Consumes: `FoodsSource`, `tsQueryFor`, `foodRowToProduct`, `snapshotLabel` (Task 2); `lookupBarcode`, `searchFoods`, `barcodeKey` (Task 2)
@@ -1500,13 +1511,15 @@ Run each; every count must be `1` (if one isn't, `main` moved: find the new word
 
 ```bash
 grep -c 'import { knownNutrition, searchUsda } from "../lib/lookup";' src/app/App.tsx
-grep -c 'searchUsda(query, { fdcKey: import.meta.env.VITE_FDC_API_KEY }).then(r => {' src/app/App.tsx
+grep -c 'import { supabase, USDA_RELAY_URL } from "../lib/supabase";' src/app/App.tsx
+grep -c 'searchUsda(query, { relayUrl: USDA_RELAY_URL }).then(r => {' src/app/App.tsx
 grep -c 'Couldn.t reach USDA right now' src/app/App.tsx
 grep -c 'Label data supplied by the makers. Checked first.' src/app/App.tsx
 grep -c 'sent to USDA or Open Food Facts' src/app/App.tsx
 grep -c 'products={products}' src/app/App.tsx            # expect 3 (ScanTab, SearchResultsScreen, ProductDetailScreen): only the last goes
 grep -c 'VERDICT_RANK, escapeRegExp' src/app/components/ProductDetailScreen.tsx
-grep -c 'fdcKey' src/app/components/ScanTab.tsx src/app/components/NutritionPanel.tsx
+grep -c 'import { USDA_RELAY_URL } from "../../lib/supabase";' src/app/components/ScanTab.tsx src/app/components/NutritionPanel.tsx
+grep -c 'relayUrl: USDA_RELAY_URL' src/app/components/ScanTab.tsx src/app/components/NutritionPanel.tsx
 ```
 
 - [ ] **Step 2: Create the Supabase adapter and the alternatives hook**
@@ -1597,28 +1610,33 @@ export function useAlternatives(product: Product, verdict: Verdict): Alternative
 `NutritionPanel.tsx`:
 
 ```tsx
-// after: import { knownNutrition, lookupBarcode } from "../../lib/lookup";
+// was: import { USDA_RELAY_URL } from "../../lib/supabase";
 import { supabaseFoods } from "../../lib/foodsDb";
 ```
 
 ```tsx
-// was: lookupBarcode(product.barcode, { fdcKey: import.meta.env.VITE_FDC_API_KEY }).then(r => {
+// was: lookupBarcode(product.barcode, { relayUrl: USDA_RELAY_URL }).then(r => {
 lookupBarcode(product.barcode, { foods: supabaseFoods }).then(r => {
 ```
 
 `ScanTab.tsx`:
 
 ```tsx
-// after: import { lookupBarcode, normalizeBarcode, isBarcode, sameBarcode, offAddUrl } from "../../lib/lookup";
+// was: import { USDA_RELAY_URL } from "../../lib/supabase";
 import { supabaseFoods } from "../../lib/foodsDb";
 ```
 
 ```tsx
-// was: await lookupBarcode(barcode, { fdcKey: import.meta.env.VITE_FDC_API_KEY });
+// was: await lookupBarcode(barcode, { relayUrl: USDA_RELAY_URL });
 await lookupBarcode(barcode, { foods: supabaseFoods });
 ```
 
 - [ ] **Step 4: Edit `App.tsx`**
+
+```tsx
+// was: import { supabase, USDA_RELAY_URL } from "../lib/supabase";
+import { supabase } from "../lib/supabase";
+```
 
 ```tsx
 // was: import { knownNutrition, searchUsda } from "../lib/lookup";
@@ -1627,7 +1645,7 @@ import { supabaseFoods } from "../lib/foodsDb";
 ```
 
 ```tsx
-// was: searchUsda(query, { fdcKey: import.meta.env.VITE_FDC_API_KEY }).then(r => {
+// was: searchUsda(query, { relayUrl: USDA_RELAY_URL }).then(r => {
 searchFoods(query, { foods: supabaseFoods }).then(r => {
 ```
 
@@ -1651,7 +1669,7 @@ searchFoods(query, { foods: supabaseFoods }).then(r => {
 To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, to Open Food Facts.
 ```
 
-In the `<ProductDetailScreen ... />` element, delete the line `products={products}` (keep the one on `SearchResultsScreen`):
+In the `<ProductDetailScreen ... />` element, delete the line `products={products}` (keep the ones on `ScanTab` and `SearchResultsScreen`):
 
 ```tsx
                   onToggleSave={toggleSave}
@@ -1708,21 +1726,37 @@ The alternatives card, a caption between the header row and the list:
 
 (`useMemo` is still used for `analysis`; `safeAnalyze` is still imported and used.)
 
-- [ ] **Step 6: Build, then look for leftovers**
+- [ ] **Step 6: Retire the relay's code (M7.5)**
 
-Run `npm test` (expect `# pass 169`) and `npm run build` (expect success).
+Nothing calls the relay any more, so remove it from the repository (the deployed function stays until Task 6):
 
 ```bash
-grep -rn "FDC_API_KEY\|fdcKey\|searchUsda\|pickUsdaFood\|usdaNutrition\|api.nal.usda\|DEMO_KEY" src scripts | grep -v fixtures
+git rm supabase/functions/usda-relay/index.ts supabase/functions/usda-relay/index.test.ts
 ```
 
-Expected: no output. Then in `dist/assets/*.js`: `grep -c "api.nal.usda.gov"` is `0`, and both `search_foods` and `alternatives_for` appear.
+In `src/lib/supabase.ts` delete the last two lines (the doc comment and `export const USDA_RELAY_URL = ...`) and the blank line
+before them. In `package.json` change the `test` script back to
 
-- [ ] **Step 7: Commit**
+```json
+    "test": "node --test \"src/lib/**/*.test.ts\"",
+```
+
+- [ ] **Step 7: Build, then look for leftovers**
+
+Run `npm test` (expect all pass: N0 + 12 - 8 tests, 178 on `f5e6fdf`) and `npm run build` (expect success).
 
 ```bash
-git add src/lib/foodsDb.ts src/app/components/useAlternatives.ts src/app/components/NutritionPanel.tsx src/app/components/ScanTab.tsx src/app/components/ProductDetailScreen.tsx src/app/App.tsx
-git commit -m "App reads USDA data from EcoGo's own table: scan, nutrition, search and alternatives; no USDA key in the bundle"
+grep -rn "USDA_RELAY_URL\|relayUrl\|usda-relay\|FDC_API_KEY\|fdcKey\|searchUsda\|pickUsdaFood\|usdaNutrition\|api.nal.usda\|DEMO_KEY" src scripts package.json | grep -v fixtures
+```
+
+Expected: no output. Then in `dist/assets/*.js`: `grep -c "api.nal.usda.gov"` is `0`, none of `usda-relay` appears, and both `search_foods` and
+`alternatives_for` appear.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add src/lib/foodsDb.ts src/app/components/useAlternatives.ts
+git commit -m "App reads USDA data from EcoGo's own table: scan, nutrition, search and alternatives; the relay's code is removed" -- src/lib/foodsDb.ts src/app/components/useAlternatives.ts src/app/components/NutritionPanel.tsx src/app/components/ScanTab.tsx src/app/components/ProductDetailScreen.tsx src/app/App.tsx src/lib/supabase.ts package.json supabase/functions/usda-relay/index.ts supabase/functions/usda-relay/index.test.ts
 ```
 
 ---
@@ -1873,7 +1907,7 @@ git commit -m "scripts: audit-foods samples flagged products for the launch audi
 ### Task 6: Live checks, deploy cleanup, keep-alive, docs, merge, push
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs`, `.github/workflows/deploy.yml`, `README.md`, `PROJECT_HANDOFF.md`, `KNOWN_ISSUES.md`, `ARCHITECTURE.md`
+- Modify: `docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs`, `.github/workflows/deploy.yml`, `README.md`, `PROJECT_HANDOFF.md`, `KNOWN_ISSUES.md`, `ARCHITECTURE.md`, `SYNOPSIS.md`
 - Create: `.github/workflows/keep-alive.yml`
 
 - [ ] **Step 1: Extend the headless check**
@@ -1945,24 +1979,13 @@ Expected: every check passes (the earlier ones plus 4 new) and `0` console error
 (The Doritos check needs Doritos to read "Some concern" and its category to have cleaner products: both held in the
 December 2025 data; if the data changes, pick another flagged catalog product.)
 
-- [ ] **Step 3: Remove the USDA key from the deploy workflow**
+- [ ] **Step 3: Remove the relay comment from the deploy workflow**
 
-In `.github/workflows/deploy.yml` replace
-
-```yaml
-      - name: Check the USDA key secret
-        env:
-          VITE_FDC_API_KEY: ${{ secrets.VITE_FDC_API_KEY }}
-        run: test -n "$VITE_FDC_API_KEY" || { echo "::error::Add the VITE_FDC_API_KEY repository secret"; exit 1; }
-      - run: npm run build
-        env:
-          VITE_FDC_API_KEY: ${{ secrets.VITE_FDC_API_KEY }}
-```
-
-with
+M7.5 already took the key check out of `.github/workflows/deploy.yml`; one comment about the relay is left. Delete this line
+(and nothing else):
 
 ```yaml
-      - run: npm run build
+      # No USDA key here: the usda-relay Edge Function holds it as a Supabase secret (M7.5).
 ```
 
 - [ ] **Step 4: Add the weekly keep-alive**
@@ -1997,25 +2020,30 @@ jobs:
 
 - [ ] **Step 5: Docs**
 
-Make these true (grep each stale phrase: `VITE_FDC_API_KEY`, `DEMO_KEY`, `api.nal.usda.gov`, `fetched live`, `USDA → Open Food Facts`):
+The docs already describe M7.5's relay: make them describe the table instead. Grep each stale phrase: `usda-relay`,
+`relay`, `FDC_API_KEY`, `relayUrl`, `USDA_RELAY_URL`, `api.nal.usda.gov`, `fetched live`, `USDA via usda-relay`, `One Edge Function`.
 
-- `README.md` lines about the key: replace with
-  `Product lookups read EcoGo's copy of USDA FoodData Central from Supabase, so running the app needs no API key. To load or refresh that copy (the owner's job): download USDA's Branded Foods JSON, put SUPABASE_SERVICE_ROLE_KEY in .env.local, then run npm run import:usda -- <the zip>.`
-  and change "the database only allows reading the catalog" to "the database only allows reading".
-- `PROJECT_HANDOFF.md`: the "How to run" lookup paragraph the same way; and a new row after decision 025:
-  `| 026 | USDA label data lives in EcoGo's own database: a read-only copy of USDA Branded Foods (one row per barcode, snapshot-dated) replaces live USDA calls; Open Food Facts stays a live, labelled fallback; the USDA key left the app | Owner, 2026-10-02: alternatives for any product, faster and more reliable scans, search beyond the catalog, safe at public scale | **Done** (milestone number from the PM chat). Supersedes the live-USDA part of 016 |`
-- `KNOWN_ISSUES.md`: strike through (and mark "moot since decision 026") the deploy follow-ups about the whitespace-only
-  secret and the README's "30 lookups an hour", the lookup follow-up "USDA 429/403 … `DEMO_KEY`", and the M5 follow-up
-  "Catalog barcodes that USDA stores as 14 digits … cost 2 USDA requests". Add a "Data-ownership follow-ups" section:
-  refresh the copy about twice a year and after any library change (bump `ENGINE_REV`); added sugar is present for only
-  about 32% of products, so the sugar row reads "not listed" for most USDA products; alternatives have no popularity
-  ranking, so they can be products you can't buy nearby; the keep-alive is a workaround; search is whole-word with
-  plural "s" only ("berries" doesn't find "berry"); the audit result (link to `audit-result.md`).
-- `ARCHITECTURE.md`: the Config row (`.env.local` no longer holds `VITE_FDC_API_KEY`; it holds the owner's
-  `SUPABASE_SERVICE_ROLE_KEY` for the import), the `ScanTab` and `lookup.ts` rows, the `nutrition.ts` row, the
-  `deploy.yml` row (no key check; plus `keep-alive.yml`), the "Looked-up products" and "Scan: lookup of non-catalog
-  barcodes" rows, and the external-services row for `api.nal.usda.gov` (now: the USDA download file, loaded by
-  `scripts/import-usda.mjs`). Add a short "Data" entry for the `foods` table, its two functions and the import.
+- `README.md` (the "Running it needs no API key: USDA lookups go through EcoGo's relay…" paragraph): replace with
+  `Running it needs no API key: product lookups read EcoGo's copy of USDA FoodData Central from Supabase. To load or refresh that copy (the owner's job): download USDA's Branded Foods JSON zip, put SUPABASE_SERVICE_ROLE_KEY in .env.local, then run npm run import:usda -- <the zip>.`
+- `PROJECT_HANDOFF.md`: the "How to run" lookup paragraph (the one about `usda-relay` and `FDC_API_KEY`) the same way; the
+  "Where things stand" lines that say one Edge Function holds the USDA key (it no longer exists); in decision 026's row
+  append "Superseded by 028"; and a new row after the last one (027 at the time of writing):
+  `| 028 | USDA label data lives in EcoGo's own database: a read-only copy of USDA Branded Foods (one row per barcode, snapshot-dated) replaces live USDA calls; Open Food Facts stays a live, labelled fallback; the usda-relay Edge Function and its secret are retired | Owner, 2026-10-02: alternatives for any product, faster and more reliable scans, search beyond the catalog, safe at public scale | **Done** (M10). Supersedes the live-USDA part of 016 and decision 026 |`
+- `KNOWN_ISSUES.md`: strike through the whole section "USDA relay (M7.5, accepted trade-off)" and mark it "moot since
+  decision 028 (M10: the relay is gone, so is the shared quota)"; update the roadmap line for M10 to done. Add a
+  "Data-ownership follow-ups" section: refresh the copy about twice a year and after any library change (bump
+  `ENGINE_REV`); added sugar is present for only about 32% of products, so the sugar row reads "not listed" for most USDA
+  products; alternatives have no popularity ranking, so they can be products you can't buy nearby; the keep-alive is a
+  workaround; search is whole-word with plural "s" only ("berries" doesn't find "berry"); the audit result (link to
+  `audit-result.md`).
+- `ARCHITECTURE.md`: the Backend row ("One Edge Function…": none now), the Config row (`.env.local` holds the owner's
+  `SUPABASE_SERVICE_ROLE_KEY` for the import, not a USDA key), the `ScanTab`/`lookup.ts` diagram and file rows, the
+  `nutrition.ts` row, the `deploy.yml` row (plus `keep-alive.yml`), delete the `supabase/functions/usda-relay/index.ts`
+  row, the "Looked-up products" and "Scan: lookup of non-catalog barcodes" rows, and the external-services row for
+  `api.nal.usda.gov` (now: the USDA download file, loaded by `scripts/import-usda.mjs`). Add a short "Data" entry for the
+  `foods` table, its two functions and the import.
+- `SYNOPSIS.md`: the plain-language step about the USDA key relay gets "(retired by the step below)", and a new step says
+  in plain words that EcoGo now keeps its own copy of USDA's product data, why, and what it cost (nothing new).
 
 - [ ] **Step 6: Bring the branch up to date and re-run everything**
 
@@ -2027,7 +2055,7 @@ Resolve conflicts if any (docs most likely). Then `npm test` (all pass), `npm ru
 Re-run the "still matches" greps of Task 4 if `App.tsx` changed. Commit the docs, the check and the workflows by path:
 
 ```bash
-git add docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs .github/workflows/deploy.yml .github/workflows/keep-alive.yml README.md PROJECT_HANDOFF.md KNOWN_ISSUES.md ARCHITECTURE.md
+git add docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs .github/workflows/deploy.yml .github/workflows/keep-alive.yml README.md PROJECT_HANDOFF.md KNOWN_ISSUES.md ARCHITECTURE.md SYNOPSIS.md
 git commit -m "Checks, deploy and docs for EcoGo's own USDA copy: no key in CI, weekly keep-alive"
 ```
 
@@ -2041,11 +2069,15 @@ alternatives and of search results. **Ask before pushing: a push redeploys the l
 
 1. In GitHub: Actions → "Keep Supabase awake" → Run workflow once; expected: green.
 2. Run `check-home.mjs` against the live URL `https://skynetrebel42.github.io/ecogo/`; expected: all pass.
-3. The owner deletes the repository secret `VITE_FDC_API_KEY`, removes it from `.env.local`, and may deactivate the
-   USDA key at api.data.gov.
-4. `git worktree remove ../EcoGo-foods`; delete the branch if merged.
+3. **Ask the owner in chat right before** (a deploy-class change): delete the Edge Function `usda-relay` (Supabase dashboard →
+   Edge Functions) and its secret `FDC_API_KEY`. Only after the live checks above pass.
+4. The owner confirms the repository secret `VITE_FDC_API_KEY` is gone (M7.5's last step) and may deactivate the USDA API
+   key at api.data.gov: the import needs none (the download is public).
+5. `git worktree remove ../EcoGo-foods`; delete the branch if merged.
 
-**Rollback:** revert the app commits (Tasks 4 and 6) and push. The table and the migration can stay.
+**Rollback:** before step 3, revert Task 4's commit (it restores the relay's code and calls; the function is still
+deployed) and push. After step 3 the relay is gone: redeploy it from commit `94a2af0` (`supabase/functions/usda-relay/`),
+have the owner re-create the secret, then revert. The table and the migration can stay either way.
 
 ---
 
@@ -2062,4 +2094,5 @@ alternatives and of search results. **Ask before pushing: a push redeploys the l
 | O7 weekly keep-alive | Task 6 |
 | O8 launch audit gate | Task 5 |
 | O9 privacy text, USDA citation | Task 4 |
+| Relay retired (spec §8) | Tasks 4 (its code), 6 (the deployed function and secret) |
 | Size budget, rollout order, rollback | Task 5 (size), the task order, Task 6 |
