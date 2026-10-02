@@ -1,9 +1,11 @@
-# Data ownership: a read-only copy of USDA Branded Foods in EcoGo's own database: design spec
+# M10: Data ownership: a read-only copy of USDA Branded Foods in EcoGo's own database: design spec
 
 - **Date:** 2026-10-02
-- **Status:** design approved by the owner in chat 2026-10-02 (five sections); plan:
-  `docs/superpowers/plans/2026-10-02-data-ownership.md`; **milestone number not assigned** (the PM chat owns numbering
-  and order); not committed by its author
+- **Status:** design approved by the owner in chat 2026-10-02 (five sections); **milestone M10** (numbered by the PM chat
+  2026-10-02; order: M7.4 → M7.5 USDA key relay → M9 real map → **M10** → M8 add a product). **Not built.** A draft plan
+  exists, `docs/superpowers/plans/2026-10-02-data-ownership.md`, written and dry-run against `main` at `854ce20`, **before
+  M7.5 and M9**: it must be re-verified against `main` when M9 has landed (its `old_string` greps, the test count, the
+  `lookup.ts` baseline) before anyone builds from it.
 - **Decided with:** the owner (Minh Bui), 2026-10-02, after the architecture review: **all four goals**: alternatives for
   any product, faster and more reliable scans, search beyond the 51-product catalog, safe at public scale. Chosen
   approach: **a slim USDA copy in Supabase** (not a lookup cache, not static files).
@@ -137,12 +139,17 @@ Rollback: revert the app commit; the table can stay.
 
 - Touches `lookup.ts`, `ScanTab.tsx`, `NutritionPanel.tsx`, `ProductDetailScreen.tsx`, search in `App.tsx` and the Profile
   text: **do not build alongside** another milestone editing those files.
-- **M8 (add a product)** builds on `lookupBarcode`; whichever lands second must follow the new option shape
-  (`{ foods, fetchImpl }`, no `fdcKey`). M8's Open Food Facts flow is unaffected.
-- **M9 (real map)** uses its own Supabase table; no overlap beyond the keep-alive action and the free-tier budget
-  (`foods` about 240 MB leaves room for the places snapshot).
+- **M7.5 (USDA key relay) lands first and this milestone retires it.** M7.5 puts the USDA key in a Supabase Edge
+  Function (`usda-relay`) and makes `lookup.ts` call it. M10 replaces those calls with the `foods` table, so its final
+  task also: removes the relay URL from `src/lib/supabase.ts`, and (with the owner's OK) deletes the Edge Function and its
+  `FDC_API_KEY` secret. The plan's `lookup.ts` is a whole-file replacement, so it drops the relay code by itself.
+- **M9 (real map)** lands before this and uses its own Supabase table; no overlap beyond the keep-alive action and the
+  free-tier budget (`foods` about 240 MB leaves room for the places snapshot).
+- **M8 (add a product)** lands after this: its plan must call `lookupBarcode(code, { foods: supabaseFoods })`
+  (option shape `{ foods, fetchImpl }`; no key and no relay URL). M8's Open Food Facts flow is unaffected.
 
 ## 9. Out of scope
 
-Accounts, persistent favorites, links/routing, copying Open Food Facts, non-food products, popularity ranking, a USDA
-proxy or edge-function fallback, a rescore-only mode, user-contributed data, the full nutrient set, Nutri-Score/NOVA.
+Accounts, persistent favorites, links/routing, copying Open Food Facts, non-food products, popularity ranking, keeping a
+USDA proxy or edge-function fallback after this (M7.5's relay is removed here), a rescore-only mode, user-contributed
+data, the full nutrient set, Nutri-Score/NOVA.

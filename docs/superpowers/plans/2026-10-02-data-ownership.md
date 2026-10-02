@@ -14,9 +14,16 @@ table from USDA's download. The product page still computes the badge in the bro
 **Tech Stack:** React 18 + Vite 6, Supabase (Postgres, PostgREST RPC), Node `node --test` with type stripping (Node 24).
 No new dependencies.
 
-**Spec:** `docs/superpowers/specs/2026-10-02-data-ownership-design.md`. Read it first: it holds the decisions (O1-O9),
-the spike numbers and the table. **Milestone number: not assigned** (the PM chat owns numbering; use its number in the
-commit messages once it exists).
+**Spec:** `docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md`. Read it first: it holds the decisions (O1-O9),
+the spike numbers and the table. **Milestone: M10** (order: M7.4 → M7.5 USDA key relay → M9 real map → M10 → M8).
+
+> **Do not build from this plan until it is re-verified.** It was written before M7.5 and M9 and checked against `main`
+> at `854ce20`. When M9 has landed: re-run the Task 4 "still matches" greps (the three call sites will then pass the
+> relay URL, not `fdcKey`, so those `old_string`s change), recount the baseline tests, and re-run the scratch dry-run.
+> Task 2 replaces `lookup.ts` as a whole file, which drops M7.5's relay code. **Task 6 also retires the relay:** remove the
+> relay URL export from `src/lib/supabase.ts` and, with the owner's OK, delete the `usda-relay` Edge Function and its
+> `FDC_API_KEY` secret (and check `supabase/functions/usda-relay/` is gone and the extra test glob in `package.json` is
+> removed if nothing else uses it). M8 lands after this plan, so its own plan must use `{ foods: supabaseFoods }`.
 
 **How this plan was checked (2026-10-02, on a scratch copy of `main` at `854ce20`; the Task 4 greps were re-run on
 `63d2e2a`):** every new or replaced file below was copied from that copy, where `npm test` passed (157 before, **169** after: this plan adds 12 net), `vite build` succeeded,
@@ -131,7 +138,7 @@ Create `supabase/migrations/PENDING_foods_usda_copy.sql` with exactly:
 ```sql
 -- foods: EcoGo's read-only copy of USDA FoodData Central Branded Foods, one row per barcode. Loaded by
 -- scripts/import-usda.mjs with the service role (the owner runs it); browsers can only select.
--- Spec: docs/superpowers/specs/2026-10-02-data-ownership-design.md §3.
+-- Spec: docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md §3.
 
 create table public.foods (
   barcode_key      text primary key check (barcode_key <> ''), -- digits, leading zeros stripped (barcodeKey() in lookup.ts)
@@ -681,7 +688,7 @@ Expected: FAIL with `Cannot find module` for `./foods.ts` (or `./foodsFake.ts`).
 
 ```ts
 // foods.ts — the `foods` table (EcoGo's read-only copy of USDA Branded Foods): the row shape, row → Product, the search
-// query builder and the interface the app reads it through. Spec: docs/superpowers/specs/2026-10-02-data-ownership-design.md
+// query builder and the interface the app reads it through. Spec: docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md
 // §3, §5. Nothing here touches the network or the browser, so Node tests can load it. Adapters: foodsDb.ts (Supabase)
 // and foodsFake.ts (tests).
 import type { Product } from "./productImporter.ts";
@@ -932,7 +939,7 @@ Replace `src/lib/lookup.ts` with:
 ```ts
 // lookup.ts — find a barcode that isn't in the catalog. EcoGo's own copy of USDA FoodData Central first (the `foods`
 // table: label data supplied by manufacturers), then Open Food Facts (crowd-sourced, live). Spec:
-// docs/superpowers/specs/2026-10-02-data-ownership-design.md. The database is passed in (see foods.ts), and the app's
+// docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md. The database is passed in (see foods.ts), and the app's
 // own modules are imported without the browser, so Node tests can load this module.
 import type { Product, ProductSource } from "./productImporter.ts";
 import { offNutrition, type Nutrition } from "./nutrition.ts";
@@ -1272,7 +1279,7 @@ Expected: FAIL with `Cannot find module './foodsImport.ts'`.
 
 ```ts
 // foodsImport.ts — USDA Branded Foods download → `foods` rows. Used by scripts/import-usda.mjs and its tests.
-// Spec: docs/superpowers/specs/2026-10-02-data-ownership-design.md §4. Pure: no network, no files.
+// Spec: docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md §4. Pure: no network, no files.
 import type { FoodRow } from "./foods.ts";
 import { assessProduct } from "./safety/assess.ts";
 import { VERDICT_RANK } from "./safety/analyze.ts";
@@ -1370,7 +1377,7 @@ export function recordSplitter(onRecord: (json: string) => void): (chunk: string
 // Needs SUPABASE_SERVICE_ROLE_KEY in .env.local (gitignored; never commit it, never run this in CI) and the project URL
 // from .env. --dry-run parses and scores everything but writes nothing. A .json file works too (the tests' sample).
 // Download: https://fdc.nal.usda.gov/download-datasets/ (Branded Foods, JSON, about 195 MB zipped, 3 GB unzipped).
-// Spec: docs/superpowers/specs/2026-10-02-data-ownership-design.md §4.
+// Spec: docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md §4.
 import { spawn } from "node:child_process";
 import { createReadStream } from "node:fs";
 import { StringDecoder } from "node:string_decoder";
@@ -1508,7 +1515,7 @@ grep -c 'fdcKey' src/app/components/ScanTab.tsx src/app/components/NutritionPane
 
 ```ts
 // foodsDb.ts — reads the `foods` table through Supabase (the public key can only select). Spec:
-// docs/superpowers/specs/2026-10-02-data-ownership-design.md §3, §5. Browser only: Node tests use foodsFake.ts instead.
+// docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md §3, §5. Browser only: Node tests use foodsFake.ts instead.
 import { supabase } from "./supabase";
 import { tsQueryFor, type FoodRow, type FoodsSource } from "./foods";
 
@@ -1542,7 +1549,7 @@ export const supabaseFoods: FoodsSource = {
 
 ```ts
 // useAlternatives.ts — other products in the same USDA category with a strictly better badge, read from the `foods`
-// table. Spec: docs/superpowers/specs/2026-10-02-data-ownership-design.md O6. Optional: any failure shows nothing.
+// table. Spec: docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md O6. Optional: any failure shows nothing.
 import { useEffect, useState } from "react";
 import type { Product } from "../../lib/productImporter";
 import { VERDICT_RANK, type Verdict } from "../../lib/safety/analyze";
@@ -1897,7 +1904,7 @@ const requests = []; // every URL the page asked for (Network events)
 
 ```js
 // 5. immediately BEFORE the line: check("no console errors", errors.length === 0, errors.join(" | "));
-  // Data ownership (spec 2026-10-02-data-ownership-design.md §7): lookups, nutrition, search and alternatives come from
+  // Data ownership (spec 2026-10-02-m10-data-ownership-design.md §7): lookups, nutrition, search and alternatives come from
   // our own `foods` table. The app never calls USDA's API.
   const scanTyped = (code, text) => run(`(async () => {
     __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
