@@ -17,7 +17,7 @@ import { offEditUrl } from "../../lib/lookup";
 import { VERDICT_RANK, escapeRegExp, type Flag } from "../../lib/safety/analyze";
 import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
-import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
+import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked, fewestConcerns } from "./verdict";
 import NutritionPanel, { NutritionChip, useNutrition } from "./NutritionPanel";
 import { topHigh } from "../../lib/nutrition";
 
@@ -128,9 +128,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
       .filter(p => p.id !== product.id && p.category === product.category)
       .map(p => ({ p, a: safeAnalyze(p) }))
       .filter(({ a }) => VERDICT_RANK[a.verdict] < mine)
-      .sort((x, y) => VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict]
-        || x.a.flags.length - y.a.flags.length
-        || x.p.name.localeCompare(y.p.name))
+      .sort((x, y) => fewestConcerns(x.a, y.a) || x.p.name.localeCompare(y.p.name))
       .slice(0, 3);
   }, [products, product, analysis]);
 

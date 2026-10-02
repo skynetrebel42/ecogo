@@ -6,8 +6,7 @@ import ProductDetailScreen from "./components/ProductDetailScreen";
 import ScanTab from "./components/ScanTab";
 import csvText from "../data/products.csv?raw";
 import { parseProductsCSV, type Product } from "../lib/productImporter";
-import { VERDICT_RANK } from "../lib/safety/analyze";
-import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon } from "./components/verdict";
+import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon, fewestConcerns } from "./components/verdict";
 import { NutritionChip } from "./components/NutritionPanel";
 import { topHigh } from "../lib/nutrition";
 import { knownNutrition, searchUsda } from "../lib/lookup";
@@ -250,7 +249,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
   const raw = searchCatalog(products, query);
   const results = raw
     .map(p => ({ p, a: safeAnalyze(p) }))
-    .sort((x, y) => VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict] || x.a.flags.length - y.a.flags.length)
+    .sort((x, y) => fewestConcerns(x.a, y.a))
     .map(({ p }) => p);
   const isEmpty = results.length === 0 && usda.status !== "loading" && usda.products.length === 0;
 

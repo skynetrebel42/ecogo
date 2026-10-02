@@ -5,7 +5,7 @@
 import type { CSSProperties } from "react";
 import { HelpCircle } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
-import type { Verdict } from "../../lib/safety/analyze";
+import { VERDICT_RANK, type Verdict } from "../../lib/safety/analyze";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
 
 type IconProps = { size?: number; style?: CSSProperties; className?: string };
@@ -48,7 +48,11 @@ export function safeAnalyze(p: Product): Assessment {
 }
 
 /** True when the product gets the 🔥 "forms when cooked" marker. */
-export const formsWhenCooked = (a: Assessment) => a.concerns.some(c => c.kind === "cooking");
+/** "Fewest concerns" order (search results, alternatives): lower level first, then fewer flagged ingredients. */
+export const fewestConcerns = (x: Assessment, y: Assessment) =>
+  VERDICT_RANK[x.verdict] - VERDICT_RANK[y.verdict] || x.flags.length - y.flags.length;
+
+export const formsWhenCooked =(a: Assessment) => a.concerns.some(c => c.kind === "cooking");
 
 /** "Known carcinogen · 2 findings", "Some concern · 1 finding", or the plain label. */
 export function verdictHeadline(a: Assessment): string {
