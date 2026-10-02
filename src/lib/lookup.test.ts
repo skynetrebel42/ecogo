@@ -204,6 +204,8 @@ test("USDA requests go only to the relay with query and pageSize (5 for a barcod
   assert.deepEqual(usda.map(u => new URL(u).searchParams.get("pageSize")), ["5", "5", "15"]);
   assert.equal(new URL(usda[2]).searchParams.get("query"), "relay check");
   assert.ok(net.calls.every(u => !u.includes("api_key") && !u.includes("api.nal.usda.gov") && !u.includes("DEMO_KEY")));
+  await searchUsda("pasted text ".repeat(20), { relayUrl: RELAY, fetchImpl: net.impl });
+  assert.equal(new URL(net.calls.at(-1)!).searchParams.get("query")!.length, 100, "cut to the relay's 100-character limit");
 });
 
 test("codes outside 8–14 digits never hit the network", async () => {

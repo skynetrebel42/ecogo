@@ -87,7 +87,7 @@ const searchCache = new Map<string, Promise<SearchResult>>();
 
 /** USDA products matching a text search; one request per text per session (rate limit); errors aren't cached. */
 export function searchUsda(text: string, opts: { relayUrl: string; fetchImpl?: typeof fetch }): Promise<SearchResult> {
-  const q = text.toLowerCase().trim().replace(/\s+/g, " ");
+  const q = text.toLowerCase().trim().replace(/\s+/g, " ").slice(0, 100); // the relay takes up to 100 characters
   if (!q) return Promise.resolve({ status: "ok", products: [] });
   const hit = searchCache.get(q);
   if (hit) return hit;

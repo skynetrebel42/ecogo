@@ -39,6 +39,7 @@ test("another website, a look-alike or a missing Origin gets 403 and USDA is nev
     const usda = fakeUsda();
     const res = await handle(req(OK, { origin }), { key: "KEY" }, usda.impl);
     assert.equal(res.status, 403, String(origin));
+    assert.equal(res.headers.get("Access-Control-Allow-Origin"), null, "no CORS header for a refused origin");
     assert.equal(usda.calls.length, 0);
   }
 });
