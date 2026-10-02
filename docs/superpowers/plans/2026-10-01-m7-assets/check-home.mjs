@@ -89,6 +89,7 @@ try {
   const op = await run(`({ text: document.body.innerText, share: !!__btn("Share") })`);
   check("Oreo page: no prices, Price Comparison, Share or AI", !op.text.includes("$") && !op.text.includes("Price Comparison") && !op.share
     && !/\bAI\b/.test(op.text) && op.text.includes("Findings are matched against official sources"));
+  check("Oreo page points to its Nutrition section", op.text.includes("see the Nutrition section") && op.text.includes("Added sugar"));
   await back(); await back(); // product → search → home
   await run(`(async () => { __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
     __btn("Close camera")?.click(); await __sleep(800); const i = await __until(() => document.querySelector('input[aria-label="Barcode number"]'));
@@ -170,6 +171,15 @@ try {
   const fav = await run(`document.body.innerText`);
   check("a USDA search result, opened and bookmarked, is listed in Favorites", !!usdaName && fav.includes(usdaName) && !fav.includes("No saved items"),
     usdaName ?? "no USDA result");
+
+  // M7.4 final review: a page without a Nutrition section (KIND Bars has no verified barcode) mustn't point to one.
+  await home();
+  await run(`document.querySelector('input[placeholder^="Search products"]').focus(); true`);
+  await type("kind");
+  await run(`(async () => { (await __until(() => __btn("KIND Bars")))?.click(); await __sleep(800); })()`);
+  const kind = await run(`document.body.innerText`);
+  check("KIND Bars (no nutrition data): no pointer to a missing Nutrition section", kind.includes("KIND Bars")
+    && kind.includes("This badge doesn't rate nutrition.") && !kind.includes("see the Nutrition section") && !kind.includes("Added sugar"));
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {
   console.log(`${ok}/${total} checks passed`);

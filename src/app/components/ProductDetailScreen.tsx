@@ -30,12 +30,14 @@ const SMALL_PRINT: Record<Assessment["verdict"], string> = {
   known:      "Tap a finding to see its official sources.",
   high:       "Tap a finding to see its official sources.",
   some:       "Tap a finding to see its official sources.",
-  none:       "No hazard flags from IARC, EU or FDA. This badge doesn't rate nutrition; see the Nutrition section.",
+  none:       "No hazard flags from IARC, EU or FDA.",
   "no-data":  "This product has no ingredient list yet.",
   "non-food": "EcoGo checks food and drinks only for now.",
 };
 // "Nothing flagged" with the 🔥 marker: scoped, so it doesn't contradict the IARC finding in "Formed when cooked".
-const NONE_BUT_COOKED = "No hazard flags from IARC, EU or FDA in the ingredients or the food itself; see what forms when it's cooked below. This badge doesn't rate nutrition; see the Nutrition section.";
+const NONE_BUT_COOKED = "No hazard flags from IARC, EU or FDA in the ingredients or the food itself; see what forms when it's cooked below.";
+// Point to the Nutrition section only when the page has one (no data, e.g. no verified barcode → no section).
+const nutritionNote = (hasSection: boolean) => ` This badge doesn't rate nutrition${hasSection ? "; see the Nutrition section" : ""}.`;
 
 /** One row on the product page: an additive flag or a food-level concern. */
 interface Finding { id: string; name: string; severity?: Severity; concern: string; detail: string; context?: string; sources: Source[] }
@@ -214,7 +216,9 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               <look.Icon size={18} style={{ color: look.color }} />
               <span className="font-extrabold text-sm" style={{ color: look.color }}>{verdictHeadline(analysis)}</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{analysis.verdict === "none" && formsWhenCooked(analysis) ? NONE_BUT_COOKED : SMALL_PRINT[analysis.verdict]}</p>
+            <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{analysis.verdict === "none"
+              ? (formsWhenCooked(analysis) ? NONE_BUT_COOKED : SMALL_PRINT.none) + nutritionNote(nutrition.status !== "none")
+              : SMALL_PRINT[analysis.verdict]}</p>
           </div>
 
           {/* ── Findings, grouped by where they come from ── */}

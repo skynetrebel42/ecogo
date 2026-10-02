@@ -493,7 +493,7 @@ export default function App() {
     return () => { supabase.removeChannel(channel); };
   }, [loadData]);
 
-  // Every product opened counts as "looked at": Scan, search (catalog or USDA), and the lists. A looked-up product
+  // Every product opened counts as "looked at": Scan, search (catalog or USDA), Saved and Recently scanned. A looked-up product
   // (negative id) joins lookedUp however it was opened, so bookmarking it shows it in Saved › Favorites.
   const openProduct = (p: Product) => {
     setRecent(prev => addRecent(prev, p));

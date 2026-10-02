@@ -32,3 +32,11 @@
 - `check-home.mjs` against `npm run build` + `npx vite preview --port 4317 --strictPort`.
 - Phone-width (390 px) screenshots for the owner: Home + nav, a product page, search results, Saved.
 - One final reviewer (opus, effort medium), then ask before pushing.
+
+## Rulings
+
+- **Final review, Important:** D5's "This badge doesn't rate nutrition; see the Nutrition section." pointed to a section
+  that isn't there when a product has no nutrition data (KIND Bars and Ben & Jerry's have no verified barcode; some
+  USDA/Open Food Facts products have no nutrients). The pointer now shows only when the page has the section; otherwise
+  the sentence ends "This badge doesn't rate nutrition." `check-home.mjs` checks both (Oreo with, KIND Bars without):
+  32/32. Minor: an `openProduct` comment still said "the lists"; fixed.
