@@ -3,15 +3,15 @@
 
 import type { Product } from "./productImporter.ts";
 
-export interface RecentEntry { id: number; barcode: string; product?: Product; at: number }
+export interface RecentEntry { id: number; product?: Product }
 
-export const RECENT_KEY = "ecogo.recent.v1";
+const RECENT_KEY = "ecogo.recent.v1";
 export const RECENT_MAX = 10;
 
 /** Newest first, no duplicates, at most 10. Catalog products (id > 0) are stored by id only, so they stay fresh;
  *  looked-up ones (id < 0) keep a snapshot so they reopen without a request. */
-export function addRecent(list: RecentEntry[], p: Product, now: number): RecentEntry[] {
-  const entry: RecentEntry = { id: p.id, barcode: p.barcode, at: now, ...(p.id < 0 ? { product: p } : {}) };
+export function addRecent(list: RecentEntry[], p: Product): RecentEntry[] {
+  const entry: RecentEntry = { id: p.id, ...(p.id < 0 ? { product: p } : {}) };
   return [entry, ...list.filter(e => e.id !== p.id)].slice(0, RECENT_MAX);
 }
 
@@ -24,16 +24,16 @@ export function resolveRecent(list: RecentEntry[], catalog: Product[]): Product[
   });
 }
 
-const validProduct = (p: any) => p && typeof p.id === "number" && typeof p.name === "string" && typeof p.barcode === "string";
-
-/** Stored JSON → entries. Corrupt JSON gives []; malformed entries (e.g. from an older version) are skipped. */
+/** Stored JSON → entries. Corrupt JSON gives []; malformed entries are skipped. Older saves also hold `barcode` and
+ *  `at`: extra fields are fine. */
 export function parseRecent(raw: string | null): RecentEntry[] {
   if (!raw) return [];
   try {
     const data = JSON.parse(raw);
     if (!Array.isArray(data)) return [];
-    return data.filter(e => e && typeof e.id === "number" && typeof e.barcode === "string" && typeof e.at === "number"
-      && (e.product === undefined || validProduct(e.product))).slice(0, RECENT_MAX);
+    return data.filter(e => e && typeof e.id === "number" && (e.product === undefined || (e.product
+      && typeof e.product.id === "number" && typeof e.product.name === "string" && typeof e.product.barcode === "string")))
+      .slice(0, RECENT_MAX);
   } catch {
     return [];
   }

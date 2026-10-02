@@ -180,7 +180,7 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
 
 // ── Home Tab ──────────────────────────────────────────────────────────────────
 // Spec: docs/superpowers/specs/2026-10-01-m7-home-redesign-design.md §4.2 (layout A, real content only).
-const greeting = (h = new Date().getHours()) => h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+const greeting = () => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; };
 
 const HOW_STEPS = [
   "Reads the real label from USDA (the maker's own data), or Open Food Facts, clearly marked crowd-sourced.",
@@ -568,7 +568,7 @@ export default function App() {
 
   // Every product opened counts as "looked at": Scan, search (catalog or USDA), and the lists.
   const openProduct = (p: Product) => {
-    setRecent(prev => addRecent(prev, p, Date.now()));
+    setRecent(prev => addRecent(prev, p));
     setSelectedProduct(p); setSubScreen("product-detail");
   };
   const recentProducts = resolveRecent(recent, products);
