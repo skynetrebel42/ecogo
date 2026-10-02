@@ -1,7 +1,8 @@
 # M7.5: USDA key relay (the key leaves the public JavaScript): design spec
 
 - **Date:** 2026-10-02
-- **Status:** draft for the owner's approval; built right after M7.4 (order: M7.4 → M7.5 → M9 → M10 → M8). **M10 retires
+- **Status:** **approved** by the owner 2026-10-02 (relayed by the PM chat), including the shared 1,000 requests an hour
+  trade-off (§3); not built. Built right after M7.4 (order: M7.4 → M7.5 → M9 → M10 → M8). **M10 retires
   this relay** (`2026-10-02-m10-data-ownership-design.md`), so M7.5 stays minimal and builds nothing ahead for M10.
 - **Decided with:** the owner (Minh Bui) via the PM chat, 2026-10-02: a small Supabase Edge Function relays only the USDA
   calls the app makes; the key becomes a Supabase secret; Minh creates the new key and pastes it himself.
