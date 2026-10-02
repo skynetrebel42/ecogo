@@ -8,11 +8,29 @@ checked**, and the **commit**.
 
 | Date | Fix / update | Commit |
 |---|---|---|
+| 2026-10-02 | `recent.ts` cleanup: unused `barcode`/`at` fields, `now` parameter and `RECENT_KEY` export removed | `f9ed15a` |
 | 2026-10-02 | `check-home.mjs`: fresh Edge profile every run (flaky first-visit check) | `ba8cc10` |
 | 2026-10-01 | `check-home.mjs` exits when done (it waited for its 120 s timeout) | `25ac748` |
 | 2026-10-01 | Open Food Facts "Looks wrong? Fix it" and "Add it" links | `39ff6e3` |
 | 2026-10-01 | Search: whole-word matching + "More from USDA" results | `9d32c29` |
 | 2026-10-01 | Camera: HD capture for iPhone/PC, start-up race, `?debug` readout | `8cb7bec` |
+
+---
+
+## 2026-10-02 — `recent.ts` cleanup from a code review (`f9ed15a`)
+
+- **Asked:** a code review found code that does nothing. Each "Recently scanned" entry saved a `barcode` and a time
+  (`at`) that nothing reads, `addRecent` took a `now` time only to store it, `RECENT_KEY` was exported but never
+  imported, and `greeting` had a default parameter no caller uses.
+- **Why:** the list's order already is the recency, and products are looked up by id, so the extra fields were dead
+  weight to read past before accounts add syncing.
+- **Changed:** `RecentEntry` is `{ id, product? }` and `addRecent(list, p)` has no `now`. `parseRecent` no longer
+  requires `barcode`/`at`, so lists saved by older versions still load (extra fields are ignored); the one-use snapshot
+  check is inlined. `RECENT_KEY` is no longer exported; `greeting()` reads the hour inside. `App.tsx` calls updated.
+  No behaviour change.
+- **Checked:** `npm test` 156/156 (the parse test keeps an old-format `{ id, barcode, at }` entry and now also
+  round-trips a new-format list); `npm run build` green; `check-home.mjs` against `npm run build` +
+  `vite preview --port 4317`: 24/24 on the first run.
 
 ---
 
