@@ -8,10 +8,24 @@ checked**, and the **commit**.
 
 | Date | Fix / update | Commit |
 |---|---|---|
+| 2026-10-02 | `check-home.mjs`: fresh Edge profile every run (flaky first-visit check) | `ba8cc10` |
 | 2026-10-01 | `check-home.mjs` exits when done (it waited for its 120 s timeout) | `25ac748` |
 | 2026-10-01 | Open Food Facts "Looks wrong? Fix it" and "Add it" links | `39ff6e3` |
 | 2026-10-01 | Search: whole-word matching + "More from USDA" results | `9d32c29` |
 | 2026-10-01 | Camera: HD capture for iPhone/PC, start-up race, `?debug` readout | `8cb7bec` |
+
+---
+
+## 2026-10-02 — `check-home.mjs`: fresh Edge profile every run (`ba8cc10`)
+
+- **Wrong:** the first run of the M7.2/M7.3 check failed "first visit shows How EcoGo checks a product" (23/24); the
+  next runs passed.
+- **Root cause:** the script names Edge's profile folder only by a random port (9600–9689), and 19 old folders existed,
+  so about 1 run in 5 reused one. Edge is killed right after the last check (Clear), possibly before it writes local
+  storage to disk, so a reused profile could still hold an old "Recently scanned" list: not a first visit.
+- **Changed:** the script deletes its profile folder before starting Edge. Found while running the M7.2/M7.3 plan's
+  Task 3; not in the plan.
+- **Checked:** against `npm run build` + `vite preview --port 4317`: 24/24 on three runs in a row.
 
 ---
 

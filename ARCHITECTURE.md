@@ -8,7 +8,7 @@
 ## 1. What the app does today
 
 EcoGo! is a **single-screen phone mock-up** (a fixed 390×844 frame centred on a desktop page) built by
-Figma Make. After a welcome screen and a 3-slide onboarding it has five tabs:
+Figma Make. After a one-time welcome screen (first visit on this device) it has five tabs:
 
 | Tab | Reality |
 |---|---|
@@ -16,7 +16,7 @@ Figma Make. After a welcome screen and a 3-slide onboarding it has five tabs:
 | **Map** | A real Leaflet/OpenStreetMap map of **18 Chicago resources** drawn from `MapTab.tsx` `BASE_RESOURCES`. The database overrides only name, hours, phone and description by id, even though the `resources` table now also holds coordinates. |
 | **Scan** | **Camera.** The Scan tab opens the back camera and reads EAN/UPC barcodes on the device (`CameraScanner`, `lib/barcodeReader.ts`: native BarcodeDetector or bundled ZXing WebAssembly; a code counts after two identical reads). Typing a barcode or a demo barcode does the same. The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Frames never leave the device; scans are **not saved** (M3), and scanning never asks for location. |
 | **Saved** | Favorites (React state only, lost on reload, K-16) and Scanned (the same recent list as Home, kept on this device). "Lists" is static. |
-| **Profile** | Entirely static (Alex Johnson, fake stats and badges). The settings rows do nothing. |
+| **Profile** | Only true things (M7.2): your data on this device (Recently scanned count with Clear; a favorites note), where results come from, what leaves the phone (privacy), and the source-code link. No account, name or stats. |
 
 The product catalog is **51 products in the Supabase `products` table**, seeded from `src/data/products.csv`. The
 CSV is still bundled and shown until the database answers, or instead of it when Supabase is unreachable (offline
@@ -264,7 +264,7 @@ static or a no-op; **broken**.
 
 | Feature | Entry | Status | Notes |
 |---|---|---|---|
-| Welcome → onboarding → guest | `WelcomeScreen`, `OnboardingScreen` | partial | "Sign In" has no handler; onboarding re-runs on every reload |
+| Welcome (first visit) | `WelcomeScreen` | **working** | One screen (M7.3): "Know what's in your food", Start scanning (opens Scan) / Look around first (Home); shown once per device via `localStorage["ecogo.welcomed.v1"]` (blocked storage just shows it again) |
 | Bottom-tab navigation | `BottomNav` | working | |
 | Home: greeting, Scan card, search, recently scanned | `HomeTab`, `lib/recent.ts` | **working** | Real content only (M7); recently scanned kept on this device, newest first, with Clear |
 | Home: hidden-risk explainers | `Explainer.tsx` | **working** | 5 pages: "Nothing flagged" isn't "healthy" (FDA 5/20 rule); what the badge levels mean (WHO/IARC, acrylamide); seed oils (AHA, EFSA, EU); pesticides (FDA, IARC, EPA, EFSA; links to badge levels); ultra-processed foods (FDA, HHS). Verbatim sources with dates; none changes the badge |
@@ -297,7 +297,7 @@ static or a no-op; **broken**.
 | Scan history / stats / review queue UI | — | placeholder | Data is in `scan_events`; no screen (dashboard only) |
 | Saved › Favorites / Scanned | `SavedTab` | partial | Favorites in memory (K-16); Scanned = the recent list on this device |
 | Saved › Lists | `SavedTab` | placeholder | static |
-| Profile, impact stats, badges, settings | `ProfileTab` | placeholder | static; settings rows no-op |
+| Profile | `ProfileTab` | **working** | Your data (recent count + Clear), where results come from, privacy, source-code link; no invented content (M7.2) |
 | Partners | — | placeholder | no table, no screen |
 
 ## 9. External services

@@ -229,8 +229,17 @@ food and drinks first. Each step is small and verified in the running app before
     EFSA) and ultra-processed foods (research links, but no official US definition yet). Every quote re-checked word for
     word on its live page. No badge or engine change. Design: `docs/superpowers/specs/2026-10-01-m71-explainers-design.md`.
 
-**Next:** the Profile tab's fake content (M7.2, spec `specs/2026-10-01-m72-profile-cleanup-design.md`), then accounts
-and the real map.
+11. ✅ **M7.2 Profile cleanup: done 2026-10-02** (`1c108af`…`ba8cc10`, plus the docs commit). Profile shows only true things: your data on this
+    device (Recently scanned count with Clear; favorites note), where results come from, what leaves the phone, and the
+    source-code link. The fake user, level, stats, achievement badges and dead settings buttons are gone. Design:
+    `docs/superpowers/specs/2026-10-01-m72-profile-cleanup-design.md`.
+12. ✅ **M7.3 Welcome cleanup: done 2026-10-02** (same commits). One honest welcome screen ("Know what's in your food",
+    Start scanning / Look around first), shown once per device (`ecogo.welcomed.v1`). The onboarding slides, Sign In
+    and the price and community promises are gone. Design: `docs/superpowers/specs/2026-10-01-m73-welcome-cleanup-design.md`.
+
+**The Map's demo places are now the only invented content left in the app** (prices aside, K-30).
+
+**Next:** accounts and the real map.
 
 **Revisit:** when the official US definition of ultra-processed foods is published (HHS/USDA sent the first proposed
 definition for final review in August 2026), update the "Ultra-processed foods: no official line yet" explainer and

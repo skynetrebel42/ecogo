@@ -1,7 +1,7 @@
 # M7.3: Welcome cleanup (one honest welcome screen, shown once): design spec
 
 - **Date:** 2026-10-01
-- **Status:** approved by the owner 2026-10-01 (through multiple-choice answers); plan:
+- **Status:** done (`1c108af`…`ba8cc10`, plus the docs commit); plan:
   `docs/superpowers/plans/2026-10-01-m72-m73-profile-welcome.md`
 - **Decided with:** the owner (Minh Bui), 2026-10-01: **one welcome screen** (the slides are removed), headline **"Know
   what's in your food"**, and **remove** the "Sign In" button and the price and community promises until they're real.
