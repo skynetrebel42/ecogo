@@ -1,0 +1,135 @@
+{
+ "version": 0.6,
+ "generator": "Overpass API 0.7.62.4 2390de5a",
+ "osm3s": {
+  "timestamp_osm_base": "2026-10-02T08:54:35Z",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+ },
+ "elements": [
+  {
+   "type": "node",
+   "id": 2247860156,
+   "lat": 34.0997432,
+   "lon": -118.328298,
+   "tags": {
+    "addr:city": "Hollywood",
+    "addr:housenumber": "1600",
+    "addr:postcode": "90028",
+    "addr:street": "Ivar Avenue",
+    "amenity": "marketplace",
+    "name": "Hollywood Farmers Market",
+    "note": "Sunday mornings only.",
+    "opening_hours": "Su 08:00-13:00",
+    "website": "https://hfm.la/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2406529085,
+   "lat": 34.0542041,
+   "lon": -118.2408525,
+   "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "201",
+    "addr:state": "CA",
+    "addr:street": "North Main Street",
+    "amenity": "marketplace",
+    "name": "Los Angeles Mall (closed forever)"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3362770643,
+   "lat": 33.785056,
+   "lon": -118.1678896,
+   "tags": {
+    "amenity": "marketplace",
+    "name": "Cherry Market"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3646860883,
+   "lat": 34.1905714,
+   "lon": -118.1590834,
+   "tags": {
+    "addr:city": "Altadena",
+    "addr:housenumber": "2609",
+    "addr:postcode": "91001",
+    "addr:state": "CA",
+    "addr:street": "North Lincoln Avenue",
+    "amenity": "social_facility",
+    "name": "Altadena S.D.A. Church - Food Bank",
+    "opening_hours": "Tu[2,4] 09:00-12:00",
+    "operator": "Altadena S.D.A. Church",
+    "phone": "+1-626-794-3953",
+    "social_facility": "food_bank"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3646871294,
+   "lat": 34.0210673,
+   "lon": -118.1498999,
+   "tags": {
+    "addr:city": "Los Angeles",
+    "addr:housenumber": "701",
+    "addr:postcode": "90022",
+    "addr:state": "CA",
+    "addr:street": "Hoefner Avenue",
+    "amenity": "social_facility",
+    "name": "Eastmont Community Center - Food Bank",
+    "opening_hours": "Mo-Fr 09:00-11:00",
+    "operator": "Eastmont Community Center",
+    "phone": "+1-323-726-7998",
+    "social_facility": "food_bank"
+   }
+  },
+  {
+   "type": "node",
+   "id": 9499533109,
+   "lat": 33.9982539,
+   "lon": -118.4674929,
+   "tags": {
+    "garden:type": "community",
+    "leisure": "garden"
+   }
+  },
+  {
+   "type": "node",
+   "id": 11981709979,
+   "lat": 33.7752,
+   "lon": -118.1961714,
+   "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Chestnut Community Garden"
+   }
+  },
+  {
+   "type": "way",
+   "id": 184097821,
+   "center": {
+    "lat": 33.7745641,
+    "lon": -117.9330796
+   },
+   "tags": {
+    "garden:type": "community",
+    "leisure": "garden",
+    "name": "Garden Grove Community Garden"
+   }
+  },
+  {
+   "type": "way",
+   "id": 160146695,
+   "center": {
+    "lat": 33.9574316,
+    "lon": -118.4158172
+   },
+   "tags": {
+    "amenity": "marketplace",
+    "name": "Westchester Farmers Market (Wednesdays)"
+   }
+  }
+ ]
+}
