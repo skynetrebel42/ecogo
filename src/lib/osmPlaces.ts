@@ -161,9 +161,9 @@ export const osmEditUrl = (p: Place) => `https://www.openstreetmap.org/edit?${p.
 /** Opens the phone's maps app; sends only the place's position. */
 export const directionsUrl = (p: Place) => `https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}`;
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-/** "2026-10-02" → "Oct 2026" (no Date: no time-zone shift). */
-export const formatAsOf = (asOf: string) => `${MONTHS[Number(asOf.slice(5, 7)) - 1]} ${asOf.slice(0, 4)}`;
+/** "2026-10-02" → "Oct 2026" (read and printed in UTC: no time-zone shift). */
+export const formatAsOf = (asOf: string) =>
+  new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(asOf));
 
 /** "+1-323-726-7998" → "(323) 726-7998"; anything else as written. */
 export function formatPhone(phone: string): string {
