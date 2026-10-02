@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { loadCatalog } from "../lib/catalog";
-import MapTab from "./components/MapTab";
 import ProductDetailScreen from "./components/ProductDetailScreen";
 import ScanTab from "./components/ScanTab";
 import csvText from "../data/products.csv?raw";
@@ -15,59 +14,24 @@ import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import {
-  Home, Map, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
-  Bookmark, Package, Shirt, Bike, Building2, Wifi, Utensils, Plus, QrCode
+  Home, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
+  Bookmark, Wifi, Plus, QrCode
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type AppState = "welcome" | "main";
-type Tab = "home" | "map" | "scan" | "saved" | "profile";
-type ResourceType = "food-bank" | "donation" | "clothing" | "bike-repair" | "restroom" | "wifi";
+// The Map tab is hidden until it shows real places (M7.4 spec M1); MapTab.tsx stays in the repo, unimported.
+type Tab = "home" | "scan" | "saved" | "profile";
 type SubScreen = "search-results" | "product-detail" | null;
 
-interface Resource {
-  id: number; name: string; type: ResourceType; address: string;
-  hours: string; phone?: string | null; description: string;
-}
 // Re-export the canonical Product type from the import pipeline so the rest of
 // the file can use it without a separate import statement.
 type Product = CsvProduct;
 
-// ── Category Config ──────────────────────────────────────────────────────────
-const CAT: Record<ResourceType, { label: string; fill: string; bg: string; text: string; letter: string; Icon: React.ElementType }> = {
-  "food-bank":   { label: "Food Banks",       fill: "#166534", bg: "bg-green-800",  text: "text-white", letter: "F", Icon: Utensils  },
-  "donation":    { label: "Donation Centers", fill: "#1e40af", bg: "bg-blue-800",   text: "text-white", letter: "D", Icon: Package   },
-  "clothing":    { label: "Cloth Drives",     fill: "#6b21a8", bg: "bg-purple-800", text: "text-white", letter: "C", Icon: Shirt     },
-  "bike-repair": { label: "Bike Repair",      fill: "#9a3412", bg: "bg-orange-800", text: "text-white", letter: "B", Icon: Bike      },
-  "restroom":    { label: "Restrooms",        fill: "#115e59", bg: "bg-teal-800",   text: "text-white", letter: "R", Icon: Building2 },
-  "wifi":        { label: "Free WiFi",        fill: "#78350f", bg: "bg-amber-900",  text: "text-white", letter: "W", Icon: Wifi      },
-};
-
 // ── Data ─────────────────────────────────────────────────────────────────────
-const RESOURCES: Resource[] = [
-  { id: 1,  name: "Community Food Pantry",   type: "food-bank",   address: "142 Oak Street",       hours: "Mon–Fri 9am–5pm",      phone: "(555) 234-5678", description: "Hot meals and dry goods. No ID required." },
-  { id: 2,  name: "Second Harvest Hub",      type: "food-bank",   address: "389 Maple Avenue",     hours: "Daily 8am–7pm",        phone: "(555) 876-5432", description: "Fresh produce and pantry staples. 200+ families weekly." },
-  { id: 3,  name: "Goodwill Drop-Off",       type: "donation",    address: "55 Central Boulevard", hours: "Mon–Sat 8am–8pm",      phone: "(555) 345-6789", description: "Clothing, furniture, electronics. Tax receipt provided." },
-  { id: 4,  name: "Habitat ReStore",         type: "donation",    address: "201 Pine Road",        hours: "Tue–Sat 9am–6pm",      phone: "(555) 456-7890", description: "Home improvement items and appliances." },
-  { id: 5,  name: "Winter Warmth Drive",     type: "clothing",    address: "78 Elm Street",        hours: "Wed–Sun 10am–4pm",     phone: "(555) 567-8901", description: "Coats, hats, and warm clothing for all ages." },
-  { id: 6,  name: "Thread & Share Co-op",    type: "clothing",    address: "315 Birch Way",        hours: "Mon, Wed, Fri 12–6pm", phone: "(555) 678-9012", description: "Free clothing exchange — take what you need." },
-  { id: 7,  name: "Community Bike Shop",     type: "bike-repair", address: "92 River Drive",       hours: "Sat–Sun 10am–3pm",     phone: "(555) 789-0123", description: "Free repairs, tire changes, and safety checks." },
-  { id: 8,  name: "Pedal Forward Workshop",  type: "bike-repair", address: "420 Lake Avenue",      hours: "Tue, Thu 4pm–8pm",     phone: "(555) 890-1234", description: "DIY repair station with tools and spare parts." },
-  { id: 9,  name: "City Hall Restrooms",     type: "restroom",    address: "1 Civic Plaza",        hours: "Mon–Fri 7am–9pm",      phone: null,             description: "Clean, accessible public restrooms. ADA compliant." },
-  { id: 10, name: "Central Park Facilities", type: "restroom",    address: "Park Boulevard",       hours: "Daily 6am–10pm",       phone: null,             description: "Restrooms and water fountains throughout the park." },
-  { id: 11, name: "Public Library WiFi",     type: "wifi",        address: "250 Knowledge Drive",  hours: "Mon–Sat 8am–8pm",      phone: "(555) 901-2345", description: "High-speed internet. Computers available." },
-  { id: 12, name: "Community Center WiFi",   type: "wifi",        address: "88 Unity Avenue",      hours: "Daily 7am–11pm",       phone: "(555) 012-3456", description: "Free WiFi, charging stations, and computer terminals." },
-];
-
 // Bundled CSV catalog: shown until Supabase answers, and kept as the offline
 // fallback. The live catalog comes from the database (src/lib/catalog.ts).
 const PRODUCTS: Product[] = parseProductsCSV(csvText);
-
-// ── DB row → app type mapper ──────────────────────────────────────────────────
-function rowToResource(r: any) {
-  return { id: r.id, name: r.name, type: r.type as ResourceType, address: r.address ?? "", hours: r.hours ?? "", phone: r.phone ?? null, description: r.description ?? "" };
-}
-
 
 /** Phones get the app full-screen; desktop keeps the phone frame (M6 spec §4.5).
  *  ponytail: decided once at load; a window resized across 500 px keeps its layout until reload. */
@@ -470,7 +434,6 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
 function BottomNav({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t: Tab) => void }) {
   const TABS: { id: Tab; Icon: React.ElementType; label: string }[] = [
     { id: "home",    Icon: Home,   label: "Home"    },
-    { id: "map",     Icon: Map,    label: "Map"     },
     { id: "scan",    Icon: Camera, label: "Scan"    },
     { id: "saved",   Icon: Heart,  label: "Saved"   },
     { id: "profile", Icon: User,   label: "Profile" },
@@ -518,7 +481,6 @@ export default function App() {
 
 
   // ── Live data from Supabase ──────────────────────────────────────────────
-  const [resources, setResources] = useState<Resource[]>(RESOURCES);
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [dbStatus, setDbStatus] = useState<"loading" | "live" | "offline">("loading");
 
@@ -528,7 +490,6 @@ export default function App() {
       // An empty catalog means a misconfigured DB, not "live" data: keep the bundled copy.
       if (catalog.products.length === 0) throw new Error("catalog is empty");
       setProducts(catalog.products);
-      if (catalog.resources.length > 0) setResources(catalog.resources.map(rowToResource));
       setDbStatus("live");
     } catch (err) {
       console.warn("[catalog] using bundled data:", err);
@@ -614,7 +575,6 @@ export default function App() {
                       recent={recentProducts}
                     />
                   )}
-                  {activeTab === "map"     && <MapTab resources={resources} />}
                   {activeTab === "scan"    && (
                     <ScanTab
                       products={products}
