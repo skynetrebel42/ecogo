@@ -9,7 +9,7 @@
 
 import { useMemo, useState } from "react";
 import {
-  ArrowLeft, Bookmark, Share2, ShoppingBag,
+  ArrowLeft, Bookmark, ShoppingBag,
   TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame,
 } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
@@ -30,12 +30,12 @@ const SMALL_PRINT: Record<Assessment["verdict"], string> = {
   known:      "Tap a finding to see its official sources.",
   high:       "Tap a finding to see its official sources.",
   some:       "Tap a finding to see its official sources.",
-  none:       "No hazard flags from IARC, EU or FDA. This doesn't rate nutrition (coming next).",
+  none:       "No hazard flags from IARC, EU or FDA. This badge doesn't rate nutrition; see the Nutrition section.",
   "no-data":  "This product has no ingredient list yet.",
-  "non-food": "Checks for cleaning, personal-care and other products are coming later.",
+  "non-food": "EcoGo checks food and drinks only for now.",
 };
 // "Nothing flagged" with the 🔥 marker: scoped, so it doesn't contradict the IARC finding in "Formed when cooked".
-const NONE_BUT_COOKED = "No hazard flags from IARC, EU or FDA in the ingredients or the food itself; see what forms when it's cooked below. This doesn't rate nutrition (coming next).";
+const NONE_BUT_COOKED = "No hazard flags from IARC, EU or FDA in the ingredients or the food itself; see what forms when it's cooked below. This badge doesn't rate nutrition; see the Nutrition section.";
 
 /** One row on the product page: an additive flag or a food-level concern. */
 interface Finding { id: string; name: string; severity?: Severity; concern: string; detail: string; context?: string; sources: Source[] }
@@ -141,14 +141,9 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
           <button onClick={onBack} aria-label="Back" className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
             <ArrowLeft size={18} color="white" />
           </button>
-          <div className="flex gap-2">
-            <button onClick={onToggleSave} aria-label={saved ? "Remove from saved" : "Save"} aria-pressed={saved} className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
-              <Bookmark size={16} fill={saved ? "white" : "none"} color="white" />
-            </button>
-            <button aria-label="Share" className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
-              <Share2 size={16} color="white" />
-            </button>
-          </div>
+          <button onClick={onToggleSave} aria-label={saved ? "Remove from saved" : "Save"} aria-pressed={saved} className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
+            <Bookmark size={16} fill={saved ? "white" : "none"} color="white" />
+          </button>
         </div>
 
         <div className="pt-16 pb-5 px-5 flex items-center gap-4">
@@ -247,7 +242,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               ? <p className="text-xs text-gray-600 leading-relaxed"><HighlightedIngredients text={product.ingredients} flags={analysis.flags} /></p>
               : <p className="text-xs text-gray-400 italic">No ingredient list available.</p>}
             <p className="text-[10px] text-gray-400 mt-3 leading-snug">
-              Ingredient profiles researched with AI and verified against IARC, EU and FDA sources.
+              Findings are matched against official sources (IARC, EU, FDA, EFSA, WHO), linked on each finding.
               Classifications describe potential hazards; this is not medical advice.
             </p>
           </div>

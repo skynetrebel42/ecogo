@@ -534,7 +534,7 @@ export default function App() {
             {dbStatus === "offline" && (
               <div className="flex items-center justify-center gap-1.5 py-1 bg-amber-50 border-b border-amber-100 flex-shrink-0">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                <span className="text-[9px] font-bold text-amber-700 tracking-wide">Offline — showing cached data</span>
+                <span className="text-[9px] font-bold text-amber-700 tracking-wide">Offline — showing the built-in catalog</span>
               </div>
             )}
             {dbStatus === "live" && (
