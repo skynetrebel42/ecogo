@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "test": "node --test \"src/lib/**/*.test.ts\"",
+    "test": "node --test \"src/lib/**/*.test.ts\" \"supabase/functions/**/*.test.ts\"",
     "verify:sources": "node scripts/verify-sources.mjs"
   },
   "dependencies": {
