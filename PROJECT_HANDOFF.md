@@ -17,13 +17,19 @@
   owner requirements.** Its "previous session security fixes" were never in the code (ChatGPT's private sandbox copy).
   The owner's actual goals are still to be captured (see open questions).
 
-- **Phase:** M6 (camera scanning, phone layout, no invented barcodes) done; **prototype done 2026-10-01**: the owner scanned real products on Android, iPhone and PC (iPhone/PC needed HD capture, `8cb7bec`). Next: the search fix, then the Home redesign. See the KNOWN_ISSUES.md roadmap.
+- **Phase:** **prototype done 2026-10-01** (camera scans confirmed by the owner on Android, iPhone and PC). M7–M7.3
+  made Home, Profile and the welcome honest; **M7.4 trust cleanup (2026-10-02): nothing the app shows is invented.**
+  Next, in the PM chat's order: M7.5 USDA key relay (spec awaiting the owner's approval), M9 real map (Los Angeles,
+  OpenStreetMap), then M8 add-a-product. See the
+  KNOWN_ISSUES.md roadmap.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
-- **What's real:** a live catalog of 51 products in Postgres (categories, per-store prices), a concern level
-  (strongest official finding: additives, processed meat; acrylamide marker) from the safety engine (`src/lib/safety`, sourced library, `npm test` over all 51 products), realtime
-  catalog updates (scans are not saved), Leaflet map of 18 Chicago resources, simulated barcode scan,
-  in-memory favorites.
-- **What's fake:** the camera scanner, Home recommendations (place "Rating" numbers and their reasons are invented) and deals, Profile, Sign In, Lists, Share, Call.
+- **What's real:** a live catalog of 51 products in Postgres (31 food products with USDA-verified barcodes and labels),
+  USDA FoodData Central and Open Food Facts lookup for any other barcode, on-device camera scanning, a concern level
+  (strongest official finding: additives, processed meat; acrylamide marker) from the safety engine (`src/lib/safety`,
+  sourced library, `npm test` over all 51 products), FDA %DV nutrition, sourced explainers, realtime catalog updates
+  (scans are not saved), Recently scanned on this device, in-memory favorites (start empty).
+- **What's still invented, but not shown (M7.4):** catalog prices and store ratings (`product_prices`, the CSV; K-30)
+  and the Map's Chicago places (`resources`, `MapTab.tsx`; the Map tab is hidden until M9).
 - **Backend:** Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free). There are 5 normalized tables
   with RLS and explicit grants, and the schema lives in `supabase/migrations/`. The browser only reads the catalog
   and writes nothing (scan inserts revoked in M3). There is no edge function. The old Figma project is retired (decision 008).
@@ -108,6 +114,7 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 022 | Camera scanning on-device with barcode-detector (native or ZXing WebAssembly, bundled .wasm, no CDN); a code counts after two identical reads | Owner, 2026-10-01 | **Done** (M6) |
 | 023 | Home shows only real content; recent products kept on the device (localStorage, last 10), no account | Owner, 2026-10-01 | **Done** (M7) |
 | 024 | No invented content outside the Map: Profile and the welcome say only what EcoGo does today | Owner, 2026-10-01 | **Done** (M7.2, M7.3) |
+| 025 | Nothing the app shows is invented or promises a missing feature: prices out of the UI (the data stays), Map tab hidden until it has real places (M9), Saved › Lists and Share removed, favorites start empty, "AI" wording gone | Owner, 2026-10-02 (architecture review) | **Done** (M7.4) |
 
 ## Open questions only the owner can answer
 

@@ -38,8 +38,8 @@
 | ~~**K-02**~~ ✅ | **Fixed in M1 (safety engine, `74e5d52`).** Whole-word matching against a sourced library (no alias under 3 characters); `npm test` checks all 51 products against hand-reviewed flags. *Original issue:* **Ingredient matcher produces false HIGH-risk labels.** `alias.includes(key.split(" ")[0])` is a reverse-substring test, the 2-letter alias `"mi"` exists, and the first match wins. A replay over all 51 products gives **70 false HIGH labels on 31 products** (Seventh Generation shows "Sodium Nitrite"; milk/vitamin D3 and Tylenol "acetaMInophen" show Methylisothiazolinone). | `ProductDetailScreen.tsx:344`, `:61` | The app's core "Shop Healthier" claim is wrong for most products |
 | ~~**K-03**~~ ✅ | **Fixed in M1 (safety engine, `74e5d52`).** The parser keeps "1,4-dioxane" whole, splits on `;`, and reads sub-ingredients inside parentheses (nitrite in pepperoni is now flagged). *Original issue:* **Ingredient parser splits chemical names.** "1,4-dioxane (trace)" becomes "1" + "4-dioxane"; "1" then matches **Blue 1 food dye** (seen live on Tide PODS). Parentheticals are stripped, so "pepperoni (… sodium nitrite)" hides nitrite, and `;` is not a separator. | `ProductDetailScreen.tsx:331-343` | ▶ Tide PODS detail |
 | ~~**K-04**~~ ✅ | **Fixed in `aa8206e` (step 2).** Scans now `INSERT` straight into `scan_events` (verified: row saved). The edge function is gone. *Original issue:* **Scan history very likely never saved.** `SERVER` = `/functions/v1/server/make-server-504b3bba`, but the Hono routes have no `basePath` and Supabase passes the slug in the path, so it 404s under either deploy name. No `Authorization`/`apikey` header is sent either (401 under the default `verify_jwt`). All errors are swallowed to `console.warn`. | `src/lib/supabase.ts:10`, `scanService.ts:134,145` | ▶ POST attempted on every scan; no UI feedback (live?) |
-| **K-05** ✔ | **Map "My Location" empties the map for anyone more than 50 mi from downtown Chicago** (the radius filter applies whenever a location is known, and all 18 resources are in the Loop). There is no way to undo it. The owner is in California. | `MapTab.tsx:401-404` | Tap My Location → "0 resources" |
-| **K-06** ✔ | **Map ignores the database.** It iterates its own 18 hardcoded `BASE_RESOURCES` and overlays only name/hours/phone/description **by id**. DB adds, deletes, address/type/coordinate changes never show, and a new DB resource (next id 13) overwrites the text of unrelated static pin 13. | `MapTab.tsx:389-393` | Undermines any CRUD or realtime demo |
+| **K-05** ✔ | *Hidden since M7.4 (the Map tab is out of the nav; the real map, M9, replaces it).* **Map "My Location" empties the map for anyone more than 50 mi from downtown Chicago** (the radius filter applies whenever a location is known, and all 18 resources are in the Loop). There is no way to undo it. The owner is in California. | `MapTab.tsx:401-404` | Tap My Location → "0 resources" |
+| **K-06** ✔ | *Hidden since M7.4 (M9 replaces the map).* **Map ignores the database.** It iterates its own 18 hardcoded `BASE_RESOURCES` and overlays only name/hours/phone/description **by id**. DB adds, deletes, address/type/coordinate changes never show, and a new DB resource (next id 13) overwrites the text of unrelated static pin 13. | `MapTab.tsx:389-393` | Undermines any CRUD or realtime demo |
 
 ### Medium
 
@@ -48,13 +48,13 @@
 | ~~**K-07**~~ ✅ | **Fixed in `fe0027b`.** `react`/`react-dom` were only optional peerDependencies, installed solely because unused packages peer-required them, so pruning unused deps would have dropped `react-dom`. Both are now regular `dependencies` (18.3.1). | `package.json` |
 | ~~**K-08**~~ ✅ | **Fixed in M1 (safety engine, `74e5d52`).** "Alternatives with fewer concerns" are same-category, strictly better verdicts, and tappable. *Original issue:* "Healthier Alternatives" ignores category (potato chips → laundry detergent, cleaner, milk), and the rows can't be clicked. | `ProductDetailScreen.tsx:678-681`, `859` |
 | ~~**K-09**~~ ✅ | **Fixed in M1 (safety engine, `74e5d52`).** Lists and the product page show the same ingredient verdict; the score, percentage and letter grade are gone. *Original issue:* Two different numbers are presented as "the score": lists show `safetyScore` (the health dimension) as `%`, detail shows `overallScore` (Tide 38% vs 35/100; Lay's 62% vs 54/100). The letter grade comes from **ethics only**, so 15/51 products show a grade that contradicts their overall score. | `App.tsx:78,491`; `scoring.ts` grade thresholds; `ProductDetailScreen.tsx:745` |
-| **K-10** ✔ | A DB resource whose `type` isn't one of the 6 `CAT` keys crashes HomeTab (`cat.bg` of undefined), and with **no error boundary** the whole app goes blank. Still latent after step 2: the `resources` table allows the Map's 12 types, and Home shows the first 5 by id (currently all within App's 6). | `App.tsx` `rowToResource`, `HomeTab`; `main.tsx` |
-| **K-11** ✔ | *Partly fixed in step 2:* "Live" now appears only when catalog rows actually arrive (an empty result counts as offline). **Remaining:** "Offline — showing *cached* data" is inaccurate, because it's bundled data, not a cache. | `App.tsx` offline banner |
+| ~~**K-10**~~ ✅ | **Moot since M7.4:** Home stopped showing resources in M7, and M7.4 deleted `rowToResource`, `CAT` and `RESOURCES`. *Original issue:* A DB resource whose `type` isn't one of the 6 `CAT` keys crashes HomeTab (`cat.bg` of undefined), and with **no error boundary** the whole app goes blank. Still latent after step 2: the `resources` table allows the Map's 12 types, and Home shows the first 5 by id (currently all within App's 6). | `App.tsx` `rowToResource`, `HomeTab`; `main.tsx` |
+| ~~**K-11**~~ ✅ | **Fixed in M7.4:** the banner says "Offline — showing the built-in catalog". Step 2 already made "Live" appear only when catalog rows arrive. | `App.tsx` offline banner |
 | ~~**K-12**~~ ✅ | **Moot since M3: scans no longer request location.** *Original issue:* A scan waits on geolocation. The 4 s `timeout` doesn't cover the permission prompt, so the scanner can hang in "scanning". There is no try/finally, so any throw also leaves it stuck. | `ScanTab.tsx:107`; `scanService.ts:86,111` |
 | ~~**K-13**~~ ✅ | **Fixed in M2 (`b99eb13`).** The not-found screen now says "We couldn't find this barcode yet" (no review-queue claim), and the `error` state is used for unreachable lookups. *Original issue:* The unknown-barcode screen always says "We've saved it for review", even when the insert failed. The `error` scan state is declared and never set. | `ScanTab.tsx` |
 | **K-14** ✔ | The "Why Recommended?" modal is positioned inside the scrolling Home container, so for lower sections it opens off-screen. (Verifier-found; not runtime-checked.) | `App.tsx:543` |
 | **K-15** ▶✔ | Today's Deals cards open unrelated products (the Seventh Gen. deal opens KIND bars), and "See all" searches the literal word "deals" → "No results". | `App.tsx:626-650` |
-| **K-16** ▶✔ | Favorites and Scanned live only in React state, pre-seeded with fake ids `[3,5]`/`[2,6]`, and are lost on reload. Profile's "34 products scanned" and other stats are hardcoded and contradict the app's state. | `App.tsx:1024-1025`, `906` |
+| **K-16** ▶✔ | *Mostly fixed:* Scanned is the device's recent list (M7), Profile stats are gone (M7.2), and favorites start empty (M7.4). **Remaining:** favorites are still lost on reload (persisting them is a later spec). *Original issue:* Favorites and Scanned live only in React state, pre-seeded with fake ids `[3,5]`/`[2,6]`, and are lost on reload. Profile's "34 products scanned" and other stats are hardcoded and contradict the app's state. | `App.tsx:1024-1025`, `906` |
 | **K-17** ✔ | *Reframed by step 2 (now by design):* the database is the source of truth, and `products.csv` is only the offline fallback and seed source. Editing the CSV changes offline mode but **not** the live catalog. Change products in the Supabase dashboard or with a new migration, and keep the CSV in sync if the offline view matters. | `src/lib/catalog.ts`, `App.tsx` `PRODUCTS` |
 | ~~K-29~~ ✅ | **Resolved for food products in M5.** 31 food products carry the barcode, name and full ingredient label of a matched USDA FoodData Central record (same brand, product and flavour), listed in `src/data/verified-barcodes.json` (the source of truth, applied by `scripts/apply-verified-barcodes.mjs`, pinned by `verified-barcodes.test.ts`, migration `real_catalog_barcodes`). 3 with no reliable match lost their barcode: #3 KIND Bars Variety Pack, #4 Gatorade 12-pack, #44 Ben & Jerry's (still searchable). **Non-food barcodes** (cleaning, personal care, baby care including Gerber Puffs, medicine, pet food) are still the Figma export's and unverified; nutrition and hazard lookups don't apply to them. | `src/data/verified-barcodes.json`, products.csv, DB |
 
@@ -65,20 +65,20 @@
 | ~~K-18~~ ✅ | **Moot: hand-written explanations were deleted (M1, `74e5d52`).** *Original issue:* Hardcoded explanation text contradicts the data: Diet Coke "No phosphoric acid" (it has it), Lay's "17% of daily sodium" (170 mg ≈ 7%), Oscar Mayer cites turkey (not in its list), an "Affordability score" that doesn't exist. | `ProductDetailScreen.tsx:98,241,261,285` |
 | K-19 ▶✔ | Opening any sub-screen unmounts the active tab: Back from a search result lands on Home, and Saved resets to Favorites. | `App.tsx:1139,1174` |
 | K-20 ✔ | Search: a leading space matches every product, brand is not searched, and short keywords over-match ("steak" contains "tea"). | `App.tsx:686-690` |
-| K-21 ▶✔ | Dead controls: Sign In, all 5 Profile settings rows, Lists "New", Share, Map "Call". (The home location Refresh was removed in M3.) | `App.tsx:240,521,882,967`; `ProductDetailScreen.tsx:714`; `MapTab.tsx:260` |
+| ~~K-21~~ ✅ | **Resolved:** Sign In and the Profile settings rows went in M7.2/M7.3; Lists "New" and Share in M7.4; Map "Call" is hidden with the Map (M9 decides). Share returns when links work. *Was:* dead controls: Sign In, all 5 Profile settings rows, Lists "New", Share, Map "Call". (The home location Refresh was removed in M3.) | `App.tsx:240,521,882,967`; `ProductDetailScreen.tsx:714`; `MapTab.tsx:260` |
 | K-22 ✔ | Leaving the Scan tab mid-scan still yanks you into product detail about 3 s later, (The false "Scan saved at" part is moot: scans aren't saved since M3.) | `ScanTab.tsx:114-124` |
-| K-23 ✔ | Map details: the hours parser misreads "12–6pm" and "dawn–dusk"; open/closed uses the viewer's timezone and goes stale; "Smart Score" sort equals rating sort; the list shows 10 with no "more"; zoom-out and OSM attribution are covered by the sheet. | `MapTab.tsx:125-148,276-283,399-410,523-554` |
+| K-23 ✔ | *Hidden since M7.4 (M9 replaces the map).* Map details: the hours parser misreads "12–6pm" and "dawn–dusk"; open/closed uses the viewer's timezone and goes stale; "Smart Score" sort equals rating sort; the list shows 10 with no "more"; zoom-out and OSM attribution are covered by the sheet. | `MapTab.tsx:125-148,276-283,399-410,523-554` |
 | K-24 ✔ | Importer edge cases: rows sharing an id merge silently; `'1'` and `'01'` become duplicate ids; quoted newlines drop the row; an empty FB condition gives `''`; 27/51 barcodes fail the UPC-A check digit (matters only for a real scanner). | `productImporter.ts:158,372,496,509,575,642` |
 | ~~K-25~~ ✅ | **Moot: `scoring.ts` was deleted (the score is no longer computed).** *Original issue:* Floating-point rounding makes 58.5 → 58 (id 41 only). | (deleted) |
 | K-26 ✔ | *Mostly fixed in step 2:* realtime now re-fetches on INSERT/UPDATE/DELETE of products, prices and resources. **Remaining:** an open product detail keeps its snapshot until reopened; no subscribe-status check; overlapping re-fetches could resolve out of order (harmless at this scale). | `App.tsx` realtime effect |
 | K-27 ▶ | Icon-only buttons (back, save, share, search-QR, etc.) have no accessible names. | `ProductDetailScreen.tsx:707-714`, `App.tsx` |
 | ~~K-28~~ ✅ | **Resolved in M6:** below 500 px wide the app fills the screen (no phone frame or fake status bar, safe-area insets); desktop keeps the frame. A phone first loaded in landscape still gets the frame (M6 follow-up). | `App.tsx` (`IS_PHONE`) |
-| K-30 | Catalog prices and store ratings (Amazon, Walmart, FB Marketplace) are still Figma-invented. | products.csv, DB `product_prices` |
+| K-30 | *Not shown since M7.4* (cards, product page, store chips, Price Comparison and the price sort are gone). The data is still Figma-invented: catalog prices and store ratings (Amazon, Walmart, FB Marketplace). Show prices again only from a real source. | products.csv, DB `product_prices` |
 
 ### Maintainability (not bugs; fix opportunistically)
 
 - ~~Dead code in `App.tsx`~~ Resolved by the M0 cleanup (`764271c`).
-- Fallback data still lives in code next to the database: `App.tsx` RESOURCES (12, x/y), `MapTab.tsx` BASE_RESOURCES (18, lat/lng, drawn on the map), and the CSV (51 products). The DB now holds the canonical copy of all of it (step 2 retired the server's `DEFAULT_*` and `DEFAULT_PARTNERS`). Making the map read DB coordinates (K-06) would retire BASE_RESOURCES.
+- Fallback data still lives in code next to the database: `MapTab.tsx` BASE_RESOURCES (18, lat/lng; unimported since M7.4) and the CSV (51 products). `App.tsx` RESOURCES was deleted in M7.4. The DB now holds the canonical copy of all of it (step 2 retired the server's `DEFAULT_*` and `DEFAULT_PARTNERS`). Making the map read DB coordinates (K-06) would retire BASE_RESOURCES.
 - ~~53 of 59 runtime dependencies unused; pnpm leftovers, empty/unreferenced CSS, dead `figma:asset` resolver~~ Resolved by the M0 cleanup (`764271c`): 7 runtime dependencies remain. Still open: DM Mono is loaded but not wired to `font-mono`.
 - ~~No stable product identity~~ *(resolved in step 2: the DB and the CSV share ids 1–51, and the incompatible 7-row server seed is gone).*
 - ~~No git repo / `.gitignore`~~ *(resolved in step 0).*
@@ -91,7 +91,8 @@
 - `verify-sources` reports HTTP 404/410 as "unverifiable", so a dead source link passes; the hand checks of IARC/EUR-Lex quotes aren't recorded per source.
 - A flag's `matchedText` is the normalized item, not the exact label span, so the highlight and "Listed as" break on newlines, double spaces and "parent (x) rest" joins. Newlines aren't separators yet, which matters for camera text (M4).
 - Zero-width spaces and soft hyphens aren't stripped; `Red&nbsp;40` splits on the `;`.
-- The alternatives sort computes `Infinity − Infinity = NaN` when two alternatives have no price (unstable order).
+- ~~The alternatives sort computes `Infinity − Infinity = NaN` when two alternatives have no price (unstable order).~~
+  Fixed in M7.4: the last tie-break is the name.
 
 ### Deploy follow-ups (from the M3 final review, deferred)
 
@@ -101,7 +102,7 @@
 - Public docs name the owner's university ("the UCI email stays private", and in the M3 plan). They reveal the affiliation, not the address; reword to "personal email" if that's unwanted.
 - `.superpowers/` is ignored only through a nested `.gitignore`; add it to the root `.gitignore` so a new scratch folder can't be committed.
 - The README's "30 lookups an hour" for `DEMO_KEY` is loose: the limit is per IP (30 requests an hour, 50 a day), and one lookup can use 2 requests.
-- The OpenStreetMap attribution is hidden behind the map sheet (K-23), which matters more now the site is public. `index.html` has `noindex, nofollow`: decide whether the showcase should be findable.
+- The OpenStreetMap attribution is hidden behind the map sheet (K-23; the Map is hidden since M7.4, so M9 must show it). `index.html` has `noindex, nofollow`: decide whether the showcase should be findable.
 
 ### Lookup follow-ups (from the M2 final review, deferred)
 
@@ -121,11 +122,12 @@
   "Oatmeal Squares" lose it (the `PORRIDGE` regex); USDA "Coffee Ice Cream" gets it (the coffee name fallback); catalog
   fries filed under "Frozen" wouldn't get it (none today).
 - The "Alternatives with fewer concerns" header icon is green (`text-green-600`), against decision L2.
-- The product-page footer says "verified against IARC, EU and FDA sources"; WHO is now a source body too.
+- ~~The product-page footer says "verified against IARC, EU and FDA sources"; WHO is now a source body too.~~ Fixed in
+  M7.4: "Findings are matched against official sources (IARC, EU, FDA, EFSA, WHO), linked on each finding."
 
 ### Nutrition and barcode follow-ups (from the M5 final review, deferred)
 
-- The renamed pack sizes no longer match the invented catalog prices (K-30): "Diet Coke 12 fl oz Can" carries the
+- *Moot while prices aren't shown (M7.4):* the renamed pack sizes no longer match the invented catalog prices (K-30): "Diet Coke 12 fl oz Can" carries the
   12-pack price, Monster a 4-pack price, Nature Valley "(2-bar pouch)" the 12ct price, the SPAM 4-pack a single-can
   price, Stouffer's Family Size 40oz the 12oz price. #17 Planters' description lists macadamias the real label doesn't.
 - Open Food Facts: a nutrient given only per 100 g (alongside a serving size), or salt without sodium, reads "not
@@ -153,9 +155,9 @@
 
 ### Home follow-ups (from the M7/M7.1 final review, deferred)
 
-- Bookmarking a looked-up product that was reopened from Recently scanned (or opened from a USDA search result) doesn't
-  show it in Saved › Favorites: favorites are filtered from the catalog plus `lookedUp`, which only Scan fills. Fix: add
-  looked-up products to `lookedUp` in `openProduct` (`App.tsx`). Related: K-16.
+- ✔ Fixed in M7.4: bookmarking a looked-up product that was reopened from Recently scanned (or opened from a USDA
+  search result) didn't show it in Saved › Favorites, because only Scan filled `lookedUp`. `openProduct` now adds every
+  looked-up product (negative id); `check-home.mjs` bookmarks a USDA search result and finds it in Favorites.
 
 ### Hidden-risk candidates (each needs an official source before it's flagged)
 
@@ -237,9 +239,21 @@ food and drinks first. Each step is small and verified in the running app before
     Start scanning / Look around first), shown once per device (`ecogo.welcomed.v1`). The onboarding slides, Sign In
     and the price and community promises are gone. Design: `docs/superpowers/specs/2026-10-01-m73-welcome-cleanup-design.md`.
 
-**The Map's demo places are now the only invented content left in the app** (prices aside, K-30).
+13. ✅ **M7.4 trust cleanup: done 2026-10-02** (`1462e8b`…`d7fcac4`, plus the docs commit; `check-home.mjs` 32/32). Nothing the app shows is
+    invented, and nothing promises a feature that doesn't exist. Prices are out of the UI (cards, product page, store
+    chips, Price Comparison, the price sort; the data stays, K-30). The Map tab is hidden until it has real places
+    (`MapTab.tsx` kept, unimported, so Leaflet left the bundle: JS 788 KB → 572 KB). Saved has Favorites (starting
+    empty) and Scanned, with no Lists, and a bookmarked looked-up product shows in Favorites however it was opened. The
+    dead Share button, the "researched with AI" footer, "(coming next)", "coming later" and "cached data" are gone, and
+    `src/lib/honesty.test.ts` keeps them out. Design: `docs/superpowers/specs/2026-10-02-m74-trust-cleanup-design.md`.
 
-**Next:** accounts and the real map.
+**Nothing the app shows is invented** (M7.4). The invented prices (K-30) and the Map's Chicago places are still in the
+database and the CSV, but no screen shows them.
+
+**Next** (the PM chat's order, 2026-10-02): M7.5 USDA key relay (spec awaiting the owner's approval), then M9 real
+map (Los Angeles, OpenStreetMap;
+`docs/superpowers/specs/2026-10-02-m9-real-map-design.md`), then M8 add-a-product / no-barcode ingredient check
+(`docs/superpowers/specs/2026-10-02-m8-add-product-design.md`). Accounts come later.
 
 **Revisit:** when the official US definition of ultra-processed foods is published (HHS/USDA sent the first proposed
 definition for final review in August 2026), update the "Ultra-processed foods: no official line yet" explainer and

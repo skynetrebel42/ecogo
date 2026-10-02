@@ -8,14 +8,15 @@
 ## 1. What the app does today
 
 EcoGo! is a **single-screen phone mock-up** (a fixed 390×844 frame centred on a desktop page) built by
-Figma Make. After a one-time welcome screen (first visit on this device) it has five tabs:
+Figma Make. After a one-time welcome screen (first visit on this device) it has four tabs (Home, Scan, Saved, Profile;
+the Map tab is hidden since M7.4):
 
 | Tab | Reality |
 |---|---|
 | **Home** | Real content only (M7): a time-based greeting, a Scan card, product search, "Recently scanned" (last 10 products opened, on this device, `lib/recent.ts`) and "Hidden risks, explained" cards that open sourced explainer pages (`Explainer.tsx`). |
-| **Map** | A real Leaflet/OpenStreetMap map of **18 Chicago resources** drawn from `MapTab.tsx` `BASE_RESOURCES`. The database overrides only name, hours, phone and description by id, even though the `resources` table now also holds coordinates. |
+| **Map** | **Hidden (M7.4):** it showed 18 invented Chicago places (`MapTab.tsx` `BASE_RESOURCES`, (555) numbers, star ratings). `MapTab.tsx` stays in the repo, unimported, so Leaflet isn't in the bundle; the real map (Los Angeles, OpenStreetMap) is M9. |
 | **Scan** | **Camera.** The Scan tab opens the back camera and reads EAN/UPC barcodes on the device (`CameraScanner`, `lib/barcodeReader.ts`: native BarcodeDetector or bundled ZXing WebAssembly; a code counts after two identical reads). Typing a barcode or a demo barcode does the same. The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Frames never leave the device; scans are **not saved** (M3), and scanning never asks for location. |
-| **Saved** | Favorites (React state only, lost on reload, K-16) and Scanned (the same recent list as Home, kept on this device). "Lists" is static. |
+| **Saved** | Favorites (React state only, start empty, lost on reload, K-16; a looked-up product shows here however it was opened) and Scanned (the same recent list as Home, kept on this device). The static "Lists" tab is gone (M7.4). |
 | **Profile** | Only true things (M7.2): your data on this device (Recently scanned count with Clear; a favorites note), where results come from, what leaves the phone (privacy), and the source-code link. No account, name or stats. |
 
 The product catalog is **51 products in the Supabase `products` table**, seeded from `src/data/products.csv`. The
@@ -23,8 +24,9 @@ CSV is still bundled and shown until the database answers, or instead of it when
 fallback). The product detail screen shows an **ingredient safety verdict** computed by the safety engine
 (`src/lib/safety`, M1): the ingredient list is parsed and matched whole-word against a 17-entry library in which every
 entry cites an official source (IARC, EU, FDA) with a verbatim quote. Flagged ingredients are listed with their sources
-and highlighted in the full ingredient text. The page also shows store prices and same-category alternatives with fewer
-concerns. There are no AI or "SmartScore™" claims; the old hand-written score text was deleted.
+and highlighted in the full ingredient text. The page also shows same-category alternatives with fewer concerns. No
+prices are shown anywhere (they were invented, K-30; the data stays in the database, M7.4). There are no AI or
+"SmartScore™" claims; the old hand-written score text was deleted.
 
 ## 2. Stack and tooling
 
@@ -32,7 +34,7 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 |---|---|
 | Runtime | Node 24.21.0, npm 11.19.0 (`package-lock.json`) |
 | Frontend | React 18.3.1, Vite 6.3.5, Tailwind 4.1.12 via `@tailwindcss/vite`, lucide-react. 7 runtime dependencies (M0 removed 53 unused ones and the shadcn/ui kit) |
-| Map | leaflet 1.9.4 + leaflet.markercluster 1.5.3 (used directly, no react-leaflet) |
+| Map | leaflet 1.9.4 + leaflet.markercluster 1.5.3 (used directly, no react-leaflet). Installed, but only the hidden `MapTab.tsx` imports them, so they're not in the bundle (M7.4) |
 | Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. There is **no edge function.** |
 | Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). `.env.local` (gitignored): `VITE_FDC_API_KEY`, the owner's free data.gov key for USDA FoodData Central (without it the app falls back to `DEMO_KEY`, 30 lookups/hour). Restart the dev server after changing it. |
 | Barcode / camera | **None** |
@@ -45,7 +47,7 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
                        Browser (React SPA, one phone-frame page)
  ┌──────────────────────────────────────────────────────────────────────────────┐
  │ main.tsx → App.tsx (state, navigation, Home/Search/Saved/Profile inline)     │
- │   ├─ loadData() ── lib/catalog.ts ──┐        MapTab.tsx ── Leaflet ──► OSM   │
+ │   ├─ loadData() ── lib/catalog.ts ──┐        (MapTab.tsx: hidden, M7.4)      │
  │   ├─ ScanTab.tsx ─ lib/lookup.ts (USDA → Open Food Facts; saves nothing)      │
  │   └─ ProductDetailScreen.tsx           │   lib/safety/* (concern level)      │
  │ productImporter.ts ◄─ products.csv (bundled) ─► initial / offline catalog    │
@@ -67,17 +69,17 @@ concerns. There are no AI or "SmartScore™" claims; the old hand-written score 
 
 | Path | Lines | Role | Policy |
 |---|---:|---|---|
-| `src/app/App.tsx` | 976 | Shell: all state, navigation, Home/Search/Saved/Profile, catalog load + realtime | SAFE TO EDIT (carefully; see §5) |
-| `src/app/components/ProductDetailScreen.tsx` | 309 | Product page: concern badge, findings grouped by origin (ingredients / the food itself / formed when cooked) with sources, highlighted ingredient list, prices, alternatives | SAFE TO EDIT |
+| `src/app/App.tsx` | 599 | Shell: all state, navigation, Home/Search/Saved/Profile, catalog load + realtime | SAFE TO EDIT (carefully; see §5) |
+| `src/app/components/ProductDetailScreen.tsx` | 280 | Product page: concern badge, findings grouped by origin (ingredients / the food itself / formed when cooked) with sources, nutrition, highlighted ingredient list, alternatives (no prices since M7.4) | SAFE TO EDIT |
 | `src/app/components/verdict.tsx` | 66 | Concern-level look (one darkening hue, filled-circle icons, no green), `safeAnalyze` (never throws), headline text, 🔥 marker, category icons; shared by the product page and lists | SAFE TO EDIT |
 | `src/lib/safety/*` | 568 + tests | Safety engine: verified library, parser, analyzer; tested by `npm test` | SAFE TO EDIT (library changes must pass `npm run verify:sources` and `npm test`) |
 | `src/lib/safety/foodConcerns.ts` | 164 | Food-level concerns with sources: processed meat (IARC Group 1, raises the level) and the acrylamide marker (EU 2017/2158 food types, never sets a level) | SAFE TO EDIT (source changes must pass `npm run verify:sources`) |
 | `src/lib/safety/assess.ts` | 24 | Concern level = strongest of the additive check and food-level concerns; non-food stays non-food | SAFE TO EDIT |
 | `src/lib/safety/fixtures/expected-flags.json` | — | Hand-reviewed flags per product id; `catalog.test.ts` checks every product in `products.csv` against it | Review, never loosen |
-| `src/app/components/MapTab.tsx` | 593 | Leaflet map, 18 static resources, filters, bottom sheet | SAFE TO EDIT |
+| `src/app/components/MapTab.tsx` | 593 | **Unimported since M7.4** (Map tab hidden): Leaflet map, 18 invented Chicago resources, filters, bottom sheet; kept for the real map (M9) | SAFE TO EDIT |
 | `src/app/components/ScanTab.tsx` | 266 | Simulated scanner: demo barcodes, type-a-barcode, catalog → lookup, not-found and error states | SAFE TO EDIT |
 | `src/lib/catalog.ts` | 103 | **Database read layer**: `loadCatalog()` plus the row → `Product` mapper | SAFE TO EDIT |
-| `src/lib/productImporter.ts` | 595 | `parseProductsCSV(text)` → `Product[]`, `bestPrice`; defines the canonical `Product` type. App.tsx feeds it the bundled CSV (`?raw`); tests read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
+| `src/lib/productImporter.ts` | 595 | `parseProductsCSV(text)` → `Product[]`, `bestPrice` (unused by the UI since M7.4); defines the canonical `Product` type. App.tsx feeds it the bundled CSV (`?raw`); tests read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
 | `src/lib/lookup.ts` | 146 | USDA FoodData Central + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session (no request) | SAFE TO EDIT |
 | `src/lib/scanner.ts` | 38 | Pure scan logic: grocery formats, `normalizeScanned` (digits; UPC-E → UPC-A), `confirmReads` (two identical reads in a row) | SAFE TO EDIT |
 | `src/lib/recent.ts` | 49 | "Recently scanned": `addRecent` (newest first, no duplicates, 10 max), `resolveRecent` (catalog ids re-read, looked-up snapshots kept), `parseRecent`, and `loadRecent`/`saveRecent` around `localStorage["ecogo.recent.v1"]` that never throw | SAFE TO EDIT |
@@ -107,7 +109,8 @@ Removed in step 2: `utils/supabase/info.tsx` (key for the retired Figma project)
 ## 5. `App.tsx` responsibility map
 
 *Line numbers below predate M0 (1130 lines, now 976): the DEAD sections are gone, `ProductCard` shows the verdict dot,
-and search sorts by fewest concerns / price. Order of sections is unchanged.*
+and search sorts by fewest concerns (the price sort went in M7.4). Order of sections is unchanged; M7.4 removed the
+Map tab, the resource data and Saved › Lists.*
 
 ```
 App.tsx (1130)
@@ -243,14 +246,13 @@ CLI (`supabase link` then `supabase db push`) or by pasting them into the SQL ed
 
 | Data | Source of truth | Read path | Write path | Fallback | Realtime | Survives reload? |
 |---|---|---|---|---|---|---|
-| Products (+ category, prices) | `products`, `product_prices`, `categories` tables | `loadCatalog()` → `rowToProduct` (same shape as the CSV importer; verified identical for all 51) | Dashboard / SQL (service role) | Bundled CSV (initial render, or when Supabase fails or returns no rows) | Any change → re-fetch | yes |
-| Resources (Home list) | `resources` table | `loadCatalog()` → `rowToResource`, first 5 by id | Dashboard / SQL | `App.tsx RESOURCES` (12) | Any change → re-fetch | yes |
-| Resources (Map) | `MapTab.tsx BASE_RESOURCES` (18, lat/lng) | Overlays name/hours/phone/description from the DB list **by id** | — | static | via App prop | static |
+| Products (+ category, prices) | `products`, `product_prices`, `categories` tables | `loadCatalog()` → `rowToProduct` (same shape as the CSV importer; verified identical for all 51). Prices are loaded but not shown (invented, K-30; M7.4) | Dashboard / SQL (service role) | Bundled CSV (initial render, or when Supabase fails or returns no rows) | Any change → re-fetch | yes |
+| Resources (invented demo places) | `resources` table; `MapTab.tsx BASE_RESOURCES` (18, lat/lng) | `loadCatalog()` still reads the table; **nothing shows it** since M7.4 (Map hidden, `App.tsx RESOURCES`/`rowToResource` deleted) | Dashboard / SQL | — | Any change → re-fetch (harmless) | n/a |
 | Scan events | `scan_events` table | nobody (service role only) | **no longer written (M3)**; kept for history, anonymous insert revoked | — | not published | yes (server side) |
 | Looked-up products | fetched live per session from USDA FoodData Central (manufacturer label data) or Open Food Facts (crowd-sourced); never stored | `lookupBarcode()` (session cache) | — | error state with Try again | — | no (session list in App state) |
 | Recently scanned (Home, Saved › Scanned) | `localStorage["ecogo.recent.v1"]` on this device | — | `openProduct` (every product opened) | — | — | **yes** (this browser only) |
-| Favorites | React state, seeded `[3,5]` | — | bookmark toggle | — | — | **no** |
-| User location | Browser Geolocation, only when the user taps Map "My Location" | — | never stored | Chicago centre | — | no |
+| Favorites | React state, starts empty (M7.4; was a fake `[3,5]` seed) | — | bookmark toggle | — | — | **no** |
+| User location | Not requested: only the hidden Map asked for it ("My Location") | — | never stored | — | — | no |
 | Scores | Replaced by the ingredient verdict (M1) | — | — | — | — | — |
 | Ingredient KB | `src/lib/safety/library.ts` (verified, sourced) | `assessProduct` (additives + food-level concerns) over the product at render | code + `verify:sources` | "Not enough data" verdict | — | yes |
 | Explanations / "AI" text | Replaced by the ingredient verdict (M1) | — | — | — | — | — |
@@ -265,38 +267,33 @@ static or a no-op; **broken**.
 | Feature | Entry | Status | Notes |
 |---|---|---|---|
 | Welcome (first visit) | `WelcomeScreen` | **working** | One screen (M7.3): "Know what's in your food", Start scanning (opens Scan) / Look around first (Home); shown once per device via `localStorage["ecogo.welcomed.v1"]` (blocked storage just shows it again) |
-| Bottom-tab navigation | `BottomNav` | working | |
+| Bottom-tab navigation | `BottomNav` | working | Home, Scan (raised green circle), Saved, Profile; Map hidden (M7.4) |
 | Home: greeting, Scan card, search, recently scanned | `HomeTab`, `lib/recent.ts` | **working** | Real content only (M7); recently scanned kept on this device, newest first, with Clear |
 | Home: hidden-risk explainers | `Explainer.tsx` | **working** | 5 pages: "Nothing flagged" isn't "healthy" (FDA 5/20 rule); what the badge levels mean (WHO/IARC, acrylamide); seed oils (AHA, EFSA, EU); pesticides (FDA, IARC, EPA, EFSA; links to badge levels); ultra-processed foods (FDA, HHS). Verbatim sources with dates; none changes the badge |
 | Product search | `HomeTab` → `SearchResultsScreen` | partial | Works; brand not searched; Back loses results |
-| Today's Deals | `HomeTab` | placeholder | Cards open unrelated products; "See all" → "No results for deals" |
-| Nearby resources | `HomeTab` | partial | From the DB; would crash Home if one of the first 5 had a type outside App's 6 (K-10) |
+| Today's Deals, Nearby resources | — | **removed (M7)** | Invented content; Home shows only real things. The resource data and `rowToResource` went in M7.4 (K-10 moot) |
 | Catalog load from Supabase | `App.loadData` → `catalog.ts` | **working** | Verified live; identical to the CSV catalog |
-| Live/offline banner | `App` render | working | "Live" only when rows arrive; offline text still says "cached" (it's bundled data) |
+| Live/offline banner | `App` render | working | "Live" only when rows arrive; offline: "Offline — showing the built-in catalog" (M7.4, K-11) |
 | Realtime updates | `App` effect | **working** | Re-fetch on any catalog change; verified live |
 | Concern badge (4 levels) | `verdict.tsx` + `lib/safety/assess.ts` | **working** | Nothing flagged (grey ○) → Some concern ◔ → High concern ◑ → Known carcinogen ●, one darkening hue, no green; readable in greyscale. Verified 2026-09-30: Diet Coke/Doritos some, Lay's nothing flagged, Tide "food only". `npm test` pins all 51 |
 | Processed meat | `lib/safety/foodConcerns.ts` | **working** | IARC Group 1: products that are processed meat read "Known carcinogen" (Oscar Mayer, SPAM, Jimmy Dean); products that only contain it read "High concern" (DiGiorno: "Contains processed meat: Pepperoni"; also bacon baked beans, sausage bowls), while a USDA processed-meat category or a use word ("Sandwich Style", "Pizza Topping") keeps deli meat Known; a name match needs meat in the ingredients, so hot dog buns and plant-based "sausage" don't match; meat-free versions and look-alike words excluded |
 | Acrylamide marker | `lib/safety/foodConcerns.ts` | **working** | 🔥 "forms when cooked" on EU 2017/2158 food types (Lay's, Oreo, Nature Valley, Pringles, Special K, Wonder, Goldfish), with IARC/EFSA/EU/FDA sources; never changes the level |
 | Nutrition (FDA %DV) | `NutritionPanel` + `lib/nutrition.ts` | **working** | Added sugar, sat fat, sodium per serving, High ≥ 20% / Low ≤ 5% (FDA), amounts in FDA label increments so they match the printed label, "not listed" when missing; catalog foods by verified barcode, looked-up products from USDA/OFF; one "High …" chip on cards once known this session (lists never fetch). Verified 2026-10-01: Oreo 28% added sugar High, DiGiorno sat fat 25% + sodium 33% High, Coke Zero Low ×3 |
 | Flagged ingredients + sources | `ProductDetailScreen` | **working** | Each flag expands to regulator context and source links with a "Source checked" date; flagged phrases highlighted in the ingredient text |
-| Verdict in lists + sort | `ProductCard`, `SearchResultsScreen` | **working** | Category icon, level icon + short label, 🔥 line when acrylamide matches; "Fewest concerns" / "Price" sort |
-| Price comparison | `ProductDetailScreen` | partial | DB prices, store rating or FB condition; no links |
-| Alternatives with fewer concerns | `ProductDetailScreen` | **working** | Same category, strictly better verdict, tappable (page resets to top); hidden for products without concerns |
-| Save / bookmark | `toggleSave` | partial | Works in-session; not persisted |
-| Share | `ProductDetailScreen` | placeholder | no-op |
-| Map: tiles, clusters, categories, detail sheet, list | `MapTab` | working | Static Chicago data |
-| Map: "My Location" + radius | `MapTab` | partial | Empties the map for anyone more than 50 mi from downtown Chicago, with no way back |
-| Map: open/closed badge | `MapTab` | partial | Hours parser edge cases; viewer's local timezone |
-| Map: Call, directions, search | `MapTab` | placeholder | no-op / absent |
-| Map reflects DB resources | `MapTab` | partial | Only 4 text fields by id; DB adds/deletes/coords ignored (K-06) |
+| Verdict in lists + sort | `ProductCard`, `SearchResultsScreen` | **working** | Category icon, level icon + short label, 🔥 line when acrylamide matches; one order, "Sorted by fewest concerns" (the price sort went in M7.4) |
+| Price comparison, store chips, "best price" | — | **removed (M7.4)** | The prices were invented (K-30); `product_prices` and the CSV keep them for a real source later |
+| Alternatives with fewer concerns | `ProductDetailScreen` | **working** | Same category, strictly better verdict, then fewer flags, then name; tappable (page resets to top); hidden for products without concerns |
+| Save / bookmark | `toggleSave` | partial | Works in-session for catalog and looked-up products; starts empty; not persisted |
+| Share | — | **removed (M7.4)** | Did nothing (K-21); returns with links |
+| Map | `MapTab` (unimported) | **hidden (M7.4)** | Invented Chicago data with K-05, K-06 and K-23; the real map is M9 |
 | Scan: demo barcode → product | `ScanTab` + `lookup.sameBarcode` | working | In the camera's drawer: 10 USDA-verified catalog codes plus USDA, Open Food Facts and not-found demos |
 | Scan: lookup of non-catalog barcodes | `ScanTab` + `lookup.ts` | **working** | USDA FoodData Central first, then Open Food Facts; session cache; source note on the product page; verified live 2026-09-28 |
 | Scan: camera/decoder | `CameraScanner` + `lib/barcodeReader.ts` + `lib/scanner.ts` | **working** | On-device EAN/UPC reading (native or ZXing WebAssembly); two identical reads; UPC-E expanded; camera stops on ✕/leave/hide. Verified 2026-10-01 with a fake camera (Oreo in ~1 s); the owner's phone check is pending |
 | Scan: record scan event | — | **removed (M3)** | Scans aren't saved (decision 017); no location prompt |
 | Scan: barcode not found anywhere | `ScanTab` | working | Honest "We couldn't find this barcode yet" screen |
 | Scan history / stats / review queue UI | — | placeholder | Data is in `scan_events`; no screen (dashboard only) |
-| Saved › Favorites / Scanned | `SavedTab` | partial | Favorites in memory (K-16); Scanned = the recent list on this device |
-| Saved › Lists | `SavedTab` | placeholder | static |
+| Saved › Favorites / Scanned | `SavedTab` | partial | Favorites in memory, start empty (K-16); Scanned = the recent list on this device |
+| Saved › Lists | — | **removed (M7.4)** | Three hardcoded lists and a dead New button |
 | Profile | `ProfileTab` | **working** | Your data (recent count + Clear), where results come from, privacy, source-code link; no invented content (M7.2) |
 | Partners | — | placeholder | no table, no screen |
 
@@ -308,7 +305,7 @@ static or a no-op; **broken**.
 | GitHub Pages + Actions | `.github/workflows/deploy.yml` | Hosts https://skynetrebel42.github.io/ecogo/ |
 | USDA FoodData Central (`api.nal.usda.gov/fdc/v1/foods/search`) | `lookup.ts` | Branded foods; key `VITE_FDC_API_KEY` in `.env.local` (3,600 requests/hour); codes tried as typed and 14-digit |
 | Open Food Facts (`world.openfoodfacts.org/api/v3`) | `lookup.ts` | No key; crowd-sourced, labelled as such; ODbL credit on product pages; `X-User-Agent: EcoGo/0.1 (personal project)` |
-| tile.openstreetmap.org | MapTab | public tiles via the deprecated `{s}` subdomains; attribution hidden by UI |
+| tile.openstreetmap.org | MapTab (hidden since M7.4: no tiles load) | public tiles via the deprecated `{s}` subdomains; attribution hidden by UI |
 | images.unsplash.com | Home recommendations | hotlinked photo ids |
 | fonts.googleapis.com | `fonts.css` | Plus Jakarta Sans, DM Mono |
 | Product/barcode APIs (Open Food Facts etc.) | — | **none**; offline-only |

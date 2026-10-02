@@ -30,7 +30,7 @@ The Supabase URL and publishable key in `.env` are public by design; the databas
 
 ## Built with
 
-React 18, Vite 6, Tailwind CSS 4, Supabase, Leaflet/OpenStreetMap, deployed to GitHub Pages with GitHub Actions.
+React 18, Vite 6, Tailwind CSS 4, Supabase, deployed to GitHub Pages with GitHub Actions.
 The original UI was designed in Figma Make.
 
 ## Data credits

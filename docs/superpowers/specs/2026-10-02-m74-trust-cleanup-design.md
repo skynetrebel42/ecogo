@@ -1,7 +1,9 @@
 # M7.4: Trust cleanup (remove the last invented content and stale promises): design spec
 
 - **Date:** 2026-10-02
-- **Status:** specced, not built; plan: none (the build chat writes it from this spec)
+- **Status:** **built 2026-10-02** (`1462e8b`…`d7fcac4`) by the build chat (debugger 1); plan:
+  `docs/superpowers/plans/2026-10-02-m74-trust-cleanup.md`. One review ruling: the D5 "see the Nutrition section"
+  pointer shows only when the page has that section (plan, Rulings).
 - **Decided with:** the owner (Minh Bui), 2026-10-02, after the architecture review: **remove prices from the UI**
   (the database keeps its price rows) and **hide the Map tab** (keep its code for the real map).
 
