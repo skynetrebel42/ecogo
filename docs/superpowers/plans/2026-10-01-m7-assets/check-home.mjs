@@ -5,6 +5,7 @@
 // M7.2/M7.3: the welcome screen is honest and shows once per device; Profile shows only true things.
 // M7.4: no Map in the nav; no prices, Share or AI claims; Saved has only Favorites (empty at first) and Scanned; a USDA
 // search result, opened and bookmarked, is listed in Favorites.
+// M9: the Map tab is back (its own check: docs/superpowers/plans/2026-10-02-m9-assets/check-map.mjs).
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
@@ -69,7 +70,7 @@ try {
 
   // M7.4 (spec 2026-10-02-m74-trust-cleanup-design.md §4): nothing invented, nothing promised.
   const nav = await run(`[...document.querySelectorAll("button")].map(b => b.innerText.trim()).filter(s => ["Home", "Map", "Scan", "Saved", "Profile"].includes(s))`);
-  check("bottom nav is Home, Scan, Saved, Profile (no Map)", JSON.stringify(nav) === '["Home","Scan","Saved","Profile"]', JSON.stringify(nav));
+  check("bottom nav is Home, Map, Scan, Saved, Profile (M9)", JSON.stringify(nav) === '["Home","Map","Scan","Saved","Profile"]', JSON.stringify(nav));
   check("Home shows no prices", !t.includes("$"));
   await run(`(async () => { __btn("Saved").click(); await __sleep(500); })()`);
   const sv = await run(`({ tabs: [...document.querySelectorAll("button")].map(b => b.innerText.trim()).filter(s => ["Favorites", "Scanned", "Lists"].includes(s)), text: document.body.innerText })`);
