@@ -485,7 +485,7 @@ export default function App() {
     // Realtime: any catalog change is a signal to re-fetch (events can be missed,
     // so we never patch state from the payload itself).
     const channel = supabase.channel("catalog-realtime");
-    for (const table of ["products", "product_prices", "resources"]) {
+    for (const table of ["products", "resources"]) {
       channel.on("postgres_changes" as any, { event: "*", schema: "public", table }, () => loadData());
     }
     channel.subscribe();

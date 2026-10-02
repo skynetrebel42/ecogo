@@ -102,17 +102,9 @@ export interface Product {
   ingredients: string;
   imageUrl: string;
   keywords: string[];
-
-  amazon?:   { price: number; rating: number };
-  walmart?:  { price: number; rating: number };
-  facebook?: { price: number; condition: string };
   source?: ProductSource;
   nutrition?: import("./nutrition.ts").Nutrition; // per serving, for looked-up products (catalog: fetched by barcode)
 }
-
-/** Lowest price across stores; Infinity when the product has none. */
-export const bestPrice = (p: Product) =>
-  Math.min(p.amazon?.price ?? Infinity, p.walmart?.price ?? Infinity, p.facebook?.price ?? Infinity);
 
 // ─── Safe Parsing Helpers ─────────────────────────────────────────────────────
 
@@ -448,48 +440,6 @@ function buildValidatedProduct(
     .map((k) => k.trim())
     .filter(Boolean);
 
-  let amazon:   Product["amazon"]   = undefined;
-  let walmart:  Product["walmart"]  = undefined;
-  let facebook: Product["facebook"] = undefined;
-  const seenStores = new Set<string>();
-
-  for (const { row, lineNum } of rows) {
-    const store = safeString(row.store).toLowerCase();
-    const price = safeFloat(row.price, NaN);
-
-    // Guard against duplicate store entries for the same product
-    if (seenStores.has(store)) {
-      warnings.push(
-        `Line ${lineNum} (id=${id}): duplicate ${store} price entry — ` +
-        `first occurrence wins, this row ignored`
-      );
-      continue;
-    }
-    seenStores.add(store);
-
-    if (isNaN(price)) continue; // already guarded by validateDataRow; defensive only
-
-    switch (store) {
-      case "amazon":
-        amazon = { price, rating: safeFloat(row.store_rating, 0) };
-        break;
-      case "walmart":
-        walmart = { price, rating: safeFloat(row.store_rating, 0) };
-        break;
-      case "facebook":
-        facebook = { price, condition: safeString(row.store_condition, "Listed") };
-        break;
-    }
-  }
-
-  // Warn if the product has no prices at all (it will still load but be
-  // unshoppable — the developer should know)
-  if (!amazon && !walmart && !facebook) {
-    warnings.push(
-      `Product id=${id} ("${safeString(base.product_name)}"): loaded with no store prices`
-    );
-  }
-
   return {
     id,
     barcode:           safeString(base.barcode),
@@ -500,10 +450,6 @@ function buildValidatedProduct(
     ingredients:       safeString(base.ingredients),
     imageUrl:          safeString(base.image_url),
     keywords,
-
-    amazon,
-    walmart,
-    facebook,
   };
 }
 

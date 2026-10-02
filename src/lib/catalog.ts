@@ -2,17 +2,11 @@
 //
 // Schema: supabase/migrations/20260923221344_catalog_schema.sql. Rows are mapped
 // into the same Product shape the CSV importer produces. The legacy score
-// columns stay in the DB but are not read (the safety verdict replaced them in M1).
+// columns stay in the DB but are not read (the safety verdict replaced them in M1), and neither are the invented
+// product_prices rows (K-30; the UI stopped showing prices in M7.4).
 
 import { supabase } from "./supabase";
 import type { Product } from "./productImporter";
-
-interface PriceRow {
-  store: "amazon" | "walmart" | "facebook";
-  price: number;
-  rating: number | null;
-  condition: string | null;
-}
 
 interface ProductRow {
   id: number;
@@ -24,7 +18,6 @@ interface ProductRow {
   image_url: string;
   keywords: string[];
   categories: { name: string } | null;
-  product_prices: PriceRow[];
 }
 
 export interface ResourceRow {
@@ -40,14 +33,9 @@ export interface ResourceRow {
   rating: number | null;
 }
 
-const PRODUCT_COLUMNS =
-  "id, barcode, name, brand, description, ingredients, image_url, keywords, " +
-  "categories(name), product_prices(store, price, rating, condition)";
+const PRODUCT_COLUMNS = "id, barcode, name, brand, description, ingredients, image_url, keywords, categories(name)";
 
 export function rowToProduct(row: ProductRow): Product {
-  const price = (store: PriceRow["store"]) => row.product_prices.find((p) => p.store === store);
-  const amazon = price("amazon"), walmart = price("walmart"), facebook = price("facebook");
-
   return {
     id:          row.id,
     barcode:     row.barcode ?? "",
@@ -58,10 +46,6 @@ export function rowToProduct(row: ProductRow): Product {
     ingredients: row.ingredients,
     imageUrl:    row.image_url,
     keywords:    row.keywords,
-
-    amazon:   amazon   ? { price: amazon.price,   rating: amazon.rating ?? 0 }       : undefined,
-    walmart:  walmart  ? { price: walmart.price,  rating: walmart.rating ?? 0 }      : undefined,
-    facebook: facebook ? { price: facebook.price, condition: facebook.condition ?? "" } : undefined,
   };
 }
 

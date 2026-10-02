@@ -35,7 +35,6 @@ test("a USDA record maps to a Product with its source", () => {
   assert.equal(p.name, "Coca-Cola Zero Sugar Can, 12 fl oz");
   assert.equal(p.brand, "Coca-Cola Zero");
   assert.equal(p.category, "");
-  assert.equal(p.amazon, undefined);
   assert.match(p.ingredients, /^CARBONATED WATER, CARAMEL COLOR/);
   assert.deepEqual(p.source, {
     name: "USDA FoodData Central", url: "https://fdc.nal.usda.gov/food-details/2742717/nutrients",
