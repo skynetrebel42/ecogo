@@ -16,13 +16,11 @@ import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } fr
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import {
   Home, Map, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
-  Bookmark, Shield, DollarSign, Star,
-  Leaf, Package, Shirt, Bike, Building2, Wifi, Utensils,
-  Plus, Bell, Moon, QrCode, Award, Settings
+  Bookmark, Package, Shirt, Bike, Building2, Wifi, Utensils, Plus, QrCode
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
-type AppState = "welcome" | "onboarding" | "main";
+type AppState = "welcome" | "main";
 type Tab = "home" | "map" | "scan" | "saved" | "profile";
 type ResourceType = "food-bank" | "donation" | "clothing" | "bike-repair" | "restroom" | "wifi";
 type SubScreen = "search-results" | "product-detail" | null;
@@ -71,12 +69,6 @@ function rowToResource(r: any) {
 }
 
 
-const ONBOARDING = [
-  { color: "#1A5C39", bg: "#E6F2EC", Icon: DollarSign, title: "Find the Best Price", body: "Compare Amazon, Walmart, local stores & Facebook Marketplace instantly. See who has the best deal near you." },
-  { color: "#0EA5E9", bg: "#E0F2FE", Icon: Leaf,       title: "Shop Healthier",      body: "Scan any barcode to see which ingredients carry an official health concern (IARC, EU, FDA), with sources." },
-  { color: "#8B5CF6", bg: "#EDE9FE", Icon: Heart,      title: "Support Your Community", body: "Find food banks, free WiFi, bike repair, donation centers, and ethical local businesses near you." },
-];
-
 /** Phones get the app full-screen; desktop keeps the phone frame (M6 spec §4.5).
  *  ponytail: decided once at load; a window resized across 500 px keeps its layout until reload. */
 const IS_PHONE = typeof window !== "undefined" && window.matchMedia("(max-width: 499px)").matches;
@@ -105,24 +97,27 @@ function StatusBar({ light = false }: { light?: boolean }) {
 }
 
 // ── Welcome Screen ────────────────────────────────────────────────────────────
-function WelcomeScreen({ onStart, onGuest }: { onStart: () => void; onGuest: () => void }) {
+// Spec: docs/superpowers/specs/2026-10-01-m73-welcome-cleanup-design.md. Shown once per device; promises only what
+// EcoGo does today.
+const WELCOMED_KEY = "ecogo.welcomed.v1";
+const wasWelcomed = () => { try { return localStorage.getItem(WELCOMED_KEY) === "1"; } catch { return false; } };
+const markWelcomed = () => { try { localStorage.setItem(WELCOMED_KEY, "1"); } catch { /* shows again next visit */ } };
+
+function WelcomeScreen({ onScan, onLookAround }: { onScan: () => void; onLookAround: () => void }) {
   return (
     <div className="absolute inset-0 flex flex-col" style={{ background: "#1A5C39" }}>
       <StatusBar light />
       <div className="flex-1 flex items-center justify-center relative overflow-hidden">
         <div className="absolute top-0 right-0 w-56 h-56 rounded-full opacity-10" style={{ background: "white", transform: "translate(30%, -30%)" }} />
         <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full opacity-10" style={{ background: "white", transform: "translate(-30%, 30%)" }} />
-        <svg viewBox="0 0 280 240" className="w-72">
+        <svg viewBox="0 0 280 240" className="w-72" aria-hidden="true">
           <circle cx="140" cy="115" r="105" fill="rgba(255,255,255,0.08)" />
           <circle cx="140" cy="115" r="75" fill="rgba(255,255,255,0.06)" />
           <rect x="90" y="95" width="100" height="90" rx="14" fill="white" opacity="0.95" />
           <path d="M112 95 Q112 72 140 72 Q168 72 168 95" fill="none" stroke="white" strokeWidth="8" strokeLinecap="round" opacity="0.95" />
           <rect x="105" y="122" width="70" height="5" rx="2.5" fill="#1A5C39" opacity="0.3" />
           <rect x="105" y="133" width="50" height="5" rx="2.5" fill="#1A5C39" opacity="0.2" />
-          {[0, 1, 2, 3, 4].map(i => (
-            <polygon key={i} fill="#F59E0B" transform={`translate(${116 + i * 10}, 154) scale(0.55)`}
-              points="0,-9 2.1,-3 8.6,-3 3.5,1.2 5.3,7.8 0,4.2 -5.3,7.8 -3.5,1.2 -8.6,-3 -2.1,-3" />
-          ))}
+          <rect x="105" y="144" width="60" height="5" rx="2.5" fill="#1A5C39" opacity="0.2" />
           <ellipse cx="72" cy="88" rx="18" ry="26" fill="#34D399" opacity="0.8" transform="rotate(-28 72 88)" />
           <ellipse cx="72" cy="78" rx="8" ry="4" fill="#6EE7B7" opacity="0.5" transform="rotate(-28 72 78)" />
           <ellipse cx="210" cy="100" rx="15" ry="22" fill="#6EE7B7" opacity="0.65" transform="rotate(22 210 100)" />
@@ -133,55 +128,17 @@ function WelcomeScreen({ onStart, onGuest }: { onStart: () => void; onGuest: () 
       </div>
       <div className="bg-background rounded-t-[36px] px-6 pt-7 pb-10 flex-shrink-0">
         <h1 className="text-[26px] font-extrabold text-foreground leading-tight text-center mb-2">
-          Shop Smarter.<br />Save Money. Live Better.
+          Know what's in your food
         </h1>
         <p className="text-muted-foreground text-sm text-center mb-7 leading-relaxed">
-          Healthier choices, better prices, and community resources — all in one place.
+          Scan a barcode. See official health findings, with sources.
         </p>
-        <button onClick={onStart} className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-base mb-3 shadow-lg active:scale-98 transition-transform">
-          Get Started
+        <button onClick={onScan} className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-base mb-3 shadow-lg active:scale-98 transition-transform">
+          Start scanning
         </button>
-        <button className="w-full py-4 border border-border text-foreground rounded-2xl font-semibold text-base mb-3 active:scale-[0.98] transition-transform">
-          Sign In
+        <button onClick={onLookAround} className="w-full text-muted-foreground text-sm py-3">
+          Look around first
         </button>
-        <button onClick={onGuest} className="w-full text-muted-foreground text-sm py-1">
-          Continue as Guest
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Onboarding ────────────────────────────────────────────────────────────────
-function OnboardingScreen({ slide, onNext, onBack, onSkip }: { slide: number; onNext: () => void; onBack: () => void; onSkip: () => void }) {
-  const s = ONBOARDING[slide];
-  return (
-    <div className="absolute inset-0 flex flex-col" style={{ background: s.bg }}>
-      <StatusBar />
-      <div className="flex justify-end px-6 pt-1">
-        <button onClick={onSkip} className="text-sm font-semibold" style={{ color: s.color, opacity: 0.6 }}>Skip</button>
-      </div>
-      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-        <div className="w-28 h-28 rounded-[32px] flex items-center justify-center shadow-xl mb-8" style={{ background: s.color }}>
-          <s.Icon size={52} color="white" />
-        </div>
-        <h2 className="text-2xl font-extrabold text-foreground leading-tight mb-4">{s.title}</h2>
-        <p className="text-muted-foreground text-base leading-relaxed max-w-xs">{s.body}</p>
-      </div>
-      <div className="px-6 pb-10 flex-shrink-0">
-        <div className="flex justify-center gap-2 mb-8">
-          {[0, 1, 2].map(i => (
-            <div key={i} className="h-2 rounded-full transition-all duration-300"
-              style={{ width: i === slide ? 28 : 8, background: i === slide ? s.color : "#D1D5DB" }} />
-          ))}
-        </div>
-        <button onClick={onNext} className="w-full py-4 rounded-2xl font-bold text-base text-white shadow-lg mb-3"
-          style={{ background: s.color }}>
-          {slide === 2 ? "Start Exploring" : "Next →"}
-        </button>
-        {slide > 0 && (
-          <button onClick={onBack} className="w-full text-muted-foreground text-sm">← Back</button>
-        )}
       </div>
     </div>
   );
@@ -561,8 +518,7 @@ function BottomNav({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [appState, setAppState] = useState<AppState>("welcome");
-  const [onbSlide, setOnbSlide] = useState(0);
+  const [appState, setAppState] = useState<AppState>(() => wasWelcomed() ? "main" : "welcome");
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [subScreen, setSubScreen] = useState<SubScreen>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -631,18 +587,11 @@ export default function App() {
           ? { background: "#F8F7F2", fontFamily: "'Plus Jakarta Sans', sans-serif" }
           : { width: 390, height: 844, borderRadius: 44, background: "#F8F7F2", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
-        {/* Welcome */}
+        {/* Welcome: first visit on this device only */}
         {appState === "welcome" && (
-          <WelcomeScreen onStart={() => setAppState("onboarding")} onGuest={() => setAppState("main")} />
-        )}
-
-        {/* Onboarding */}
-        {appState === "onboarding" && (
-          <OnboardingScreen
-            slide={onbSlide}
-            onNext={() => onbSlide < 2 ? setOnbSlide(s => s + 1) : setAppState("main")}
-            onBack={() => setOnbSlide(s => Math.max(0, s - 1))}
-            onSkip={() => setAppState("main")}
+          <WelcomeScreen
+            onScan={() => { markWelcomed(); setActiveTab("scan"); setAppState("main"); }}
+            onLookAround={() => { markWelcomed(); setAppState("main"); }}
           />
         )}
 
