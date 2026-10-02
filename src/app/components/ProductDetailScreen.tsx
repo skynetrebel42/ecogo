@@ -26,10 +26,11 @@ const languageName = (code: string) => {
   try { return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code; } catch { return code; }
 };
 
+const TAP_FINDING = "Tap a finding to see its official sources.";
 const SMALL_PRINT: Record<Assessment["verdict"], string> = {
-  known:      "Tap a finding to see its official sources.",
-  high:       "Tap a finding to see its official sources.",
-  some:       "Tap a finding to see its official sources.",
+  known:      TAP_FINDING,
+  high:       TAP_FINDING,
+  some:       TAP_FINDING,
   none:       "No hazard flags from IARC, EU or FDA.",
   "no-data":  "This product has no ingredient list yet.",
   "non-food": "EcoGo checks food and drinks only for now.",
