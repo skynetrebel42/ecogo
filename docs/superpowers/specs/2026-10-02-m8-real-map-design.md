@@ -1,7 +1,7 @@
 # M8: Real map (Los Angeles food places from OpenStreetMap) and no invented content left: design spec
 
 - **Date:** 2026-10-02
-- **Status:** draft, awaiting the owner's review
+- **Status:** approved by the owner 2026-10-02 (including D8 Google Maps directions and D15 removing Saved › Lists)
 - **Decided with:** the owner (Minh Bui), 2026-10-02, in the planning chat: **real map first** (before accounts);
   **food places only**; **snapshot into Supabase**; **show OSM data, labelled**; **LA default, locate on tap**; scope
   **map + prices + fake favorites**. Mockup approved: https://claude.ai/artifact/Taqd6vvM59Q3oyJzMHxF51 (3 screens).
