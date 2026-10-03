@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { keepNewest, recordSplitter, usdaDate, usdaRecordToRow, ENGINE_REV } from "./foodsImport.ts";
+import { keepNewest, recordSplitter, usdaDate, usdaRecordToRow, ENGINE_REV, deleteOlderSnapshots } from "./foodsImport.ts";
 import { dbNutrition } from "./nutrition.ts";
 import type { FoodRow } from "./foods.ts";
 
@@ -130,4 +130,32 @@ test("the splitter returns each record whole, however the text is chunked", () =
 test("the splitter finds nothing in an empty list or in text with no records", () => {
   assert.deepEqual(split([`{"BrandedFoods": []}`]), []);
   assert.deepEqual(split([""]), []);
+});
+
+// One DELETE over the whole table timed out on the free tier (statement timeout) at the end of the first real import.
+test("older snapshots are deleted in small batches until none are left; current rows stay", async () => {
+  let rows = [
+    ...Array.from({ length: 1203 }, (_, i) => ({ barcode_key: `old${i}`, snapshot: "2025-12-18" })),
+    ...Array.from({ length: 5 }, (_, i) => ({ barcode_key: `new${i}`, snapshot: "2026-04-30" })),
+  ];
+  const deletes: number[] = [];
+  const db = {
+    from: () => ({
+      select: () => ({ lt: (_c: string, v: string) => ({ limit: async (n: number) =>
+        ({ data: rows.filter(r => r.snapshot < v).slice(0, n).map(r => ({ barcode_key: r.barcode_key })), error: null }) }) }),
+      delete: () => ({ in: async (_c: string, keys: string[]) => {
+        deletes.push(keys.length); rows = rows.filter(r => !keys.includes(r.barcode_key)); return { error: null };
+      } }),
+    }),
+  };
+  assert.equal(await deleteOlderSnapshots(db, "2026-04-30", 500), 1203);
+  assert.deepEqual(deletes, [500, 500, 203]);
+  assert.deepEqual(rows.map(r => r.snapshot), Array(5).fill("2026-04-30"));
+  assert.equal(await deleteOlderSnapshots(db, "2026-04-30", 500), 0, "nothing older: one cheap check, no delete");
+  assert.equal(deletes.length, 3);
+});
+
+test("a failed batch stops the cleanup with its error", async () => {
+  const db = { from: () => ({ select: () => ({ lt: () => ({ limit: async () => ({ data: null, error: new Error("timeout") }) }) }) }) };
+  await assert.rejects(deleteOlderSnapshots(db, "2026-04-30"), /timeout/);
 });

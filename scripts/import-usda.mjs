@@ -8,7 +8,7 @@ import { spawn } from "node:child_process";
 import { createReadStream } from "node:fs";
 import { StringDecoder } from "node:string_decoder";
 import { createClient } from "@supabase/supabase-js";
-import { keepNewest, recordSplitter, usdaDate, usdaRecordToRow } from "../src/lib/foodsImport.ts";
+import { deleteOlderSnapshots, keepNewest, recordSplitter, usdaDate, usdaRecordToRow } from "../src/lib/foodsImport.ts";
 
 for (const f of [".env.local", ".env"]) { try { process.loadEnvFile(f); } catch { /* optional */ } } // existing variables win: .env.local first
 
@@ -74,8 +74,10 @@ for (let i = 0; i < all.length; i += 1000) {
   }
   if ((i / 1000) % 20 === 0) console.log(`${i + batch.length} / ${all.length} uploaded`);
 }
-// A full run succeeded: products from older snapshots are gone from USDA's file, so remove them.
-const { error, count } = await db.from("foods").delete({ count: "exact" }).lt("snapshot", snapshot);
-if (error) { console.error(`Could not remove older snapshots: ${error.message}`); process.exit(1); }
-console.log(`Done. ${all.length} products loaded; ${count ?? 0} older rows removed.`);
+// A full run succeeded: products from older snapshots are gone from USDA's file, so remove them (in small batches).
+let count = 0;
+try { count = await deleteOlderSnapshots(db, snapshot); } catch (error) {
+  console.error(`Could not remove older snapshots: ${error.message}`); process.exit(1);
+}
+console.log(`Done. ${all.length} products loaded; ${count} older rows removed.`);
 console.log("Check the size in the Supabase SQL editor: select pg_size_pretty(pg_total_relation_size('public.foods'));");

@@ -63,6 +63,20 @@ export function keepNewest(rows: Map<string, { row: FoodRow; modified: string }>
   if (!old || modified >= old.modified) rows.set(row.barcode_key, { row, modified });
 }
 
+/** After a full import, removes rows from older snapshots `batch` at a time (one DELETE over the whole table hits the
+ *  free tier's statement timeout); the snapshot index makes each "any older left?" check cheap. Returns the count. */
+export async function deleteOlderSnapshots(db: { from(table: string): any }, snapshot: string, batch = 500): Promise<number> {
+  let removed = 0;
+  for (;;) {
+    const { data, error } = await db.from("foods").select("barcode_key").lt("snapshot", snapshot).limit(batch);
+    if (error) throw error;
+    if (!data?.length) return removed;
+    const { error: e } = await db.from("foods").delete().in("barcode_key", data.map((r: { barcode_key: string }) => r.barcode_key));
+    if (e) throw e;
+    removed += data.length;
+  }
+}
+
 /**
  * For text shaped {"BrandedFoods":[{...},{...}]}: returns a function to feed chunks to, which calls `onRecord` with the
  * JSON text of each record (brace depth 2) however the text is chunked. Braces inside strings are ignored.
