@@ -26,7 +26,7 @@
 - **What's real:** a live catalog of 51 products in Postgres (31 food products with USDA-verified barcodes and labels),
   USDA FoodData Central and Open Food Facts lookup for any other barcode, on-device camera scanning, a concern level
   (strongest official finding: additives, processed meat; acrylamide marker) from the safety engine (`src/lib/safety`,
-  sourced library, `npm test` over all 51 products), FDA %DV nutrition, sourced explainers, realtime catalog updates
+  sourced library, `npm test` over all 51 products), FDA %DV nutrition, sourced explainers, the catalog loaded once per visit
   (scans are not saved), Recently scanned on this device, in-memory favorites (start empty).
 - **What's still invented, but not shown (M7.4):** catalog prices and store ratings (`product_prices`, the CSV; K-30)
   and the Map's Chicago places (`resources`, `MapTab.tsx`; the Map tab is hidden until M9).
