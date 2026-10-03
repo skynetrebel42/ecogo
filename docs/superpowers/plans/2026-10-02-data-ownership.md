@@ -18,20 +18,20 @@ No new dependencies.
 the spike numbers and the table. **Milestone: M10** (order: M7.4 ✓ → M7.5 ✓ → M9 ✓ → **M10** → M8).
 
 **Status:** **approved** by the owner 2026-10-02 (relayed by the PM chat; commit `4f936d7`), with one change to the audit
-gate: its first pass runs on Sonnet subagents, then the builder reviews (Task 5, steps 6-7). **Build after the Knight's
-audit batch is pushed**, and re-check the anchors first (see "Re-verified" below).
+gate: its first pass runs on Sonnet subagents, then the builder reviews (Task 5, steps 6-7). Anchors re-verified against
+`main` at `08bef84` (below).
 
-**Re-verified 2026-10-02 against `main` at `f5e6fdf`** (M7.5, the USDA key relay, and M9, the real map, have landed). What
-changed since this plan was first written: the three call sites now pass `{ relayUrl: USDA_RELAY_URL }` (the Task 4 anchors
-are rewritten); `supabase/functions/usda-relay/` exists and `npm test` also runs its tests (Task 4 removes the function's
-code and the extra test glob; Task 6 deletes the deployed function and its secret, with the owner's OK); the decision log
-is at 027, so this milestone's row is 028; the docs already describe the relay (Task 6's doc edits are rewritten).
-**Re-check once more when the Knight's audit batch lands** (it removes the realtime channel from `App.tsx` and makes
-`lookup.ts` import `record` from `nutrition.ts`): Task 2 replaces both files as wholes, so if `nutrition.ts` then exports
-`record`, keep that export in the replacement and import it in the new `lookup.ts` instead of its own copy; and re-run the
-Task 4 greps.
+**Re-verified 2026-10-02 against `main` at `08bef84`** (M7.5, the USDA key relay; M9, the real map; and the Knight's audit
+batch have landed). What changed since this plan was first written: the three call sites now pass
+`{ relayUrl: USDA_RELAY_URL }` (the Task 4 anchors are rewritten); `supabase/functions/usda-relay/` exists and `npm test`
+also runs its tests (Task 4 removes the function's code and the extra test glob; Task 6 deletes the deployed function and
+its secret, with the owner's OK); the decision log is at 027, so this milestone's row is 028; the docs already describe the
+relay (Task 6's doc edits are rewritten). **The audit batch** is built in: `nutrition.ts` now exports `record` (the
+replacement keeps that export and `lookup.ts` imports it), `verdict.tsx` exports a shared `fewestConcerns` comparator (the
+new `useAlternatives.ts` uses it), and `App.tsx` no longer imports the Supabase client (its realtime channel is gone, so the
+`USDA_RELAY_URL` import line is simply deleted).
 
-**How this plan was checked (on a scratch copy of `main` at `f5e6fdf`):** every new or replaced file below was copied from
+**How this plan was checked (on a scratch copy of `main` at `08bef84`):** every new or replaced file below was copied from
 a copy where this plan's edits were applied and the relay removed: `npm test` passed with **178** tests (166 in `src/lib`
 on `main`, plus 12 added by this plan; `main` itself runs 174 because 8 more are the relay's), `vite build` succeeded, the
 built JavaScript contains none of `api.nal.usda.gov`, `usda-relay` and `DEMO_KEY`, and
@@ -133,7 +133,7 @@ New-Item -ItemType Junction -Path node_modules -Target "C:\Users\minhb\Downloads
 - [ ] **Step 3: Baseline**
 
 Run `npm test` and `npm run build` in `EcoGo-foods`.
-Expected: all pass, and a successful build. Note the count N0 (174 on `f5e6fdf`: 166 in `src/lib` plus 8 for the relay);
+Expected: all pass, and a successful build. Note the count N0 (174 on `08bef84`: 166 in `src/lib` plus 8 for the relay);
 the counts below are relative to it.
 
 All the paths below are relative to the worktree. No commit.
@@ -305,9 +305,9 @@ git commit -m "foods: read-only table for USDA Branded Foods, with search and al
 
 - [ ] **Step 1: Check nobody else changed the files you replace**
 
-Run `git diff f5e6fdf -- src/lib/nutrition.ts src/lib/lookup.ts src/lib/nutrition.test.ts src/lib/lookup.test.ts`.
-Expected: empty. If the Knight's audit batch changed them, merge those changes into the new files by hand (see the note
-under "Re-verified" at the top: `record` may now be exported from `nutrition.ts`).
+Run `git diff 08bef84 -- src/lib/nutrition.ts src/lib/lookup.ts src/lib/nutrition.test.ts src/lib/lookup.test.ts`.
+Expected: empty. If something changed them since, merge those changes into the new files by hand (the replacements already
+carry the audit batch's change: `nutrition.ts` exports `record`, and `lookup.ts` imports it).
 
 - [ ] **Step 2: Write the tests**
 
@@ -876,7 +876,8 @@ const META: Record<NutrientId, { label: string; short: string; unit: "g" | "mg" 
 const ORDER: NutrientId[] = ["addedSugar", "satFat", "sodium"];
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
-const record = (v: unknown) => (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+/** Any value → an object to read fields from ({} for null, strings, numbers). */
+export const record = (v: unknown) => (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
 
 const nearest = (v: number, step: number) => Math.round(v / step) * step;
 
@@ -956,7 +957,7 @@ Replace `src/lib/lookup.ts` with:
 // docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md. The database is passed in (see foods.ts), and the app's
 // own modules are imported without the browser, so Node tests can load this module.
 import type { Product, ProductSource } from "./productImporter.ts";
-import { offNutrition, type Nutrition } from "./nutrition.ts";
+import { offNutrition, record, type Nutrition } from "./nutrition.ts";
 import { foodRowToProduct, type FoodsSource } from "./foods.ts";
 
 export type LookupResult =
@@ -969,7 +970,6 @@ const OFF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_te
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
-const record = (v: unknown) => (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
 
 // ── Barcodes ─────────────────────────────────────────────────────────────────
 
@@ -1108,7 +1108,7 @@ In `src/lib/productImporter.ts`, in `interface ProductSource`, add one line afte
 - [ ] **Step 6: Run the whole suite**
 
 Run `npm test`.
-Expected: all pass, N0 + 2 tests (176 on `f5e6fdf`; the `foodsImport` tests arrive in Task 3). `npm run build` is expected
+Expected: all pass, N0 + 2 tests (176 on `08bef84`; the `foodsImport` tests arrive in Task 3). `npm run build` is expected
 to FAIL until Task 4 because the three call sites still pass `relayUrl`.
 
 - [ ] **Step 7: Commit**
@@ -1478,7 +1478,7 @@ In `package.json`, in `"scripts"`, after the `verify:sources` line (add a comma 
 
 - [ ] **Step 5: Run the suite and the sample**
 
-Run `npm test`. Expected: all pass, N0 + 12 tests (186 on `f5e6fdf`; Task 4 then drops the relay's 8).
+Run `npm test`. Expected: all pass, N0 + 12 tests (186 on `08bef84`; Task 4 then drops the relay's 8).
 
 Run `npm run import:usda -- src/lib/fixtures/usda-download/sample-branded_2025-12-18.json --dry-run`.
 Expected output:
@@ -1515,13 +1515,14 @@ Run each; every count must be `1` (if one isn't, `main` moved: find the new word
 
 ```bash
 grep -c 'import { knownNutrition, searchUsda } from "../lib/lookup";' src/app/App.tsx
-grep -c 'import { supabase, USDA_RELAY_URL } from "../lib/supabase";' src/app/App.tsx
+grep -c 'import { USDA_RELAY_URL } from "../lib/supabase";' src/app/App.tsx
 grep -c 'searchUsda(query, { relayUrl: USDA_RELAY_URL }).then(r => {' src/app/App.tsx
 grep -c 'Couldn.t reach USDA right now' src/app/App.tsx
 grep -c 'Label data supplied by the makers. Checked first.' src/app/App.tsx
 grep -c 'sent to USDA or Open Food Facts' src/app/App.tsx
 grep -c 'products={products}' src/app/App.tsx            # expect 3 (ScanTab, SearchResultsScreen, ProductDetailScreen): only the last goes
 grep -c 'VERDICT_RANK, escapeRegExp' src/app/components/ProductDetailScreen.tsx
+grep -c 'formsWhenCooked, fewestConcerns } from "./verdict";' src/app/components/ProductDetailScreen.tsx
 grep -c 'import { USDA_RELAY_URL } from "../../lib/supabase";' src/app/components/ScanTab.tsx src/app/components/NutritionPanel.tsx
 grep -c 'relayUrl: USDA_RELAY_URL' src/app/components/ScanTab.tsx src/app/components/NutritionPanel.tsx
 ```
@@ -1574,7 +1575,7 @@ import type { Assessment } from "../../lib/safety/assess";
 import { foodRowToProduct } from "../../lib/foods";
 import { supabaseFoods } from "../../lib/foodsDb";
 import { barcodeKey } from "../../lib/lookup";
-import { safeAnalyze } from "./verdict";
+import { fewestConcerns, safeAnalyze } from "./verdict";
 
 export interface Alternative { p: Product; a: Assessment }
 
@@ -1596,9 +1597,7 @@ export function useAlternatives(product: Product, verdict: Verdict): Alternative
       const found = rows.map(foodRowToProduct)
         .map(p => ({ p, a: safeAnalyze(p) }))
         .filter(({ a }) => VERDICT_RANK[a.verdict] < mine) // the app's engine, not the stored level, decides what is better
-        .sort((x, y) => VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict]
-          || x.a.flags.length - y.a.flags.length
-          || x.p.name.localeCompare(y.p.name));
+        .sort((x, y) => fewestConcerns(x.a, y.a) || x.p.name.localeCompare(y.p.name));
       if (live) setAlternatives(found);
     })().catch(() => { /* alternatives are optional: stay silent */ });
     return () => { live = false; };
@@ -1638,8 +1637,8 @@ await lookupBarcode(barcode, { foods: supabaseFoods });
 - [ ] **Step 4: Edit `App.tsx`**
 
 ```tsx
-// was: import { supabase, USDA_RELAY_URL } from "../lib/supabase";
-import { supabase } from "../lib/supabase";
+// was: import { USDA_RELAY_URL } from "../lib/supabase";
+// (delete that line: nothing else in App.tsx uses the Supabase client or the relay URL any more)
 ```
 
 ```tsx
@@ -1685,6 +1684,11 @@ In the `<ProductDetailScreen ... />` element, delete the line `products={product
 ```tsx
 // was: import { VERDICT_RANK, escapeRegExp, type Flag } from "../../lib/safety/analyze";
 import { escapeRegExp, type Flag } from "../../lib/safety/analyze";
+```
+
+```tsx
+// was: import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked, fewestConcerns } from "./verdict";
+import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
 ```
 
 ```tsx
@@ -1747,7 +1751,7 @@ before them. In `package.json` change the `test` script back to
 
 - [ ] **Step 7: Build, then look for leftovers**
 
-Run `npm test` (expect all pass: N0 + 12 - 8 tests, 178 on `f5e6fdf`) and `npm run build` (expect success).
+Run `npm test` (expect all pass: N0 + 12 - 8 tests, 178 on `08bef84`) and `npm run build` (expect success).
 
 ```bash
 grep -rn "USDA_RELAY_URL\|relayUrl\|usda-relay\|FDC_API_KEY\|fdcKey\|searchUsda\|pickUsdaFood\|usdaNutrition\|api.nal.usda\|DEMO_KEY" src scripts package.json | grep -v fixtures
