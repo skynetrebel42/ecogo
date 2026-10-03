@@ -54,7 +54,7 @@ not change that rule.
 | O5 | Every row carries USDA's snapshot date, shown on the product page ("USDA label data, snapshot Dec 2025"). Rows from older snapshots are deleted after a full successful import. |
 | O6 | Alternatives (any product with a USDA category): same category, **strictly better badge**, then fewest findings, then name; only complete records (ingredients, serving size, sodium); up to 3; caption "Other products in this USDA category with fewer findings. Availability near you isn't known." No popularity ranking. |
 | O7 | A scheduled GitHub Action makes one small read of `foods` each week so the free project is not paused for inactivity (a workaround, not a guarantee). |
-| O8 | **Launch gate:** a hand audit of 200 random High/Known and 100 random Some results against the label text, plus the roughly 100 "clean" products in the two processed-meat categories. Any false flag means fix the rule and re-run. |
+| O8 | **Launch gate:** an audit of 200 random High/Known and 100 random Some results against the label text, plus the roughly 100 "Nothing flagged" products in the two processed-meat categories. The first pass runs on Sonnet subagents in batches (each entry: flag correct / false flag / unsure, with the label phrase); the builder reviews every false and unsure one plus a random 10% of the correct ones; the owner spot-checks 20. Any confirmed false flag means fix the rule and re-run. *(Owner's change to the gate, 2026-10-02, relayed by the PM chat.)* |
 | O9 | Privacy text changes to stay true: barcodes and search words go to EcoGo's database (Supabase) or Open Food Facts, no longer USDA. Profile › Where results come from gets USDA's requested citation and the snapshot date. |
 
 ## 3. Data model

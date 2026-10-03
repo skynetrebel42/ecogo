@@ -17,6 +17,10 @@ No new dependencies.
 **Spec:** `docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md`. Read it first: it holds the decisions (O1-O9),
 the spike numbers and the table. **Milestone: M10** (order: M7.4 ✓ → M7.5 ✓ → M9 ✓ → **M10** → M8).
 
+**Status:** **approved** by the owner 2026-10-02 (relayed by the PM chat; commit `4f936d7`), with one change to the audit
+gate: its first pass runs on Sonnet subagents, then the builder reviews (Task 5, steps 6-7). **Build after the Knight's
+audit batch is pushed**, and re-check the anchors first (see "Re-verified" below).
+
 **Re-verified 2026-10-02 against `main` at `f5e6fdf`** (M7.5, the USDA key relay, and M9, the real map, have landed). What
 changed since this plan was first written: the three call sites now pass `{ relayUrl: USDA_RELAY_URL }` (the Task 4 anchors
 are rewritten); `supabase/functions/usda-relay/` exists and `npm test` also runs its tests (Task 4 removes the function's
@@ -1814,38 +1818,47 @@ Expected: a Bitmap Index Scan on `foods_search_idx`. Then
 `explain analyze select * from public.search_foods('(chocolate | chocolates)', 10);` Expected: execution time under 1 second.
 Record both.
 
-- [ ] **Step 6: Create the audit sampler, run it, read the results**
+- [ ] **Step 6: Draw the audit sample**
 
-`scripts/audit-foods.mjs`:
+`scripts/audit-foods.mjs` draws a random sample of flagged products plus every "Nothing flagged" product of the two
+processed-meat categories and writes them as numbered batch files of 40 entries (its two pure functions are importable):
 
 ```js
-// Prints a random sample of flagged products from the live `foods` table with the reasons the app's own engine gives,
-// for the launch audit (spec O8): every "Some", "High" and "Known" badge must hold up against the label text.
-//   node scripts/audit-foods.mjs [highKnown=200] [some=100] > audit.md
-//   node scripts/audit-foods.mjs --clean-meat > audit-meat.md    (every "Nothing flagged" product in the two meat categories)
-// Reads with the public key (the table is world-readable). ponytail: a one-off helper run once per import; no tests.
+// Draws the launch-audit sample from the live `foods` table and writes it as numbered batch files for reviewers (spec O8):
+// a random sample of flagged products (High/Known and Some badges), plus every "Nothing flagged" product in the two
+// processed-meat categories. Each entry shows the badge, the reasons the app's own engine gives, and the label text.
+//   node scripts/audit-foods.mjs <out-dir> [highKnown=200] [some=100] [batchSize=40]
+// Reads with the public key (the table is world-readable). ponytail: a one-off helper run once per import.
+import { mkdirSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { assessProduct } from "../src/lib/safety/assess.ts";
 
-process.loadEnvFile(".env");
-const db = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_PUBLISHABLE_KEY);
-const args = process.argv.slice(2);
-
-function show(row, i) {
+/** One numbered entry: kind is "flagged" (a High/Known/Some badge to confirm) or "clean-meat" (a 'Nothing flagged' to confirm). */
+export function entryText(row, n, kind) {
   const a = assessProduct({ name: row.name, category: "", ingredients: row.ingredients, source: { foodCategory: row.category }, additiveCodes: [] });
   const why = [
     ...a.flags.map(f => `${f.entry.name} (“${f.matchedText}”)`),
-    ...a.concerns.map(c => `${c.name}: ${c.reason}`),
+    ...a.concerns.map(c => c.reason),
   ].join(" · ") || "(nothing)";
-  console.log(`### ${i + 1}. ${row.brand} — ${row.name}  (${row.barcode}, ${row.category})`);
-  console.log(`Badge now: ${a.verdict} (stored: ${row.verdict})`);
-  console.log(`Why: ${why}`);
-  console.log(`Label: ${row.ingredients.slice(0, 500)}${row.ingredients.length > 500 ? "…" : ""}`);
-  console.log("- [ ] the badge is right for this label\n");
+  const label = row.ingredients.length > 600 ? `${row.ingredients.slice(0, 600)}…` : row.ingredients;
+  return [
+    `### ${n}. ${row.brand} — ${row.name}  (${row.barcode}, ${row.category})`,
+    `Kind: ${kind} | Badge now: ${a.verdict} (stored: ${row.verdict})`,
+    `Why: ${why}`,
+    `Label: ${label}`,
+    "",
+  ].join("\n");
+}
+
+/** Splits entries into batches of at most `size`. */
+export function toBatches(entries, size) {
+  const out = [];
+  for (let i = 0; i < entries.length; i += size) out.push(entries.slice(i, i + size));
+  return out;
 }
 
 /** `n` random rows whose level is one of `levels` (random offsets into the ordered list; one request each). */
-async function sample(levels, n) {
+async function sample(db, levels, n) {
   const { count, error } = await db.from("foods").select("barcode_key", { count: "exact", head: true }).in("verdict", levels);
   if (error) throw error;
   const offsets = new Set();
@@ -1859,41 +1872,77 @@ async function sample(levels, n) {
   return rows;
 }
 
-if (args.includes("--clean-meat")) {
-  const { data, error } = await db.from("foods").select("*").eq("verdict", "none")
+if (import.meta.main) {
+  process.loadEnvFile(".env");
+  const [dir, hk, sm, sz] = process.argv.slice(2);
+  if (!dir) { console.error("Usage: node scripts/audit-foods.mjs <out-dir> [highKnown=200] [some=100] [batchSize=40]"); process.exit(1); }
+  const db = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+  const rows = [
+    ...(await sample(db, ["high", "known"], Number(hk) || 200)).map(r => [r, "flagged"]),
+    ...(await sample(db, ["some"], Number(sm) || 100)).map(r => [r, "flagged"]),
+  ];
+  const { data: meat, error } = await db.from("foods").select("*").eq("verdict", "none")
     .in("category", ["Pepperoni, Salami & Cold Cuts", "Sausages, Hotdogs & Brats"]).order("barcode_key").limit(500);
   if (error) throw error;
-  console.log(`# "Nothing flagged" in the processed-meat categories: ${data.length}\n`);
-  data.forEach(show);
-} else {
-  const highKnown = Number(args[0]) || 200, some = Number(args[1]) || 100;
-  console.log(`# Audit sample: ${highKnown} High/Known, ${some} Some\n\n## High / Known\n`);
-  (await sample(["high", "known"], highKnown)).forEach(show);
-  console.log("## Some\n");
-  (await sample(["some"], some)).forEach(show);
+  rows.push(...meat.map(r => [r, "clean-meat"]));
+  const entries = rows.map(([row, kind], i) => entryText(row, i + 1, kind));
+  mkdirSync(dir, { recursive: true });
+  const batches = toBatches(entries, Number(sz) || 40);
+  batches.forEach((b, i) => writeFileSync(`${dir}/batch-${String(i + 1).padStart(2, "0")}.md`, b.join("\n")));
+  console.log(`${entries.length} entries (${rows.filter(r => r[1] === "flagged").length} flagged, ${meat.length} clean-meat) in ${batches.length} batches in ${dir}`);
 }
 ```
 
 ```powershell
-node scripts/audit-foods.mjs 200 100 | Out-File -Encoding utf8 "$env:TEMP\audit.md"
-node scripts/audit-foods.mjs --clean-meat | Out-File -Encoding utf8 "$env:TEMP\audit-meat.md"
+node scripts/audit-foods.mjs "$env:TEMP\audit"
 ```
 
-Read all of both files (about 300 + 106 entries) and judge each badge against its label text: "Known"/"High" must name a
-real finding in the ingredients or the food itself; "Some" must name a library additive actually on the label; a
-"Nothing flagged" processed-meat product must really not be processed meat (for example a plant-based hot dog). Ask the owner
-to spot-check 20 of your judgments. Typical false-flag causes (from KNOWN_ISSUES): "veggie"/"vegan" in a name, flavouring
-text such as "bacon seasoning", a dish named after its meat.
+Expected: about `406 entries (300 flagged, ~106 clean-meat) in 11 batches in …\audit`: 200 High/Known and 100 Some badges,
+and every "Nothing flagged" product in "Pepperoni, Salami & Cold Cuts" and "Sausages, Hotdogs & Brats" (about 106 in the
+December 2025 data).
 
-- [ ] **Step 7: Gate**
+- [ ] **Step 7: First pass on Sonnet subagents, then your review (the gate)**
+
+Owner's decision (2026-10-02): the first pass runs on **Sonnet subagents** (Agent tool, `model: "sonnet"`,
+`subagent_type: "general-purpose"`), one per batch file, at most 4 at a time. Give each this prompt with its batch file's
+absolute path filled in (the subagent has no other context and needs to read that one file):
+
+```
+You are checking safety badges on packaged foods. Read the batch file <ABSOLUTE PATH TO batch-NN.md>. Each numbered entry shows a product, the badge a program gave it ("Badge now"), the reasons it gave ("Why"), and the label's ingredient text ("Label"). Judge ONLY from the text in the entry; use no outside knowledge about the brand or the product.
+
+For entries with Kind: flagged, decide whether the badge is supported by the label:
+- "some" (Some concern) is supported only if an additive named in "Why" really appears on the label as that additive (including its E-number, or a "Lake" form), not a different substance that merely shares letters.
+- "high" (High concern) or "known" (Known carcinogen) is supported only if the label really contains the finding named in "Why": a listed additive, or processed meat (hot dogs, bacon, ham, sausage, salami, pepperoni, jerky, cured or smoked meat and the like). A product named after meat but made without it (plant-based, vegan, veggie, meat-free), a flavouring ("bacon flavor"), a bun, a sauce or seasoning meant to go with the meat, or a dish that merely contains a little meat is NOT the processed meat itself: "Contains processed meat" is supported only if the label lists such meat as an ingredient.
+For entries with Kind: clean-meat the badge is "none": decide whether that is right. It is WRONG if the label shows the product is processed meat or contains it (a missed flag).
+
+Answer with exactly one line per entry and nothing else:
+<number> | correct | "<the label phrase you relied on>" | <at most 10 words>
+<number> | false | "<the label phrase>" | <at most 10 words: why the badge is wrong>
+<number> | unsure | "<the label phrase>" | <at most 10 words: what is unclear>
+```
+
+Then, yourself:
+
+1. Collect all the lines. Review **every `false` and every `unsure`** against the label text and decide: a **confirmed false
+   flag** (the badge, or the missing badge on a clean-meat product, is not supported by the label) or fine.
+2. Spot-check the first pass: sort the `correct` lines by barcode and review **every 10th one** (about 10%). If you find even
+   one confirmed false flag among them, review **every `correct` line of that batch** too, and tell the King the first pass
+   was too lenient.
+3. Send the King 20 entries for the owner to spot-check (10 `correct` ones picked at random, the rest from your confirmed
+   false flags and unsure ones if there are any): barcode, product, badge, the "Why" line and the label phrase. The owner's
+   verdicts come back through the King; **a false flag found there counts like one of your own**.
 
 Write `docs/superpowers/plans/2026-10-02-data-ownership-assets/audit-result.md`: counts per level from the import, size,
-timings, how many entries you judged, every false flag with its barcode and cause, and what you changed.
+timings, per batch the counts of correct / false / unsure, how many entries you reviewed yourself, every confirmed false
+flag with its barcode, phrase and cause, the 10% spot-check result, the owner's 20, and what you changed.
 
-- **Zero false flags:** the gate passes.
-- **Any false flag:** fix the rule in `src/lib/safety/foodConcerns.ts` or the library **with a test**, bump `ENGINE_REV` in
-  `foodsImport.ts`, re-run the import (step 4), draw a fresh sample and repeat. The gate passes only on a clean sample.
-- **More than 5 false flags in the first sample:** stop and tell the owner before fixing: the rules need a design pass.
+- **The gate passes** when, after your review, the sample holds **zero confirmed false flags** and the owner's 20 hold none.
+- **Any confirmed false flag:** fix the rule in `src/lib/safety/foodConcerns.ts` or the library **with a test**, bump
+  `ENGINE_REV` in `foodsImport.ts`, re-run the import (step 4), draw a fresh sample (step 6) and repeat this step. Typical
+  causes (from KNOWN_ISSUES): "veggie"/"vegan" in a name, flavouring text such as "bacon seasoning", a dish named after
+  its meat.
+- **More than 5 confirmed false flags in the first sample:** stop and tell the King before fixing: the rules need a design pass.
+- **More than 15% of a batch `unsure`:** that batch was too hard to judge from this text; review the whole batch yourself.
 
 - [ ] **Step 8: Commit**
 
