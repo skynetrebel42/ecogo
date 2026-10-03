@@ -100,9 +100,13 @@ try {
   check("My location outside LA County: the 'covers LA County for now' note", chi.includes("The map covers LA County for now") && chi.includes("Your location stays on this phone."));
   const backed = await run(`(async () => { __btn("Back to LA").click(); await __sleep(600); return document.body.innerText; })()`);
   check("Back to LA closes the note; the list is A–Z again", !backed.includes("The map covers LA County") && backed.includes("A–Z · tap My location"));
+  // Locate once (Hollywood), then deny: the old position must not keep sorting the list (M9 review follow-up).
+  await send("Emulation.setGeolocationOverride", { latitude: 34.0997, longitude: -118.3283, accuracy: 10 });
+  await run(`(async () => { __btn("My location").click(); await __until(() => document.body.innerText.includes("Nearest first"), 8000); })()`);
   await send("Browser.setPermission", { origin, permission: { name: "geolocation" }, setting: "denied" });
-  const off = await run(`(async () => { __btn("My location").click(); await __until(() => document.body.innerText.includes("Location is off"), 8000); return document.body.innerText; })()`);
+  const off = await run(`(async () => { __btn("My location").click(); await __until(() => document.body.innerText.includes("Location is off"), 8000); await __sleep(400); return document.body.innerText; })()`);
   check("location denied: 'Location is off. Showing Los Angeles.'", off.includes("Location is off. Showing Los Angeles."));
+  check("…and a failed My location after a success drops the old position (A–Z again)", off.includes("A–Z · tap My location") && !off.includes("Nearest first"));
 
   // Profile names OpenStreetMap and the location rule
   const p = await run(`(async () => { __btn("Profile").click(); await __sleep(500); return document.body.innerText; })()`);

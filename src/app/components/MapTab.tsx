@@ -168,7 +168,7 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
         setUserLoc(pos); setLocationOff(false); setLocating(false);
         mapRef.current?.flyTo(pos, inLaCounty(pos[0], pos[1]) ? 14 : 10, { duration: 1 });
       },
-      () => { setLocationOff(true); setLocating(false); toLa(); },
+      () => { setUserLoc(null); setLocationOff(true); setLocating(false); toLa(); }, // drop an earlier position too
       { timeout: 8000 },
     );
   }
