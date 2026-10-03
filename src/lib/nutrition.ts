@@ -60,24 +60,25 @@ export function nutrient(id: NutrientId, amount: number | null, perServing: bool
   return { id, label, short, amount: rounded, unit, dv, level };
 }
 
-const USDA_NAMES: Record<string, NutrientId> = { "Sugars, added": "addedSugar", "Fatty acids, total saturated": "satFat", "Sodium, Na": "sodium" };
 const UNIT: Record<string, string> = { GRM: "g", G: "g", MLT: "ml", ML: "ml" };
 
-/** From a USDA /foods/search record: `foodNutrients` are per 100 g/ml; scale by `servingSize`. */
-export function usdaNutrition(food: unknown): Nutrition | null {
-  const f = record(food);
+/** The nutrition columns of a `foods` row (spec data-ownership §5): values are per 100 g/ml, scaled by the serving size. */
+export interface NutritionColumns {
+  serving_size: number | null; serving_unit: string; serving_text: string;
+  added_sugar_100g: number | null; sat_fat_100g: number | null; sodium_100g: number | null;
+}
+
+export function dbNutrition(row: NutritionColumns): Nutrition | null {
   const per100: Partial<Record<NutrientId, number>> = {};
-  for (const n of Array.isArray(f.foodNutrients) ? f.foodNutrients.map(record) : []) {
-    const id = USDA_NAMES[String(n.nutrientName)];
-    const v = num(n.value);
-    if (id && v !== null) per100[id] = v;
+  for (const [id, v] of [["addedSugar", row.added_sugar_100g], ["satFat", row.sat_fat_100g], ["sodium", row.sodium_100g]] as const) {
+    if (num(v) !== null) per100[id] = v as number;
   }
   if (Object.keys(per100).length === 0) return null;
-  const size = num(f.servingSize);
-  const unit = UNIT[String(f.servingSizeUnit ?? "").toUpperCase()];
+  const size = num(row.serving_size);
+  const unit = UNIT[String(row.serving_unit ?? "").toUpperCase()];
   const perServing = size !== null && size > 0 && unit !== undefined;
   const factor = perServing ? size! / 100 : 1;
-  const household = typeof f.householdServingFullText === "string" ? f.householdServingFullText.trim() : "";
+  const household = String(row.serving_text ?? "").trim();
   // "3 cookies" → "3 cookies (34 g)"; "1/6 pizza (130g)" already names its weight, so it's kept as is.
   const named = /\d\s*(g|ml)\b/i.test(household);
   const serving = !perServing ? "100 g" : household ? (named ? household : `${household} (${size} ${unit})`) : `${size} ${unit}`;

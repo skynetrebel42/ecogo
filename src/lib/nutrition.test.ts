@@ -1,14 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { usdaNutrition, offNutrition, nutrient, topHigh, DAILY_VALUE } from "./nutrition.ts";
+import { dbNutrition, offNutrition, nutrient, topHigh, DAILY_VALUE } from "./nutrition.ts";
+import { rowFromUsdaSearch } from "./foodsFake.ts";
 
+// What the importer would store for a USDA record, then the app's per-serving numbers from it.
 const usda = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/usda/${name}.json`, import.meta.url), "utf8")).foods[0];
 const off = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/off/${name}.json`, import.meta.url), "utf8")).body.product;
-const row = (n: ReturnType<typeof usdaNutrition>, id: string) => n!.nutrients.find(x => x.id === id)!;
+const row = (n: ReturnType<typeof dbNutrition>, id: string) => n!.nutrients.find(x => x.id === id)!;
 
 test("Oreo (USDA): 3 cookies hold 14 g added sugar, 28% DV, High; matches the printed label", () => {
-  const n = usdaNutrition(usda("oreo-nutrition-044000032029"))!;
+  const n = dbNutrition(rowFromUsdaSearch(usda("oreo-nutrition-044000032029")))!;
   assert.equal(n.serving, "3 cookies (34 g)");
   assert.equal(n.perServing, true);
   assert.deepEqual([row(n, "addedSugar").amount, row(n, "addedSugar").dv, row(n, "addedSugar").level], [14, 28, "high"]);
@@ -18,7 +20,7 @@ test("Oreo (USDA): 3 cookies hold 14 g added sugar, 28% DV, High; matches the pr
 });
 
 test("Lay's (USDA): added sugar is not listed (never 'Low'); nothing High", () => {
-  const n = usdaNutrition(usda("lays-nutrition-028400199148"))!;
+  const n = dbNutrition(rowFromUsdaSearch(usda("lays-nutrition-028400199148")))!;
   assert.deepEqual([row(n, "addedSugar").amount, row(n, "addedSugar").dv, row(n, "addedSugar").level], [null, null, null]);
   assert.deepEqual([row(n, "satFat").amount, row(n, "satFat").dv], [1.5, 8]);
   assert.deepEqual([row(n, "sodium").amount, row(n, "sodium").dv], [170, 7]);
@@ -26,7 +28,7 @@ test("Lay's (USDA): added sugar is not listed (never 'Low'); nothing High", () =
 });
 
 test("Coke Zero (USDA, ml serving): all Low", () => {
-  const n = usdaNutrition(usda("coke-zero-nutrition-00049000042566"))!;
+  const n = dbNutrition(rowFromUsdaSearch(usda("coke-zero-nutrition-00049000042566")))!;
   assert.equal(n.serving, "1 Can (355 ml)");
   assert.deepEqual(n.nutrients.map(x => x.level), ["low", "low", "low"]);
   assert.equal(row(n, "sodium").amount, 40); // 11 mg/100 ml × 355 ml = 39 → the label declares 40 (nearest 5)
@@ -43,12 +45,11 @@ test("FDA 5/20 boundaries, classified on the rounded %DV as a label shows it", (
 });
 
 test("no serving size: per 100 g values, no %DV and no High/Low", () => {
-  const n = usdaNutrition({ foodNutrients: [{ nutrientName: "Sugars, added", unitName: "G", value: 41.2 }] })!;
+  const n = dbNutrition(rowFromUsdaSearch({ foodNutrients: [{ nutrientName: "Sugars, added", unitName: "G", value: 41.2 }] }))!;
   assert.equal(n.perServing, false);
   assert.equal(n.serving, "100 g");
   assert.deepEqual([row(n, "addedSugar").amount, row(n, "addedSugar").dv, row(n, "addedSugar").level], [41.2, null, null]);
-  assert.equal(usdaNutrition({ foodNutrients: [] }), null);
-  assert.equal(usdaNutrition(null), null);
+  assert.equal(dbNutrition(rowFromUsdaSearch({ foodNutrients: [] })), null);
 });
 
 test("Open Food Facts: per 100 g when no serving data (Nutella); sodium converted from grams; per serving when given", () => {
@@ -66,8 +67,8 @@ test("Open Food Facts: per 100 g when no serving data (Nutella); sodium converte
 
 // Final review I1: amounts follow FDA label rounding (21 CFR 101.9(c)) before %DV, so they match the printed label.
 test("per-serving amounts use FDA label increments, so they match the can and the 5/20 call", () => {
-  const coke = usdaNutrition({ servingSize: 355, servingSizeUnit: "MLT", householdServingFullText: "1 Can",
-    foodNutrients: [{ nutrientName: "Sugars, added", value: 11 }, { nutrientName: "Sodium, Na", value: 13 }] })!;
+  const coke = dbNutrition(rowFromUsdaSearch({ servingSize: 355, servingSizeUnit: "MLT", householdServingFullText: "1 Can",
+    foodNutrients: [{ nutrientName: "Sugars, added", value: 11 }, { nutrientName: "Sodium, Na", value: 13 }] }))!;
   assert.deepEqual([row(coke, "addedSugar").amount, row(coke, "sodium").amount], [39, 45], "Coca-Cola label: 39 g, 45 mg");
   assert.deepEqual([nutrient("sodium", 448, true).amount, nutrient("sodium", 448, true).level], [450, "high"], "450 mg label = 20% High");
   assert.equal(nutrient("sodium", 127, true).amount, 125, "≤140 mg: nearest 5");
@@ -81,8 +82,19 @@ test("per-serving amounts use FDA label increments, so they match the can and th
 });
 
 test("a household serving that already names its weight isn't repeated", () => {
-  const n = usdaNutrition({ householdServingFullText: "1/6 pizza (130g)", servingSize: 130, servingSizeUnit: "GRM",
-    foodNutrients: [{ nutrientName: "Sodium, Na", unitName: "MG", value: 577 }] })!;
+  const n = dbNutrition(rowFromUsdaSearch({ householdServingFullText: "1/6 pizza (130g)", servingSize: 130, servingSizeUnit: "GRM",
+    foodNutrients: [{ nutrientName: "Sodium, Na", unitName: "MG", value: 577 }] }))!;
   assert.equal(n.serving, "1/6 pizza (130g)");
   assert.equal(row(n, "sodium").amount, 750);
+});
+
+// The importer stores USDA's download spelling of the unit ("g", "ml"); the search API wrote GRM / MLT.
+test("serving units: g and ml (download) and GRM / MLT (search) mean the same; an unknown unit falls back to per 100 g", () => {
+  const cols = { serving_text: "", added_sugar_100g: null, sat_fat_100g: null, sodium_100g: 100 };
+  assert.equal(dbNutrition({ ...cols, serving_size: 30, serving_unit: "g" })!.serving, "30 g");
+  assert.equal(dbNutrition({ ...cols, serving_size: 240, serving_unit: "ml" })!.serving, "240 ml");
+  assert.equal(dbNutrition({ ...cols, serving_size: 30, serving_unit: "GRM" })!.perServing, true);
+  assert.equal(dbNutrition({ ...cols, serving_size: 1, serving_unit: "oz" })!.perServing, false);
+  assert.equal(dbNutrition({ ...cols, serving_size: 0, serving_unit: "g" })!.perServing, false);
+  assert.equal(dbNutrition({ ...cols, serving_size: null, serving_unit: "" })!.serving, "100 g");
 });

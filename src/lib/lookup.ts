@@ -1,9 +1,10 @@
-// lookup.ts — find a barcode that isn't in our catalog. USDA FoodData Central first (label data supplied by
-// manufacturers), then Open Food Facts (crowd-sourced). Spec: docs/superpowers/specs/2026-09-28-m2-usda-lookup-design.md.
-// USDA is reached only through EcoGo's relay (supabase/functions/usda-relay, M7.5), which holds the API key: callers
-// pass its URL as `relayUrl`, and the browser never sends a key. Type-only imports, so Node tests can load this module.
+// lookup.ts — find a barcode that isn't in the catalog. EcoGo's own copy of USDA FoodData Central first (the `foods`
+// table: label data supplied by manufacturers), then Open Food Facts (crowd-sourced, live). Spec:
+// docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md. The database is passed in (see foods.ts), and the app's
+// own modules are imported without the browser, so Node tests can load this module.
 import type { Product, ProductSource } from "./productImporter.ts";
-import { usdaNutrition, offNutrition, record, type Nutrition } from "./nutrition.ts";
+import { offNutrition, record, type Nutrition } from "./nutrition.ts";
+import { foodRowToProduct, type FoodsSource } from "./foods.ts";
 
 export type LookupResult =
   | { status: "found"; product: Product }
@@ -22,11 +23,12 @@ const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string =>
 export const normalizeBarcode = (raw: string) => raw.replace(/\D/g, "");
 /** UPC-E (8) up to GTIN-14. */
 export const isBarcode = (code: string) => code.length >= 8 && code.length <= 14;
-const key = (code: string) => normalizeBarcode(code).replace(/^0+/, "");
+/** The `foods` table's key: digits without leading zeros, so a 12-digit UPC and its 14-digit form are one product. */
+export const barcodeKey = (code: string) => normalizeBarcode(code).replace(/^0+/, "");
 /** Same product code, ignoring spaces, dashes and leading zeros (12-digit UPC vs 13/14-digit forms). */
 export function sameBarcode(a: string, b: string): boolean {
-  const x = key(a);
-  return x !== "" && x === key(b);
+  const x = barcodeKey(a);
+  return x !== "" && x === barcodeKey(b);
 }
 
 /** ALL-CAPS label text → "Lay's, Classic Potato Chips"; text with any lowercase letter is left alone. */
@@ -35,81 +37,34 @@ export const tidyCase = (s: string) =>
 
 function toProduct(code: string, name: string, brand: string, ingredients: string, source: ProductSource): Product {
   return {
-    id: -Number(key(code)), // catalog ids are positive, so a looked-up product never collides with one
+    id: -Number(barcodeKey(code)), // catalog ids are positive, so a looked-up product never collides with one
     barcode: code, name: name || "Unnamed product", brand, category: "", description: "", ingredients,
     imageUrl: "", keywords: [], source,
   };
 }
 
-// ── USDA FoodData Central ────────────────────────────────────────────────────
+// ── EcoGo's copy of USDA FoodData Central ────────────────────────────────────
 
-/** Pure: a USDA /foods/search body → the food whose gtinUpc is this barcode (newest record wins), or null. */
-export function pickUsdaFood(json: unknown, code: string): Product | null {
-  const foods = Array.isArray(record(json).foods) ? (record(json).foods as unknown[]).map(record) : [];
-  const f = foods
-    .filter(x => sameBarcode(str(x.gtinUpc), code)) // the search is full-text: drop anything that isn't this code
-    .sort((a, b) => str(b.publishedDate).localeCompare(str(a.publishedDate)))[0];
-  return f ? usdaFoodToProduct(f) : null;
-}
-
-/** One USDA Branded record → our Product (with source and nutrition), or null without a name and ingredients. */
-function usdaFoodToProduct(f: Record<string, unknown>): Product | null {
-  if (!normalizeBarcode(str(f.gtinUpc))) return null;
-  const name = tidyCase(str(f.description));
-  const ingredients = str(f.ingredients).replace(/^ingredients:\s*/i, "");
-  if (!name && !ingredients) return null;
-  const product = toProduct(str(f.gtinUpc), name, tidyCase(str(f.brandName) || str(f.brandOwner)), ingredients, {
-    name: "USDA FoodData Central", url: `https://fdc.nal.usda.gov/food-details/${f.fdcId}/nutrients`,
-    crowdSourced: false, ingredientsLang: "en", additiveCodes: [], foodCategory: str(f.foodCategory),
-  });
-  const nutrition = usdaNutrition(f);
-  return nutrition ? { ...product, nutrition } : product;
-}
-
-/** Pure: a USDA /foods/search body for a TEXT query → up to 10 distinct products (by barcode), in USDA's order. */
-export function mapUsdaSearch(json: unknown): Product[] {
-  const foods = Array.isArray(record(json).foods) ? (record(json).foods as unknown[]).map(record) : [];
-  const seen = new Set<string>();
-  const out: Product[] = [];
-  for (const f of foods) {
-    const p = usdaFoodToProduct(f);
-    if (!p || seen.has(key(p.barcode))) continue;
-    seen.add(key(p.barcode));
-    out.push(p);
-    if (out.length === 10) break;
-  }
-  return out;
+async function fetchFood(code: string, foods: FoodsSource): Promise<LookupResult> {
+  const row = await foods.byBarcode(barcodeKey(code));
+  return row ? { status: "found", product: foodRowToProduct(row) } : { status: "not-found" };
 }
 
 export type SearchResult = { status: "ok"; products: Product[] } | { status: "error"; message: string };
 const searchCache = new Map<string, Promise<SearchResult>>();
 
-/** USDA products matching a text search; one request per text per session (rate limit); errors aren't cached. */
-export function searchUsda(text: string, opts: { relayUrl: string; fetchImpl?: typeof fetch }): Promise<SearchResult> {
-  const q = text.toLowerCase().trim().replace(/\s+/g, " ").slice(0, 100); // the relay takes up to 100 characters
+/** USDA products matching a text search (up to 10); one request per text per session; errors aren't cached. */
+export function searchFoods(text: string, opts: { foods: FoodsSource }): Promise<SearchResult> {
+  const q = text.toLowerCase().trim().replace(/\s+/g, " ");
   if (!q) return Promise.resolve({ status: "ok", products: [] });
   const hit = searchCache.get(q);
   if (hit) return hit;
-  const f = opts.fetchImpl ?? fetch;
-  const pending: Promise<SearchResult> = f(`${opts.relayUrl}?query=${encodeURIComponent(q)}&pageSize=15`)
-    .then(async res => res.ok
-      ? { status: "ok" as const, products: mapUsdaSearch(await res.json().catch(() => null)) }
-      : { status: "error" as const, message: `USDA returned HTTP ${res.status}` })
+  const pending: Promise<SearchResult> = opts.foods.search(q, 10)
+    .then(rows => ({ status: "ok" as const, products: rows.map(foodRowToProduct) }))
     .catch((err: unknown) => ({ status: "error" as const, message: err instanceof Error ? err.message : String(err) }));
   searchCache.set(q, pending);
   pending.then(r => { if (r.status === "error") searchCache.delete(q); });
   return pending;
-}
-
-/** USDA stores codes as 8, 12 or 14 digits, so try the typed digits, then the 14-digit form. */
-async function fetchUsda(code: string, relayUrl: string, f: typeof fetch): Promise<LookupResult> {
-  for (const q of new Set([code, code.padStart(14, "0")])) {
-    const res = await f(`${relayUrl}?query=${q}&pageSize=5`);
-    if (!res.ok) return { status: "error", message: `USDA returned HTTP ${res.status}` };
-    const product = pickUsdaFood(await res.json().catch(() => null), code);
-    if (product) return { status: "found", product };
-  }
-  return { status: "not-found" };
 }
 
 // ── Open Food Facts ──────────────────────────────────────────────────────────
@@ -151,31 +106,33 @@ const cache = new Map<string, Promise<LookupResult>>();
 const nutritionSeen = new Map<string, Nutrition>();
 
 /** Nutrition already fetched this session for a barcode (sync, for list cards); no request is made. */
-export const knownNutrition = (barcode: string): Nutrition | null => (barcode ? nutritionSeen.get(key(barcode)) ?? null : null);
+export const knownNutrition = (barcode: string): Nutrition | null => (barcode ? nutritionSeen.get(barcodeKey(barcode)) ?? null : null);
 const safely = (p: Promise<LookupResult>): Promise<LookupResult> =>
   p.catch((err: unknown) => ({ status: "error", message: err instanceof Error ? err.message : String(err) }));
 
+export interface LookupOptions { foods: FoodsSource; fetchImpl?: typeof fetch }
+
 /**
- * USDA → Open Food Facts → not found. Cached per barcode for the session (rate limits); errors aren't cached, so
- * Try again can succeed. An unreachable source gives "error", never "not found".
+ * Our `foods` table → Open Food Facts → not found. Cached per barcode for the session; errors aren't cached, so Try
+ * again can succeed. An unreachable source gives "error", never "not found".
  */
-export function lookupBarcode(raw: string, opts: { relayUrl: string; fetchImpl?: typeof fetch }): Promise<LookupResult> {
+export function lookupBarcode(raw: string, opts: LookupOptions): Promise<LookupResult> {
   const code = normalizeBarcode(raw);
   if (!isBarcode(code)) return Promise.resolve({ status: "not-found" });
-  const k = key(code);
+  const k = barcodeKey(code);
   const hit = cache.get(k);
   if (hit) return hit;
   const f = opts.fetchImpl ?? fetch;
-  let provisional = false; // an OFF find while USDA was unreachable: show it, but look again next time
+  let provisional = false; // an OFF find while our database was unreachable: show it, but look again next time
   const pending = (async (): Promise<LookupResult> => {
-    const usda = await safely(fetchUsda(code, opts.relayUrl, f));
-    if (usda.status === "found") return usda;
+    const db = await safely(fetchFood(code, opts.foods));
+    if (db.status === "found") return db;
     // 8-digit codes are ambiguous worldwide (US UPC-E vs store-internal EAN-8): OFF answered the Heinz UPC-E
-    // 01311501 with a UK store product. Those go to USDA only.
-    if (code.length === 8) return usda;
+    // 01311501 with a UK store product. Those go to our USDA copy only.
+    if (code.length === 8) return db;
     const off = await safely(fetchOff(code, f));
-    if (off.status === "found") { provisional = usda.status === "error"; return off; }
-    return usda.status === "error" ? usda : off;
+    if (off.status === "found") { provisional = db.status === "error"; return off; }
+    return db.status === "error" ? db : off;
   })();
   cache.set(k, pending);
   pending.then(r => {

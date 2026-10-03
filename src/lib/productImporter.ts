@@ -14,6 +14,7 @@ export interface ProductSource {
   additiveCodes: string[]; // Open Food Facts additive tags, e.g. "en:e951"; always [] for USDA
   foodCategory?: string;   // USDA only, e.g. "Chips, Pretzels & Snacks" (drives the food-level checks)
   categoryTags?: string[]; // Open Food Facts only, e.g. ["en:snacks", "en:potato-crisps"]
+  snapshot?: string;       // USDA only: release date of EcoGo's copy of the record, YYYY-MM-DD
 }
 
 /** The canonical Product shape consumed by the rest of the application. */
