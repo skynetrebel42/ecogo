@@ -3,7 +3,7 @@
 // USDA is reached only through EcoGo's relay (supabase/functions/usda-relay, M7.5), which holds the API key: callers
 // pass its URL as `relayUrl`, and the browser never sends a key. Type-only imports, so Node tests can load this module.
 import type { Product, ProductSource } from "./productImporter.ts";
-import { usdaNutrition, offNutrition, type Nutrition } from "./nutrition.ts";
+import { usdaNutrition, offNutrition, record, type Nutrition } from "./nutrition.ts";
 
 export type LookupResult =
   | { status: "found"; product: Product }
@@ -15,7 +15,6 @@ const OFF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_te
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
-const record = (v: unknown) => (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
 
 // ── Barcodes ─────────────────────────────────────────────────────────────────
 

@@ -1,13 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase, USDA_RELAY_URL } from "../lib/supabase";
+import { useState, useEffect } from "react";
+import { USDA_RELAY_URL } from "../lib/supabase";
 import { loadCatalog, type ResourceRow } from "../lib/catalog";
 import MapTab from "./components/MapTab";
 import ProductDetailScreen from "./components/ProductDetailScreen";
 import ScanTab from "./components/ScanTab";
 import csvText from "../data/products.csv?raw";
 import { parseProductsCSV, type Product } from "../lib/productImporter";
-import { VERDICT_RANK } from "../lib/safety/analyze";
-import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon } from "./components/verdict";
+import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon, fewestConcerns } from "./components/verdict";
 import { NutritionChip } from "./components/NutritionPanel";
 import { topHigh } from "../lib/nutrition";
 import { knownNutrition, searchUsda } from "../lib/lookup";
@@ -250,7 +249,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
   const raw = searchCatalog(products, query);
   const results = raw
     .map(p => ({ p, a: safeAnalyze(p) }))
-    .sort((x, y) => VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict] || x.a.flags.length - y.a.flags.length)
+    .sort((x, y) => fewestConcerns(x.a, y.a))
     .map(({ p }) => p);
   const isEmpty = results.length === 0 && usda.status !== "loading" && usda.products.length === 0;
 
@@ -468,33 +467,19 @@ export default function App() {
   const [places, setPlaces] = useState<ResourceRow[]>([]);
   const [dbStatus, setDbStatus] = useState<"loading" | "live" | "offline">("loading");
 
-  const loadData = useCallback(async () => {
-    try {
-      const catalog = await loadCatalog();
+  // The catalog is read-only for visitors, so one load per visit is enough (no realtime channel).
+  useEffect(() => {
+    loadCatalog().then(catalog => {
       // An empty catalog means a misconfigured DB, not "live" data: keep the bundled copy.
       if (catalog.products.length === 0) throw new Error("catalog is empty");
       setProducts(catalog.products);
       setPlaces(catalog.resources);
       setDbStatus("live");
-    } catch (err) {
+    }).catch(err => {
       console.warn("[catalog] using bundled data:", err);
       setDbStatus("offline");
-    }
+    });
   }, []);
-
-  useEffect(() => {
-    loadData();
-
-    // Realtime: any catalog change is a signal to re-fetch (events can be missed,
-    // so we never patch state from the payload itself).
-    const channel = supabase.channel("catalog-realtime");
-    for (const table of ["products", "resources"]) {
-      channel.on("postgres_changes" as any, { event: "*", schema: "public", table }, () => loadData());
-    }
-    channel.subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [loadData]);
 
   // Every product opened counts as "looked at": Scan, search (catalog or USDA), Saved and Recently scanned. A looked-up product
   // (negative id) joins lookedUp however it was opened, so bookmarking it shows it in Saved › Favorites.

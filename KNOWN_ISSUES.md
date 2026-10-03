@@ -70,7 +70,7 @@
 | ~~K-23~~ ✅ | **Closed by M9:** no open/closed badge, ratings or Smart Score; the © credit is always visible. *Was:* Map details: the hours parser misreads "12–6pm" and "dawn–dusk"; open/closed uses the viewer's timezone and goes stale; "Smart Score" sort equals rating sort; the list shows 10 with no "more"; zoom-out and OSM attribution are covered by the sheet. | `MapTab.tsx:125-148,276-283,399-410,523-554` |
 | K-24 ✔ | Importer edge cases (still true after the 2026-10-02 rewrite, which kept the behaviour): rows sharing an id are one product read from its first row; `'1'` and `'01'` become duplicate ids; quoted newlines drop the row. *Moot:* the empty FB condition (store fields are gone) and the invented barcodes' check digits (M5/M6 removed them). | `productImporter.ts` `parseProductsCSV` |
 | ~~K-25~~ ✅ | **Moot: `scoring.ts` was deleted (the score is no longer computed).** *Original issue:* Floating-point rounding makes 58.5 → 58 (id 41 only). | (deleted) |
-| K-26 ✔ | *Mostly fixed in step 2:* realtime now re-fetches on INSERT/UPDATE/DELETE of products, prices and resources. **Remaining:** an open product detail keeps its snapshot until reopened; no subscribe-status check; overlapping re-fetches could resolve out of order (harmless at this scale). | `App.tsx` realtime effect |
+| ~~K-26~~ ✅ | **Moot since the 2026-10-02 audit:** the realtime channel is gone (one load per visit). *Was:* *mostly fixed in step 2:* realtime now re-fetches on INSERT/UPDATE/DELETE of products, prices and resources. **Remaining:** an open product detail keeps its snapshot until reopened; no subscribe-status check; overlapping re-fetches could resolve out of order (harmless at this scale). | `App.tsx` realtime effect |
 | K-27 ▶ | Icon-only buttons (back, save, share, search-QR, etc.) have no accessible names. | `ProductDetailScreen.tsx:707-714`, `App.tsx` |
 | ~~K-28~~ ✅ | **Resolved in M6:** below 500 px wide the app fills the screen (no phone frame or fake status bar, safe-area insets); desktop keeps the frame. A phone first loaded in landscape still gets the frame (M6 follow-up). | `App.tsx` (`IS_PHONE`) |
 | K-30 | *Not shown since M7.4* (cards, product page, store chips, Price Comparison and the price sort are gone). The data is still Figma-invented: catalog prices and store ratings (Amazon, Walmart, FB Marketplace). Show prices again only from a real source. | products.csv, DB `product_prices` |
@@ -163,7 +163,7 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - ✔ **Fixed and confirmed by the owner 2026-10-01: iPhone and PC (ZXing path) "camera shows, never reads"** (Android's built-in reader worked).
   Root-cause hypothesis, reproduced in Node: without a size, Safari and desktop Chrome capture ~640×480, and ZXing
   can't read a slightly blurred barcode at ~2 px per bar (it reads it at 1920×1080). Fix shipped: ask for 1920×1080
-  (`CAMERA_CONSTRAINTS`) plus continuous autofocus where supported. Open the site with `?debug` to see the real camera
+  (`CAMERA_CONSTRAINTS`) plus continuous autofocus where supported. (The `?debug` readout was removed in the 2026-10-02 audit.) Opening the site with `?debug` showed the real camera
   size, frames read, and any reader error. If it still fails, next: decode only the framing-box crop, then a sharper
   focus hint.
 - A phone first loaded in landscape gets the 390×844 desktop frame (`IS_PHONE` is `max-width: 499px`, decided once at
@@ -284,8 +284,8 @@ but no screen shows them.
 - OSM hours the converter doesn't know show as written (6 of the 118 places with hours, e.g. `Sa`, `We Sa`,
   `3rd Fri. 9:00 AM - 12:00 PM`; 44 places list no hours).
 - From the M9 final review (Minor): Silverlake Farmers Market reads "Tue, 1:30 am–7 pm" because OSM says `Tu 01:30-19:00`
-  (likely a typo for 13:30; fix it on OSM, then re-snapshot). If My location fails after an earlier success, the old
-  position still sorts the list and shows the blue dot (`MapTab.tsx` error callback: add `setUserLoc(null)`).
+  (likely a typo for 13:30; fix it on OSM, then re-snapshot). ~~If My location fails after an earlier success, the old
+  position still sorts the list and shows the blue dot.~~ Fixed 2026-10-02 (`5340bbb`, FIXES_AND_UPDATES).
   `Fr[1,3],Sa[1,3]` reads "1st & 3rd Fri & 1st & 3rd Sat" (accurate, clumsy).
 
 **Next** (the PM chat's order, 2026-10-02): M10 data ownership (EcoGo's own copy of USDA Branded

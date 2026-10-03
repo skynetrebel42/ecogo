@@ -108,7 +108,7 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
   const userMarkerRef = useRef<L.Marker | null>(null);
 
   const [userLoc, setUserLoc] = useState<[number, number] | null>(null);
-  const [locateNote, setLocateNote] = useState<"off" | null>(null);
+  const [locationOff, setLocationOff] = useState(false);
   const [locating, setLocating] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [activeTypes, setActiveTypes] = useState<Set<PlaceType>>(new Set(TYPES));
@@ -156,24 +156,26 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
     mapRef.current?.flyTo([p.latitude, p.longitude], Math.max(mapRef.current.getZoom(), 16), { duration: 0.7 });
   }
 
+  const toLa = () => mapRef.current?.flyTo(LA_CENTER, LA_ZOOM, { duration: 1 });
+
   // Location only on tap; never stored or sent anywhere.
   function locate() {
-    if (!navigator.geolocation) { setLocateNote("off"); return; }
+    if (!navigator.geolocation) { setLocationOff(true); return; }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const pos: [number, number] = [coords.latitude, coords.longitude];
-        setUserLoc(pos); setLocateNote(null); setLocating(false);
+        setUserLoc(pos); setLocationOff(false); setLocating(false);
         mapRef.current?.flyTo(pos, inLaCounty(pos[0], pos[1]) ? 14 : 10, { duration: 1 });
       },
-      () => { setLocateNote("off"); setLocating(false); mapRef.current?.flyTo(LA_CENTER, LA_ZOOM, { duration: 1 }); },
+      () => { setUserLoc(null); setLocationOff(true); setLocating(false); toLa(); }, // drop an earlier position too
       { timeout: 8000 },
     );
   }
 
   function backToLa() {
     setUserLoc(null);
-    mapRef.current?.flyTo(LA_CENTER, LA_ZOOM, { duration: 1 });
+    toLa();
   }
 
   const toggle = (t: PlaceType) => setActiveTypes(prev => { const next = new Set(prev); next.has(t) ? next.delete(t) : next.add(t); return next; });
@@ -220,7 +222,7 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
           <button onClick={backToLa} className="w-full rounded-2xl bg-primary text-white text-sm font-bold" style={{ minHeight: 44 }}>Back to LA</button>
         </div>
       )}
-      {locateNote === "off" && (
+      {locationOff && (
         <div className="absolute left-3 right-16 top-[68px] z-[400] bg-white rounded-xl shadow-md px-3 py-2 text-xs font-semibold">
           Location is off. Showing Los Angeles.
         </div>

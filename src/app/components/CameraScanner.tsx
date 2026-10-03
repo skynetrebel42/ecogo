@@ -6,9 +6,6 @@ import { X, Zap, ZapOff, ChevronUp, ChevronDown, CameraOff } from "lucide-react"
 import { createDetector } from "../../lib/barcodeReader";
 import { confirmReads, normalizeScanned, CAMERA_CONSTRAINTS } from "../../lib/scanner";
 
-/** Open the site with ?debug to see the real camera size and how many frames were read (evidence for scan problems). */
-const DEBUG = typeof location !== "undefined" && new URLSearchParams(location.search).has("debug");
-
 type CameraState = "requesting" | "live" | "paused" | "denied" | "unsupported";
 
 const MESSAGE: Record<Exclude<CameraState, "live">, string> = {
@@ -31,7 +28,6 @@ export default function CameraScanner({ onCode, onClose, children }: {
   const [torch, setTorch] = useState<boolean | null>(null); // null = this camera has no torch
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [run, setRun] = useState(0); // bump to restart after a pause
-  const [debug, setDebug] = useState("");
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -75,13 +71,11 @@ export default function CameraScanner({ onCode, onClose, children }: {
         return fail("unsupported");
       }
       const confirm = confirmReads();
-      let frames = 0;
       const tick = async () => {
         if (stopped) return;
         if (video.readyState >= 2) {
           try {
             const found = await detector.detect(video);
-            if (DEBUG && ++frames % 5 === 0) setDebug(`${video.videoWidth}×${video.videoHeight} · ${frames} frames · last: ${found[0]?.rawValue ?? "none"}`);
             const code = confirm(normalizeScanned(found[0]?.rawValue ?? "", found[0]?.format));
             if (code && !stopped) {
               navigator.vibrate?.(60);
@@ -89,9 +83,8 @@ export default function CameraScanner({ onCode, onClose, children }: {
               onCodeRef.current(code);
               return;
             }
-          } catch (err) {
-            // a bad frame: try the next one (with ?debug, show why; e.g. the reader's .wasm failed to load)
-            if (DEBUG) setDebug(`${video.videoWidth}×${video.videoHeight} · reader error: ${err instanceof Error ? err.message : String(err)}`.slice(0, 160));
+          } catch {
+            // a bad frame: try the next one
           }
         }
         timer = window.setTimeout(tick, 150);
@@ -138,7 +131,6 @@ export default function CameraScanner({ onCode, onClose, children }: {
                 .map((cls, i) => <div key={i} className={`absolute w-8 h-8 border-white ${cls}`} />)}
             </div>
             <p className="mt-4 text-sm font-semibold drop-shadow">Point at a barcode</p>
-            {DEBUG && <p className="mt-2 text-[10px] font-mono bg-black/60 rounded px-2 py-1">{debug || "debug: waiting for frames"}</p>}
           </>
         ) : (
           <>

@@ -17,7 +17,7 @@ import { offEditUrl } from "../../lib/lookup";
 import { VERDICT_RANK, escapeRegExp, type Flag } from "../../lib/safety/analyze";
 import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
-import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
+import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked, fewestConcerns } from "./verdict";
 import NutritionPanel, { NutritionChip, useNutrition } from "./NutritionPanel";
 import { topHigh } from "../../lib/nutrition";
 
@@ -26,10 +26,11 @@ const languageName = (code: string) => {
   try { return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code; } catch { return code; }
 };
 
+const TAP_FINDING = "Tap a finding to see its official sources.";
 const SMALL_PRINT: Record<Assessment["verdict"], string> = {
-  known:      "Tap a finding to see its official sources.",
-  high:       "Tap a finding to see its official sources.",
-  some:       "Tap a finding to see its official sources.",
+  known:      TAP_FINDING,
+  high:       TAP_FINDING,
+  some:       TAP_FINDING,
   none:       "No hazard flags from IARC, EU or FDA.",
   "no-data":  "This product has no ingredient list yet.",
   "non-food": "EcoGo checks food and drinks only for now.",
@@ -128,9 +129,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
       .filter(p => p.id !== product.id && p.category === product.category)
       .map(p => ({ p, a: safeAnalyze(p) }))
       .filter(({ a }) => VERDICT_RANK[a.verdict] < mine)
-      .sort((x, y) => VERDICT_RANK[x.a.verdict] - VERDICT_RANK[y.a.verdict]
-        || x.a.flags.length - y.a.flags.length
-        || x.p.name.localeCompare(y.p.name))
+      .sort((x, y) => fewestConcerns(x.a, y.a) || x.p.name.localeCompare(y.p.name))
       .slice(0, 3);
   }, [products, product, analysis]);
 

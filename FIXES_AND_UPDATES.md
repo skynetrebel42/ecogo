@@ -8,6 +8,8 @@ checked**, and the **commit**.
 
 | Date | Fix / update | Commit |
 |---|---|---|
+| 2026-10-02 | Map: a failed My location after a success drops the old position | `5340bbb` |
+| 2026-10-02 | Audit batch: no realtime, no `?debug`, shared comparators/constants, duplicate files out | `39a06ca`…`d23d2de` |
 | 2026-10-02 | Over-engineering cleanup (ponytail audit): importer 608 → 76 lines, price plumbing, unused files, tokens, a dependency | `5ea0ce8`…`4843e2b` |
 | 2026-10-02 | Product page header fits its content (empty band where the price was) | `06ab0d7` |
 | 2026-10-02 | `recent.ts` cleanup: unused `barcode`/`at` fields, `now` parameter and `RECENT_KEY` export removed | `f9ed15a` |
@@ -16,6 +18,36 @@ checked**, and the **commit**.
 | 2026-10-01 | Open Food Facts "Looks wrong? Fix it" and "Add it" links | `39ff6e3` |
 | 2026-10-01 | Search: whole-word matching + "More from USDA" results | `9d32c29` |
 | 2026-10-01 | Camera: HD capture for iPhone/PC, start-up race, `?debug` readout | `8cb7bec` |
+
+---
+
+## 2026-10-02 — Map: a failed My location after a success drops the old position (`5340bbb`)
+
+- **Wrong:** after a successful My location, a second try that failed (permission denied, timeout) showed "Location is
+  off. Showing Los Angeles." while the list stayed "Nearest first" from the old position, with the blue dot still drawn.
+- **Root cause:** the geolocation error callback set the note and flew to LA but never cleared `userLoc`
+  (`MapTab.tsx`). Found by the M9 final review (Minor).
+- **Changed:** the error callback clears the old position (`setUserLoc(null)`), so the list is A–Z again.
+- **Checked:** `check-map.mjs` gained "a failed My location after a success drops the old position": it failed before
+  the fix and passes after (20/20); `check-home.mjs` 32/32; `npm test` 174/174.
+
+---
+
+## 2026-10-02 — Audit batch after M9 (`39a06ca`…`d23d2de`)
+
+- **Asked:** the PM chat's no-behaviour-change audit batch (owner decision: after M9), plus three items from its
+  review of M9.
+- **Why:** code nothing needs or that says the same thing twice.
+- **Changed (one commit each):** `39a06ca` no realtime channel or `loadData` callback (the catalog is read-only for
+  visitors; one load per visit) · `5a1e9f8` the `?debug` camera readout removed · `5539cb6` one `fewestConcerns`
+  comparator in `verdict.tsx` for the search sort and the alternatives (the alternatives keep their name tie-break) ·
+  `fd6401a` one constant for the known/high/some small print · `44c7895` `analyze.ts` exports the level order, used by
+  `assess.ts` · `1c85845` `lookup.ts` reuses `nutrition.ts`'s `record()` · `50cb462` the plans' two copies of
+  `verified-barcodes.json` deleted (`src/data` is the source of truth) · `0e6b143` `formatAsOf` uses
+  `Intl.DateTimeFormat` (UTC) · `91ce319` one `toLa()` · `d23d2de` `locationOff` boolean.
+- **Checked:** every name grepped first; `npm test` 174/174 and `npm run build` after each commit; `check-home.mjs`
+  32/32 and `check-map.mjs` 20/20 against `vite preview`. The one visible difference: a catalog change made while
+  the app is open now shows after a reload instead of within seconds.
 
 ---
 
