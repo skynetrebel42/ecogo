@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { USDA_RELAY_URL } from "../lib/supabase";
 import { loadCatalog, type ResourceRow } from "../lib/catalog";
 import MapTab from "./components/MapTab";
 import ProductDetailScreen from "./components/ProductDetailScreen";
@@ -9,7 +8,8 @@ import { parseProductsCSV, type Product } from "../lib/productImporter";
 import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon, fewestConcerns } from "./components/verdict";
 import { NutritionChip } from "./components/NutritionPanel";
 import { topHigh } from "../lib/nutrition";
-import { knownNutrition, searchUsda } from "../lib/lookup";
+import { knownNutrition, searchFoods } from "../lib/lookup";
+import { supabaseFoods } from "../lib/foodsDb";
 import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
@@ -236,12 +236,12 @@ function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearR
 function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
   query: string; onBack: () => void; onSelectProduct: (p: Product) => void; products: Product[];
 }) {
-  // "More from USDA": real products beyond our catalog (one request per search text per session).
+  // "More from USDA": real products beyond our catalog, from EcoGo's copy of USDA FoodData Central (one request per search text per session).
   const [usda, setUsda] = useState<{ status: "loading" | "ok" | "error"; products: Product[] }>({ status: "loading", products: [] });
   useEffect(() => {
     let live = true;
     setUsda({ status: "loading", products: [] });
-    searchUsda(query, { relayUrl: USDA_RELAY_URL }).then(r => {
+    searchFoods(query, { foods: supabaseFoods }).then(r => {
       if (live) setUsda(r.status === "ok" ? { status: "ok", products: r.products } : { status: "error", products: [] });
     });
     return () => { live = false; };
@@ -290,7 +290,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
               <p className="text-xs font-bold text-foreground">More from USDA FoodData Central</p>
               <p className="text-[10px] text-muted-foreground mb-2">Label data supplied by manufacturers · not in our catalog</p>
               {usda.status === "loading" && <p className="text-xs text-muted-foreground">Searching USDA…</p>}
-              {usda.status === "error" && <p className="text-xs text-muted-foreground">Couldn't reach USDA right now.</p>}
+              {usda.status === "error" && <p className="text-xs text-muted-foreground">Couldn't search right now.</p>}
               {usda.status === "ok" && usda.products.length === 0 && <p className="text-xs text-muted-foreground">No USDA matches.</p>}
               <div className="space-y-3">
                 {usda.products.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} />)}
@@ -351,7 +351,7 @@ function SavedTab({ savedIds, scanned, initialTab = "favorites", onSelectProduct
 // ── Profile Tab ───────────────────────────────────────────────────────────────
 // Spec: docs/superpowers/specs/2026-10-01-m72-profile-cleanup-design.md (layout A). Only true things; no account yet.
 const SOURCES_INFO = [
-  { name: "USDA FoodData Central", text: "Label data supplied by the makers. Checked first." },
+  { name: "USDA FoodData Central", text: "Label data supplied by the makers, copied into EcoGo's database about twice a year (each product page shows its snapshot date). Checked first. Source: U.S. Department of Agriculture, Agricultural Research Service, FoodData Central, fdc.nal.usda.gov." },
   { name: "Open Food Facts", text: "Crowd-sourced, used when USDA has no match, and always marked." },
   { name: "IARC, EU, FDA, EFSA, WHO", text: "The official findings behind every badge, each linked on the product page." },
   { name: "FDA % Daily Value", text: "Sugar, saturated fat and salt per serving, by the FDA's 5/20 rule." },
@@ -397,7 +397,7 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
       <section className={card}>
         <h2 className="font-bold text-base">Privacy</h2>
         <p className="text-xs text-foreground/80 leading-relaxed">The camera reads barcodes on your phone. No images are uploaded.</p>
-        <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to USDA or Open Food Facts.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, to Open Food Facts.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The product catalog loads from EcoGo's database. Your recently scanned list stays in this browser.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The map asks for your location only when you tap My location. It stays on your phone. Map images load from OpenStreetMap.</p>
       </section>
@@ -573,7 +573,6 @@ export default function App() {
                   onBack={() => setSubScreen(null)}
                   saved={savedIds.includes(selectedProduct.id)}
                   onToggleSave={toggleSave}
-                  products={products}
                   onSelectProduct={openProduct}
                 />
               )}

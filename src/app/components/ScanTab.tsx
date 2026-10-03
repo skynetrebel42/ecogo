@@ -15,7 +15,7 @@ import { useState, useCallback } from "react";
 import { CheckCircle, QrCode, ChevronUp, ChevronDown, Database, X, WifiOff, ExternalLink } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
 import { lookupBarcode, normalizeBarcode, isBarcode, sameBarcode, offAddUrl } from "../../lib/lookup";
-import { USDA_RELAY_URL } from "../../lib/supabase";
+import { supabaseFoods } from "../../lib/foodsDb";
 import CameraScanner from "./CameraScanner";
 
 interface DemoBarcode { barcode: string; label: string; category: string }
@@ -64,7 +64,7 @@ export default function ScanTab({ onScanResult, products }: ScanTabProps) {
     const catalogProduct = products.find((p) => sameBarcode(p.barcode, barcode)) ?? null;
     let product: Product | null = catalogProduct;
     if (!product) {
-      const found = await lookupBarcode(barcode, { relayUrl: USDA_RELAY_URL });
+      const found = await lookupBarcode(barcode, { foods: supabaseFoods });
       if (found.status === "error") { setScanState("error"); return; }
       if (found.status === "found") product = found.product;
     }

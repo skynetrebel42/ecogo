@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "test": "node --test \"src/lib/**/*.test.ts\" \"supabase/functions/**/*.test.ts\"",
+    "test": "node --test \"src/lib/**/*.test.ts\"",
     "verify:sources": "node scripts/verify-sources.mjs",
     "import:usda": "node --max-old-space-size=6000 scripts/import-usda.mjs"
   },

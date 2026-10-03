@@ -14,12 +14,14 @@ import {
 } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
 import { offEditUrl } from "../../lib/lookup";
-import { VERDICT_RANK, escapeRegExp, type Flag } from "../../lib/safety/analyze";
+import { escapeRegExp, type Flag } from "../../lib/safety/analyze";
 import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
-import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked, fewestConcerns } from "./verdict";
+import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
 import NutritionPanel, { NutritionChip, useNutrition } from "./NutritionPanel";
 import { topHigh } from "../../lib/nutrition";
+import { snapshotLabel } from "../../lib/foods";
+import { useAlternatives } from "./useAlternatives";
 
 /** "fr" → "French" (native Intl; falls back to the code). */
 const languageName = (code: string) => {
@@ -111,27 +113,18 @@ function FindingRow({ finding: entry, open, onToggle }: { finding: Finding; open
 
 interface ProductDetailScreenProps {
   product: Product; onBack: () => void; saved: boolean; onToggleSave: () => void;
-  products: Product[]; onSelectProduct: (p: Product) => void;
+  onSelectProduct: (p: Product) => void;
 }
 
-export default function ProductDetailScreen({ product, onBack, saved, onToggleSave, products, onSelectProduct }: ProductDetailScreenProps) {
+export default function ProductDetailScreen({ product, onBack, saved, onToggleSave, onSelectProduct }: ProductDetailScreenProps) {
   const [openFlag, setOpenFlag] = useState<string | null>(null);
   const analysis = useMemo(() => safeAnalyze(product), [product]);
   const look = VERDICT_STYLE[analysis.verdict];
   const nutrition = useNutrition(product);
   const highNutrient = topHigh(nutrition.status === "ready" ? nutrition.nutrition : null);
 
-  // Same category, strictly better verdict; only offered when this product has concerns.
-  const alternatives = useMemo(() => {
-    if (analysis.verdict !== "known" && analysis.verdict !== "high" && analysis.verdict !== "some") return [];
-    const mine = VERDICT_RANK[analysis.verdict];
-    return products
-      .filter(p => p.id !== product.id && p.category === product.category)
-      .map(p => ({ p, a: safeAnalyze(p) }))
-      .filter(({ a }) => VERDICT_RANK[a.verdict] < mine)
-      .sort((x, y) => fewestConcerns(x.a, y.a) || x.p.name.localeCompare(y.p.name))
-      .slice(0, 3);
-  }, [products, product, analysis]);
+  // Same USDA category, strictly better badge; only offered when this product has concerns (useAlternatives.ts).
+  const alternatives = useAlternatives(product, analysis.verdict);
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -185,7 +178,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               ? "bg-amber-50 border-amber-100 text-amber-900" : "bg-white border-gray-100 text-gray-600 shadow-sm"}`}>
               {product.source.crowdSourced
                 ? "Product data from Open Food Facts (crowd-sourced, may contain errors)."
-                : "Label data from USDA FoodData Central, supplied by the manufacturer."}{" "}
+                : `Label data from USDA FoodData Central, supplied by the manufacturer${product.source.snapshot ? ` (snapshot ${snapshotLabel(product.source.snapshot)})` : ""}.`}{" "}
               <a href={product.source.url} target="_blank" rel="noreferrer" className="font-bold underline">
                 {product.source.crowdSourced ? "View on Open Food Facts" : "View record"}
               </a>
@@ -257,6 +250,9 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
                 <TrendingUp size={15} className="text-green-600" />
                 <span className="font-bold text-sm">Alternatives with fewer concerns</span>
               </div>
+              <p className="px-4 pt-2.5 text-[10px] text-gray-500 leading-snug">
+                Other products in this USDA category with fewer findings. Availability near you isn't known.
+              </p>
               <div className="divide-y divide-gray-50">
                 {alternatives.map(({ p, a }) => {
                   const altLook = VERDICT_STYLE[a.verdict];
