@@ -83,8 +83,12 @@ function expand(raw: string, out: string[]): void {
 
 const tidy = (s: string) => s.replace(/\s+/g, " ").trim().replace(/^[\s.,:;*•-]+|[\s.,:;*•]+$/g, "");
 
+/** "NO NITRATES OR NITRITES ADDED*** PORK": a claim glued to the first ingredient. Drop the claim, keep the ingredient (M10.1 E).
+ *  "…ADDED EXCEPT THOSE IN CELERY" is a longer claim: it stays whole and is dropped as an absence, as before. */
+const CLAIM_PREFIX = /^no\b[^,;.]*?\badded\b(?!\s+except\b)[\s*†‡:.-]*/i;
+
 function emit(raw: string, out: string[]): void {
-  const item = tidy(stripFiller(tidy(raw.replace(/[()[\]{}]/g, " "))));
+  const item = tidy(tidy(stripFiller(tidy(raw.replace(/[()[\]{}]/g, " ")))).replace(CLAIM_PREFIX, ""));
   if (!item || NEGATION.test(item)) return;
   const kept = tidy(item.replace(FREE_WORD, " "));
   if (kept) out.push(kept);
