@@ -5,7 +5,7 @@
 // M7.2/M7.3: the welcome screen is honest and shows once per device; Profile shows only true things.
 // M7.4: no Map in the nav; no prices, Share or AI claims; Saved has only Favorites (empty at first) and Scanned; a USDA
 // search result, opened and bookmarked, is listed in Favorites.
-// M9: the Map tab is back (its own check: docs/superpowers/plans/2026-10-02-m9-assets/check-map.mjs).
+// M9: the Map tab is back (its own check: docs/archive/plans/2026-10-02-m9-assets/check-map.mjs).
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
