@@ -1,7 +1,7 @@
 # M10.1: Processed-meat rules (fix the gaps the M10 launch audit found): design spec
 
 - **Date:** 2026-10-04
-- **Status:** draft for the owner's approval. Part of M10: it is built on the `data-ownership` branch before the table is
+- **Status:** **approved by the owner 2026-10-04** (relayed by the PM chat; D4-D6 defaults accepted as written). Part of M10: it is built on the `data-ownership` branch before the table is
   re-imported, and merges to `main` with M10. **Reference code and tests are ready and checked** (assets below).
 - **Decided with:** the owner (Minh Bui), relayed by the PM chat 2026-10-03: (1) **fix the rules first, then re-gate**, no
   launch with known gaps; (2) **canned and deli chicken and turkey ARE processed meat**; (3) **deli roast beef in a salt or
