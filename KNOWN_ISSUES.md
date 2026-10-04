@@ -131,9 +131,17 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 ### Concern-level follow-ups (from the M4 final review, deferred)
 
 - "Veggie", "vegan" and the like in a product name skip the ingredient scan, so "Sausage & Veggie Breakfast Bowl" with
-  pork sausage reads Nothing flagged (`foodConcerns.ts`, the `NOT_MEAT.test(p.name)` early return).
-- Flavouring-style ingredients such as "bacon seasoning" or "smoked meat flavor" still read Known (`NOT_MEAT` only knows
-  `<meat>-flavor` and `<meat>-free`).
+  pork sausage reads Nothing flagged (`foodConcerns.ts`, the whole-name `NEGATOR` check). *M10.1 kept this on
+  purpose (dropping it flagged plant-based bacon); a "…flavored" name no longer hides a product whose first item is real
+  meat (rule B).* Same gap: "Turkey Sausage, Cheddar & Veggie Omelet Minis", "Ham & Cheese Pockets… Uncured Ham And
+  Plant-Based Mozzarella".
+- Flavouring-style ingredients such as "bacon seasoning" or "smoked meat flavor" still read High ("contains"). *Partly
+  fixed in M10.1: an item that is a "bacon/ham/sausage… flavor" no longer counts, nor does bacon fat alone or imitation
+  bacon bits.*
+- *From M10.1 (spec §7, measured and left as they are):* "Canned Chicken Breast" outside USDA's "Canned Meat" category
+  (about 10 products) and roast beef outside the cold-cut categories read Nothing flagged; a label typo such as "PORT" for
+  pork can't be read as meat by a rule; cooked or injected fresh poultry (decision D6) and any other "salting" broader than
+  IARC's examples read Nothing flagged.
 - Acrylamide marker edges (marker only): Cream of Wheat gets 🔥 (EU (d) excludes porridge); "Honey Bunches of Oats" and
   "Oatmeal Squares" lose it (the `PORRIDGE` regex); USDA "Coffee Ice Cream" gets it (the coffee name fallback); catalog
   fries filed under "Frozen" wouldn't get it (none today).

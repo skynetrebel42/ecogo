@@ -8,6 +8,8 @@ checked**, and the **commit**.
 
 | Date | Fix / update | Commit |
 |---|---|---|
+| 2026-10-04 | M10.1 processed-meat rules (the M10 launch audit's misses and false flags) | `4e8509b` |
+| 2026-10-03 | M10 plan deviations: importer batched delete, search/alternatives timing, audit sampler | `a56af25`, `15d2935`, `17b2542` |
 | 2026-10-02 | Map: a failed My location after a success drops the old position | `5340bbb` |
 | 2026-10-02 | Audit batch: no realtime, no `?debug`, shared comparators/constants, duplicate files out | `39a06ca`…`d23d2de` |
 | 2026-10-02 | Over-engineering cleanup (ponytail audit): importer 608 → 76 lines, price plumbing, unused files, tokens, a dependency | `5ea0ce8`…`4843e2b` |
@@ -18,6 +20,38 @@ checked**, and the **commit**.
 | 2026-10-01 | Open Food Facts "Looks wrong? Fix it" and "Add it" links | `39ff6e3` |
 | 2026-10-01 | Search: whole-word matching + "More from USDA" results | `9d32c29` |
 | 2026-10-01 | Camera: HD capture for iPhone/PC, start-up race, `?debug` readout | `8cb7bec` |
+
+---
+
+## 2026-10-04 — M10.1 processed-meat rules (`4e8509b`)
+
+- **Wrong:** the M10 launch audit (410 products) found 3 false flags (a fresh "Pork Ham Bone In" read Known; "RENDERED
+  BACON FAT" and imitation "BACON BITS (SOY FLOUR…)" read as bacon) and about 48 misses among 110 "Nothing flagged" meat
+  products (real ham, salami, sausage).
+- **Why:** labels that list only a ham's brine or cure gave no meat item; a "…flavored" word hid the whole product;
+  "vegetarian-fed" read as meat-free; hog, duck, boar, elk and others weren't known meats; a "no nitrates… added" claim
+  glued to the first ingredient was dropped with the pork. Spec: `docs/superpowers/specs/2026-10-04-m101-processed-meat-rules-design.md`
+  (owner decisions D1-D3, defaults D4-D7).
+- **Changed:** the processed-meat block of `foodConcerns.ts` (rules A1, A3, B, C, D, F), the claim prefix in `parse.ts`
+  (rule E), new `processedMeatRules.test.ts`, `ENGINE_REV` 1 → 2 so re-imported rows say which engine scored them.
+  The live app's USDA lookups use the same engine. The gaps left on purpose are in `KNOWN_ISSUES.md`.
+- **Checked:** `npm test` 195/195 (the asset has 15 new tests, not the 16 the spec says); `npm run build` green;
+  `verify:sources` 23 pass, 0 fail, 9 unverifiable (unchanged). The re-gate on a re-imported table is pending.
+
+---
+
+## 2026-10-03 — M10 plan deviations found on the real 430k-row table (`a56af25`, `15d2935`, `17b2542`)
+
+- **Importer** (`a56af25`): one `DELETE` of older snapshots hit the free tier's statement timeout on the first real
+  import. Now `deleteOlderSnapshots` removes 500 at a time, with a snapshot index (migration in `15d2935`).
+- **Search and alternatives** (`15d2935`): `search_foods` took ~7.5 s (a `set search_path` SQL function can't be inlined,
+  so it ran on a generic plan with `ts_rank`), over the anon role's 3 s limit. Now plpgsql `EXECUTE`, at most 1,000
+  matches ordered shortest name first; alternatives get a partial index on `(category, verdict_rank, flags, name)`.
+  Four migrations, each approved by the owner.
+- **Audit sampler** (`17b2542`): filtered counts and offset reads timed out (empty error). `audit-foods.mjs` now pages
+  along the primary key and samples in memory.
+- **Checked:** the import finished (430,127 rows); search and alternatives answer under the anon timeout cold; the sampler
+  drew the M10 audit sample.
 
 ---
 
