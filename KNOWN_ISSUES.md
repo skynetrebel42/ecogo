@@ -128,6 +128,13 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - Switching tabs mid-lookup still pops the product page when the lookup finishes.
 - ~~A scan can sit on "Looking up…" while the location prompt is unanswered~~ (moot since M3: no location request).
 
+### `foods` re-import (M10, after launch; no spec yet)
+
+- A re-import over a loaded table rewrites every row, and Postgres keeps the old copies until a vacuum: after the M10.1
+  re-import `foods` was 418 MB with ~76k dead rows counted (database 429 MB of the free plan's 500 MB). `VACUUM FULL` needs room
+  for a second copy, so it isn't the fix. The twice-a-year re-import needs a design: e.g. load into a staging table and
+  swap, or empty the table in a quiet window (the app's lookups miss until the load ends).
+
 ### Concern-level follow-ups (from the M4 final review, deferred)
 
 - "Veggie", "vegan" and the like in a product name skip the ingredient scan, so "Sausage & Veggie Breakfast Bowl" with
