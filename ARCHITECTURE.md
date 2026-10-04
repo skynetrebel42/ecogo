@@ -316,4 +316,4 @@ static or a no-op; **broken**.
 | Google Maps | MapTab "Directions" link | opens `google.com/maps/dir/?api=1&destination=<lat>,<lng>`: the place's position only |
 | images.unsplash.com | Home recommendations | hotlinked photo ids |
 | fonts.googleapis.com | `src/styles/index.css` | Plus Jakarta Sans (DM Mono dropped 2026-10-02: it was never wired to `font-mono`) |
-| Product/barcode APIs (Open Food Facts etc.) | — | **none**; offline-only |
+| Product/barcode APIs (Open Food Facts etc.) | — | USDA FoodData Central + Open Food Facts lookups (M2); M10 moves USDA to our own table |
