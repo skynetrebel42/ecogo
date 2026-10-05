@@ -5,6 +5,7 @@
 // M7.2/M7.3: the welcome screen is honest and shows once per device; Profile shows only true things.
 // M7.4: no Map in the nav; no prices, Share or AI claims; Saved has only Favorites (empty at first) and Scanned; a USDA
 // search result, opened and bookmarked, is listed in Favorites.
+// Data ownership: lookups, nutrition, search and alternatives come from our own `foods` table; USDA's API is never called.
 // M9: the Map tab is back (its own check: docs/archive/plans/2026-10-02-m9-assets/check-map.mjs).
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 import { spawn } from "node:child_process";
@@ -21,6 +22,7 @@ const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging
 setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 120000).unref?.();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
+const requests = []; // every URL the page asked for (Network events)
 let ok = 0, total = 0;
 const check = (name, pass, detail = "") => { total++; if (pass) ok++; console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? "  — " + detail : ""}`); };
 try {
@@ -32,6 +34,7 @@ try {
   ws.addEventListener("message", e => {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
+    if (m.method === "Network.requestWillBeSent") requests.push(m.params.request.url);
     if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.exception?.description?.slice(0, 160));
     if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map(a => a.value ?? a.description).join(" ").slice(0, 160));
   });
@@ -54,6 +57,7 @@ try {
     return h ? [...h.parentElement.nextElementSibling.querySelectorAll("button")].map(b => b.innerText.split("\\n")[0]) : null; })()`);
 
   await send("Runtime.enable");
+  await send("Network.enable");
   await send("Page.navigate", { url: URL_ });
   await sleep(4000);
   await helpers();
@@ -181,6 +185,32 @@ try {
   const kind = await run(`document.body.innerText`);
   check("KIND Bars (no nutrition data): no pointer to a missing Nutrition section", kind.includes("KIND Bars")
     && kind.includes("This badge doesn't rate nutrition.") && !kind.includes("see the Nutrition section") && !kind.includes("Added sugar"));
+  // Data ownership (spec 2026-10-02-m10-data-ownership-design.md §7): lookups, nutrition, search and alternatives come from
+  // our own `foods` table. The app never calls USDA's API.
+  const scanTyped = (code, text) => run(`(async () => {
+    __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
+    __btn("Close camera")?.click(); await __sleep(800); const i = await __until(() => document.querySelector('input[aria-label="Barcode number"]'));
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, ${JSON.stringify(code)});
+    i.dispatchEvent(new Event("input", { bubbles: true })); await __sleep(200); __btn("Look up").click();
+    await __until(() => !document.querySelector('input[aria-label="Barcode number"]') && document.body.innerText.includes(${JSON.stringify(text)}), 15000);
+    await __sleep(800); return document.body.innerText; })()`);
+  await back(); await back(); // KIND product → search → home
+  await home();
+  const tos = await scanTyped("028400064057", "Tostitos");
+  check("a barcode outside the catalog is found in our database, with the USDA snapshot date",
+    tos.includes("Tostitos") && /snapshot [A-Z][a-z]{2} \d{4}/.test(tos), tos.match(/\(snapshot [^)]*\)/)?.[0] ?? "no snapshot note");
+  await back(); await home();
+  const dor = await scanTyped("028400335799", "Doritos");
+  const alt = await run(`(async () => { await __until(() => document.body.innerText.includes("Alternatives with fewer concerns"), 15000); return document.body.innerText; })()`);
+  check("a flagged product shows alternatives from the same USDA category, with the caption",
+    dor.includes("Doritos") && alt.includes("Alternatives with fewer concerns") && alt.includes("Availability near you isn't known"));
+  await back(); await home();
+  await run(`document.querySelector('input[placeholder^="Search products"]').focus(); true`);
+  await type("granola");
+  const more = await run(`(async () => { const first = () => [...document.querySelectorAll("p")].find(e => e.innerText === "More from USDA FoodData Central")?.parentElement.querySelector("button");
+    return !!(await __until(first, 20000)); })()`);
+  check("a text search lists more products from our USDA copy", more);
+  check("USDA's own API is never called", !requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {
   console.log(`${ok}/${total} checks passed`);
