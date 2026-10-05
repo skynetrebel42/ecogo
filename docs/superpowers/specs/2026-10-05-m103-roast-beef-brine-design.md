@@ -1,7 +1,7 @@
 # M10.3: Roast beef in a brine, ribs, meat sticks, and two old false flags (the last M10 rule fix): design spec
 
 - **Date:** 2026-10-05
-- **Status:** draft for the owner's approval. Part of M10, built on the `data-ownership` branch after M10.2 (`ENGINE_REV` 3 → 4),
+- **Status:** **approved by the owner 2026-10-05** (relayed by the PM chat; D4-D6 accepted as written, including meat sticks). Part of M10, built on the `data-ownership` branch after M10.2 (`ENGINE_REV` 3 → 4),
   merged to `main` with M10. **Reference code and tests are ready and checked** (assets below).
 - **Decided with:** the owner (Minh Bui), relayed by the PM chat 2026-10-05: (1) **two old false flags** are fixed, "Franks Red
   Hot" is not franks and non-animal "meat" (coconut and the like) is not meat; (2) the **misses** of the M10.2 first pass;
