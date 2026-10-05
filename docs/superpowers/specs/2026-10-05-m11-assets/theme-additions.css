@@ -1,0 +1,43 @@
+/* M11 part 4 (text size and high contrast): what changes in src/styles/theme.css. Spec: docs/superpowers/specs/2026-10-05-m11-quick-wins-design.md.
+ *
+ * 1. In the existing :root block, change `--font-size: 16px;` to `--font-size: 100%;` (the root size now follows the browser's own
+ *    text-size setting; it was a fixed 16px that ignored it), and add `--text-scale: 1;`.
+ * 2. Append everything below to the end of the file, after the @layer base block.
+ * 3. In src/app, replace text-[9px] -> text-nano, text-[10px] and text-[10.5px] -> text-micro, text-[11px] -> text-mini, and
+ *    text-[26px] -> text-[calc(26px*var(--text-scale,1))], so every text size scales; layout (padding, widths) does not.
+ */
+
+:root[data-text-size="large"] { --text-scale: 1.15; }
+:root[data-text-size="larger"] { --text-scale: 1.3; }
+
+/* Font-size tokens scale with the choice; Tailwind's text-xs … text-2xl read these. */
+@theme {
+  --text-xs: calc(0.75rem * var(--text-scale, 1));
+  --text-sm: calc(0.875rem * var(--text-scale, 1));
+  --text-base: calc(1rem * var(--text-scale, 1));
+  --text-lg: calc(1.125rem * var(--text-scale, 1));
+  --text-xl: calc(1.25rem * var(--text-scale, 1));
+  --text-2xl: calc(1.5rem * var(--text-scale, 1));
+  --text-nano: calc(0.5625rem * var(--text-scale, 1));
+  --text-micro: calc(0.625rem * var(--text-scale, 1));
+  --text-mini: calc(0.6875rem * var(--text-scale, 1));
+}
+
+/* High contrast: every text token reaches 7:1 (WCAG AAA) on the surfaces it sits on; borders reach 3:1. Verdict colours keep
+ * their word + icon + shade and stay at 4.5:1 or better. */
+:root[data-contrast="high"] {
+  --background: #FFFFFF;
+  --foreground: #000000;
+  --card: #FFFFFF;
+  --card-foreground: #000000;
+  --muted: #F3F4F6;
+  --muted-foreground: #374151;
+  --border: rgba(0, 0, 0, 0.55);
+  --primary: #14532D;
+  --secondary-foreground: #14532D;
+}
+/* Translucent white text on the product hero becomes solid white; the hero gradient becomes its darkest stop (--hero-solid,
+ * set inline from VERDICT_STYLE.solid next to the gradient). */
+:root[data-contrast="high"] [class*="text-white/"] { color: #FFFFFF; }
+:root[data-contrast="high"] [data-hero] { background: var(--hero-solid, #1F2937) !important; }
+:root[data-contrast="high"] :is(.text-gray-400, .text-gray-500, .text-gray-600) { color: #374151; }
