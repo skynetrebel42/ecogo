@@ -149,6 +149,12 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
   (about 10 products) and roast beef outside the cold-cut categories read Nothing flagged; a label typo such as "PORT" for
   pork can't be read as meat by a rule; cooked or injected fresh poultry (decision D6) and any other "salting" broader than
   IARC's examples read Nothing flagged.
+- *From M10.2 (spec §7, measured and left as they are):* smoked or cured meat that isn't meatballs, ribs or roast beef and
+  has no processed-meat word in its name reads Nothing flagged (smoked pulled pork and chops, "Schmacon" beef bacon, Jack
+  Link's beef sticks, "Bacon Wrapped" steaks whose label lists only the cure); deli turkey filed under "Poultry, Chicken &
+  Turkey" stays unflagged (that category is mostly fresh and injected chicken, D6); a "rib shaped pork riblets patty" reads
+  sausage (a patty, by the owner's rule); plain phosphate-only meatballs and plain ribs in sauce stay unflagged by decision
+  029.
 - Acrylamide marker edges (marker only): Cream of Wheat gets 🔥 (EU (d) excludes porridge); "Honey Bunches of Oats" and
   "Oatmeal Squares" lose it (the `PORRIDGE` regex); USDA "Coffee Ice Cream" gets it (the coffee name fallback); catalog
   fries filed under "Frozen" wouldn't get it (none today).

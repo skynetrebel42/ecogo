@@ -8,6 +8,7 @@ checked**, and the **commit**.
 
 | Date | Fix / update | Commit |
 |---|---|---|
+| 2026-10-04 | M10.2 sausage names, cured and preserved meat (the M10.1 re-gate's misses); full labels in the audit | `a958a32` |
 | 2026-10-04 | M10.1 processed-meat rules (the M10 launch audit's misses and false flags) | `4e8509b` |
 | 2026-10-03 | M10 plan deviations: importer batched delete, search/alternatives timing, audit sampler | `a56af25`, `15d2935`, `17b2542` |
 | 2026-10-02 | Map: a failed My location after a success drops the old position | `5340bbb` |
@@ -20,6 +21,26 @@ checked**, and the **commit**.
 | 2026-10-01 | Open Food Facts "Looks wrong? Fix it" and "Add it" links | `39ff6e3` |
 | 2026-10-01 | Search: whole-word matching + "More from USDA" results | `9d32c29` |
 | 2026-10-01 | Camera: HD capture for iPhone/PC, start-up race, `?debug` readout | `8cb7bec` |
+
+---
+
+## 2026-10-04 — M10.2 sausage names, cured and preserved meat (`a958a32`)
+
+- **Wrong:** the M10.1 re-gate stopped after 220 clean-meat products: 0 false flags, 47 misses. 31 were real: sausage
+  patties and links under USDA's abbreviations and typos ("Saus,Pty", "Ssg", "Sausge", "Breakfast Links"), deli turkey
+  under "Bacon, Sausages & Ribs", smoked ribs and celery- or lactate-preserved meatballs. The live table also showed about
+  430 bacon and ham products in USDA's generic prepared-meat category with an additive badge but no meat finding.
+- **Why:** the brine-only rule (M10.1 A1) needs a meat word in the name and didn't count the generic category; no rule
+  covered cured or preserved meatballs and ribs. Spec: `docs/superpowers/specs/2026-10-04-m102-sausage-cure-rules-design.md`
+  (owner decisions 029 and 030, defaults D4-D6).
+- **Changed:** the processed-meat block of `foodConcerns.ts` (rules S, C, G, N, P), new `processedMeatCure.test.ts`,
+  `ENGINE_REV` 2 → 3. Also removed six lines of the M10.1 asset's header that the M10.1 paste left in `foodConcerns.ts`
+  as comments (the splice matched the header's own mention of its start line). `audit-foods.mjs` prints full labels
+  (a 600-character cut made about 30 first-pass answers "unsure"), widens the clean-meat draw and adds the M10.2 prompt
+  paragraph.
+- **Checked:** `npm test` 211/211 (the 16 new failed 11/16 before the code); `npm run build` green; `verify:sources`
+  16 pass, 0 fail, 16 unverifiable (EUR-Lex now bot-gates its 7 pages; the other 9 as before); sampler dry-run on the
+  rev-2 table: 1,197 entries in 30 batches.
 
 ---
 
