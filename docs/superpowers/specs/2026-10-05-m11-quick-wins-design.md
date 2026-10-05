@@ -1,7 +1,7 @@
 # M11: Quick wins (food icons, "Update info", expandable Profile rows, text size and high contrast): design spec
 
 - **Date:** 2026-10-05
-- **Status:** draft for the owner's approval. Front end only: no new data, no database change, no new dependency. One milestone,
+- **Status:** **approved by the owner 2026-10-05** (relayed by the PM chat; D1-D7 accepted as written, including D2). Front end only: no new data, no database change, no new dependency. One milestone,
   four small parts built **in this order, one commit each** (work in progress: one part at a time).
 - **From:** the owner's app review, item 1 (`docs/superpowers/ideas/2026-10-05-owner-app-review.md`); order of work is decision 033.
   **Reference code and tests are ready and checked** (assets below).
