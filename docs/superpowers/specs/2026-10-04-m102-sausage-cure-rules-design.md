@@ -1,7 +1,7 @@
 # M10.2: Sausage names, cured and preserved meat (fix the gaps the M10.1 re-gate found): design spec
 
 - **Date:** 2026-10-04
-- **Status:** draft for the owner's approval. Part of M10, built on the `data-ownership` branch after M10.1 (`ENGINE_REV` 2 → 3),
+- **Status:** **approved by the owner 2026-10-04** (relayed by the PM chat; D4-D6 defaults accepted as written). Part of M10, built on the `data-ownership` branch after M10.1 (`ENGINE_REV` 2 → 3),
   merged to `main` with M10. **Reference code and tests are ready and checked** (assets below).
 - **Decided with:** the owner (Minh Bui), relayed by the PM chat 2026-10-04: (1) **sausage names** in USDA's sausage categories;
   (2) **meatballs and ribs** are processed meat when smoked, cured or preserved (**decision 029**); (3) **the gate changes**
