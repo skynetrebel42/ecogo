@@ -46,16 +46,10 @@ export const PROCESSED_MEAT: Omit<FoodConcern, "reason"> = {
   ],
 };
 
-// IARC's examples" down to (not including)
-// the line "/** A product that only CONTAINS processed meat reads High" with the code below (this header excluded). The
-// constants FOOD_CATEGORIES, PROCESSED_MEAT, parseIngredients, containsProcessedMeat, FoodInput and FoodConcern already exist
-// in that file. Checked against main 08bef84: all 166 existing tests pass with it, plus the 16 in
-// processedMeatRules.test.ts (same folder; copy it to src/lib/safety/).
-// ---------------------------------------------------------------------------------------------------------------------
 // IARC's examples ("hot dogs (frankfurters), ham, sausages, corned beef, and biltong or beef jerky as well as canned
 // meat") plus common cured/smoked meats. Whole words only ("graham" is not ham). "franks" never matches before an
 // apostrophe, so "Frank's RedHot" isn't meat.
-const PM_WORD = /\b(hot ?dogs?|frankfurters?|franks?(?!['’])|wieners?|bacon|hams?|sausages?|salami|pepperoni|chorizo|bologna|pastrami|corned beef|jerky|biltong|prosciutto|spam|luncheon meat|lunch ?meats?|deli meats?|cold cuts?|kielbasa|brat(?:wurst)?s?|mortadella|pancetta|(?:cured|smoked)[- ](?:pork|beef|turkey|chicken|meat))\b/i;
+const PM_WORD = /\b(hot ?dogs?|frankfurters?|franks?(?!['’])|wieners?|bacon|hams?|sausages?|salamis?|pepperoni|chorizo|bologna|pastrami|corned beef|jerky|biltong|prosciutto|spam|luncheon meat|lunch ?meats?|deli meats?|cold cuts?|kielbasa|brat(?:wurst)?s?|mortadella|pancetta|(?:cured|smoked)[- ](?:pork|beef|turkey|chicken|meat))\b/i;
 // A name that says the product is meat-free: "Vegan Italian Sausage", "Plant-Based Bacon". "Vegetarian-Fed" describes the
 // animal's diet, not the product (M10.1 C).
 const NEGATOR = /\b(?:imitation|vegan|vegetarian(?![- ](?:fed|diet|raised))|plant[- ]based|meatless|meat[- ]free|veggie)\b|\bno (?:bacon|ham|sausage|pepperoni|salami|meat)\b/i;
@@ -78,7 +72,28 @@ const DISH = /\b(pizzas?|sandwich(es)?|wraps?|salads?|soups?|pasta|burritos?|cal
 // Named for a use, but still the meat itself: "Sandwich Style Pepperoni", "Pepperoni Pizza Topping", "Salami Sandwich Slices".
 const USE = /\b(?:style|toppings?)\b|\bsandwich (?:slices|sliced|size)\b/i;
 // USDA categories that are processed meat by definition (sampled from real records 2026-09-30).
-const PM_USDA = new Set(["Sausages, Hotdogs & Brats", "Frozen Sausages, Hotdogs & Brats", "Pepperoni, Salami & Cold Cuts", "Canned Meat"]);
+const PM_USDA = new Set(["Sausages, Hotdogs & Brats", "Frozen Sausages, Hotdogs & Brats", "Pepperoni, Salami & Cold Cuts", "Canned Meat",
+  "Ham/Cold Meats", "Salami / Cured Meat", "Sausages/Smallgoods"]); // the last three: Australian/New Zealand deli categories (M10.2 P)
+// USDA's generic prepared-meat category: not processed by definition (it holds cooked patties and wings), but a ham or bacon whose
+// label lists only the brine is the same case as in a cold-cut category (M10.2 G).
+const GENERIC_PREPARED = /^Meat\/Poultry\/Other Animals\s*-?\s*Prepared\/Processed$/i;
+// Other categories of cooked and frozen meat, where meatballs and ribs are filed (M10.2 C).
+const MEAT_PRODUCT_CATEGORY = /^(?:Other Meats|Other Frozen Meats|Frozen Meat)$/i;
+const MEATBALL_OR_RIBS = /\b(?:meat ?balls?|ribs|rib tips?|riblets?|spareribs?|roast beef)\b/i;
+// "Pork Links", "Breakfast Links" in the cooked and frozen meat categories (not "Jack Link's"): sausage there too (M10.2 S).
+const MEAT_LINKS_NAME = /\b(?:pork|beef|chicken|turkey|breakfast)\s+links?\b/i;
+// A category with "sausage" in its name (also USDA's "Meat/Poultry/Other Animals Sausages - Prepared/Processed", spelled several
+// ways), and the names that mean sausage there (M10.2 S): links, patties, bangers, chipolatas, USDA's abbreviations (Saus, Ssg,
+// Lk, Pty) and typos (Sauage, Sausge). A burger is not a sausage. Not every product in these categories is a sausage (USDA
+// files sandwiches and biscuits in them), so the category alone proves nothing; the name does.
+const SAUSAGE_CATEGORY = /\bsausages?\b/i;
+const SAUSAGE_NAME = /\b(?:saus|ssg|lk|pty|sauage|sausge|links?|patt(?:y|ies)|bangers?|chipolatas?)\b/i;
+const BURGER_NAME = /\bburgers?\b/i;
+// Label items that show a cure or a preservative, and a name that says smoked (M10.2 C). Phosphates are not on the list: a
+// meatball of meat, salt, spices and phosphate is unflagged. "Smoke flavor" on the label is a flavouring, not smoking; celery
+// salt is a spice.
+const CURE_ITEM = /\b(?:nitrites?|nitrates?|(?:sodium|potassium) (?:lactate|diacetate)|cultured celery|celery (?:powder|juice))\b/i;
+const SMOKED_NAME = /\bsmoked\b/i;
 // USDA categories of meat products (cold cuts, sausages, bacon, ham): where a label that lists no base other than meat is the
 // brine-only label of a meat product (M10.1 A1). Not "Vegetarian Frozen Meats", fish, cheese, bread or snacks.
 const MEAT_CATEGORY = /\b(?:sausages?|bacon|salami|cold cuts?|cured meat|hot ?dogs?|canned meat|ham)\b/i;
@@ -113,8 +128,12 @@ function processedMeat(p: FoodInput): FoodConcern | null {
   const items = parseIngredients(text.replace(IMITATION_BITS, " ")).filter(item => !NOT_MEAT_ITEM.test(item));
   if (FLAVOURED_NAME.test(name) && !(items.length > 0 && MEAT_INGREDIENT.test(items[0]))) return null;
   const cat = p.source?.foodCategory ?? "";
-  const meatCategory = MEAT_CATEGORY.test(cat) && !NOT_MEAT_CATEGORY.test(cat);
-  const meatNoun = words.length > 0 || MEAT_INGREDIENT.test(name);
+  const familyCategory = MEAT_CATEGORY.test(cat) && !NOT_MEAT_CATEGORY.test(cat);
+  const meatCategory = familyCategory || GENERIC_PREPARED.test(cat);
+  const sausageName = !BURGER_NAME.test(name) && (SAUSAGE_CATEGORY.test(cat) && !NOT_MEAT_CATEGORY.test(cat) && SAUSAGE_NAME.test(name)
+    || (meatCategory || MEAT_PRODUCT_CATEGORY.test(cat)) && MEAT_LINKS_NAME.test(name));
+  if (words.length === 0 && sausageName && !PM_USDA.has(cat)) words.push("Sausage"); // a USDA processed-meat category already says it
+  const meatNoun = words.length > 0 || sausageName || MEAT_INGREDIENT.test(name);
   // A: the label names meat, or there is no label, or (a meat category, a meat noun in the name, and no non-meat base on the
   // label) the label is only the brine, glaze or cure of a product whose meat the label leaves out.
   const brineOnly = meatCategory && meatNoun && items.length > 0 && !NOT_DELI_NAME.test(name) && !MEAT_FLAVOUR_ITEM.test(text)
@@ -134,6 +153,15 @@ function processedMeat(p: FoodInput): FoodConcern | null {
   for (const item of items) {
     const m = item.match(PM_WORD);
     if (m) return containsProcessedMeat(m[1]);
+  }
+  // C: a label that starts with meat (or is only the brine of a meat) and shows a cure, a preservative or a smoked name is
+  // processed meat even when the name says meatballs, ribs or only "Sliced Turkey" (M10.2). In the sausage, bacon, ham and
+  // cold-cut categories always; for meatballs and ribs also in the cooked and frozen meat categories. After the loop above:
+  // a product that lists a processed meat among other things keeps reading "contains".
+  const cure = items.map(i => i.match(CURE_ITEM)).find(Boolean);
+  const cureScope = familyCategory || (MEATBALL_OR_RIBS.test(name) && (meatCategory || MEAT_PRODUCT_CATEGORY.test(cat)));
+  if (cureScope && items.length > 0 && (MEAT_INGREDIENT.test(items[0]) || brineOnly) && !DISH.test(name) && (cure || SMOKED_NAME.test(name))) {
+    return { ...PROCESSED_MEAT, reason: `Processed meat (${cure ? `${cure[0].toLowerCase()} on the label` : "smoked"}; USDA category "${cat}")` };
   }
   return null;
 }

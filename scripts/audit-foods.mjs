@@ -15,7 +15,7 @@ export function entryText(row, n, kind) {
     ...a.flags.map(f => `${f.entry.name} (“${f.matchedText}”)`),
     ...a.concerns.map(c => c.reason),
   ].join(" · ") || "(nothing)";
-  const label = row.ingredients.length > 600 ? `${row.ingredients.slice(0, 600)}…` : row.ingredients;
+  const label = row.ingredients; // full label (M10.2): a cut hid the finding and made the first pass "unsure"
   return [
     `### ${n}. ${row.brand} — ${row.name}  (${row.barcode}, ${row.category})`,
     `Kind: ${kind} | Badge now: ${a.verdict} (stored: ${row.verdict})`,
@@ -64,14 +64,16 @@ async function rowsFor(db, keys) {
   return keys.map(k => byKey.get(k)).filter(Boolean);
 }
 
-// M10.1 spec §6 step 3: every "Nothing flagged" product in these USDA categories, plus up to 150 named like processed meat.
+// M10.2 spec §6 step 3: every "Nothing flagged" product in these USDA categories; in the generic prepared-meat and "Other"
+// meat categories, every one named like processed meat; plus up to 150 named like it anywhere else.
 const MEAT = new Set(["Pepperoni, Salami & Cold Cuts", "Sausages, Hotdogs & Brats", "Frozen Sausages, Hotdogs & Brats",
   "Canned Meat", "Bacon, Sausages & Ribs", "Frozen Bacon, Sausages & Ribs", "Sausages/Smallgoods", "Bacon",
   "Salami / Cured Meat", "Ham/Cold Meats"]);
 export const meatCategory = c => MEAT.has(c) || /^Meat\/Poultry\/Other Animals Sausages\b.*Prepared\/Processed$/.test(c);
-export const MEAT_NAME = /\b(?:ham|bacon|sausages?|salami|pepperoni|hot ?dogs?|jerky|bologna)\b/i;
+export const genericMeatCategory = c => /^(?:Meat\/Poultry\/Other Animals -? ?Prepared\/Processed|Other Meats|Other Frozen Meats)$/.test(c.replace(/\s+/g, " "));
+export const MEAT_NAME = /\b(?:hams?|bacon|sausages?|salamis?|pepperoni|hot ?dogs?|franks?|jerky|bologna|links?|ribs|meat ?balls?|roast beef)\b/i;
 
-/** The first-pass prompt (M10 plan Task 5 step 7, with the M10.1 spec §6 step 4 addition); <BATCH> is the batch file's path. */
+/** The first-pass prompt (M10 plan Task 5 step 7, with the M10.1 and M10.2 spec §6 step 4 additions); <BATCH> is the batch file's path. */
 export const PROMPT = `You are checking safety badges on packaged foods. Read the batch file <BATCH>. Each numbered entry shows a product, the badge a program gave it ("Badge now"), the reasons it gave ("Why"), and the label's ingredient text ("Label"). Judge ONLY from the text in the entry; use no outside knowledge about the brand or the product.
 
 For entries with Kind: flagged, decide whether the badge is supported by the label:
@@ -79,6 +81,7 @@ For entries with Kind: flagged, decide whether the badge is supported by the lab
 - "high" (High concern) or "known" (Known carcinogen) is supported only if the label really contains the finding named in "Why": a listed additive, or processed meat (hot dogs, bacon, ham, sausage, salami, pepperoni, jerky, cured or smoked meat and the like). A product named after meat but made without it (plant-based, vegan, veggie, meat-free), a flavouring ("bacon flavor"), a bun, a sauce or seasoning meant to go with the meat, or a dish that merely contains a little meat is NOT the processed meat itself: "Contains processed meat" is supported only if the label lists such meat as an ingredient.
 For entries with Kind: clean-meat the badge is "none": decide whether that is right. It is WRONG if the label shows the product is processed meat or contains it (a missed flag).
 Processed meat includes canned and deli chicken and turkey, and deli roast beef in a salt or preservative solution (WHO/IARC: meat transformed through salting, curing, fermentation, smoking or other processes to enhance flavour or improve preservation). It does NOT include a fresh cut (for example 'Pork Ham Bone In' with the label 'Pork'), bacon FAT alone, imitation bacon bits, fish, or a product whose name only says 'flavored'.
+Processed meat also includes sausage links, patties and breakfast sausage, and meatballs or ribs that are smoked, cured (celery powder or juice, nitrite, nitrate) or preserved (sodium or potassium lactate, sodium diacetate). It does NOT include plain ground-meat meatballs or ribs (meat, salt, spices, phosphate only), burger patties, 'smoke flavor' on its own, or chicken injected with a solution.
 
 Answer with exactly one line per entry and nothing else:
 <number> | correct | "<the label phrase you relied on>" | <at most 10 words>
@@ -98,8 +101,8 @@ if (import.meta.main) {
   ].map(k => k.barcode_key);
   const none = keys.filter(k => k.verdict === "none");
   const meatKeys = [
-    ...none.filter(k => meatCategory(k.category)),
-    ...pick(none.filter(k => !meatCategory(k.category) && MEAT_NAME.test(k.name)), 150),
+    ...none.filter(k => meatCategory(k.category) || (genericMeatCategory(k.category) && MEAT_NAME.test(k.name))),
+    ...pick(none.filter(k => !meatCategory(k.category) && !genericMeatCategory(k.category) && MEAT_NAME.test(k.name)), 150),
   ].map(k => k.barcode_key);
   const flaggedRows = await rowsFor(db, flagged), meat = await rowsFor(db, meatKeys);
   const rows = [...flaggedRows.map(r => [r, "flagged"]), ...meat.map(r => [r, "clean-meat"])];
