@@ -155,6 +155,13 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
   Turkey" stays unflagged (that category is mostly fresh and injected chicken, D6); a "rib shaped pork riblets patty" reads
   sausage (a patty, by the owner's rule); plain phosphate-only meatballs and plain ribs in sauce stay unflagged by decision
   029.
+- *Logged misses of the M10 launch gate (decision 030, at most 5; M10.3 spec §4):* Haggen Bacon Wrapped Chuck Petite Tender
+  Medallions `241622908996` (the label lists only the bacon's cure); Hellers BBQ Pulled Pork `9415421009845` (category
+  "Bacon", acidity regulators and an unnamed preservative only); Brookshire's Teriyaki Beef Jerky `092825116493` (the label
+  says "BEST" for beef); Aunt Jemima Sausage And Egg Scramble `019600059646` (the "Imitation Cheddar" in the name hides the
+  real sausage). All read Nothing flagged.
+- *From M10.3 (spec §7, left as they are):* a roast beef whose label says only "BEEF, WATER" (no salt) isn't treated as
+  brined; "roast beef" in a language other than English isn't read.
 - Acrylamide marker edges (marker only): Cream of Wheat gets 🔥 (EU (d) excludes porridge); "Honey Bunches of Oats" and
   "Oatmeal Squares" lose it (the `PORRIDGE` regex); USDA "Coffee Ice Cream" gets it (the coffee name fallback); catalog
   fries filed under "Frozen" wouldn't get it (none today).

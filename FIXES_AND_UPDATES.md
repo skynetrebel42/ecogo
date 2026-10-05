@@ -8,6 +8,7 @@ checked**, and the **commit**.
 
 | Date | Fix / update | Commit |
 |---|---|---|
+| 2026-10-05 | M10.3 roast beef in a brine, ribs, meat sticks; "Franks Red Hot" and coconut "meat" false flags; targeted audit | `e890a2c` |
 | 2026-10-04 | M10.2 sausage names, cured and preserved meat (the M10.1 re-gate's misses); full labels in the audit | `a958a32` |
 | 2026-10-04 | M10.1 processed-meat rules (the M10 launch audit's misses and false flags) | `4e8509b` |
 | 2026-10-03 | M10 plan deviations: importer batched delete, search/alternatives timing, audit sampler | `a56af25`, `15d2935`, `17b2542` |
@@ -21,6 +22,25 @@ checked**, and the **commit**.
 | 2026-10-01 | Open Food Facts "Looks wrong? Fix it" and "Add it" links | `39ff6e3` |
 | 2026-10-01 | Search: whole-word matching + "More from USDA" results | `9d32c29` |
 | 2026-10-01 | Camera: HD capture for iPhone/PC, start-up race, `?debug` readout | `8cb7bec` |
+
+---
+
+## 2026-10-05 — M10.3 roast beef in a brine, ribs, meat sticks, two old false flags (`e890a2c`)
+
+- **Wrong:** the M10.2 first pass (1,106 products) found 2 false flags, both live on `main` since before M10: "FRANKS RED HOT
+  SAUCE" read as franks (a buffalo chicken pizza), and "COCONUT MEAT" backed a "Coconut Jerky" name (Known). It also found 13
+  misses: ribs whose label lists only the coating or marinade, celery-cured ribs under "Cooked & Prepared", Jack Link's meat
+  sticks with cultured celery, roast beef in a brine, and brined roast beef inside sliders and sandwiches.
+- **Why:** "franks" was only skipped before an apostrophe; any item with the word "meat" counted as meat; the cure rule of
+  M10.2 needed a meat item first on the label and didn't know meat sticks, "Cooked & Prepared" or roast beef in a brine.
+  Spec: `docs/superpowers/specs/2026-10-05-m103-roast-beef-brine-design.md` (decisions 031 and 032, defaults D4-D6).
+- **Changed:** the processed-meat block of `foodConcerns.ts` (rules F1, F2, R1-R4), new `processedMeatBrine.test.ts`,
+  `processedMeatCure.test.ts` replaced (C6 follows decision 032), `ENGINE_REV` 3 → 4. `audit-foods.mjs --recheck` re-scores
+  the earlier samples for the targeted gate (decision 031) and adds the M10.3 prompt line. 4 misses stay, logged in
+  `KNOWN_ISSUES.md`.
+- **Checked:** `npm test` 217/217 (the new tests failed 6/22 before the code); `npm run build` green; `verify:sources` 16 pass,
+  0 fail, 16 unverifiable (as in M10.2); recheck of the 1,615 M10.1 and M10.2 sample rows against the stored rev-3 scores:
+  15 change, each read against its full label (the spec's 12, plus 3 Slim Jim sticks with nitrite going High → Known).
 
 ---
 
