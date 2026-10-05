@@ -16,13 +16,13 @@ Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + S
 
 ## Rules
 - Nothing the app shows may be invented. Every safety flag needs a verbatim source (`verify:sources`).
-- Browser writes nothing to Supabase. USDA key stays in the `usda-relay` Edge Function, never in client code.
+- Browser writes nothing to Supabase. No API key in client code: lookups read EcoGo's own `foods` table (M10); only the owner's `.env.local` holds the service-role key for `npm run import:usda`.
 - Every push to `main` deploys to GitHub Pages.
 
 ## Current state (update when a milestone ships)
-- M1–M9 live on `origin/main`. **M10** (own USDA copy, 430k products in Supabase `foods`) is built on worktree branch `data-ownership` (`../EcoGo-foods`), not pushed; launch audit failed, **on hold for M10.1** (processed-meat rules fix).
-- Order: M10.1 → finish M10 (re-import, re-audit, delete `usda-relay` + `FDC_API_KEY`) → M8 add-a-product.
-- Active specs: `docs/superpowers/specs/` (m101, m10, m8). Decisions live ONLY in the `PROJECT_HANDOFF.md` decision log; don't re-open them.
+- M1–M10 live on `origin/main`. **M10**: own USDA copy, 430,127 products in Supabase `foods` (engine_rev 4, after the M10.1–M10.3 processed-meat rules); the app never calls USDA. Re-import: empty the table first (a reload over a full one doubles its size).
+- Order after M10 (owner, 2026-10-05): `docs/superpowers/ideas/2026-10-05-owner-app-review.md` (quick wins → Home redesign → Map near me → Collections → M8 add-a-product → …).
+- Active specs: `docs/superpowers/specs/` (m10, m101–m103, m8). Decisions live ONLY in the `PROJECT_HANDOFF.md` decision log; don't re-open them.
 
 ## Multi-chat rules
 - Commit by exact path. Never `add -A`, `commit -a`, amend, reset, rebase, stash, or force-push on `main` (hook enforces). Builds happen on worktree branches.

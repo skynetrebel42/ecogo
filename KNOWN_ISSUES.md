@@ -116,21 +116,27 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
   over.~~ (moot since M7.5: no `DEMO_KEY`). The relay passes USDA's status through, so a 429 from the shared quota (see
   "USDA relay" below) shows the same generic message.
 
-### USDA relay (M7.5, accepted trade-off)
+### ~~USDA relay (M7.5, accepted trade-off)~~ (moot since decision 034: M10 retired the relay, and with it the shared quota)
 
-- All visitors share USDA's limit for the relay's outbound address(es): plan for **1,000 requests an hour in total**
-  (each visitor had their own 1,000 before; Supabase may spread calls over several addresses, unverified). A first-time
-  lookup costs 1-2 requests, a catalog product's nutrition 1-2, a text search 1. Beyond that USDA answers 429 and the app
-  shows its error state; Open Food Facts still covers 12+ digit codes. M10 (EcoGo's own copy of USDA Branded Foods)
-  removes the limit.
-- The origin check stops other *websites*, not scripts: anyone with `curl` and a forged `Origin` can spend the shared
-  quota. If that happens: a per-IP limit in the function, or pull M10 forward.
+- ~~All visitors share USDA's limit for the relay's outbound address(es): plan for 1,000 requests an hour in total.~~
+- ~~The origin check stops other websites, not scripts: anyone with `curl` and a forged `Origin` can spend the shared
+  quota.~~
 - Switching tabs mid-lookup still pops the product page when the lookup finishes.
 - ~~A scan can sit on "Looking up…" while the location prompt is unanswered~~ (moot since M3: no location request).
 
-### `foods` re-import (M10, after launch; no spec yet)
+### Data-ownership follow-ups (M10)
 
-- A re-import over a loaded table rewrites every row, and Postgres keeps the old copies until a vacuum: after the M10.1
+- Refresh the `foods` copy about twice a year (USDA's Branded Foods release) and after any safety-library change (bump
+  `ENGINE_REV` in `src/lib/foodsImport.ts`); the owner runs `npm.cmd run import:usda -- <the zip>`.
+- Added sugar is present for only about 32% of USDA products, so the sugar row reads "not listed" for most of them.
+- Alternatives have no popularity ranking, so they can be products you can't buy nearby (the caption says so). The list can
+  show the same product twice when USDA has it under two barcodes ("'nana Chips, Blazing Buffalo" under Doritos).
+- The weekly keep-alive (`.github/workflows/keep-alive.yml`) is a workaround: GitHub turns scheduled workflows off after
+  60 days without repository activity.
+- Search is whole-word with a plural "s" only ("berries" doesn't find "berry").
+- The launch audit: three rounds of rules (M10.1-M10.3), final gate passed 2026-10-05 with 0 false flags and 4 logged
+  misses (see the concern-level follow-ups above and `FIXES_AND_UPDATES.md`).
+- **Re-import design (after launch; no spec yet):** a re-import over a loaded table rewrites every row, and Postgres keeps the old copies until a vacuum: after the M10.1
   re-import `foods` was 418 MB with ~76k dead rows counted (database 429 MB of the free plan's 500 MB). `VACUUM FULL` needs room
   for a second copy, so it isn't the fix. The twice-a-year re-import needs a design: e.g. load into a staging table and
   swap, or empty the table in a quiet window (the app's lookups miss until the load ends).
@@ -316,10 +322,15 @@ but no screen shows them.
   position still sorts the list and shows the blue dot.~~ Fixed 2026-10-02 (`5340bbb`, FIXES_AND_UPDATES).
   `Fr[1,3],Sa[1,3]` reads "1st & 3rd Fri & 1st & 3rd Sat" (accurate, clumsy).
 
-**Next** (the PM chat's order, 2026-10-02): M10 data ownership (EcoGo's own copy of USDA Branded
-Foods, which retires the relay; `docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md`), then M8
-add-a-product / no-barcode ingredient check (`docs/superpowers/specs/2026-10-02-m8-add-product-design.md`). Accounts
-come later.
+16. ✅ **M10 data ownership: done 2026-10-05** (branch `data-ownership`; migrations `foods_usda_copy` and the search and
+    alternatives tuning). EcoGo keeps its own read-only copy of USDA Branded Foods: 430,127 products (2026-04-30 release)
+    in the `foods` table, scored by the app's own engine, with the snapshot date shown. Lookups, nutrition, search and
+    alternatives read it; the app never calls USDA, and the `usda-relay` function is retired (decision 034). The launch
+    audit led to three rounds of processed-meat rules (M10.1-M10.3, decisions 028-032). Design:
+    `docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md`.
+
+**Next** (the owner's order after M10, 2026-10-05): see `docs/superpowers/ideas/2026-10-05-owner-app-review.md` (quick
+wins, Home redesign, Map near me, Collections, then M8 add-a-product: `docs/superpowers/specs/2026-10-02-m8-add-product-design.md`).
 
 **Revisit:** when the official US definition of ultra-processed foods is published (HHS/USDA sent the first proposed
 definition for final review in August 2026), update the "Ultra-processed foods: no official line yet" explainer and

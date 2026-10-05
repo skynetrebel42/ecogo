@@ -24,9 +24,9 @@ npm run dev        # http://localhost:5173
 npm test
 ```
 
-Running it needs no API key: USDA lookups go through EcoGo's relay, a small Supabase Edge Function
-(`supabase/functions/usda-relay`) that keeps the USDA key as a server-side secret and accepts calls from the live site
-and from `localhost`.
+Running it needs no API key: product lookups read EcoGo's copy of USDA FoodData Central from Supabase. To load or
+refresh that copy (the owner's job): download USDA's Branded Foods JSON zip, put SUPABASE_SERVICE_ROLE_KEY in
+.env.local, then run npm run import:usda -- <the zip>.
 The Supabase URL and publishable key in `.env` are public by design; the database only allows reading the catalog.
 
 ## Built with

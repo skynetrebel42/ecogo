@@ -102,22 +102,30 @@ fake shopping lists or favorites, and the do-nothing Share button and the "resea
 
 **Step 12: USDA key relay (M7.5). ✅ Done 2026-10-02.** The USDA key is no longer in the public website code (USDA
 switches off keys it finds online): a small Supabase function now asks USDA on the app's behalf and keeps the key
-secret. Nothing looks different; all visitors now share one USDA allowance (about 1,000 requests an hour).
+secret. Nothing looks different; all visitors now share one USDA allowance (about 1,000 requests an hour). (Retired by
+step 14.)
 
 **Step 13: real map (M9). ✅ Done 2026-10-02.** The Map is back with 162 real Los Angeles County food places (food
 banks, farmers markets, community gardens) from OpenStreetMap, credited and dated, with no star ratings or open/closed
 guesses. It asks for your location only when you tap My location.
 
-**Next:** EcoGo's own copy of USDA's product data
-(M10, which removes the shared allowance), then adding a missing product (M8); later persistent favorites and
-accounts, only if a feature needs per-user data.
+**Step 14: EcoGo's own copy of USDA's product data (M10). ✅ Done 2026-10-05.** Instead of asking USDA for every
+scan, EcoGo now keeps its own copy of USDA's packaged-food list (430,127 products, April 2026 release) in its database.
+Why: any product can now show cleaner alternatives from its own aisle, scans are faster and don't depend on USDA being
+up, search finds products beyond the 51 in the catalog, and the shared allowance is gone, so the app is safe with many
+visitors. Each product page says which USDA release it came from. Checking that copy before launch led to three rounds
+of better processed-meat rules (sausage abbreviations, cured meatballs and ribs, roast beef in a brine), which the live
+app's lookups use too. It cost nothing new: it fits in the free Supabase plan (about 300 MB of 500).
+
+**Next** (the owner's order): a small quick-wins batch, a Home redesign, a "near me" map, collections, then adding a
+missing product (M8). See `docs/superpowers/ideas/2026-10-05-owner-app-review.md`.
 
 ## 5. How to start the next session
 
 Open Claude Code in `C:\Users\minhb\Downloads\EcoGo!` and say something like:
 
-> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–13 are done; the live site is
+> Read PROJECT_HANDOFF.md, ARCHITECTURE.md and KNOWN_ISSUES.md (steps 0–14 are done; the live site is
 > https://skynetrebel42.github.io/ecogo/; my Supabase project is
 > `ecogo` / `gippyavmxxzqxjkuahpt`; my goals are in PROJECT_HANDOFF.md → "Owner goals").
-> Next: M10 data ownership, then M8 add-a-product. Every push to main publishes the site, so ask before pushing. Keep each
+> Next: the quick-wins batch from docs/superpowers/ideas/2026-10-05-owner-app-review.md. Every push to main publishes the site, so ask before pushing. Keep each
 > change small, commit each one, verify it in the running app, and keep `npm test` green.

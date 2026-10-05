@@ -35,8 +35,8 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | Runtime | Node 24.21.0, npm 11.19.0 (`package-lock.json`) |
 | Frontend | React 18.3.1, Vite 6.3.5, Tailwind 4.1.12 via `@tailwindcss/vite`, lucide-react. 8 runtime dependencies (M0 removed 53 unused ones and the shadcn/ui kit; tw-animate-css went in the 2026-10-02 cleanup) |
 | Map | leaflet 1.9.4 + leaflet.markercluster 1.5.3 (used directly, no react-leaflet). Back in the bundle with the Map (M9) |
-| Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. One Edge Function since M7.5: **`usda-relay`** (`supabase/functions/usda-relay/index.ts`, `verify_jwt` off) relays the app's two USDA searches and holds the USDA key as the Supabase secret `FDC_API_KEY`. |
-| Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). No key is needed to run or build the app (M7.5): the USDA key is a Supabase secret the owner sets in the dashboard, and `.env.local` no longer needs `VITE_FDC_API_KEY`. |
+| Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. No Edge Function since M10 (the M7.5 `usda-relay` is retired, decision 034). |
+| Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). No key is needed to run or build the app. The owner's gitignored `.env.local` holds `SUPABASE_SERVICE_ROLE_KEY`, only for loading the USDA copy (`npm run import:usda`); no chat reads it. |
 | Barcode / camera | **None** |
 | Types / lint / tests | Tests: Node's built-in `node --test` with native TypeScript type stripping (no test framework). No TypeScript package, tsconfig or ESLint |
 | Scripts | `npm run dev` (vite), `npm run build` (vite build), `npm test` (everything under `src/lib/**`: safety engine, 51-product check, lookup client), `npm run verify:sources` (re-fetches every library source and checks its quote; needs internet) |
@@ -48,7 +48,7 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
  ┌──────────────────────────────────────────────────────────────────────────────┐
  │ main.tsx → App.tsx (state, navigation, Home/Search/Saved/Profile inline)     │
  │   ├─ loadData() ── lib/catalog.ts ──┐        (MapTab.tsx: hidden, M7.4)      │
- │   ├─ ScanTab.tsx ─ lib/lookup.ts (USDA via usda-relay → Open Food Facts)      │
+ │   ├─ ScanTab.tsx ─ lib/lookup.ts (our `foods` table → Open Food Facts)       │
  │   └─ ProductDetailScreen.tsx           │   lib/safety/* (concern level)      │
  │ productImporter.ts ◄─ products.csv (bundled) ─► initial / offline catalog    │
  └──────────┬─────────────────────────────┬──┼──────────────────────────────────┘
@@ -79,17 +79,19 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | `src/app/components/MapTab.tsx` | 265 | The Map (M9): Leaflet + clusters of the `resources` rows only, three type chips, My location, list sheet, place card, © OSM credit | SAFE TO EDIT |
 | `src/lib/osmPlaces.ts` | 172 | Pure: OSM element → `resources` row (`toPlace`), hours in plain words (`formatHours`, unknown patterns kept as written), address, LA box, sorting, OSM / edit / directions links; tested by `osmPlaces.test.ts` | SAFE TO EDIT |
 | `scripts/fetch-osm-places.mjs` | 62 | Hand-run snapshot: Overpass query (LA County boundary) or a saved response → migration SQL replacing every `resources` row | SAFE TO EDIT (the output is a new migration; never edit an applied one) |
-| `src/app/components/ScanTab.tsx` | 266 | Simulated scanner: demo barcodes, type-a-barcode, catalog → lookup, not-found and error states | SAFE TO EDIT |
+| `src/app/components/ScanTab.tsx` | 209 | Camera scanner, type-a-barcode, catalog → lookup, not-found and error states | SAFE TO EDIT |
 | `src/lib/catalog.ts` | 103 | **Database read layer**: `loadCatalog()` plus the row → `Product` mapper | SAFE TO EDIT |
 | `src/lib/productImporter.ts` | 76 | `parseProductsCSV(text)` → `Product[]` (first row per id; no price fields since the 2026-10-02 cleanup) and `splitCSVLine`; defines the canonical `Product` and `ProductSource` types. App.tsx feeds it the bundled CSV (`?raw`); tests and `scripts/apply-verified-barcodes.mjs` read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
-| `src/lib/lookup.ts` | 187 | USDA FoodData Central (through `relayUrl`, M7.5) + Open Food Facts lookup: pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session (no request) | SAFE TO EDIT |
-| `supabase/functions/usda-relay/index.ts` | 43 | The USDA relay (M7.5): pure `handle(req, { key }, fetch)` + `Deno.serve`; GET/OPTIONS only, allowed origins, `query` + `pageSize` 5\|15 only, fixed upstream URL, never returns the key; tested by `index.test.ts` | EDIT WITH CAUTION (security surface; redeploy with `verify_jwt` off) |
+| `src/lib/lookup.ts` | 143 | Barcode lookup outside the catalog: EcoGo's `foods` table (USDA Branded Foods copy) first, then Open Food Facts live; pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session | SAFE TO EDIT |
+| `src/lib/foods.ts` | 70 | The `foods` table's row shape, row → `Product`, the search query builder and the `FoodsSource` interface the app reads it through (adapters: `foodsDb.ts` for Supabase, `foodsFake.ts` for tests) | SAFE TO EDIT |
+| `src/lib/foodsImport.ts` + `scripts/import-usda.mjs` | 101 + 83 | The owner's loader: USDA's Branded Foods JSON zip → one row per barcode, scored by the app's own engine (`ENGINE_REV`), older snapshots removed in batches | EDIT WITH CAUTION (writes the live table) |
+| `src/app/components/useAlternatives.ts` | — | Alternatives: other products in the same USDA category with a strictly better badge, from `alternatives_for` | SAFE TO EDIT |
 | `src/lib/scanner.ts` | 38 | Pure scan logic: grocery formats, `normalizeScanned` (digits; UPC-E → UPC-A), `confirmReads` (two identical reads in a row) | SAFE TO EDIT |
 | `src/lib/recent.ts` | 49 | "Recently scanned": `addRecent` (newest first, no duplicates, 10 max), `resolveRecent` (catalog ids re-read, looked-up snapshots kept), `parseRecent`, and `loadRecent`/`saveRecent` around `localStorage["ecogo.recent.v1"]` that never throw | SAFE TO EDIT |
 | `src/app/components/Explainer.tsx` | — | Home's "Hidden risks, explained" pages (5: "Nothing flagged" isn't "healthy", badge levels, seed oils, pesticides, ultra-processed foods): `EXPLAINERS`, `ExplainerId`, plain text over official sources only (each with its verbatim quote and "Source checked" date; the M7.1 sources are `Cite` constants in the file) | SAFE TO EDIT (text must match its sources word for word) |
 | `src/lib/barcodeReader.ts` | 25 | `createDetector()`: the native BarcodeDetector when it reads all four grocery formats, else the `barcode-detector` ponyfill with ZXing's `.wasm` bundled by Vite (no CDN) | SAFE TO EDIT |
 | `src/app/components/CameraScanner.tsx` | 151 | Live back-camera screen: detect loop, torch, denied/unsupported/paused states, drawer for typing; stops the camera on ✕, unmount and page hide | SAFE TO EDIT |
-| `src/lib/nutrition.ts` | 99 | Added sugar, saturated fat and sodium per serving as FDA %DV with FDA's 5/20 rule, from USDA search records and OFF `nutriments`; pure | SAFE TO EDIT |
+| `src/lib/nutrition.ts` | 111 | Added sugar, saturated fat and sodium per serving as FDA %DV with FDA's 5/20 rule, from `foods` rows (per 100 g) and OFF `nutriments`; pure | SAFE TO EDIT |
 | `src/app/components/NutritionPanel.tsx` | 85 | Nutrition section, `useNutrition` (catalog foods look up nutrition once per session by their verified barcode) and the slate "High …" chip | SAFE TO EDIT |
 | `src/data/verified-barcodes.json` | — | Source of truth for catalog food barcodes: each USDA record's barcode, fdcId, name and full label (owner-approved 2026-10-01), plus the removed ones | Review; change only with a USDA match, then rerun the applier and add a migration |
 | `scripts/apply-verified-barcodes.mjs` | 58 | Applies `verified-barcodes.json` to `products.csv` and prints the matching SQL migration | SAFE TO EDIT |
@@ -101,7 +103,8 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | `vite.config.ts` | 7 | React + Tailwind plugins | EDIT WITH CAUTION |
 | `src/styles/*.css` | — | Tailwind entry, theme tokens, Google Fonts | EDIT WITH CAUTION |
 | `scripts/verify-sources.mjs` | — | Library source check (`npm run verify:sources`) | SAFE TO EDIT |
-| `.github/workflows/deploy.yml` | — | On every push to `main`: `npm ci`, `npm test`, build, deploy `dist/` to GitHub Pages (no USDA key since M7.5) | EDIT WITH CAUTION (every push publishes) |
+| `.github/workflows/deploy.yml` | — | On every push to `main`: `npm ci`, `npm test`, build, deploy `dist/` to GitHub Pages (no key needed) | EDIT WITH CAUTION (every push publishes) |
+| `.github/workflows/keep-alive.yml` | — | Mondays: reads one `foods` row so the free Supabase project isn't paused for inactivity (a workaround: GitHub stops scheduled workflows after 60 idle days) | SAFE TO EDIT |
 | `ATTRIBUTIONS.md` | — | Figma template leftover | Leave alone |
 
 Removed in step 2: `utils/supabase/info.tsx` (key for the retired Figma project) and `supabase/functions/server/*`
@@ -152,6 +155,9 @@ and the `RECOMMENDATIONS` data. Deleting the dead code at 86–150 and 718–806
 is retired and inaccessible (decision 008).
 
 ### Schema (ERD)
+
+The `foods` table (M10, EcoGo's USDA Branded Foods copy) stands alone, joined to nothing: see the Data map (§7) and
+`supabase/migrations/20261003002926_foods_usda_copy.sql`.
 
 ```mermaid
 erDiagram
@@ -255,7 +261,8 @@ CLI (`supabase link` then `supabase db push`) or by pasting them into the SQL ed
 | Products (+ category) | `products`, `categories` tables (`product_prices` holds the invented prices, K-30: no longer read) | `loadCatalog()` → `rowToProduct` (same shape as the CSV importer; verified identical for all 51) | Dashboard / SQL (service role) | Bundled CSV (initial render, or when Supabase fails or returns no rows) | — (loaded once per visit) | yes |
 | Map places (M9) | `resources` table: an OpenStreetMap snapshot (162 rows, OSM data as of 2026-06-01) | `loadCatalog()` → `places` state → `MapTab` | migrations generated by `scripts/fetch-osm-places.mjs` | **none** (no connection → "Places need a connection") | — (loaded once per visit) | yes |
 | Scan events | `scan_events` table | nobody (service role only) | **no longer written (M3)**; kept for history, anonymous insert revoked | — | not published | yes (server side) |
-| Looked-up products | fetched live per session from USDA FoodData Central (manufacturer label data) or Open Food Facts (crowd-sourced); never stored | `lookupBarcode()` (session cache) | — | error state with Try again | — | no (session list in App state) |
+| Looked-up products | EcoGo's `foods` table (a read-only copy of USDA Branded Foods, snapshot-dated, loaded by the owner) or live Open Food Facts (crowd-sourced); the browser never writes | `lookupBarcode()` (session cache) | — | error state with Try again | — | no (session list in App state) |
+| Data: the `foods` table (M10) | 430,127 USDA Branded Foods products (2026-04-30 release), one row per barcode, `verdict`/`flags` from the app's engine at import (`engine_rev`); public read only; functions `search_foods` (whole-word, at most 1,000 matches, shortest names first) and `alternatives_for` (same category, better badge) | `foodsDb.ts`, `useAlternatives.ts` | — | lookups fall back to Open Food Facts | — | yes (Postgres) |
 | Recently scanned (Home, Saved › Scanned) | `localStorage["ecogo.recent.v1"]` on this device | — | `openProduct` (every product opened) | — | — | **yes** (this browser only) |
 | Favorites | React state, starts empty (M7.4; was a fake `[3,5]` seed) | — | bookmark toggle | — | — | **no** |
 | User location | Browser Geolocation, only when the user taps My location on the Map | — | never stored or sent | LA centre | — | no |
@@ -293,7 +300,7 @@ static or a no-op; **broken**.
 | Share | — | **removed (M7.4)** | Did nothing (K-21); returns with links |
 | Map | `MapTab` + `lib/osmPlaces.ts` | **working** (M9) | 162 real LA County food places from OSM, labelled community-edited and dated; verified by `check-map.mjs` (19 checks) |
 | Scan: demo barcode → product | `ScanTab` + `lookup.sameBarcode` | working | In the camera's drawer: 10 USDA-verified catalog codes plus USDA, Open Food Facts and not-found demos |
-| Scan: lookup of non-catalog barcodes | `ScanTab` + `lookup.ts` | **working** | USDA FoodData Central first, then Open Food Facts; session cache; source note on the product page; verified live 2026-09-28 |
+| Scan: lookup of non-catalog barcodes | `ScanTab` + `lookup.ts` | **working** | EcoGo's `foods` table first (snapshot date on the product page), then Open Food Facts; session cache; checked by `check-home.mjs` (USDA's API is never called) |
 | Scan: camera/decoder | `CameraScanner` + `lib/barcodeReader.ts` + `lib/scanner.ts` | **working** | On-device EAN/UPC reading (native or ZXing WebAssembly); two identical reads; UPC-E expanded; camera stops on ✕/leave/hide. Verified 2026-10-01 with a fake camera (Oreo in ~1 s); the owner's phone check is pending |
 | Scan: record scan event | — | **removed (M3)** | Scans aren't saved (decision 017); no location prompt |
 | Scan: barcode not found anywhere | `ScanTab` | working | Honest "We couldn't find this barcode yet" screen |
@@ -307,9 +314,9 @@ static or a no-op; **broken**.
 
 | Service | Used by | Notes |
 |---|---|---|
-| Supabase (PostgREST, Edge Functions) | `catalog.ts` (read only), `usda-relay` | see §6 |
+| Supabase (PostgREST) | `catalog.ts`, `foodsDb.ts` (read only) | see §6 |
 | GitHub Pages + Actions | `.github/workflows/deploy.yml` | Hosts https://skynetrebel42.github.io/ecogo/ |
-| USDA FoodData Central (`api.nal.usda.gov/fdc/v1/foods/search`) | `usda-relay` Edge Function, called by `lookup.ts` | Branded foods; the key is the Supabase secret `FDC_API_KEY` (M7.5); all visitors share USDA's limit for the relay (plan for 1,000 requests an hour in total); codes tried as typed and 14-digit |
+| USDA FoodData Central (the Branded Foods download file) | `scripts/import-usda.mjs`, run by the owner | Public download, no key; loaded into the `foods` table about twice a year. The app never calls USDA's API (M10) |
 | Open Food Facts (`world.openfoodfacts.org/api/v3`) | `lookup.ts` | No key; crowd-sourced, labelled as such; ODbL credit on product pages; `X-User-Agent: EcoGo/0.1 (personal project)` |
 | tile.openstreetmap.org | MapTab | public tiles, `https://tile.openstreetmap.org/{z}/{x}/{y}.png` (no `{s}` subdomains); © OpenStreetMap contributors credit always visible (M9) |
 | Overpass API | `scripts/fetch-osm-places.mjs` | snapshot time only (by hand); the app never calls it |

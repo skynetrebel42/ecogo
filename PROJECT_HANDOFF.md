@@ -19,12 +19,14 @@
 
 - **Phase:** **prototype done 2026-10-01** (camera scans confirmed by the owner on Android, iPhone and PC). M7–M7.3
   made Home, Profile and the welcome honest; **M7.4 trust cleanup (2026-10-02): nothing the app shows is invented.**
-  **M7.5 (2026-10-02): the USDA key left the public JavaScript** (the `usda-relay` Edge Function holds it). Next, in the
-  PM chat's order: M9 real map (Los Angeles, OpenStreetMap), M10 data ownership (EcoGo's own copy of USDA Branded
-  Foods, which retires the relay), then M8 add-a-product. See the KNOWN_ISSUES.md roadmap.
+  **M7.5 (2026-10-02): the USDA key left the public JavaScript.** M9 (2026-10-02): a real Los Angeles map.
+  **M10 data ownership (2026-10-05): EcoGo keeps its own copy of USDA Branded Foods** (430,127 products in the `foods`
+  table, scored by the app's own engine, rev 4 after the M10.1-M10.3 processed-meat rules), so lookups no longer call
+  USDA and the relay is retired (decision 034). See the KNOWN_ISSUES.md roadmap for what comes next.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (31 food products with USDA-verified barcodes and labels),
-  USDA FoodData Central and Open Food Facts lookup for any other barcode, on-device camera scanning, a concern level
+  EcoGo's own copy of USDA FoodData Central (Branded Foods, snapshot-dated) and live Open Food Facts for any other
+  barcode, with search and alternatives from the same copy, on-device camera scanning, a concern level
   (strongest official finding: additives, processed meat; acrylamide marker) from the safety engine (`src/lib/safety`,
   sourced library, `npm test` over all 51 products), FDA %DV nutrition, sourced explainers, the catalog loaded once per visit
   (scans are not saved), Recently scanned on this device, in-memory favorites (start empty).
@@ -32,8 +34,9 @@
   and the Map's Chicago places (`resources`, `MapTab.tsx`; the Map tab is hidden until M9).
 - **Backend:** Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free). There are 5 normalized tables
   with RLS and explicit grants, and the schema lives in `supabase/migrations/`. The browser only reads the catalog
-  and writes nothing (scan inserts revoked in M3). One Edge Function since M7.5, `usda-relay`, holds the USDA key as
-  the Supabase secret `FDC_API_KEY` (decision 026). The old Figma project is retired (decision 008).
+  and writes nothing (scan inserts revoked in M3). Since M10 the `foods` table (read-only to the public, loaded by the
+  owner's `npm run import:usda`) holds the USDA copy, with two read functions, `search_foods` and `alternatives_for`;
+  no Edge Function is left (decision 034). The old Figma project is retired (decision 008).
 - **Security:** browsers can't write anything (catalog read-only; scan inserts revoked in M3), and the security advisor's
   only notice is the expected "RLS on, no policy" for `scan_events`. Accounts (S-06) aren't needed while nothing is written.
 
@@ -116,13 +119,14 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 023 | Home shows only real content; recent products kept on the device (localStorage, last 10), no account | Owner, 2026-10-01 | **Done** (M7) |
 | 024 | No invented content outside the Map: Profile and the welcome say only what EcoGo does today | Owner, 2026-10-01 | **Done** (M7.2, M7.3) |
 | 025 | Nothing the app shows is invented or promises a missing feature: prices out of the UI (the data stays), Map tab hidden until it has real places (M9), Saved › Lists and Share removed, favorites start empty, "AI" wording gone | Owner, 2026-10-02 (architecture review) | **Done** (M7.4) |
-| 026 | The USDA key leaves the public JavaScript: the `usda-relay` Edge Function relays the app's two USDA searches with the key as the Supabase secret `FDC_API_KEY`; the browser never sends a key, and `DEMO_KEY` is gone. All visitors share USDA's quota for the relay (plan for 1,000 requests an hour) until M10 | USDA deactivates keys found public; owner, 2026-10-02 (via the PM chat), shared-quota trade-off accepted | **Done** (M7.5) |
+| 026 | The USDA key leaves the public JavaScript: the `usda-relay` Edge Function relays the app's two USDA searches with the key as the Supabase secret `FDC_API_KEY`; the browser never sends a key, and `DEMO_KEY` is gone. All visitors share USDA's quota for the relay (plan for 1,000 requests an hour) until M10 | USDA deactivates keys found public; owner, 2026-10-02 (via the PM chat), shared-quota trade-off accepted | **Done** (M7.5). Superseded by 034 |
 | 027 | Map: Los Angeles County food places (food banks, farmers markets, named community gardens) from an OpenStreetMap snapshot in `resources`, labelled community-edited and dated; no ratings, no open/closed; location only on tap, never stored or sent | Owner, 2026-10-02 (planning chat; real map first, food places only) | **Done** (M9) |
 | 028 | Processed-meat rules (M10.1): canned and deli chicken/turkey and deli roast beef in a salt or preservative solution are processed meat (WHO/IARC); rendered bacon fat alone is not bacon; foie gras and duck/goose mousse in cold-cut, sausage and canned categories read Known; injected or breaded fresh chicken stays "Nothing flagged"; fish is not meat. Rules are fixed before the data launches, then the launch audit repeats | Owner, 2026-10-03/04 (via the PM chat), after the M10 launch audit found 3 false flags and about 48 misses among 410 sampled products. Spec: `docs/superpowers/specs/2026-10-04-m101-processed-meat-rules-design.md` | Approved 2026-10-04; built with M10 |
 | 029 | Meatballs and ribs are processed meat when smoked (the name says so), cured (celery powder or juice, nitrite, nitrate) or preserved (sodium or potassium lactate, sodium diacetate), the same rule as deli roast beef (028); plain ground-meat meatballs (meat, salt, spices, phosphate only) stay unflagged. In USDA's sausage categories, link, patty, banger and chipolata names, the abbreviations Saus, Ssg, Lk, Pty and typos such as Sauage count as sausage. Deli turkey filed under "Bacon, Sausages & Ribs" counts as processed | Owner, 2026-10-04 (via the PM chat), after the M10.1 re-gate stopped at 47 first-pass misses; spec `docs/superpowers/specs/2026-10-04-m102-sausage-cure-rules-design.md` | Approved 2026-10-04; built with M10 |
 | 030 | The data-launch audit gate: zero confirmed false flags and at most 5 confirmed misses, each logged in `KNOWN_ISSUES.md`; the sampler prints the full label | Owner, 2026-10-04 (via the PM chat): a rule-by-rule hunt for every last miss never ends, and a wrong flag is the worse error | Active |
 | 031 | The final data-launch gate after M10.3 is targeted: it re-checks only the entries of the earlier samples whose verdict changes under the new engine revision, the known false flags and misses, and a random spot check of 50 unchanged entries; pass = zero false flags and at most 5 logged misses (030), then Minh's 20 | Owner, 2026-10-05 (via the PM chat): the rule fixes are small and measured, a whole new sample would repeat what the first passes already showed | Active |
 | 032 | Roast beef in an added brine or solution counts as processed meat: water plus salt, a stated "% solution", or a clean-label preservative such as cultured sugar and vinegar (decision 028 named sodium lactate and diacetate); plain cooked beef seasoned with salt and pepper does not. Spec `docs/superpowers/specs/2026-10-05-m103-roast-beef-brine-design.md` | Owner, 2026-10-05 (via the PM chat), after the M10.2 first pass found deli roast beef and roast beef inside sandwiches reading "Nothing flagged" | Approved 2026-10-05; built with M10 |
+| 034 | USDA label data lives in EcoGo's own database: a read-only copy of USDA Branded Foods (one row per barcode, snapshot-dated) replaces live USDA calls; Open Food Facts stays a live, labelled fallback; the usda-relay Edge Function and its secret are retired | Owner, 2026-10-02: alternatives for any product, faster and more reliable scans, search beyond the catalog, safe at public scale | **Done** (M10). Supersedes the live-USDA part of 016 and decision 026. (Planned as 028; renumbered because 028-033 were taken first) |
 
 ## Open questions only the owner can answer
 
@@ -148,6 +152,8 @@ catalog or anything else (scans aren't saved since M3). If Supabase is unreachab
 "Offline". To point at a different Supabase project, apply `supabase/migrations/` there in order and override
 the two variables in a gitignored `.env.local`.
 
-Barcode lookup needs no key (M7.5): the app calls the `usda-relay` Edge Function, which accepts the live site and
-`localhost`. The USDA key is the Supabase secret `FDC_API_KEY` (Dashboard → Edge Functions → Secrets), set by the owner;
-no chat ever reads or types it. Redeploy the function with `verify_jwt` off after changing its code.
+Barcode lookup needs no key: the app reads EcoGo's copy of USDA Branded Foods from the `foods` table (M10). To load or
+refresh it (the owner's job, about twice a year and after any safety-library change; bump `ENGINE_REV`): download USDA's
+Branded Foods JSON zip, put `SUPABASE_SERVICE_ROLE_KEY` in the worktree's gitignored `.env.local`, empty the table first
+(a reload over a full table doubles its size until vacuum), then `npm.cmd run import:usda -- <the zip>`. No chat ever
+reads or types that key.
