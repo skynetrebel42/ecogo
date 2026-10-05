@@ -28,7 +28,7 @@ Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + S
 - Commit by exact path. Never `add -A`, `commit -a`, amend, reset, rebase, stash, or force-push on `main` (hook enforces). Builds happen on worktree branches.
 - Before any push show `git log --oneline origin/main..HEAD` (mark own vs others' commits); owner approves that exact list.
 - Planners write only in `docs/`; one builder at a time works in `src/`.
-- Decision questions → the PM/King chat with options, then stop. Ask the owner directly only right before a push, deploy, or live DB change.
+- Two chats: the planner (specs, plans, order, the owner's decisions) and the builder (one at a time in `src/`). The builder sends decision questions to the planner with options, then stops; it asks the owner directly only right before a push, deploy, or live DB change.
 - Detailed versions: memory notes `feedback_team_meeting.md`, `feedback_parallel_chats_git.md`.
 
 ## Working agreement (agents)
