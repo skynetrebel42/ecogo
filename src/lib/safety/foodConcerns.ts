@@ -58,11 +58,13 @@ const NEGATOR = /\b(?:imitation|vegan|vegetarian(?![- ](?:fed|diet|raised))|plan
 const NOT_AFTER = /^[- ]?(?:free\b|flavou?r)/i;
 const FLAVOURED_NAME = /\b(?:bacon|ham|sausage|pepperoni|salami|jerky)(?:[- ]flavou?r|[- ]free\b)/i;
 // Label items that are not meat: flavourings, meat-free versions, and an item that is only bacon FAT (M10.1 A3). "BACON FAT AND COOKED BACON (CURED …)" still counts: the item names bacon.
-const NOT_MEAT_ITEM = /\b(imitation|vegan|vegetarian(?![- ](?:fed|diet|raised))|plant[- ]based|meatless|meat[- ]free|veggie)\b|\b(?:bacon|ham|sausage|pepperoni|salami|jerky)(?:[- ]flavou?r|[- ]free\b)|\bno (?:bacon|ham|sausage|pepperoni|salami|meat)\b|^(?:rendered )?bacon (?:fat|grease|drippings)$|\bbacon[- ]?(?:type|style)\b/i;
+// "Franks Red Hot" is a hot sauce, with or without its apostrophe (M10.3 F).
+const FRANKS_RED_HOT = /\bfranks?['’]?s?\s+red\s?hot\b/gi;
+const NOT_MEAT_ITEM = /\bfranks?['’]?s?\s+red\s?hot\b|\b(imitation|vegan|vegetarian(?![- ](?:fed|diet|raised))|plant[- ]based|meatless|meat[- ]free|veggie)\b|\b(?:bacon|ham|sausage|pepperoni|salami|jerky)(?:[- ]flavou?r|[- ]free\b)|\bno (?:bacon|ham|sausage|pepperoni|salami|meat)\b|^(?:rendered )?bacon (?:fat|grease|drippings)$|\bbacon[- ]?(?:type|style)\b/i;
 // "BACON BITS (SOY FLOUR, …)": imitation bits, cut out of the label text before it is split into items (M10.1 A3).
 const IMITATION_BITS = /\bbacon bits?\s*[([][^)\]]*\b(?:soy|textured|vegetable|plant)\b[^)\]]*[)\]]/gi;
 // Meat words on a label: poultry, game and hog included (M10.1 D). Eggs of those birds are not meat.
-const MEAT_INGREDIENT = /\b(pork|hog|beef|chicken|turkey|veal|lamb|mutton|goat|venison|bison|buffalo|meat|poultry|(?:duck|goose|quail|pheasant|ostrich)(?!\s+eggs?\b)|boar|elk|moose|rabbit)\b/i;
+const MEAT_INGREDIENT = /\b(pork|hog|beef|chicken|turkey|veal|lamb|mutton|goat|venison|bison|buffalo|(?<!(?:coconut|nuts?|walnut|pecan|crab|lobster|shrimp|clam|oyster|scallop|fish|shellfish|tuna|salmon)\s)meat|poultry|(?:duck|goose|quail|pheasant|ostrich)(?!\s+eggs?\b)|boar|elk|moose|rabbit)\b/i;
 // Named after a meat but made to go with it: "Hot Dog Buns", "Ham Glaze", "Sausage Seasoning". Only hot dog rolls are
 // bread: a "sausage roll" is meat.
 const ACCESSORY = new RegExp(PM_WORD.source + /\s+(buns?|relish|chili|sauce|seasoning|glaze|mix)\b|\bhot ?dogs? rolls?\b/.source, "i");
@@ -78,8 +80,31 @@ const PM_USDA = new Set(["Sausages, Hotdogs & Brats", "Frozen Sausages, Hotdogs 
 // label lists only the brine is the same case as in a cold-cut category (M10.2 G).
 const GENERIC_PREPARED = /^Meat\/Poultry\/Other Animals\s*-?\s*Prepared\/Processed$/i;
 // Other categories of cooked and frozen meat, where meatballs and ribs are filed (M10.2 C).
-const MEAT_PRODUCT_CATEGORY = /^(?:Other Meats|Other Frozen Meats|Frozen Meat)$/i;
-const MEATBALL_OR_RIBS = /\b(?:meat ?balls?|ribs|rib tips?|riblets?|spareribs?|roast beef)\b/i;
+const MEAT_PRODUCT_CATEGORY = /^(?:Other Meats|Other Frozen Meats|Frozen Meat|Cooked & Prepared)$/i;
+// Products named for what the owner's decisions 029 and 032 cover: meatballs, ribs, meat sticks, roast beef (M10.3 R).
+const CURE_NAME = /\b(?:meat ?balls?|ribs|rib tips?|riblets?|spareribs?|roast beef|(?:beef|pork|turkey|meat|snack)\s+(?:\w+\s+){0,2}sticks?)\b/i;
+const ROAST_BEEF_NAME = /\broast beef\b/i;
+// A sandwich by another name: a meatball sub with a preservative in its meatballs contains processed meat, it is not one.
+const CURE_DISH = /\b(?:sliders?|subs?|hoagies?|baguettes?|melts?)\b/i;
+// Roast beef in an added brine or solution is processed meat (decision 032): water and salt, a stated "% solution", a cure or a
+// preservative, or a clean-label one (cultured sugar and vinegar). Plain cooked beef seasoned with salt and pepper is not.
+const BRINE_CLAIM = /\bsolution\b|\bbrine\b|\bcultured (?:sugar|dextrose|celery)\b/i;
+const brined = (s: string) => BRINE_CLAIM.test(s) || CURE_ITEM.test(s) || (/\bwater\b/i.test(s) && /\bsalt\b/i.test(s));
+// "Roast beef flavor", "roast beef type flavor", "roast beef topping", and "BEEF BASE (OVEN ROAST BEEF, SALT...)": flavourings, not meat.
+const ROAST_BEEF_FLAVOUR = /^\s*(?:(?:type|style)\s+)?(?:flavou?r|base|broth|stock|extract|seasoning|topping|gravy|bouillon)/i;
+const FLAVOUR_BASE_OPEN = /\b(?:base|broth|stock|bouillon|seasoning|flavou?r(?:ing)?s?)\s*[(\[][^)\]]*$/i;
+/** The part of the label that describes each "roast beef" in it: its parenthesis, or up to the next full stop or the next
+ *  component header ("…, SEASONED GRAVY: …"). */
+function roastBeefParts(text: string): string[] {
+  const out: string[] = [];
+  for (const m of text.matchAll(/\broast beef\b/gi)) {
+    const rest = text.slice(m.index! + m[0].length);
+    if (ROAST_BEEF_FLAVOUR.test(rest) || FLAVOUR_BASE_OPEN.test(text.slice(Math.max(0, m.index! - 60), m.index!))) continue;
+    const paren = rest.match(/^\s*[(\[]([^)\]]*)/);
+    out.push(paren ? paren[1] : (rest.match(/^(?:(?!\.\s|,\s*[A-Za-z][A-Za-z' ]{2,40}:)[^])*/)?.[0] ?? "").slice(0, 300));
+  }
+  return out;
+}
 // "Pork Links", "Breakfast Links" in the cooked and frozen meat categories (not "Jack Link's"): sausage there too (M10.2 S).
 const MEAT_LINKS_NAME = /\b(?:pork|beef|chicken|turkey|breakfast)\s+links?\b/i;
 // A category with "sausage" in its name (also USDA's "Meat/Poultry/Other Animals Sausages - Prepared/Processed", spelled several
@@ -121,7 +146,7 @@ function plainMeatWords(name: string): string[] {
 
 function processedMeat(p: FoodInput): FoodConcern | null {
   if (p.category && !FOOD_CATEGORIES.has(p.category)) return null;
-  const name = p.name;
+  const name = p.name.replace(FRANKS_RED_HOT, " ");
   const words = plainMeatWords(name);
   if (NEGATOR.test(name)) return null;
   const text = p.ingredients || "";
@@ -133,7 +158,7 @@ function processedMeat(p: FoodInput): FoodConcern | null {
   const sausageName = !BURGER_NAME.test(name) && (SAUSAGE_CATEGORY.test(cat) && !NOT_MEAT_CATEGORY.test(cat) && SAUSAGE_NAME.test(name)
     || (meatCategory || MEAT_PRODUCT_CATEGORY.test(cat)) && MEAT_LINKS_NAME.test(name));
   if (words.length === 0 && sausageName && !PM_USDA.has(cat)) words.push("Sausage"); // a USDA processed-meat category already says it
-  const meatNoun = words.length > 0 || sausageName || MEAT_INGREDIENT.test(name);
+  const meatNoun = words.length > 0 || sausageName || MEAT_INGREDIENT.test(name) || CURE_NAME.test(name);
   // A: the label names meat, or there is no label, or (a meat category, a meat noun in the name, and no non-meat base on the
   // label) the label is only the brine, glaze or cure of a product whose meat the label leaves out.
   const brineOnly = meatCategory && meatNoun && items.length > 0 && !NOT_DELI_NAME.test(name) && !MEAT_FLAVOUR_ITEM.test(text)
@@ -159,10 +184,16 @@ function processedMeat(p: FoodInput): FoodConcern | null {
   // cold-cut categories always; for meatballs and ribs also in the cooked and frozen meat categories. After the loop above:
   // a product that lists a processed meat among other things keeps reading "contains".
   const cure = items.map(i => i.match(CURE_ITEM)).find(Boolean);
-  const cureScope = familyCategory || (MEATBALL_OR_RIBS.test(name) && (meatCategory || MEAT_PRODUCT_CATEGORY.test(cat)));
-  if (cureScope && items.length > 0 && (MEAT_INGREDIENT.test(items[0]) || brineOnly) && !DISH.test(name) && (cure || SMOKED_NAME.test(name))) {
-    return { ...PROCESSED_MEAT, reason: `Processed meat (${cure ? `${cure[0].toLowerCase()} on the label` : "smoked"}; USDA category "${cat}")` };
+  const cureScope = familyCategory || (CURE_NAME.test(name) && (meatCategory || MEAT_PRODUCT_CATEGORY.test(cat)));
+  const nonMeatBase = items.some(i => NON_MEAT_BASE.test(i.replace(/\bnot from milk\b/gi, "")));
+  // A label that is only the coating or marinade of ribs ("Coated with: potassium lactate, water, salt") has no meat item.
+  const namedMeat = CURE_NAME.test(name) && !nonMeatBase && !NOT_DELI_NAME.test(name);
+  const roastBrine = ROAST_BEEF_NAME.test(name) && !nonMeatBase && items.some(i => MEAT_INGREDIENT.test(i)) && !/\bgravy\b/i.test(`${name} ${text}`) && brined(text);
+  if (cureScope && items.length > 0 && (items.slice(0, 2).some(i => MEAT_INGREDIENT.test(i)) || brineOnly || namedMeat) && !DISH.test(name) && !CURE_DISH.test(name) && (cure || SMOKED_NAME.test(name) || roastBrine)) {
+    return { ...PROCESSED_MEAT, reason: `Processed meat (${cure ? `${cure[0].toLowerCase()} on the label` : roastBrine ? "roast beef in a brine or solution" : "smoked"}; USDA category "${cat}")` };
   }
+  // R: roast beef in a brine or solution inside another product ("Roast Beef & Cheddar Sliders") reads "contains".
+  if (roastBeefParts(text).some(brined)) return containsProcessedMeat("roast beef");
   return null;
 }
 

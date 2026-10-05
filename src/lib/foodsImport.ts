@@ -6,7 +6,7 @@ import { VERDICT_RANK } from "./safety/analyze.ts";
 import { tidyCase } from "./lookup.ts";
 
 /** Bump when the library or the rules change, so a row can say which engine scored it. */
-export const ENGINE_REV = 3;
+export const ENGINE_REV = 4;
 
 // USDA nutrient numbers: added sugars, saturated fat, sodium (amounts are per 100 g/ml).
 const NUTRIENT: Record<string, "added_sugar_100g" | "sat_fat_100g" | "sodium_100g"> = {

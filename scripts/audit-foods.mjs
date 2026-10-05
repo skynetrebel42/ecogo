@@ -3,8 +3,9 @@
 // processed-meat categories and up to 150 named like one. Each entry shows the badge, the reasons the app's own engine
 // gives, and the label text; prompt.md beside the batches is the first-pass prompt.
 //   node scripts/audit-foods.mjs <out-dir> [highKnown=200] [some=100] [batchSize=40]
+//   node scripts/audit-foods.mjs --recheck <out-dir> <sample-dir>...   (targeted gate, see recheck())
 // Reads with the public key (the table is world-readable). ponytail: a one-off helper run once per import.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { assessProduct } from "../src/lib/safety/assess.ts";
 
@@ -73,7 +74,7 @@ export const meatCategory = c => MEAT.has(c) || /^Meat\/Poultry\/Other Animals S
 export const genericMeatCategory = c => /^(?:Meat\/Poultry\/Other Animals -? ?Prepared\/Processed|Other Meats|Other Frozen Meats)$/.test(c.replace(/\s+/g, " "));
 export const MEAT_NAME = /\b(?:hams?|bacon|sausages?|salamis?|pepperoni|hot ?dogs?|franks?|jerky|bologna|links?|ribs|meat ?balls?|roast beef)\b/i;
 
-/** The first-pass prompt (M10 plan Task 5 step 7, with the M10.1 and M10.2 spec §6 step 4 additions); <BATCH> is the batch file's path. */
+/** The first-pass prompt (M10 plan Task 5 step 7, with the M10.1 and M10.2 spec §6 step 4 and M10.3 §6 step 3 additions); <BATCH> is the batch file's path. */
 export const PROMPT = `You are checking safety badges on packaged foods. Read the batch file <BATCH>. Each numbered entry shows a product, the badge a program gave it ("Badge now"), the reasons it gave ("Why"), and the label's ingredient text ("Label"). Judge ONLY from the text in the entry; use no outside knowledge about the brand or the product.
 
 For entries with Kind: flagged, decide whether the badge is supported by the label:
@@ -82,6 +83,7 @@ For entries with Kind: flagged, decide whether the badge is supported by the lab
 For entries with Kind: clean-meat the badge is "none": decide whether that is right. It is WRONG if the label shows the product is processed meat or contains it (a missed flag).
 Processed meat includes canned and deli chicken and turkey, and deli roast beef in a salt or preservative solution (WHO/IARC: meat transformed through salting, curing, fermentation, smoking or other processes to enhance flavour or improve preservation). It does NOT include a fresh cut (for example 'Pork Ham Bone In' with the label 'Pork'), bacon FAT alone, imitation bacon bits, fish, or a product whose name only says 'flavored'.
 Processed meat also includes sausage links, patties and breakfast sausage, and meatballs or ribs that are smoked, cured (celery powder or juice, nitrite, nitrate) or preserved (sodium or potassium lactate, sodium diacetate). It does NOT include plain ground-meat meatballs or ribs (meat, salt, spices, phosphate only), burger patties, 'smoke flavor' on its own, or chicken injected with a solution.
+A roast beef in an added brine or solution (water and salt, a stated solution, a preservative or cultured sugar and vinegar) is processed meat; plain cooked beef with salt and pepper, a flavour called roast beef, and roast beef in a gravy are not. 'Franks Red Hot' is a sauce. Coconut or crab 'meat' is not meat.
 
 Answer with exactly one line per entry and nothing else:
 <number> | correct | "<the label phrase you relied on>" | <at most 10 words>
@@ -89,8 +91,40 @@ Answer with exactly one line per entry and nothing else:
 <number> | unsure | "<the label phrase>" | <at most 10 words: what is unclear>
 `;
 
+/** Barcode key → kind of every entry in earlier batch files' text (a later file wins). */
+export function sampleKinds(texts) {
+  const kinds = new Map();
+  for (const t of texts)
+    for (const m of t.replace(/\r\n/g, "\n").matchAll(/^### \d+\. .*\((\d+), [^\n]*\)\nKind: (\S+)/gm)) kinds.set(m[1].replace(/^0+/, ""), m[2]);
+  return kinds;
+}
+
+/** Targeted gate (M10.3 §6, decision 031): re-scores earlier samples with today's engine. Writes changed.md (every entry
+ *  whose badge differs from the row's stored verdict; run it while the table still holds the previous engine's scores),
+ *  and 50 random unchanged entries as spot-NN.md batches with prompt.md. */
+async function recheck(db, dir, sampleDirs) {
+  const texts = sampleDirs.flatMap(d => readdirSync(d).filter(f => /^batch-\d+\.md$/.test(f)).sort().map(f => readFileSync(`${d}/${f}`, "utf8")));
+  const kinds = sampleKinds(texts);
+  const rows = await rowsFor(db, [...kinds.keys()]);
+  const verdict = r => assessProduct({ name: r.name, category: "", ingredients: r.ingredients, source: { foodCategory: r.category }, additiveCodes: [] }).verdict;
+  const changed = rows.filter(r => verdict(r) !== r.verdict), unchanged = rows.filter(r => verdict(r) === r.verdict);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(`${dir}/changed.md`, changed.map((r, i) => entryText(r, i + 1, verdict(r) === "none" ? "clean-meat" : "flagged")).join("\n"));
+  const spot = pick(unchanged, 50).map((r, i) => entryText(r, i + 1, kinds.get(r.barcode_key)));
+  toBatches(spot, 40).forEach((b, i) => writeFileSync(`${dir}/spot-${String(i + 1).padStart(2, "0")}.md`, b.join("\n")));
+  writeFileSync(`${dir}/prompt.md`, PROMPT);
+  const revs = [...new Set(rows.map(r => r.engine_rev))].join(", ");
+  console.log(`${kinds.size} sample entries, ${rows.length} rows found (stored engine_rev ${revs}); ${changed.length} change, ${spot.length} unchanged in the spot check, in ${dir}`);
+}
+
 if (import.meta.main) {
   process.loadEnvFile(".env");
+  if (process.argv[2] === "--recheck") {
+    const [dir, ...samples] = process.argv.slice(3);
+    if (!dir || !samples.length) { console.error("Usage: node scripts/audit-foods.mjs --recheck <out-dir> <sample-dir>..."); process.exit(1); }
+    await recheck(createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_PUBLISHABLE_KEY), dir, samples);
+    process.exit(0);
+  }
   const [dir, hk, sm, sz] = process.argv.slice(2);
   if (!dir) { console.error("Usage: node scripts/audit-foods.mjs <out-dir> [highKnown=200] [some=100] [batchSize=40]"); process.exit(1); }
   const db = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_PUBLISHABLE_KEY);

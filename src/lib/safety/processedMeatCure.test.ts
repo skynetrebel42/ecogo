@@ -96,10 +96,10 @@ test("C5: deli turkey and pork filed under 'Bacon, Sausages & Ribs' with a cure 
     'Processed meat (nitrite on the label; USDA category "Bacon, Sausages & Ribs")');
 });
 
-test("C6: roast beef in a preservative solution is processed meat; phosphate alone is not", () => {
+test("C6: roast beef in a preservative solution is processed meat; plain roast beef is not (M10.3 widens this: decision 032)", () => {
   assert.equal(reason("Medium Cooked Roast Beef", "BEEF, WATER, CONTAINS 2% OR LESS OF POTASSIUM LACTATE, SUGAR, SALT, BEEF FLAVORED JUICE", "Other Meats"),
     'Processed meat (potassium lactate on the label; USDA category "Other Meats")');
-  assert.equal(concern("Angus Seasoned Roast Beef", "BEEF, WATER, CONTAINS LESS THAN 2% OF VINEGAR, SALT, DEXTROSE, SODIUM PHOSPHATE, ONION POWDER", "Other Meats"), null);
+  assert.equal(concern("Roast Beef", "BEEF, SALT, BLACK PEPPER", "Other Meats"), null);
 });
 
 test("C7: a product that lists a processed meat among other things keeps reading 'contains', and a bacon seasoning stays unflagged", () => {
