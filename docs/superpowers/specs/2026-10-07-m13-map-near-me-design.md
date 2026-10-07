@@ -68,7 +68,9 @@ M13 ships with OSM only: skip this part, `titleCase`, `countyPlaces`, `source`, 
 
 ### 3.4 OSM refresh (live database; ask the owner first)
 - `fetch-osm-places.mjs`: add `nwr["amenity"="food_sharing"](area.la);`; `osmPlaces.ts` `toPlace` maps it to the free-food
-  type (test). Run it and write the new migration; **ask the owner** with the row counts (old vs new, per type) before
+  type (test). `toPlace` skips elements tagged `social_facility:for=student` (any list containing `student`; test): the app
+  can't label "students only" yet, so a campus-only pantry must not show as free food for everyone (planner, 2026-10-07, after
+  the owner found UCI Basic Needs is students only). Run it and write the new migration; **ask the owner** with the row counts (old vs new, per type) before
   `apply_migration`. Then re-run part 3.2's merge test against the new rows and report the County count.
 
 ## 4. Evidence (2026-10-07)
