@@ -647,7 +647,7 @@ export default function App() {
                 {undo && (
                   <div className="pointer-events-auto flex items-center gap-3 bg-foreground text-background rounded-xl pl-4 pr-1 shadow-lg text-sm font-bold">
                     <span>{undo.text}</span><span aria-hidden="true">·</span>
-                    <button onClick={() => { setSaved(undo.prev); setUndo(null); }} className="min-h-[44px] px-3 underline">Undo</button>
+                    <button onClick={() => changeSaved(undo.prev)} className="min-h-[44px] px-3 underline">Undo</button>
                   </div>
                 )}
               </div>

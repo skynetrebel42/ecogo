@@ -126,8 +126,8 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
   const bookmark = useRef<HTMLButtonElement>(null);
   // M14 D1/D6: the empty bookmark saves at once and opens the sheet; the filled one unsaves everywhere, with Undo.
   const onBookmark = () => {
-    if (saved) { onChangeSaved(toggleSave(store, product), "Removed"); return; }
-    onChangeSaved(toggleSave(store, product)); setSheet(true);
+    onChangeSaved(toggleSave(store, product), saved ? "Removed" : undefined);
+    if (!saved) setSheet(true);
   };
   const closeSheet = () => { setSheet(false); bookmark.current?.focus(); };
   const analysis = useMemo(() => safeAnalyze(product), [product]);
@@ -280,7 +280,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
           )}
         </div>
       </div>
-      {sheet && <SaveSheet productId={product.id} saved={store} savedOk={savedOk} onChange={s => onChangeSaved(s)} onClose={closeSheet} />}
+      {sheet && <SaveSheet productId={product.id} saved={store} savedOk={savedOk} onChange={onChangeSaved} onClose={closeSheet} />}
     </div>
   );
 }
