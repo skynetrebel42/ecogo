@@ -21,7 +21,6 @@ export function zipPoint(zip: string): [number, number] | null {
 // ── LA County Public Health's "Charitable Food Distribution Sites" (§3.2, decision 041) ─────────────────────────
 // From 211LA food resources (May 2023), updated April 2024; built by scripts/fetch-county-food-sites.mjs.
 
-export const COUNTY_AS_OF: string = COUNTY.as_of;
 export type CountyPlace = Extract<ResourceRow, { source: "lacounty" }>;
 interface HiddenSite { id: number; reason: string; checked: string; source: string }
 
