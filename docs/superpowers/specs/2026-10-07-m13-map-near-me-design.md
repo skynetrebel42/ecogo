@@ -30,6 +30,7 @@ the map's height is capped (D1).
 | D7 | **County names in normal case.** The County lists every name in capitals; the app shows title case and keeps known acronyms (AIDS, YMCA, YWCA, SDA, LA, LAUSD, USA, AME, CME, WIC, "St."). The full name shows on the card; list rows truncate as today. Nothing else is rewritten. |
 | D8 | **County cards have no hours or phone** (the data has neither): they show "No hours listed" plus today's "Hours can change — check before you go.", and Directions. |
 | D9 | **Part 4, OSM refresh:** the snapshot (OSM data as of 2026-06-01) is re-fetched with `amenity=food_sharing` (community fridges, food sharing) added as free food. Campus pantries reach the app through OSM: the owner adds Falcon's Nest to OSM before the refresh if they want it in. |
+| D10 | **"Missing a place? Add it on OpenStreetMap"** (owner, 2026-10-07, added after approval): one line under the list, linking to `https://www.openstreetmap.org/edit#map=18/<lat>/<lng>` at the map's current centre (new tab), with the hint "Add it as Social facility → Food bank. EcoGo shows it after the next update." EcoGo stores and sends nothing. In-app suggestions come later with M8 (decision 039). |
 
 ## 3. Parts (one commit each, in order)
 
