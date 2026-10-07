@@ -20,9 +20,9 @@ Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + S
 - Every push to `main` deploys to GitHub Pages.
 
 ## Current state (update when a milestone ships)
-- M1–M10 live on `origin/main`. **M10**: own USDA copy, 430,127 products in Supabase `foods` (engine_rev 4, after the M10.1–M10.3 processed-meat rules); the app never calls USDA. Re-import: empty the table first (a reload over a full one doubles its size).
+- M1–M11 live on `origin/main` (M11: food icons, Update info, Profile rows, text size + high contrast). M12 (Home "Learn" tiles) building. **M10**: own USDA copy, 430,127 products in Supabase `foods` (engine_rev 4, after the M10.1–M10.3 processed-meat rules); the app never calls USDA. Re-import: empty the table first (a reload over a full one doubles its size).
 - Order after M10 (owner, 2026-10-05): `docs/superpowers/ideas/2026-10-05-owner-app-review.md` (quick wins → Home redesign → Map near me → Collections → M8 add-a-product → …).
-- Active specs: `docs/superpowers/specs/` (m10, m101–m103, m8). Decisions live ONLY in the `PROJECT_HANDOFF.md` decision log; don't re-open them.
+- Active specs: `docs/superpowers/specs/` (m10, m101–m103, m8, m12). Decisions live ONLY in the `PROJECT_HANDOFF.md` decision log; don't re-open them.
 
 ## Multi-chat rules
 - Commit by exact path. Never `add -A`, `commit -a`, amend, reset, rebase, stash, or force-push on `main` (hook enforces). Builds happen on worktree branches.

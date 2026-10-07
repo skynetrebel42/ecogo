@@ -18,7 +18,7 @@ opening the explainer pages."
 |---|---|
 | D1 | **Six tiles, two per row, under the heading "Learn".** The five explainers plus "How EcoGo checks". Every tile is always shown, whether or not anything was scanned. |
 | D2 | **"How EcoGo checks a product" becomes a page.** Its three steps move word for word from Home's empty-state box (`HOW_STEPS` in `App.tsx`) into the explainer pages. The box is removed, so a first visit shows Scan, search and the tiles. The page describes EcoGo itself, so it has no Sources section. |
-| D3 | **Short labels on the tiles; the pages keep their full titles.** Not a health score · Badge levels · Seed oils · Pesticides · Ultra-processed · How EcoGo checks. Each tile's accessible name is the page's full title. |
+| D3 | **Short labels on the tiles; the pages keep their full titles.** Not a health score · Badge levels · Seed oils · Pesticides · Ultra-processed · How EcoGo checks. Each tile's accessible name is the page's full title, and must contain its visible label (WCAG 2.5.3, for voice control): so the first tile's name is "Not a health score: “Nothing flagged” isn’t “healthy”" (build review, 2026-10-07). |
 | D4 | **Colours: no red or pink** (those mean "concern" on the badge). One colour per topic, white text, **every colour at least 7:1 against white**, so the tiles already pass M11's high-contrast level and need no special case. |
 | D5 | **Order:** the mockup's (the two badge explainers first, as today, "How EcoGo checks" last). |
 
