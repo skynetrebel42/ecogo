@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useCallback } from "react";
-import { CheckCircle, QrCode, ChevronUp, ChevronDown, Database, X, WifiOff, ExternalLink } from "lucide-react";
+import { CheckCircle, QrCode, ChevronUp, ChevronDown, Database, X, WifiOff, ExternalLink, ScrollText } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
 import { lookupBarcode, normalizeBarcode, isBarcode, sameBarcode, offAddUrl } from "../../lib/lookup";
 import { supabaseFoods } from "../../lib/foodsDb";
@@ -44,9 +44,11 @@ interface ScanTabProps {
   /** Called with the product (catalog or looked up) so App.tsx can open the product page. */
   onScanResult: (product: Product) => void;
   products: Product[];
+  /** "No barcode? Check ingredients" (M8 D13): opens the no-barcode check. */
+  onCheckIngredients: () => void;
 }
 
-export default function ScanTab({ onScanResult, products }: ScanTabProps) {
+export default function ScanTab({ onScanResult, products, onCheckIngredients }: ScanTabProps) {
   const [scanState, setScanState]       = useState<ScanState>("idle");
   const [cameraOpen, setCameraOpen]     = useState(true);
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -104,6 +106,10 @@ export default function ScanTab({ onScanResult, products }: ScanTabProps) {
         className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border border-white/15 bg-white/5 disabled:opacity-40">
         <span className="flex items-center gap-2 text-white/70 text-xs font-medium"><QrCode size={14} className="text-white/50" />Demo barcodes</span>
         {selectorOpen ? <ChevronDown size={14} className="text-white/40" /> : <ChevronUp size={14} className="text-white/40" />}
+      </button>
+      <button onClick={onCheckIngredients} disabled={busy}
+        className="w-full flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-white/15 bg-white/5 text-white/70 text-xs font-medium disabled:opacity-40">
+        <ScrollText size={14} className="text-white/50" />No barcode? Check ingredients
       </button>
       {selectorOpen && (
         <div className="rounded-2xl overflow-hidden border border-white/10 bg-white/5 max-h-48 overflow-y-auto" style={{ scrollbarWidth: "none" }}>

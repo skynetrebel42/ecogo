@@ -1,6 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cleanIngredients } from "./ocr.ts";
+import { cleanIngredients, unsureWords } from "./ocr.ts";
+
+const word = (text: string, confidence: number) => ({ text, confidence });
+const page = (...lines: { text: string; confidence: number }[][]) => [{ paragraphs: [{ lines: lines.map(words => ({ words })) }] }];
+
+test("words read with low confidence are the unsure ones, without their punctuation, once each", () => {
+  const blocks = page([word("Sugar,", 96), word("Red", 91), word("4O,", 41)], [word("camauba", 55), word("wax.", 88), word("4O", 30)]);
+  assert.deepEqual(unsureWords(blocks), ["4O", "camauba"]);
+});
+
+test("a page with no blocks has no unsure words", () => {
+  assert.deepEqual(unsureWords(null), []);
+  assert.deepEqual(unsureWords(page([word(",", 10)])), [], "lone punctuation isn't a word");
+});
 
 test("a leading 'Ingredients:' label is dropped, in any case or spacing", () => {
   assert.equal(cleanIngredients("INGREDIENTS: Sugar, salt"), "Sugar, salt");

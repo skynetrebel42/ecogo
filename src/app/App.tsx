@@ -16,6 +16,7 @@ import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
 import { refreshSnapshot, resolveSaved, loadSaved, saveSaved, type SavedStore } from "../lib/saved";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
+import IngredientCheck from "./components/IngredientCheck";
 import ListScreen from "./components/ListScreen";
 import {
   Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronDown, ChevronRight,
@@ -26,7 +27,7 @@ import {
 type AppState = "welcome" | "main";
 // The Map is back with real Los Angeles places from OpenStreetMap (M9).
 type Tab = "home" | "map" | "scan" | "saved" | "profile";
-type SubScreen = "search-results" | "product-detail" | null;
+type SubScreen = "search-results" | "product-detail" | "check-ingredients" | null;
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 // Bundled CSV catalog: shown until Supabase answers, and kept as the offline
@@ -613,7 +614,7 @@ export default function App() {
                   )}
                   {activeTab === "map"     && <MapTab places={places} status={dbStatus} />}
                   {activeTab === "scan"    && (
-                    <ScanTab products={products} onScanResult={openProduct} />
+                    <ScanTab products={products} onScanResult={openProduct} onCheckIngredients={() => setSubScreen("check-ingredients")} />
                   )}
                   {activeTab === "saved"   && <SavedTab saved={saved} scanned={recentProducts} initialTab={savedInitialTab} onSelectProduct={openProduct} products={products}
                     openList={openList} onOpenList={setOpenList} onChangeSaved={changeSaved} />}
@@ -631,6 +632,7 @@ export default function App() {
                   products={products}
                 />
               )}
+              {subScreen === "check-ingredients" && <IngredientCheck onClose={() => setSubScreen(null)} />}
               {subScreen === "product-detail" && selectedProduct && (
                 <ProductDetailScreen
                   key={selectedProduct.id}
