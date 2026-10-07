@@ -151,7 +151,8 @@ try {
   await run(`(async () => { __btn("Profile").click(); await __sleep(500); })()`);
   const p = await run(`document.body.innerText`);
   check("Profile has no invented content", !/Alex|Level 4|Money Saved|CO₂|Ethical Purchases|Achievements|Notifications|Dark Mode/i.test(p));
-  check("Profile: your data, sources and privacy", p.includes("2 products, saved in this browser only") && p.includes("Where results come from") && p.includes("Privacy"));
+  // M11: Your data is a closed accordion row; its summary carries the count.
+  check("Profile: your data, sources and privacy", p.includes("2 recent products, on this device") && p.includes("Where results come from") && p.includes("Privacy"));
   const gh = await run(`(() => { const a = [...document.querySelectorAll("a")].find(a => a.innerText.includes("Source code")); return a ? a.href + " " + a.target : null; })()`);
   check("Profile: source-code link opens GitHub in a new tab", gh === "https://github.com/skynetrebel42/ecogo _blank", gh);
   await home();
