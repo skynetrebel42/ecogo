@@ -77,7 +77,7 @@ const ZIP_ICON = L.divIcon({
   className: "", iconSize: [26, 34], iconAnchor: [13, 33],
 });
 
-function PlaceCard({ place, miles }: { place: ResourceRow; miles: number | undefined }) {
+function PlaceCard({ place, miles, headingRef }: { place: ResourceRow; miles: number | undefined; headingRef: React.Ref<HTMLHeadingElement> }) {
   const cat = CAT[place.type];
   const county = place.source === "lacounty";
   const btn = "flex items-center justify-center gap-1.5 rounded-2xl text-xs font-bold px-2";
@@ -87,7 +87,7 @@ function PlaceCard({ place, miles }: { place: ResourceRow; miles: number | undef
     <div className="space-y-2.5">
       <div>
         <p className="text-micro font-extrabold uppercase tracking-wider" style={{ color: cat.color }}>{cat.one}</p>
-        <h3 className="font-extrabold text-base leading-tight">{place.name}{county && "*"}</h3>
+        <h3 ref={headingRef} tabIndex={-1} className="font-extrabold text-base leading-tight focus:outline-none">{place.name}{county && "*"}</h3>
         {place.address && <p className="text-xs text-muted-foreground mt-0.5">{place.address}</p>}
         {miles !== undefined && <p className="text-xs font-bold text-primary mt-0.5">{fmtMi(miles)} away</p>}
       </div>
@@ -136,7 +136,6 @@ function PlaceCard({ place, miles }: { place: ResourceRow; miles: number | undef
 export default function MapTab({ places, status }: { places: ResourceRow[]; status: "loading" | "live" | "offline" }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const clusterRef = useRef<any>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const circleRef = useRef<L.Circle | null>(null);
   const zipPinRef = useRef<L.Marker | null>(null);
@@ -160,6 +159,16 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
   const shown: (ResourceRow & { miles?: number })[] = useMemo(
     () => center ? withinMiles(typed, center.point, radius) : sortPlaces(typed, null), [typed, center, radius]);
   const selected = shown.find(p => p.id === selectedId) ?? null;
+  // A place that leaves the list (smaller radius, type turned off) closes its card for good.
+  useEffect(() => { if (selectedId !== null && !selected) setSelectedId(null); }, [selected, selectedId]);
+  // The card's heading takes focus when it opens; the list header when it closes (the tapped button is gone).
+  const cardRef = useRef<HTMLHeadingElement>(null);
+  const listTitleRef = useRef<HTMLHeadingElement>(null);
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (selected) cardRef.current?.focus(); else if (wasOpen.current) listTitleRef.current?.focus();
+    wasOpen.current = !!selected;
+  }, [!!selected]);
   const countyShown = shown.some(p => p.source === "lacounty");
   const asOf = places[0] ? formatAsOf(places[0].as_of) : "";
   const nextRadius = RADII.find(r => r > radius);
@@ -186,7 +195,6 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (clusterRef.current) map.removeLayer(clusterRef.current);
     const cluster = (L as any).markerClusterGroup({ iconCreateFunction: clusterIcon, maxClusterRadius: 48, showCoverageOnHover: false, chunkedLoading: true,
       disableClusteringAtZoom: 16 }); // close up, every pin shows (two pantries can share a street corner)
     for (const p of shown) {
@@ -195,7 +203,7 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
       cluster.addLayer(marker);
     }
     cluster.addTo(map);
-    clusterRef.current = cluster;
+    return () => { map.removeLayer(cluster); }; // also stops its chunked loading when the tab closes
   }, [shown, selectedId]);
 
   // The search circle (and a ZIP's pin); the map zooms to fit it, or back to LA County (D1, D2).
@@ -258,7 +266,9 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
         setZipText(""); setZipMissing(false); setSelectedId(null);
         setCenter(inLaCounty(pos[0], pos[1]) ? { point: pos, label: YOUR_LOCATION } : null); // distances only mean something in LA County
       },
-      () => { setUserLoc(null); setCenter(null); setLocationOff(true); setLocating(false); }, // drop an earlier position too
+      () => { // drop an earlier position too, but keep a ZIP search
+        setUserLoc(null); setCenter(c => c?.label === YOUR_LOCATION ? null : c); setLocationOff(true); setLocating(false);
+      },
       { timeout: 8000 },
     );
   }
@@ -288,8 +298,10 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
             <Navigation size={16} className={locating ? "animate-pulse" : ""} /> My location
           </button>
         </div>
-        {zipMissing && <p role="status" className="text-xs font-semibold">EcoGo doesn't have that ZIP. The map covers LA County and nearby.</p>}
-        {locationOff && <p role="status" className="text-xs font-semibold">Location is off. Showing Los Angeles.</p>}
+        {/* Always in the page, so screen readers announce the text when it appears. */}
+        <p role="status" className={zipMissing || locationOff ? "text-xs font-semibold" : "sr-only"}>
+          {[zipMissing && "EcoGo doesn't have that ZIP. The map covers LA County and nearby.", locationOff && "Location is off. Showing Los Angeles."].filter(Boolean).join(" ")}
+        </p>
         {/* Native radios: arrow keys and one tab stop come free; each label is a 44 px chip. */}
         <div role="radiogroup" aria-label="Search radius" className="grid grid-cols-4 gap-1.5">
           {RADII.map(r => (
@@ -322,7 +334,7 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
           <button onClick={closeCard} aria-label="Back to the list" className="flex items-center gap-1.5 text-sm font-bold text-primary -ml-1 mb-2 px-1" style={{ minHeight: 44 }}>
             <ArrowLeft size={16} /> Back
           </button>
-          <PlaceCard place={selected} miles={selected.miles} />
+          <PlaceCard place={selected} miles={selected.miles} headingRef={cardRef} />
         </>) : (<>
           {outside && (
             <div className="rounded-2xl border border-border p-3.5 mb-3 space-y-2">
@@ -331,7 +343,7 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
               <button onClick={backToLa} className="w-full rounded-2xl bg-primary text-white text-sm font-bold" style={{ minHeight: 44 }}>Back to LA</button>
             </div>
           )}
-          <h3 id="map-list-title" className="font-extrabold text-sm">{header}</h3>
+          <h3 id="map-list-title" ref={listTitleRef} tabIndex={-1} className="font-extrabold text-sm focus:outline-none">{header}</h3>
           {!center && <p className="text-micro text-muted-foreground">Enter a ZIP or tap My location to see what's near you</p>}
           <div className="flex gap-1.5 flex-wrap mt-2 mb-1">
             {TYPES.map(t => {

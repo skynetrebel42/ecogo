@@ -33,6 +33,7 @@ const MINOR = new Set(["a", "an", "and", "at", "by", "for", "in", "of", "on", "o
 export function titleCase(name: string): string {
   return name.replace(/[A-Za-z]+(?:'[A-Za-z]+)?/g, (word, at: number) => {
     const up = word.toUpperCase(), low = word.toLowerCase();
+    if (/\d$/.test(name.slice(0, at))) return low; // an ordinal: "7TH" → "7th"
     if (ACRONYMS.has(up) && !(up === "LA" && /^\s+[A-Za-z]/.test(name.slice(at + word.length)))) return up;
     // An initial: "L.A. Care", or the County's spaced "L A CARE" (a single letter next to another one).
     if (word.length === 1 && (name[at + 1] === "." || /^\s[A-Za-z]\b/.test(name.slice(at + 1)) || /\b[A-Za-z]\s$/.test(name.slice(0, at)))) return up;

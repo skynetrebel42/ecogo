@@ -155,6 +155,13 @@ try {
       if (__header() === "Nothing within 5 mi") { const b = __btn("Show 10 mi"); b?.click(); await __sleep(600); return { z, next: !!b, after: __header() }; } }
     return null; })()`);
   check("nothing within 5 mi: 'Nothing within 5 mi' with a 'Show 10 mi' button (D4)", !!none?.next && / within 10 mi of /.test(none.after), JSON.stringify(none));
+  // A card whose place leaves a smaller radius closes for good (it doesn't come back when the radius grows again).
+  const shrink = await run(`(async () => { await __zip("90017"); await __radius(20);
+    const rows = [...document.querySelectorAll('ul[aria-label="Places"] button')]; const far = rows.at(-1); const name = far.innerText.split("\\n")[0].replace(/\\*$/, "");
+    far.click(); await __sleep(900); const opened = !__list();
+    await __radius(5); const closed = !!__list(); await __radius(20);
+    return { name, opened, closed, reopened: !__list() }; })()`);
+  check("a card whose place falls outside a smaller radius closes, and stays closed", shrink.opened && shrink.closed && !shrink.reopened, JSON.stringify(shrink));
   const kept = await run(`JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }) + location.href + document.cookie`);
   check("the ZIP is never sent, stored or put in the URL (D3)",
     !requests.some(u => /90017|99999|91377|90742|91387|91765|91301/.test(u)) && !/90017|91377/.test(kept), `${requests.length} requests`);
@@ -178,6 +185,8 @@ try {
   const off = await run(`(async () => { __btn("My location").click(); await __until(() => document.body.innerText.includes("Location is off"), 8000); await __sleep(400); return document.body.innerText; })()`);
   check("location denied: 'Location is off. Showing Los Angeles.'", off.includes("Location is off. Showing Los Angeles."));
   check("…and a failed My location after a success drops the old position (A–Z again)", off.includes("Enter a ZIP or tap My location") && !off.includes("of your location"));
+  const keepZip = await run(`(async () => { await __zip("90017"); __btn("My location").click(); await __sleep(1500); return __header(); })()`);
+  check("…but a failed My location keeps a ZIP search", / within \d+ mi of 90017$/.test(keepZip), keepZip);
 
   // Profile names OpenStreetMap and the location rule (M11: the rows open on tap)
   const p = await run(`(async () => { __btn("Profile").click(); await __sleep(500);

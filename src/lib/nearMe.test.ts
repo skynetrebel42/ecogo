@@ -54,6 +54,7 @@ test("titleCase: real County names in normal case, known acronyms kept (D7)", ()
     ["SHEPHERD'S PANTRY - LA PUENTE", "Shepherd's Pantry - La Puente"],
     ["L A CARE HEALTH PLAN - COMMUNITY RESOURCE CENTER - INGLEWOOD", "L A Care Health Plan - Community Resource Center - Inglewood"], // initials, as the County spells them
     ["L.A. CARE HEALTH PLAN", "L.A. Care Health Plan"],
+    ["BEREAN 7TH DAY ADVENTIST CHURCH COMMUNITY SERVICES", "Berean 7th Day Adventist Church Community Services"], // ordinals
     ["CATHOLIC CHARITIES OF LOS ANGELES - LOAVES AND FISHES II", "Catholic Charities of Los Angeles - Loaves and Fishes II"],
   ];
   for (const [raw, nice] of cases) assert.equal(titleCase(raw), nice);
