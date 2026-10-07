@@ -24,6 +24,7 @@
   table, scored by the app's own engine, rev 4 after the M10.1-M10.3 processed-meat rules), so lookups no longer call
   USDA and the relay is retired (decision 034). **M11 quick wins (2026-10-06):** a food icon per category, "Update info"
   on crowd-sourced products, expandable Profile rows, and text size and high contrast kept on this device.
+  **M12 (2026-10-06):** Home's explainer rows became six "Learn" tiles, and "How EcoGo checks a product" became a page.
   See the KNOWN_ISSUES.md roadmap for what comes next.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (31 food products with USDA-verified barcodes and labels),

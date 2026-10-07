@@ -7,6 +7,8 @@
 // search result, opened and bookmarked, is listed in Favorites.
 // Data ownership: lookups, nutrition, search and alternatives come from our own `foods` table; USDA's API is never called.
 // M9: the Map tab is back (its own check: docs/archive/plans/2026-10-02-m9-assets/check-map.mjs).
+// M12: Home shows six Learn tiles instead of the explainer rows and the "How EcoGo checks" box; tiles are clicked by their
+// aria-label (= the page's full title); "How EcoGo checks a product" is a page with its three steps and no Sources.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
@@ -55,6 +57,11 @@ try {
   const home = () => run(`(async () => { __btn("Home").click(); await __sleep(400); })()`);
   const recentNames = () => run(`(() => { const h = [...document.querySelectorAll("h2")].find(e => e.innerText === "Recently scanned");
     return h ? [...h.parentElement.nextElementSibling.querySelectorAll("button")].map(b => b.innerText.split("\\n")[0]) : null; })()`);
+  // M12: the Learn tiles' accessible names, in order (null when there's no Learn heading).
+  const learnTiles = () => run(`(() => { const h = [...document.querySelectorAll("h2")].find(e => e.innerText === "Learn");
+    return h ? [...h.nextElementSibling.querySelectorAll("button")].map(b => b.getAttribute("aria-label")) : null; })()`);
+  const LEARN = ["“Nothing flagged” isn’t “healthy”", "What the badge levels mean", "Seed oils: what the evidence says",
+    "Pesticides: what a label can’t tell you", "Ultra-processed foods: no official line yet", "How EcoGo checks a product"];
 
   await send("Runtime.enable");
   await send("Network.enable");
@@ -70,7 +77,7 @@ try {
   check("Home has no invented content", !/Alex|Chicago|Rating|Why Recommended|Deals|Nearby Resources/i.test(t));
   const h = new Date().getHours(), g = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
   check("greeting matches the time", t.includes(g) && t.includes("What are you eating?"), g);
-  check("first visit shows How EcoGo checks a product", t.includes("How EcoGo checks a product") && !t.includes("Recently scanned"));
+  check("first visit shows Learn and no Recently scanned", JSON.stringify(await learnTiles()) === JSON.stringify(LEARN) && !t.includes("Recently scanned"));
 
   // M7.4 (spec 2026-10-02-m74-trust-cleanup-design.md §4): nothing invented, nothing promised.
   const nav = await run(`[...document.querySelectorAll("button")].map(b => b.innerText.trim()).filter(s => ["Home", "Map", "Scan", "Saved", "Profile"].includes(s))`);
@@ -117,19 +124,17 @@ try {
   check("See all → Saved › Scanned shows the same list", saved.includes("Coca-Cola Zero") && saved.includes("Oreo") && !saved.includes("No scanned products"));
   await home();
 
-  for (const title of ["isn’t “healthy”", "What the badge levels mean"]) {
+  for (const title of [LEARN[0], LEARN[1]]) {
     await run(`(async () => { __btn(${JSON.stringify(title)}).click(); await __sleep(500); })()`);
     const e = await run(`document.body.innerText`);
     check(`explainer opens with sources: ${title}`, e.includes("Sources") && e.includes("Source checked") && e.includes(title));
     await back();
   }
 
-  // M7.1: five cards, M7's two first, then seed oils, pesticides, ultra-processed (spec E1)
-  const cards = await run(`(() => { const h = [...document.querySelectorAll("h2")].find(e => e.innerText === "Hidden risks, explained");
-    return h ? [...h.nextElementSibling.querySelectorAll("button")].map(b => b.innerText.split("\\n")[0]) : []; })()`);
-  check("Home lists 5 explainer cards, in order", cards.length === 5 && /isn’t “healthy”/.test(cards[0]) && /badge levels/.test(cards[1])
-    && /^Seed oils/.test(cards[2]) && /^Pesticides/.test(cards[3]) && /^Ultra-processed/.test(cards[4]), JSON.stringify(cards));
-  for (const title of ["Seed oils: what the evidence says", "Pesticides: what a label", "Ultra-processed foods: no official line yet"]) {
+  // M12 (spec 2026-10-06-m12-home-tiles-design.md §2): six tiles, the two badge explainers first, How EcoGo checks last.
+  const tiles = await learnTiles();
+  check("Home lists 6 Learn tiles, in order", JSON.stringify(tiles) === JSON.stringify(LEARN), JSON.stringify(tiles));
+  for (const title of [LEARN[2], LEARN[3], LEARN[4]]) {
     await run(`(async () => { __btn(${JSON.stringify(title)}).click(); await __sleep(500); })()`);
     const e = await run(`document.body.innerText`);
     check(`M7.1 explainer opens with sources: ${title}`, e.includes("Sources") && e.includes("Source checked") && e.includes(title));
@@ -146,6 +151,12 @@ try {
     }
     await back();
   }
+  await run(`(async () => { __btn(${JSON.stringify(LEARN[5])}).click(); await __sleep(500); })()`);
+  const how = await run(`document.body.innerText`);
+  check("How EcoGo checks opens a page with its three steps and no Sources", how.includes(LEARN[5])
+    && how.includes("Reads the real label from USDA") && how.includes("Checks ingredients and the food itself")
+    && how.includes("Shows the strongest finding") && !how.includes("Sources"));
+  await back();
 
   // M7.2: Profile shows only true things
   await run(`(async () => { __btn("Profile").click(); await __sleep(500); })()`);
@@ -159,7 +170,7 @@ try {
 
   await run(`(async () => { __btn("Clear recently scanned").click(); await __sleep(400); })()`);
   const after = await run(`document.body.innerText`);
-  check("Clear empties the list", after.includes("How EcoGo checks a product") && !after.includes("Recently scanned"));
+  check("Clear empties the list", JSON.stringify(await learnTiles()) === JSON.stringify(LEARN) && !after.includes("Recently scanned"));
   await run(`(async () => { __btn("Profile").click(); await __sleep(500); })()`);
   check("…and Profile says Nothing scanned yet", (await run(`document.body.innerText`)).includes("Nothing scanned yet"));
 
