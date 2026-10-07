@@ -33,8 +33,13 @@ export interface OsmElement {
 
 // ── Mapping ──────────────────────────────────────────────────────────────────
 
+/** M13: a pantry only for students ("social_facility:for" = "student", or a list with it). The app can't label that yet,
+ *  so it isn't shown as free food for everyone. */
+export const studentsOnly = (t: Record<string, string>) => (t["social_facility:for"] ?? "").split(";").map(s => s.trim()).includes("student");
+
 function placeType(t: Record<string, string>, name: string): PlaceType | null {
-  if (t.amenity === "food_bank" || t.social_facility === "food_bank") return "food-bank";
+  // "Free food": food banks and pantries, and (M13) community fridges and food sharing.
+  if (t.amenity === "food_bank" || t.social_facility === "food_bank" || t.amenity === "food_sharing") return studentsOnly(t) ? null : "food-bank";
   // Markets only when they say they are farmers markets (swap meets, malls and food halls drop out).
   if (t.amenity === "marketplace" && (/farmer/i.test(name) || Object.values(t).includes("farmers"))) return "farmers-market";
   if (t.leisure === "garden" && t["garden:type"] === "community") return "community-garden";

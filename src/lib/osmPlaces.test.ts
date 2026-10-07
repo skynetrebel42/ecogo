@@ -24,6 +24,22 @@ test("amenity=food_bank counts too", () => {
   assert.equal(p?.type, "food-bank");
 });
 
+// M13 D9: community fridges and food sharing are free food too.
+test("amenity=food_sharing is free food (the food-bank type)", () => {
+  const p = toPlace({ type: "node", id: 5, lat: 34.1, lon: -118.3, tags: { amenity: "food_sharing", name: "Community Fridge" } }, AS_OF);
+  assert.equal(p?.type, "food-bank");
+});
+
+// M13: the app can't say "students only" yet, so a students-only pantry must not show as free food for everyone.
+test("a pantry for students (social_facility:for=student, alone or in a list) is skipped", () => {
+  const pantry = (forWhom?: string) => toPlace({ type: "node", id: 6, lat: 34.1, lon: -118.3,
+    tags: { amenity: "social_facility", social_facility: "food_bank", name: "Campus Pantry", ...(forWhom ? { "social_facility:for": forWhom } : {}) } }, AS_OF);
+  assert.equal(pantry("student"), null);
+  assert.equal(pantry("student;staff"), null);
+  assert.equal(pantry("homeless")?.type, "food-bank");
+  assert.equal(pantry()?.type, "food-bank");
+});
+
 test("farmers markets are kept; swap meets, malls and plain markets are dropped", () => {
   assert.equal(toPlace(byId(2247860156), AS_OF)?.type, "farmers-market");
   assert.equal(toPlace(byId(2247860156), AS_OF)?.website, "https://hfm.la/");
