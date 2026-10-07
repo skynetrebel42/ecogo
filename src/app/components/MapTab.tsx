@@ -170,9 +170,16 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
     if (!containerRef.current || mapRef.current) return;
     const map = L.map(containerRef.current, { zoomControl: false, attributionControl: false }).fitBounds(LA_BOUNDS, FIT);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
-    map.on("moveend", () => { const c = map.getCenter(); setMapCenter([c.lat, c.lng]); });
+    const onMoveEnd = () => { const c = map.getCenter(); setMapCenter([c.lat, c.lng]); };
+    map.on("moveend", onMoveEnd);
     mapRef.current = map;
-    return () => { map.remove(); mapRef.current = null; };
+    return () => {
+      map.off("moveend", onMoveEnd);
+      mapRef.current = null;
+      // Leaving the tab mid-zoom: Leaflet ends a zoom on a 250 ms timer that reads the map's panes, which remove()
+      // deletes ("_leaflet_pos" of undefined). Let it finish first.
+      setTimeout(() => map.remove(), 400);
+    };
   }, []);
 
   // Pins: rebuilt when the shown places or the selection change.
