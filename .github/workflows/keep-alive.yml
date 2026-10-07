@@ -15,7 +15,7 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Read one row
         run: |
           set -a; . ./.env; set +a   # the project URL and the publishable key: public by design
