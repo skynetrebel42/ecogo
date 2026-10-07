@@ -8,7 +8,7 @@ checked**, and the **commit**.
 
 | Date | Fix / update | Commit |
 |---|---|---|
-| 2026-10-07 | GitHub Actions warned that `actions/checkout@v4` runs on Node 20, which GitHub is retiring; `deploy.yml` and `keep-alive.yml` now use `@v5` (Node 24). Checked by the next deploy's run log | `d2c596c` |
+| 2026-10-07 | GitHub Actions warned that steps run on Node 20, which GitHub is retiring: `actions/checkout` (`deploy.yml`, `keep-alive.yml`) and `actions/setup-node` (`deploy.yml`) now use `@v5` (Node 24). Still on Node 20: `upload-pages-artifact@v3` and `deploy-pages@v4` (their v5s run Node 24); they get their own small push after M14 is live. Checked by the next deploy's run log | `d2c596c`, `d5b8f62` |
 | 2026-10-05 | M10.3 roast beef in a brine, ribs, meat sticks; "Franks Red Hot" and coconut "meat" false flags; targeted audit | `e890a2c` |
 | 2026-10-04 | M10.2 sausage names, cured and preserved meat (the M10.1 re-gate's misses); full labels in the audit | `a958a32` |
 | 2026-10-04 | M10.1 processed-meat rules (the M10 launch audit's misses and false flags) | `4e8509b` |
