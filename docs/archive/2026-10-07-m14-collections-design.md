@@ -1,6 +1,6 @@
 # M14 Collections (Saved): design
 
-Status: **Approved by Minh 2026-10-07.** Item 4 of decision 033; layout = decision 043.
+Status: **Live 2026-10-07** (origin/main 4ac0369; approved by Minh the same day). Item 4 of decision 033; layout = decision 043.
 Backlog source: `docs/superpowers/ideas/2026-10-05-owner-app-review.md` §4. Closes K-16's remaining part.
 
 ## Decisions
@@ -71,8 +71,8 @@ control (undo instead of confirm dialogs), Rams "as little design as possible" (
 - Device-only: another browser or phone doesn't see your lists; clearing site data deletes them (said on Profile).
   Accounts (later) can sync them.
 - Looked-up snapshots don't refresh until the product is opened again (same as Recently scanned).
-- localStorage is about 5 MB per site, shared with Recently scanned; the snapshot size measured in part 1 sets how
-  many looked-up favorites fit.
+- localStorage is about 5 MB per site, shared with Recently scanned; one looked-up snapshot is 949 bytes (part 1),
+  so about 5,000 looked-up favorites fit.
 - No reordering of lists or products; no sharing; no non-food lists (item 7); food groups wait for a source (D4).
 
 ## Summary for Minh
