@@ -31,6 +31,9 @@ the map's height is capped (D1).
 | D8 | **County cards have no hours or phone** (the data has neither): they show "No hours listed" plus today's "Hours can change — check before you go.", and Directions. |
 | D9 | **Part 4, OSM refresh:** the snapshot (OSM data as of 2026-06-01) is re-fetched with `amenity=food_sharing` (community fridges, food sharing) added as free food. Campus pantries reach the app through OSM: the owner adds Falcon's Nest to OSM before the refresh if they want it in. |
 | D10 | **"Missing a place? Add it on OpenStreetMap"** (owner, 2026-10-07, added after approval): one line under the list, linking to `https://www.openstreetmap.org/edit#map=18/<lat>/<lng>` at the map's current centre (new tab), with the hint "Add it as Social facility → Food bank. EcoGo shows it after the next update." EcoGo stores and sends nothing. In-app suggestions come later with M8 (decision 039). |
+| D11 | **County footnote** (decision 042, replaces 041's note): County rows and cards carry an asterisk; under the list and on the card: "* County listing from May 2023, last updated April 2024. Search the name or call 211 to check it's still open before you go." |
+| D12 | **"Report a problem" on every card** (decision 042). OSM place: opens `https://www.openstreetmap.org/note/new#map=19/<lat>/<lng>` (an anonymous OSM note at the place, new tab) with the hint "Say what changed: closed, moved, or new hours." County place: a `mailto:` to `REPORT_EMAIL` with subject "EcoGo report: <name> (County <OBJECTID>)" and a body listing the name, address, "What's wrong: closed / moved / hours / other", "Link (optional):". `REPORT_EMAIL` is one constant the owner supplies; **while it is empty the County button is not shown** (never a made-up address). EcoGo stores and sends nothing itself. |
+| D13 | **Hidden County sites:** `src/lib/data/county-hidden.json`, a list of `{ "id": OBJECTID, "reason": "closed", "checked": "2026-10-20", "source": "<url or 'phone call'>" }` the owner maintains after checking a report; `countyPlaces` leaves those out (test). Starts empty. |
 
 ## 3. Parts (one commit each, in order)
 
@@ -44,10 +47,13 @@ the map's height is capped (D1).
 - Tests: 90017 resolves near downtown LA; "9001", "abcde" and an Ohio ZIP return null; `withinMiles` keeps a place at 4.9 mi
   for 5 and drops one at 5.1; the order is nearest first; the table has 450-500 rows and every row is inside the buffer.
 
-### 3.2 LA County sites: **DROPPED (decision 040, 2026-10-07)**
-The layer's own `copyrightText` says its data "came from … 211LA Food Resources" (May 2023), and decision 036 rejected 211 LA.
-M13 ships with OSM only: skip this part, `titleCase`, `countyPlaces`, `source`, the County credit and D6-D8. D5's chip rename
-("Free food") stays. The text below is kept for a later milestone if LA County or 211LA allow republishing.
+### 3.2 LA County sites: **back in, clearly dated (decision 041, supersedes 040)**
+The layer's `copyrightText` says its data "came from … 211LA Food Resources" (May 2023). The owner accepts relying on the
+County's open-data licence (facts, published by the County under terms that allow republishing; worst case a takedown request,
+answered by deleting the file). So the credit names the origin and the age: **"LA County Public Health, from 211LA food
+resources (May 2023), updated April 2024"** with the terms link, and every County card and the list footer say **"Listed in
+2023; may have changed. Check before you go."** (this replaces D8's hours note on County cards). The rest of this part is as
+written below.
 - `scripts/fetch-county-food-sites.mjs` reads
   `https://services.arcgis.com/RmCCgQtiZLDCtblq/arcgis/rest/services/Food_Distribution_chp/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=json`
   and writes `src/lib/data/county-food-sites.json` (name, address, city, zip, lat, lng; plus `as_of`, the layer's last
@@ -68,7 +74,9 @@ M13 ships with OSM only: skip this part, `titleCase`, `countyPlaces`, `source`, 
 
 ### 3.4 OSM refresh (live database; ask the owner first)
 - `fetch-osm-places.mjs`: add `nwr["amenity"="food_sharing"](area.la);`; `osmPlaces.ts` `toPlace` maps it to the free-food
-  type (test). Run it and write the new migration; **ask the owner** with the row counts (old vs new, per type) before
+  type (test). `toPlace` skips elements tagged `social_facility:for=student` (any list containing `student`; test): the app
+  can't label "students only" yet, so a campus-only pantry must not show as free food for everyone (planner, 2026-10-07, after
+  the owner found UCI Basic Needs is students only). Run it and write the new migration; **ask the owner** with the row counts (old vs new, per type) before
   `apply_migration`. Then re-run part 3.2's merge test against the new rows and report the County count.
 
 ## 4. Evidence (2026-10-07)
