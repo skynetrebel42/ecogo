@@ -1,7 +1,7 @@
 # M13: Map near me (ZIP or location, radius, more free-food places): design spec
 
 - **Date:** 2026-10-07
-- **Status:** **awaiting the owner's approval.** Parts 1-3 are front end only (two static data files built by scripts, no
+- **Status:** **approved by the owner 2026-10-07** (D1-D9 as written, OSM refresh included). Parts 1-3 are front end only (two static data files built by scripts, no
   database change, no new dependency). Part 4 is a refreshed OpenStreetMap snapshot = a **live database migration**: the
   builder asks the owner right before applying it.
 - **From:** the owner's app review, item 3 (`docs/superpowers/ideas/2026-10-05-owner-app-review.md`); order is decision 033;
