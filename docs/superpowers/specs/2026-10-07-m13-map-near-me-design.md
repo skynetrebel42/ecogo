@@ -44,7 +44,10 @@ the map's height is capped (D1).
 - Tests: 90017 resolves near downtown LA; "9001", "abcde" and an Ohio ZIP return null; `withinMiles` keeps a place at 4.9 mi
   for 5 and drops one at 5.1; the order is nearest first; the table has 450-500 rows and every row is inside the buffer.
 
-### 3.2 LA County sites (pure, test-first)
+### 3.2 LA County sites: **DROPPED (decision 040, 2026-10-07)**
+The layer's own `copyrightText` says its data "came from … 211LA Food Resources" (May 2023), and decision 036 rejected 211 LA.
+M13 ships with OSM only: skip this part, `titleCase`, `countyPlaces`, `source`, the County credit and D6-D8. D5's chip rename
+("Free food") stays. The text below is kept for a later milestone if LA County or 211LA allow republishing.
 - `scripts/fetch-county-food-sites.mjs` reads
   `https://services.arcgis.com/RmCCgQtiZLDCtblq/arcgis/rest/services/Food_Distribution_chp/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=json`
   and writes `src/lib/data/county-food-sites.json` (name, address, city, zip, lat, lng; plus `as_of`, the layer's last
