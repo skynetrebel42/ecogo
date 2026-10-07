@@ -209,6 +209,21 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
   search result) didn't show it in Saved › Favorites, because only Scan filled `lookedUp`. `openProduct` now adds every
   looked-up product (negative id); `check-home.mjs` bookmarks a USDA search result and finds it in Favorites.
 
+### Map near me: known gaps (M13, spec §7)
+
+- **County data is old:** LA County Public Health's sites are from 211LA food resources (May 2023), last updated April 2024,
+  with no hours or phone. Every County row and card carries a * and the "check before you go" footnote; checked, closed sites
+  go into `src/lib/data/county-hidden.json` (D13). County "Report a problem" stays hidden until the owner supplies
+  `REPORT_EMAIL` (`src/lib/nearMe.ts`).
+- **One heading for all free food:** food banks, pantries, meal sites, community fridges and County sites share "Free food"
+  (no sub-type yet).
+- **Students-only pantries are left out** (`social_facility:for=student`) until the app can label "students only"; campus
+  pantries such as Falcon's Nest appear once someone adds them to OSM (decision 039: in-app suggestions later, with M8).
+- **LA County and nearby only:** the ZIP table covers ZCTAs within 20 mi of the county; anything else says EcoGo doesn't have
+  that ZIP. No "open now".
+- **Data entry quirks shown as written:** OSM hours that `formatHours` can't read stay as typed ("Sa", `"See website"`), and
+  County names keep their own spelling ("L A Care", "Cetner"); only the County's capitals are title-cased.
+
 ### Hidden-risk candidates (each needs an official source before it's flagged)
 
 - Glycidyl esters, benzene and aflatoxins (process contaminants left out of M4).

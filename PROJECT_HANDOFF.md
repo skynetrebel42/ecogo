@@ -25,6 +25,8 @@
   USDA and the relay is retired (decision 034). **M11 quick wins (2026-10-06):** a food icon per category, "Update info"
   on crowd-sourced products, expandable Profile rows, and text size and high contrast kept on this device.
   **M12 (2026-10-06):** Home's explainer rows became six "Learn" tiles, and "How EcoGo checks a product" became a page.
+  **M13 (2026-10-07):** "Map near me": a ZIP or My location, a radius, the nearest places first; OSM refreshed (183 places,
+  community fridges in) plus 191 LA County free-food sites, marked and dated; "Report a problem" and "Missing a place?" links.
   See the KNOWN_ISSUES.md roadmap for what comes next.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (31 food products with USDA-verified barcodes and labels),
