@@ -522,7 +522,8 @@ export default function App() {
   // so restoring never loses a later edit.
   const [undo, setUndo] = useState<{ text: string; prev: SavedStore } | null>(null);
   useEffect(() => { if (!undo) return; const t = setTimeout(() => setUndo(null), 5000); return () => clearTimeout(t); }, [undo]);
-  const changeSaved = (next: SavedStore, undoText?: string) => { setUndo(undoText ? { text: undoText, prev: saved } : null); setSaved(next); };
+  // Writing here too means the sheet opens with the right title when this very write fails.
+  const changeSaved = (next: SavedStore, undoText?: string) => { setSavedOk(saveSaved(next)); setUndo(undoText ? { text: undoText, prev: saved } : null); setSaved(next); };
   const [recent, setRecent] = useState<RecentEntry[]>(loadRecent);
   useEffect(() => saveRecent(recent), [recent]);
   const [savedInitialTab, setSavedInitialTab] = useState<"favorites" | "scanned">("favorites");

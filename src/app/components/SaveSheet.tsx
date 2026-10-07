@@ -24,6 +24,7 @@ export default function SaveSheet({ productId, saved, savedOk, onChange, onClose
   const add = (n: string) => {
     const r = createList(saved, n, [productId]);
     if (typeof r === "string") { setError(r); return; }
+    if (naming) panel.current?.focus(); // the text box is about to go: keep focus inside the sheet
     onChange(r); setNaming(false); setName(""); setError("");
   };
   // Escape closes; Tab stays inside the sheet (aria-modal).

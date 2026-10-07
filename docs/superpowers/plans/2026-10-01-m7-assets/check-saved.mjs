@@ -111,7 +111,8 @@ try {
   await click("New list");
   await send("Input.insertText", { text: "Road trip" }); await key("Enter");
   const chips2 = await run(`[...document.querySelectorAll('[role="dialog"] button[aria-pressed]')].map(x => x.innerText)`);
-  check("a new list goes last, just before + New list", JSON.stringify(chips2) === '["Breakfast","Lunch","Dinner","Dessert","Snacks","Road trip"]'
+  check("a new list goes last, just before + New list; focus stays in the sheet", JSON.stringify(chips2) === '["Breakfast","Lunch","Dinner","Dessert","Snacks","Road trip"]'
+    && await run(`document.querySelector('[role="dialog"]').contains(document.activeElement)`)
     && await run(`(() => { const b = [...document.querySelectorAll('[role="dialog"] .flex-wrap button')]; return b.at(-1).innerText.trim() === "New list"; })()`), JSON.stringify(chips2));
   await click("Road trip"); // take Oreo back out: Road trip stays as an empty list the user named
   await click("New list");
