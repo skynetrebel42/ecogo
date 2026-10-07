@@ -35,6 +35,8 @@ shows may be invented, every finding needs a source.
   later (item 6).
 
 ## 5. M8 add-a-product — already specced (`docs/superpowers/specs/2026-10-02-m8-add-product-design.md`)
+- Add **"Suggest a place"** for the Map (decision 039): same sign-in and bot check, an owner review queue, a source link
+  required; needs a spec addendum when M8 comes up.
 - Includes the **"type or upload the ingredients" box** for products without a barcode. Owner setup needed: OFF
   accounts, Turnstile, Supabase anonymous sign-in.
 

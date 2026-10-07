@@ -30,6 +30,7 @@ the map's height is capped (D1).
 | D7 | **County names in normal case.** The County lists every name in capitals; the app shows title case and keeps known acronyms (AIDS, YMCA, YWCA, SDA, LA, LAUSD, USA, AME, CME, WIC, "St."). The full name shows on the card; list rows truncate as today. Nothing else is rewritten. |
 | D8 | **County cards have no hours or phone** (the data has neither): they show "No hours listed" plus today's "Hours can change — check before you go.", and Directions. |
 | D9 | **Part 4, OSM refresh:** the snapshot (OSM data as of 2026-06-01) is re-fetched with `amenity=food_sharing` (community fridges, food sharing) added as free food. Campus pantries reach the app through OSM: the owner adds Falcon's Nest to OSM before the refresh if they want it in. |
+| D10 | **"Missing a place? Add it on OpenStreetMap"** (owner, 2026-10-07, added after approval): one line under the list, linking to `https://www.openstreetmap.org/edit#map=18/<lat>/<lng>` at the map's current centre (new tab), with the hint "Add it as Social facility → Food bank. EcoGo shows it after the next update." EcoGo stores and sends nothing. In-app suggestions come later with M8 (decision 039). |
 
 ## 3. Parts (one commit each, in order)
 
@@ -43,7 +44,10 @@ the map's height is capped (D1).
 - Tests: 90017 resolves near downtown LA; "9001", "abcde" and an Ohio ZIP return null; `withinMiles` keeps a place at 4.9 mi
   for 5 and drops one at 5.1; the order is nearest first; the table has 450-500 rows and every row is inside the buffer.
 
-### 3.2 LA County sites (pure, test-first)
+### 3.2 LA County sites: **DROPPED (decision 040, 2026-10-07)**
+The layer's own `copyrightText` says its data "came from … 211LA Food Resources" (May 2023), and decision 036 rejected 211 LA.
+M13 ships with OSM only: skip this part, `titleCase`, `countyPlaces`, `source`, the County credit and D6-D8. D5's chip rename
+("Free food") stays. The text below is kept for a later milestone if LA County or 211LA allow republishing.
 - `scripts/fetch-county-food-sites.mjs` reads
   `https://services.arcgis.com/RmCCgQtiZLDCtblq/arcgis/rest/services/Food_Distribution_chp/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=json`
   and writes `src/lib/data/county-food-sites.json` (name, address, city, zip, lat, lng; plus `as_of`, the layer's last
