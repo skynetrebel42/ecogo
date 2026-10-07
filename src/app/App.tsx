@@ -14,6 +14,7 @@ import { knownNutrition, searchFoods } from "../lib/lookup";
 import { supabaseFoods } from "../lib/foodsDb";
 import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
+import { toggleSave as toggleSaved, refreshSnapshot, resolveSaved, loadSaved, saveSaved, type SavedStore } from "../lib/saved";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import {
   Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronDown,
@@ -294,12 +295,12 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
 
 
 // ── Saved Tab ────────────────────────────────────────────────────────────────
-function SavedTab({ savedIds, scanned, initialTab = "favorites", onSelectProduct, products }: {
-  savedIds: number[]; scanned: Product[]; initialTab?: "favorites" | "scanned";
+function SavedTab({ saved, scanned, initialTab = "favorites", onSelectProduct, products }: {
+  saved: SavedStore; scanned: Product[]; initialTab?: "favorites" | "scanned";
   onSelectProduct: (p: Product) => void; products: Product[];
 }) {
   const [tab, setTab] = useState<"favorites" | "scanned">(initialTab);
-  const favs = products.filter(p => savedIds.includes(p.id));
+  const favs = resolveSaved(saved, products);
 
   return (
     <div className="h-full overflow-y-auto bg-background" style={{ scrollbarWidth: "none" }}>
@@ -428,7 +429,7 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
               className="px-3.5 rounded-xl border border-border text-xs font-bold flex-shrink-0" style={{ minHeight: 44 }}>Clear</button>
           )}
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">Favorites are kept until you close EcoGo. Saving them for good comes with accounts.</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">Saved products and lists stay in this browser. Clearing site data removes them.</p>
       </Accordion>
 
       <Accordion title="Where results come from" summary="USDA, Open Food Facts, IARC and more">
@@ -496,14 +497,13 @@ export default function App() {
   const [subScreen, setSubScreen] = useState<SubScreen>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [savedIds, setSavedIds] = useState<number[]>([]);
-  // Recently scanned / looked at: on this device only (M7 spec §4.1).
+  // Saved products and lists, and Recently scanned: on this device only (M14 part 1, M7 spec §4.1).
+  const [saved, setSaved] = useState<SavedStore>(loadSaved);
+  useEffect(() => { saveSaved(saved); }, [saved]);
   const [recent, setRecent] = useState<RecentEntry[]>(loadRecent);
   useEffect(() => saveRecent(recent), [recent]);
   const [savedInitialTab, setSavedInitialTab] = useState<"favorites" | "scanned">("favorites");
   const [explainer, setExplainer] = useState<ExplainerId | null>(null);
-  // Products looked up in USDA / Open Food Facts this session (not in the catalog; negative ids).
-  const [lookedUp, setLookedUp] = useState<Product[]>([]);
 
 
   // ── Live data from Supabase ──────────────────────────────────────────────
@@ -526,11 +526,10 @@ export default function App() {
     });
   }, []);
 
-  // Every product opened counts as "looked at": Scan, search (catalog or USDA), Saved and Recently scanned. A looked-up product
-  // (negative id) joins lookedUp however it was opened, so bookmarking it shows it in Saved › Favorites.
+  // Every product opened counts as "looked at": Scan, search (catalog or USDA), Saved and Recently scanned.
   const openProduct = (p: Product) => {
     setRecent(prev => addRecent(prev, p));
-    if (p.id < 0) setLookedUp(prev => prev.some(x => x.id === p.id) ? prev : [...prev, p]);
+    setSaved(prev => refreshSnapshot(prev, p));
     setSelectedProduct(p); setSubScreen("product-detail");
   };
   const recentProducts = resolveRecent(recent, products);
@@ -538,7 +537,7 @@ export default function App() {
 
   const toggleSave = () => {
     if (!selectedProduct) return;
-    setSavedIds(prev => prev.includes(selectedProduct.id) ? prev.filter(id => id !== selectedProduct.id) : [...prev, selectedProduct.id]);
+    setSaved(prev => toggleSaved(prev, selectedProduct));
   };
 
   return (
@@ -596,7 +595,7 @@ export default function App() {
                   {activeTab === "scan"    && (
                     <ScanTab products={products} onScanResult={openProduct} />
                   )}
-                  {activeTab === "saved"   && <SavedTab savedIds={savedIds} scanned={recentProducts} initialTab={savedInitialTab} onSelectProduct={openProduct} products={[...products, ...lookedUp]} />}
+                  {activeTab === "saved"   && <SavedTab saved={saved} scanned={recentProducts} initialTab={savedInitialTab} onSelectProduct={openProduct} products={products} />}
                   {activeTab === "profile" && <ProfileTab recentCount={recentProducts.length} onClearRecent={() => setRecent([])} />}
                 </div>
               )}
@@ -616,7 +615,7 @@ export default function App() {
                   key={selectedProduct.id}
                   product={selectedProduct}
                   onBack={() => setSubScreen(null)}
-                  saved={savedIds.includes(selectedProduct.id)}
+                  saved={saved.items.some(i => i.id === selectedProduct.id)}
                   onToggleSave={toggleSave}
                   onSelectProduct={openProduct}
                 />
