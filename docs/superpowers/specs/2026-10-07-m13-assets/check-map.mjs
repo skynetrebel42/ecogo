@@ -62,6 +62,10 @@ try {
   const miles = row => { const d = row.at(-1); return / mi$/.test(d) ? Number(d.slice(0, -3)) : / ft$/.test(d) ? Number(d.slice(0, -3)) / 5280 : NaN; };
 
   await send("Runtime.enable");
+  // Headless Edge sometimes starts the tab as "hidden": no animation frames (Leaflet never finishes a zoom, so the map's
+  // centre never updates) and throttled timers (waits look like hangs). Keep the page visible and focused.
+  await send("Page.bringToFront");
+  await send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await send("Network.enable");
   await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }] });
   await send("Page.navigate", { url: URL_ });
@@ -73,21 +77,23 @@ try {
     `${JSON.stringify(nav)} ${nav?.length ? "" : (await run(`location.href + " " + document.body.innerText.slice(0, 200)`))}`);
   const list = await run(`__list()`);
   check("the list holds the database's places (more than 50)", list?.length > 50, `${list?.length} places`);
-  const names = list?.map(x => x[0]) ?? [];
+  const names = list?.map(x => x[0].replace(/\*$/, "")) ?? []; // County rows end in "*" (D11)
   check("…sorted A–Z", names.join("|") === [...names].sort((a, b) => a.localeCompare(b)).join("|"));
   const t = await run(`document.body.innerText`);
   check("before a ZIP: 'Enter a ZIP or tap My location to see what's near you'", t.includes("Enter a ZIP or tap My location to see what's near you"));
   const chips = await run(`[...document.querySelectorAll("button[aria-pressed]")].map(b => b.innerText.trim())`);
   check("type chips: Free food, Farmers markets, Gardens (D5)", JSON.stringify(chips) === '["Free food","Farmers markets","Gardens"]', JSON.stringify(chips));
-  check("no ratings, open/closed guess, Smart Score or Chicago", !/★|Rating|Smart Score|\bOpen\b|\bClosed\b|Chicago|\(555\)/.test(t.replace(/OpenStreetMap/g, "")));
+  // "Open 24 hours, every day" is OSM's own opening_hours=24/7 in words (community fridges, M13), not a guess.
+  check("no ratings, open/closed guess, Smart Score or Chicago",
+    !/★|Rating|Smart Score|\bOpen\b|\bClosed\b|Chicago|\(555\)/.test(t.replace(/OpenStreetMap|Open 24 hours, every day/g, "")));
   const credit = await run(`[...document.querySelectorAll("a")].filter(a => a.innerText.includes("© OpenStreetMap contributors")).map(a => a.href)`);
   check("© OpenStreetMap contributors credit links the copyright page", credit?.includes("https://www.openstreetmap.org/copyright"), JSON.stringify(credit));
   check("the list says community-edited, as of <month year>, hours can change", /community-edited\), as of [A-Z][a-z]{2} 20\d\d\. Hours can change — check before you go\./.test(t));
   const tiles = await run(`performance.getEntriesByType("resource").map(e => e.name).filter(n => n.includes("tile.openstreetmap.org"))`);
   check("tiles load from tile.openstreetmap.org (no a/b/c subdomains)", tiles.length > 0 && tiles.every(n => n.startsWith("https://tile.openstreetmap.org/")), `${tiles.length} tiles`);
 
-  // A place card (D1: it replaces the list, with Back)
-  const card = await run(`(async () => { const b = document.querySelector('ul[aria-label="Places"] button');
+  // An OSM place card (D1: it replaces the list, with Back); County rows end in "*"
+  const card = await run(`(async () => { const b = [...document.querySelectorAll('ul[aria-label="Places"] button')].find(b => !/\\*$/.test(b.innerText.split("\\n")[0]));
     const name = b.innerText.split("\\n")[0]; b.click(); await __sleep(900);
     const links = Object.fromEntries([...document.querySelectorAll("a")].map(a => [a.innerText.trim(), a.href]));
     return { name, h: [...document.querySelectorAll("h3")].map(e => e.innerText), text: document.body.innerText, links, list: !!__list() }; })()`);
@@ -96,8 +102,30 @@ try {
   check("card: Directions opens Google Maps with only the place's position", /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=-?\d+\.\d+,-?\d+\.\d+$/.test(card.links["Directions"] ?? ""), card.links["Directions"]);
   check("card: Fix it on OSM + the OSM object link + credit", /^https:\/\/www\.openstreetmap\.org\/edit\?(node|way|relation)=\d+$/.test(card.links["Fix it on OSM"] ?? "")
     && /^https:\/\/www\.openstreetmap\.org\/(node|way|relation)\/\d+$/.test(card.links["OpenStreetMap"] ?? "") && !!card.links["© OpenStreetMap contributors"]);
+  const d = card.links["Directions"]?.match(/destination=(-?\d+\.\d+),(-?\d+\.\d+)$/);
+  const note = d ? `https://www.openstreetmap.org/note/new#map=19/${Number(d[1]).toFixed(5)}/${Number(d[2]).toFixed(5)}` : "";
+  check("card: Report a problem opens an OSM note at the place, with the hint (D12)", card.links["Report a problem"] === note
+    && card.text.includes("Say what changed: closed, moved, or new hours."), card.links["Report a problem"]);
   const backList = await run(`(async () => { __btn("Back to the list").click(); await __sleep(400); return __list()?.length ?? 0; })()`);
   check("card: Back returns to the list", backList > 50, `${backList} places`);
+
+  // LA County sites (decision 041, D5-D8, D11-D13)
+  const COUNTY_NOTE = "* County listing from May 2023, last updated April 2024. Search the name or call 211 to check it's still open before you go.";
+  const COUNTY_CREDIT = "LA County Public Health, from 211LA food resources (May 2023), updated April 2024";
+  const foot = await run(`document.querySelector('section[aria-labelledby="map-list-title"]').innerText`);
+  check("the list shows County sites marked * with the footnote and the County credit under it", list.some(x => /\*$/.test(x[0]))
+    && foot.includes(COUNTY_NOTE) && foot.includes(COUNTY_CREDIT), `${list.filter(x => /\*$/.test(x[0])).length} County rows`);
+  const cc = await run(`(async () => { const b = [...document.querySelectorAll('ul[aria-label="Places"] button')].find(b => /\\*$/.test(b.innerText.split("\\n")[0]));
+    b.click(); await __sleep(900);
+    const links = [...document.querySelectorAll("section a")].map(a => [a.innerText.trim(), a.getAttribute("href")]);
+    const text = document.querySelector('section[aria-labelledby="map-list-title"]').innerText;
+    __btn("Back to the list").click(); await __sleep(400); return { text, links }; })()`);
+  const ccLinks = Object.fromEntries(cc.links);
+  check("County card: the footnote, the credit with the County's terms, Directions; no hours note, no 'Fix it on OSM'",
+    cc.text.includes(COUNTY_NOTE) && cc.text.includes(COUNTY_CREDIT) && ccLinks["Terms"] === "https://egis-lacounty.hub.arcgis.com/pages/terms-of-use"
+    && !!ccLinks["Directions"] && !ccLinks["Fix it on OSM"] && !cc.text.includes("Hours can change"), JSON.stringify(cc.links));
+  check("County card: no Report button while there's no report address, never an empty or made-up one (D12)",
+    cc.links.every(([t, h]) => t !== "Report a problem" || /^mailto:[^?@\s]+@[^?@\s]+\.[a-z]+\?/.test(h)), JSON.stringify(cc.links.filter(([t]) => t === "Report a problem")));
 
   // Type chips
   const counts = await run(`(async () => { const n0 = __list().length; __btn("Gardens").click(); await __sleep(500); const n1 = __list().length;
@@ -122,13 +150,14 @@ try {
   check("the 5 mi chip lowers the count", n5 > 0 && n5 < n10, `${z5} (was ${n10})`);
   const bad = await run(`(async () => { await __zip("99999"); return document.body.innerText; })()`);
   check("a ZIP not in the table: 'EcoGo doesn't have that ZIP…' (D4)", bad.includes("EcoGo doesn't have that ZIP. The map covers LA County and nearby."));
-  const none = await run(`(async () => { for (const z of ["91024", "90601", "91016", "91006", "91342"]) { await __zip(z); await __radius(5);
+  // ZIPs with nothing within 5 mi but places within 10 (OSM + County, 2026-10-07); the first that still is wins.
+  const none = await run(`(async () => { for (const z of ["91377", "90742", "91387", "91765", "91301"]) { await __zip(z); await __radius(5);
       if (__header() === "Nothing within 5 mi") { const b = __btn("Show 10 mi"); b?.click(); await __sleep(600); return { z, next: !!b, after: __header() }; } }
     return null; })()`);
   check("nothing within 5 mi: 'Nothing within 5 mi' with a 'Show 10 mi' button (D4)", !!none?.next && / within 10 mi of /.test(none.after), JSON.stringify(none));
   const kept = await run(`JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }) + location.href + document.cookie`);
   check("the ZIP is never sent, stored or put in the URL (D3)",
-    !requests.some(u => /90017|99999|91024|90601|91016|91006|91342/.test(u)) && !/90017|91024/.test(kept), `${requests.length} requests`);
+    !requests.some(u => /90017|99999|91377|90742|91387|91765|91301/.test(u)) && !/90017|91377/.test(kept), `${requests.length} requests`);
 
   // Location: only on tap; LA → nearest first; Chicago → the LA County note; denied → a note
   const origin = new URL(URL_).origin;

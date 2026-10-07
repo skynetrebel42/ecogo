@@ -3,8 +3,9 @@
 // Pure Leaflet, no react-leaflet: the map is driven imperatively through refs. Specs:
 // docs/superpowers/specs/2026-10-02-m9-real-map-design.md; docs/superpowers/specs/2026-10-07-m13-map-near-me-design.md
 // (layout A: ZIP and My location on top, radius chips, the map with the search circle, the list below).
-// Only what OSM lists is shown, labelled as community-edited and dated; no ratings, no open/closed guess. The ZIP and the
-// location live in memory only: never stored, sent or put in the URL (M13 D3).
+// Only what OSM and LA County Public Health list is shown, each labelled with its source and date (County sites carry
+// a * and their age, D11); no ratings, no open/closed guess. The ZIP and the location live in memory only: never
+// stored, sent or put in the URL (M13 D3).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import "leaflet/dist/leaflet.css";
@@ -16,9 +17,9 @@ import L from "leaflet";
 import "leaflet.markercluster";
 import { ArrowLeft, Navigation, Phone, Globe, MapPin, Utensils, ShoppingBag, Leaf } from "lucide-react";
 import type { ResourceRow } from "../../lib/catalog";
-import { zipPoint, withinMiles, RADII } from "../../lib/nearMe";
+import { zipPoint, withinMiles, RADII, countyPlaces, countyReportMailto, REPORT_EMAIL } from "../../lib/nearMe";
 import {
-  LA_BOX, LA_CENTER, inLaCounty, sortPlaces, osmUrl, osmEditUrl, directionsUrl, formatAsOf, formatPhone,
+  LA_BOX, LA_CENTER, inLaCounty, sortPlaces, osmUrl, osmEditUrl, osmNoteUrl, directionsUrl, formatAsOf, formatPhone,
   type PlaceType,
 } from "../../lib/osmPlaces";
 
@@ -35,6 +36,10 @@ const METERS_PER_MI = 1609.344;
 const YOUR_LOCATION = "your location";
 const COPYRIGHT = "https://www.openstreetmap.org/copyright";
 const HOURS_NOTE = "Hours can change — check before you go.";
+// LA County Public Health's sites (decision 041): credited with their origin and age, and marked * (D11).
+const COUNTY_CREDIT = "LA County Public Health, from 211LA food resources (May 2023), updated April 2024";
+const COUNTY_TERMS = "https://egis-lacounty.hub.arcgis.com/pages/terms-of-use";
+const COUNTY_NOTE = "* County listing from May 2023, last updated April 2024. Search the name or call 211 to check it's still open before you go.";
 
 const fmtMi = (mi: number) => mi < 0.1 ? `${Math.round(mi * 5280)} ft` : `${mi.toFixed(1)} mi`;
 
@@ -74,18 +79,21 @@ const ZIP_ICON = L.divIcon({
 
 function PlaceCard({ place, miles }: { place: ResourceRow; miles: number | undefined }) {
   const cat = CAT[place.type];
+  const county = place.source === "lacounty";
   const btn = "flex items-center justify-center gap-1.5 rounded-2xl text-xs font-bold px-2";
+  // D12: OSM places get an anonymous OSM note; County places an email, only once the owner has an address.
+  const report = !county ? osmNoteUrl(place) : REPORT_EMAIL ? countyReportMailto(place, REPORT_EMAIL) : null;
   return (
     <div className="space-y-2.5">
       <div>
         <p className="text-micro font-extrabold uppercase tracking-wider" style={{ color: cat.color }}>{cat.one}</p>
-        <h3 className="font-extrabold text-base leading-tight">{place.name}</h3>
+        <h3 className="font-extrabold text-base leading-tight">{place.name}{county && "*"}</h3>
         {place.address && <p className="text-xs text-muted-foreground mt-0.5">{place.address}</p>}
         {miles !== undefined && <p className="text-xs font-bold text-primary mt-0.5">{fmtMi(miles)} away</p>}
       </div>
       <div className="rounded-xl bg-muted px-3 py-2">
         <p className="text-sm font-bold">{place.hours || "No hours listed"}</p>
-        <p className="text-mini text-muted-foreground">{HOURS_NOTE}</p>
+        <p className="text-mini text-muted-foreground">{county ? COUNTY_NOTE : HOURS_NOTE}</p>
       </div>
       <div className="flex gap-2">
         {place.phone && (
@@ -102,13 +110,25 @@ function PlaceCard({ place, miles }: { place: ResourceRow; miles: number | undef
           <Navigation size={13} /> Directions
         </a>
       </div>
-      <div className="flex items-center justify-between gap-3 border-t border-border pt-2">
-        <p className="text-micro text-muted-foreground leading-snug">
-          From <a href={osmUrl(place)} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">OpenStreetMap</a> (community-edited),
-          as of {formatAsOf(place.as_of)} · <a href={COPYRIGHT} target="_blank" rel="noopener noreferrer" className="underline">© OpenStreetMap contributors</a>
+      {report && (
+        <div>
+          <a href={report} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-xs font-bold text-primary" style={{ minHeight: 44 }}>Report a problem</a>
+          {!county && <p className="text-micro text-muted-foreground">Say what changed: closed, moved, or new hours.</p>}
+        </div>
+      )}
+      {county ? (
+        <p className="text-micro text-muted-foreground leading-snug border-t border-border pt-2">
+          From {COUNTY_CREDIT} · <a href={COUNTY_TERMS} target="_blank" rel="noopener noreferrer" className="underline">Terms</a>
         </p>
-        <a href={osmEditUrl(place)} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary whitespace-nowrap">Fix it on OSM</a>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-2">
+          <p className="text-micro text-muted-foreground leading-snug">
+            From <a href={osmUrl(place)} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">OpenStreetMap</a> (community-edited),
+            as of {formatAsOf(place.as_of)} · <a href={COPYRIGHT} target="_blank" rel="noopener noreferrer" className="underline">© OpenStreetMap contributors</a>
+          </p>
+          <a href={osmEditUrl(place)} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary whitespace-nowrap">Fix it on OSM</a>
+        </div>
+      )}
     </div>
   );
 }
@@ -134,10 +154,13 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
   const [mapCenter, setMapCenter] = useState<[number, number]>(LA_CENTER);
 
   const outside = userLoc !== null && !inLaCounty(userLoc[0], userLoc[1]);
-  const typed = useMemo(() => places.filter(p => activeTypes.has(p.type)), [places, activeTypes]);
+  // OSM places from the database plus the County's sites (static data, deduplicated against OSM: D6), once OSM loaded.
+  const all: ResourceRow[] = useMemo(() => places.length ? [...places, ...countyPlaces(places)] : [], [places]);
+  const typed = useMemo(() => all.filter(p => activeTypes.has(p.type)), [all, activeTypes]);
   const shown: (ResourceRow & { miles?: number })[] = useMemo(
     () => center ? withinMiles(typed, center.point, radius) : sortPlaces(typed, null), [typed, center, radius]);
   const selected = shown.find(p => p.id === selectedId) ?? null;
+  const countyShown = shown.some(p => p.source === "lacounty");
   const asOf = places[0] ? formatAsOf(places[0].as_of) : "";
   const nextRadius = RADII.find(r => r > radius);
 
@@ -331,7 +354,7 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
                       <cat.Icon size={15} style={{ color: cat.color }} />
                     </span>
                     <span className="flex-1 min-w-0">
-                      <span className="block text-xs font-bold truncate">{p.name}</span>
+                      <span className="block text-xs font-bold truncate">{p.name}{p.source === "lacounty" && "*"}</span>
                       <span className="block text-micro text-muted-foreground truncate">{p.hours || "No hours listed"}</span>
                     </span>
                     {p.miles !== undefined && <span className="text-micro font-bold text-primary flex-shrink-0">{fmtMi(p.miles)}</span>}
@@ -347,8 +370,10 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
               target="_blank" rel="noopener noreferrer" className="text-primary font-bold">Add it on OpenStreetMap</a>
           </p>
           <p className="text-micro text-muted-foreground">Add it as Social facility → Food bank. EcoGo shows it after the next update.</p>
+          {countyShown && <p className="text-micro text-muted-foreground leading-snug mt-2">{COUNTY_NOTE}</p>}
           <p className="text-micro text-muted-foreground leading-snug mt-2">
             Places from <a href={COPYRIGHT} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">© OpenStreetMap contributors</a> (community-edited){asOf && `, as of ${asOf}`}. {HOURS_NOTE}
+            {countyShown && <> Sites marked * from {COUNTY_CREDIT} (<a href={COUNTY_TERMS} target="_blank" rel="noopener noreferrer" className="underline">terms</a>).</>}
           </p>
         </>)}
       </section>

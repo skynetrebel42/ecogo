@@ -21,8 +21,10 @@ interface ProductRow {
   categories: { name: string } | null;
 }
 
-/** A food place on the Map: an OpenStreetMap snapshot row (M9; see osmPlaces.ts). */
-export type ResourceRow = Place & { id: number };
+/** A food place on the Map: an OpenStreetMap snapshot row (M9; see osmPlaces.ts), or (M13) an LA County site
+ *  (`source: "lacounty"`, a negative id = -OBJECTID, no OSM ids; nearMe.ts `countyPlaces`). */
+export type ResourceRow = (Place & { id: number; source?: undefined })
+  | (Omit<Place, "osm_type" | "osm_id"> & { id: number; source: "lacounty" });
 
 const PRODUCT_COLUMNS = "id, barcode, name, brand, description, ingredients, image_url, keywords, categories(name)";
 

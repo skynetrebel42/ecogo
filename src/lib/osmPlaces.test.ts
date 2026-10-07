@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  toPlace, formatHours, formatAddress, inLaCounty, sortPlaces, osmUrl, osmEditUrl, directionsUrl, formatAsOf,
+  toPlace, formatHours, formatAddress, inLaCounty, sortPlaces, osmUrl, osmEditUrl, osmNoteUrl, directionsUrl, formatAsOf,
   formatPhone, type OsmElement, type Place,
 } from "./osmPlaces.ts";
 
@@ -94,6 +94,7 @@ test("map helpers: LA box, sorting, links, dates, phones", () => {
   const p = places.find(x => x.osm_id === 184097821)!;
   assert.equal(osmUrl(p), "https://www.openstreetmap.org/way/184097821");
   assert.equal(osmEditUrl(p), "https://www.openstreetmap.org/edit?way=184097821");
+  assert.equal(osmNoteUrl(p), "https://www.openstreetmap.org/note/new#map=19/33.77456/-117.93308", "M13 D12: an OSM note at the place");
   assert.equal(directionsUrl(p), "https://www.google.com/maps/dir/?api=1&destination=33.7745641,-117.9330796");
   assert.equal(formatAsOf("2026-10-02"), "Oct 2026");
   assert.equal(formatPhone("+1-323-726-7998"), "(323) 726-7998");

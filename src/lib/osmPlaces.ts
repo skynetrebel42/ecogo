@@ -168,6 +168,9 @@ export function sortPlaces<P extends Place>(places: P[], user: [number, number] 
 
 export const osmUrl = (p: Place) => `https://www.openstreetmap.org/${p.osm_type}/${p.osm_id}`;
 export const osmEditUrl = (p: Place) => `https://www.openstreetmap.org/edit?${p.osm_type}=${p.osm_id}`;
+/** M13 D12, "Report a problem": a new anonymous OSM note at the place. */
+export const osmNoteUrl = (p: Pick<Place, "latitude" | "longitude">) =>
+  `https://www.openstreetmap.org/note/new#map=19/${p.latitude.toFixed(5)}/${p.longitude.toFixed(5)}`;
 /** Opens the phone's maps app; sends only the place's position. */
 export const directionsUrl = (p: Place) => `https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}`;
 
