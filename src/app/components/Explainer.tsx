@@ -1,14 +1,15 @@
-// Explainer.tsx — Home's "Hidden risks, explained" pages. Plain text over official sources only.
+// Explainer.tsx — Home's Learn pages. Plain text over official sources only; "How EcoGo checks" describes the app itself.
 // Specs: docs/superpowers/specs/2026-10-01-m7-home-redesign-design.md §4.3; seed oils, pesticides and ultra-processed
-// foods: docs/superpowers/specs/2026-10-01-m71-explainers-design.md (sources §3, text §4).
+// foods: docs/superpowers/specs/2026-10-01-m71-explainers-design.md (sources §3, text §4); the Learn tiles and
+// "How EcoGo checks": docs/superpowers/specs/2026-10-06-m12-home-tiles-design.md.
 
 import { useState, type ReactNode } from "react";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Apple, Gauge, Droplet, Sprout, Factory, ListChecks, type LucideIcon } from "lucide-react";
 import { FDA_RULE } from "../../lib/nutrition";
 import { PROCESSED_MEAT, ACRYLAMIDE } from "../../lib/safety/foodConcerns";
 import { VERDICT_STYLE } from "./verdict";
 
-export type ExplainerId = "not-healthy" | "badge-levels" | "seed-oils" | "pesticides" | "ultra-processed";
+export type ExplainerId = "not-healthy" | "badge-levels" | "seed-oils" | "pesticides" | "ultra-processed" | "how-it-works";
 
 interface Cite { body: string; finding: string; url: string; quote: string; checkedOn: string }
 
@@ -63,33 +64,42 @@ const HHS_UPF: Cite = { body: "HHS", finding: "August 2026: the first proposed f
   url: "https://www.hhs.gov/press-room/hhs-announces-ultra-processed-foods-gras-reforms.html", checkedOn: M71_CHECKED,
   quote: "HHS and USDA submitted for final review the federal government's first proposed definition of UPFs." };
 
-export const EXPLAINERS: Record<ExplainerId, { title: string; teaser: string; sources: Cite[] }> = {
+/** Home's Learn tiles read these, in this order (M12 spec §2): a short `label`, a `tile` colour at 7:1+ with white text
+ *  (no red or pink: those mean "concern"), an icon. The page keeps the full `title`, which is also the tile's accessible name. */
+export const EXPLAINERS: Record<ExplainerId, { title: string; label: string; tile: string; Icon: LucideIcon; sources: Cite[] }> = {
   "not-healthy": {
-    title: "“Nothing flagged” isn’t “healthy”",
-    teaser: "The badge checks for official hazards, not sugar, fat or salt.",
+    title: "“Nothing flagged” isn’t “healthy”", label: "Not a health score", tile: "#0E5E4A", Icon: Apple,
     sources: [FDA],
   },
   "badge-levels": {
-    title: "What the badge levels mean",
-    teaser: "Levels show how strong the evidence is, not how much harm one serving does.",
+    title: "What the badge levels mean", label: "Badge levels", tile: "#14538F", Icon: Gauge,
     sources: [WHO_EVIDENCE, PROCESSED_MEAT.sources[2], PROCESSED_MEAT.sources[0], ACRYLAMIDE.sources[0], ACRYLAMIDE.sources[4]],
   },
   "seed-oils": {
-    title: "Seed oils: what the evidence says",
-    teaser: "No health authority calls them harmful. The real issue is a refining contaminant.",
+    title: "Seed oils: what the evidence says", label: "Seed oils", tile: "#7A480A", Icon: Droplet,
     sources: [AHA_OMEGA6, AHA_POLY, AHA_INFLAMMATION, EFSA_GLYCIDOL, EFSA_PALM, EU_GE],
   },
   "pesticides": {
-    title: "Pesticides: what a label can’t tell you",
-    teaser: "Residues aren’t on labels, so no scan can see them. Here’s what regulators found.",
+    title: "Pesticides: what a label can’t tell you", label: "Pesticides", tile: "#33600F", Icon: Sprout,
     sources: [FDA_RESIDUES, IARC_GLYPHOSATE, EPA_GLYPHOSATE, EPA_COURT, EFSA_GLYPHOSATE],
   },
   "ultra-processed": {
-    title: "Ultra-processed foods: no official line yet",
-    teaser: "Strong research links, but no official US definition yet.",
+    title: "Ultra-processed foods: no official line yet", label: "Ultra-processed", tile: "#4A42A6", Icon: Factory,
     sources: [FDA_UPF_LINKS, FDA_UPF_RFI, HHS_UPF],
   },
+  // Describes EcoGo itself, so it has no sources (spec D2).
+  "how-it-works": {
+    title: "How EcoGo checks a product", label: "How EcoGo checks", tile: "#4F4E4A", Icon: ListChecks,
+    sources: [],
+  },
 };
+
+// Moved word for word from Home's old empty-state box (M12 D2).
+const HOW_STEPS = [
+  "Reads the real label from USDA (the maker's own data), or Open Food Facts, clearly marked crowd-sourced.",
+  "Checks ingredients and the food itself against official findings from IARC, the EU and the FDA.",
+  "Shows the strongest finding, with its source, plus sugar, fat and salt per serving.",
+];
 
 const LEVELS = [
   { v: "none", basis: "No official finding for its additives or the food itself" },
@@ -123,6 +133,16 @@ function Body({ id, onOpen }: { id: ExplainerId; onOpen: (id: ExplainerId) => vo
       <p>There’s no official US definition yet. The FDA and USDA asked for input in July 2025, and in August 2026 HHS sent the first proposed definition for final review; it hasn’t been published.</p>
       <p><strong>What EcoGo can do:</strong> without an official definition, EcoGo doesn’t label foods “ultra-processed”. It does flag what has official backing: processed meat (IARC Group 1), additives with official findings, and high sugar, saturated fat and salt by the FDA’s 5/20 rule.</p>
     </>
+  );
+  if (id === "how-it-works") return (
+    <ol className="space-y-2.5">
+      {HOW_STEPS.map((s, i) => (
+        <li key={i} className="flex gap-2.5 items-start">
+          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-extrabold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+          {s}
+        </li>
+      ))}
+    </ol>
   );
   if (id === "not-healthy") return (
     <>
@@ -172,21 +192,23 @@ export default function Explainer({ id, onBack }: { id: ExplainerId; onBack: () 
       </div>
       <div key={shown} className="flex-1 overflow-y-auto px-5 py-4 space-y-3 text-sm leading-relaxed" style={{ scrollbarWidth: "none" }}>
         <Body id={shown} onOpen={setLinked} />
-        <h2 className="font-bold text-sm pt-2">Sources</h2>
-        <ul className="space-y-2.5">
-          {e.sources.map(s => (
-            <li key={s.quote} className="bg-card border border-border rounded-2xl p-3 text-xs">
-              <p className="font-bold">{s.body}: {s.finding}</p>
-              <p className="text-muted-foreground italic mt-1">“{s.quote}”</p>
-              <div className="flex items-center justify-between mt-1.5">
-                <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold inline-flex items-center gap-1">
-                  Read the source <ExternalLink size={10} />
-                </a>
-                <span className="text-micro text-muted-foreground">Source checked {s.checkedOn}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
+        {e.sources.length > 0 && <>
+          <h2 className="font-bold text-sm pt-2">Sources</h2>
+          <ul className="space-y-2.5">
+            {e.sources.map(s => (
+              <li key={s.quote} className="bg-card border border-border rounded-2xl p-3 text-xs">
+                <p className="font-bold">{s.body}: {s.finding}</p>
+                <p className="text-muted-foreground italic mt-1">“{s.quote}”</p>
+                <div className="flex items-center justify-between mt-1.5">
+                  <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold inline-flex items-center gap-1">
+                    Read the source <ExternalLink size={10} />
+                  </a>
+                  <span className="text-micro text-muted-foreground">Source checked {s.checkedOn}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>}
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import {
-  Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronRight, ChevronDown,
+  Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronDown,
   Bookmark, Wifi, QrCode
 } from "lucide-react";
 
@@ -137,12 +137,6 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
 // Spec: docs/superpowers/specs/2026-10-01-m7-home-redesign-design.md §4.2 (layout A, real content only).
 const greeting = () => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; };
 
-const HOW_STEPS = [
-  "Reads the real label from USDA (the maker's own data), or Open Food Facts, clearly marked crowd-sourced.",
-  "Checks ingredients and the food itself against official findings from IARC, the EU and the FDA.",
-  "Shows the strongest finding, with its source, plus sugar, fat and salt per serving.",
-];
-
 function RecentCard({ product, onSelect }: { product: Product; onSelect: (p: Product) => void }) {
   const look = VERDICT_STYLE[safeAnalyze(product).verdict];
   const high = topHigh(product.nutrition ?? knownNutrition(product.barcode));
@@ -190,7 +184,7 @@ function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearR
         />
       </div>
 
-      {recent.length > 0 ? (
+      {recent.length > 0 && (
         <div>
           <div className="flex items-baseline justify-between mb-2">
             <h2 className="font-bold text-base">Recently scanned</h2>
@@ -203,31 +197,22 @@ function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearR
             {recent.map(p => <RecentCard key={p.id} product={p} onSelect={onSelectProduct} />)}
           </div>
         </div>
-      ) : (
-        <div className="bg-card border border-border rounded-2xl p-3.5 space-y-2.5">
-          <h2 className="font-bold text-base">How EcoGo checks a product</h2>
-          {HOW_STEPS.map((s, i) => (
-            <div key={i} className="flex gap-2.5 items-start text-xs leading-relaxed text-foreground/80">
-              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary font-extrabold flex items-center justify-center flex-shrink-0">{i + 1}</span>
-              {s}
-            </div>
-          ))}
-        </div>
       )}
 
+      {/* M12 (decision 035): six Learn tiles, two per row; each opens its page and is named by the page's full title. */}
       <div>
-        <h2 className="font-bold text-base mb-2">Hidden risks, explained</h2>
-        <div className="space-y-2.5">
-          {(Object.keys(EXPLAINERS) as ExplainerId[]).map(id => (
-            <button key={id} onClick={() => onOpenExplainer(id)}
-              className="w-full bg-card border border-border rounded-2xl p-3.5 text-left shadow-sm flex items-center gap-3">
-              <span className="flex-1">
-                <span className="block text-sm font-extrabold">{EXPLAINERS[id].title}</span>
-                <span className="block text-xs text-muted-foreground leading-relaxed mt-0.5">{EXPLAINERS[id].teaser}</span>
-              </span>
-              <ChevronRight size={15} className="text-muted-foreground flex-shrink-0" />
-            </button>
-          ))}
+        <h2 className="font-bold text-base mb-2">Learn</h2>
+        <div className="grid grid-cols-2 gap-2.5">
+          {(Object.keys(EXPLAINERS) as ExplainerId[]).map(id => {
+            const { title, label, tile, Icon } = EXPLAINERS[id];
+            return (
+              <button key={id} onClick={() => onOpenExplainer(id)} aria-label={title} style={{ background: tile }}
+                className="min-h-[88px] rounded-2xl p-3.5 text-left text-white flex flex-col justify-between gap-2 shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 ring-primary">
+                <Icon size={24} aria-hidden="true" />
+                <span className="text-sm font-extrabold leading-tight break-words hyphens-auto">{label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

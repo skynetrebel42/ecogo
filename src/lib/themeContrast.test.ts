@@ -59,3 +59,12 @@ test("every font-size token scales with --text-scale", () => {
   for (const name of ["xs", "sm", "base", "lg", "xl", "2xl", "nano", "micro", "mini"])
     assert.match(css, new RegExp(`--text-${name}:\\s*calc\\([^)]*var\\(--text-scale, 1\\)\\)`), `--text-${name}`);
 });
+
+// M12: Home's Learn tiles (spec docs/superpowers/specs/2026-10-06-m12-home-tiles-design.md §5).
+test("Learn tiles: six different colours, white text reaches 7:1", () => {
+  const src = readFileSync(new URL("../app/components/Explainer.tsx", import.meta.url), "utf8");
+  const tiles = [...src.matchAll(/tile: "(#[0-9A-Fa-f]{6})"/g)].map(m => m[1].toUpperCase());
+  assert.equal(tiles.length, 6);
+  assert.equal(new Set(tiles).size, 6);
+  for (const t of tiles) assert.ok(ratio(hex(t), [255, 255, 255]) >= 7, `${t}: ${ratio(hex(t), [255, 255, 255]).toFixed(2)}`);
+});
