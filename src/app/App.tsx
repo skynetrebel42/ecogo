@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId, type ReactNode } from "react";
 import { loadCatalog, type ResourceRow } from "../lib/catalog";
 import MapTab from "./components/MapTab";
 import ProductDetailScreen from "./components/ProductDetailScreen";
@@ -15,7 +15,7 @@ import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import {
-  Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronRight,
+  Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronRight, ChevronDown,
   Bookmark, Wifi, QrCode
 } from "lucide-react";
 
@@ -359,8 +359,28 @@ const SOURCES_INFO = [
   { name: "OpenStreetMap", text: "Map places, community-edited. Hours can change." },
 ];
 
+/** M11 3.3: one expandable Profile row; closed by default, independent, open state not remembered (D7). */
+function Accordion({ title, summary, children }: { title: string; summary: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return (
+    <section className="bg-card border border-border rounded-2xl">
+      <h2>
+        <button onClick={() => setOpen(!open)} aria-expanded={open} aria-controls={id}
+          className="w-full min-h-[56px] px-3.5 py-2.5 flex items-center gap-3 text-left">
+          <span className="flex-1 min-w-0">
+            <span className="block font-bold text-base">{title}</span>
+            {!open && <span className="block text-xs text-muted-foreground truncate">{summary}</span>}
+          </span>
+          <ChevronDown size={18} aria-hidden="true" className={`flex-shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+      </h2>
+      {open && <div id={id} role="region" aria-label={title} className="px-3.5 pb-3.5 space-y-2.5">{children}</div>}
+    </section>
+  );
+}
+
 function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onClearRecent: () => void }) {
-  const card = "bg-card border border-border rounded-2xl p-3.5 space-y-2.5";
   return (
     <div className="h-full overflow-y-auto bg-background px-5 pt-4 pb-8 space-y-3.5" style={{ scrollbarWidth: "none" }}>
       <div>
@@ -368,8 +388,8 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
         <p className="text-xs text-muted-foreground mt-0.5">No account yet. What you do stays on this device.</p>
       </div>
 
-      <section className={card}>
-        <h2 className="font-bold text-base">Your data</h2>
+      <Accordion title="Your data"
+        summary={recentCount === 0 ? "Nothing scanned yet, on this device" : `${recentCount} recent product${recentCount === 1 ? "" : "s"}, on this device`}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-bold">Recently scanned</p>
@@ -383,25 +403,23 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
           )}
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">Favorites are kept until you close EcoGo. Saving them for good comes with accounts.</p>
-      </section>
+      </Accordion>
 
-      <section className={card}>
-        <h2 className="font-bold text-base">Where results come from</h2>
+      <Accordion title="Where results come from" summary="USDA, Open Food Facts, IARC and more">
         {SOURCES_INFO.map(s => (
           <div key={s.name}>
             <p className="text-sm font-bold">{s.name}</p>
             <p className="text-xs text-muted-foreground leading-relaxed">{s.text}</p>
           </div>
         ))}
-      </section>
+      </Accordion>
 
-      <section className={card}>
-        <h2 className="font-bold text-base">Privacy</h2>
+      <Accordion title="Privacy" summary="What leaves your phone">
         <p className="text-xs text-foreground/80 leading-relaxed">The camera reads barcodes on your phone. No images are uploaded.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, to Open Food Facts.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The product catalog loads from EcoGo's database. Your recently scanned list stays in this browser.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The map asks for your location only when you tap My location. It stays on your phone. Map images load from OpenStreetMap.</p>
-      </section>
+      </Accordion>
 
       <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
         A student project. Not medical advice.{" "}
