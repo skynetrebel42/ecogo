@@ -4,7 +4,7 @@
 
 /** The catalog's own categories (the 51 seeded products), moved here from verdict.tsx's categoryIcon. */
 export const CATALOG_ICON: Record<string, string> = {
-  Beverages: "🥤", Bread: "🍞", Breakfast: "🥣", Condiments: "🧂", Dairy: "🧀", Frozen: "🧊", Meat: "🥩", Snacks: "🍪",
+  Beverages: "🥤", Bread: "🍞", Breakfast: "🥣", Condiments: "🧂", Dairy: "🥛", Frozen: "🧊", Meat: "🥩", Snacks: "🍪",
   Cleaning: "🧽", "Personal Care": "🧴", "Baby Care": "🍼", Medicine: "💊", "Pet Food": "🐾",
 };
 
@@ -16,6 +16,7 @@ export const ICON_RULES: [string, RegExp][] = [
   ["💊", /supplement|vitamin|mineral|remed|health care|amino acid|antioxidant|fatty acid|weight control|oral hygiene|sports and weight/i],
   ["🥜", /nut (?:&|and) seed butter|peanut butter|nut butter/i],
   ["🍯", /honey|syrup|molasses|\bjam\b|jelly|sweet spread/i],
+  ["🍫", /(?:chocolate|cocoa|hazelnut|confection\w*)[\w &-]*spread/i], // Nutella: "confectionary-based-spreads", not a sauce
   ["🥫", /sauce|ketchup|mustard|dressing|mayonnaise|condiment|\bdips?\b|salsa|vinegar|cooking wine|gravy|\bspreads?\b|hummus|pate\b/i],
   ["🍕", /pizza/i],
   ["🍦", /ice cream|ice-cream|frozen yogurt|frozen dessert|ice novelties|ice-block|ice block/i],

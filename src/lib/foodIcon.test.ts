@@ -35,6 +35,7 @@ test("real USDA categories: at least 99.9% of the products get an icon other tha
 test("a product: catalog category first, then USDA, then the most specific Open Food Facts tag, else the cart", () => {
   assert.equal(foodIcon({ category: "Beverages" }), CATALOG_ICON.Beverages);
   assert.equal(foodIcon({ category: "Cleaning" }), "🧽");
+  assert.equal(foodIcon({ category: "Dairy" }), "🥛", "catalog Dairy is mostly milk (M11 part 5)");
   assert.equal(foodIcon({ category: "", source: { foodCategory: "Cheese" } }), "🧀");
   assert.equal(foodIcon({ source: { foodCategory: "Media" } }), DEFAULT_ICON);
   assert.equal(foodIcon({ category: "" }), DEFAULT_ICON);
@@ -48,4 +49,16 @@ test("Open Food Facts tags: last (most specific) first, generic ones skipped", (
   assert.equal(foodIcon({ source: { categoryTags: ["en:snacks", "en:sweet-snacks", "en:chocolate-biscuits"] } }), "🍫", "chocolate wins before biscuit by order");
   assert.equal(foodIcon({ source: { categoryTags: ["en:beverages", "en:carbonated-drinks", "en:sodas"] } }), "🥤");
   assert.equal(foodIcon({ source: { categoryTags: [] } }), DEFAULT_ICON);
+});
+
+// M11 part 5: sweet chocolate/hazelnut spreads are not sauces. Nutella's real tags (Open Food Facts, read 2026-10-06): its most
+// specific tag that maps is "confectionary-based-spreads".
+test("chocolate, cocoa, hazelnut and confectionery spreads get the chocolate, not the can", () => {
+  const nutella = ["en:breakfasts", "en:spreads", "en:sweet-spreads", "en:confectionary-based-spreads", "en:Petit-déjeuners",
+    "en:Produits à tartiner", "en:Produits à tartiner sucrés", "en:Pâtes à tartiner", "fr:Nutella", "fr:Nuttela"];
+  assert.equal(foodIcon({ source: { categoryTags: nutella } }), "🍫");
+  for (const tag of ["en:hazelnut-spreads", "en:cocoa-and-hazelnuts-spreads", "en:chocolate-spreads", "en:confectionery-based-spreads"])
+    assert.equal(iconForCategory(tag), "🍫", tag);
+  assert.equal(iconForCategory("en:sweet-spreads"), "🍯", "other sweet spreads keep the honey pot");
+  assert.equal(iconForCategory("Sauces/Spreads/Dips/Condiments"), "🥫", "savoury spreads keep the can");
 });
