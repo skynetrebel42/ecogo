@@ -61,10 +61,3 @@ export function verdictHeadline(a: Assessment): string {
   if (a.verdict === "none") return `Nothing flagged among ${a.checkedCount} additives with an official finding`;
   return VERDICT_STYLE[a.verdict].label;
 }
-
-/** Small category icon for neutral product cards (decision L3: no colour per food type). */
-const CATEGORY_ICON: Record<string, string> = {
-  Beverages: "🥤", Bread: "🍞", Breakfast: "🥣", Condiments: "🧂", Dairy: "🧀", Frozen: "🧊", Meat: "🥩", Snacks: "🍪",
-  Cleaning: "🧽", "Personal Care": "🧴", "Baby Care": "🍼", Medicine: "💊", "Pet Food": "🐾",
-};
-export const categoryIcon = (category: string) => CATEGORY_ICON[category] ?? "🛒";

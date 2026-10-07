@@ -9,7 +9,7 @@
 
 import { useMemo, useState } from "react";
 import {
-  ArrowLeft, Bookmark, ShoppingBag,
+  ArrowLeft, Bookmark,
   TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame,
 } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
@@ -22,6 +22,7 @@ import NutritionPanel, { NutritionChip, useNutrition } from "./NutritionPanel";
 import { topHigh } from "../../lib/nutrition";
 import { snapshotLabel } from "../../lib/foods";
 import { useAlternatives } from "./useAlternatives";
+import { foodIcon } from "../../lib/foodIcon";
 
 /** "fr" → "French" (native Intl; falls back to the code). */
 const languageName = (code: string) => {
@@ -125,6 +126,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
 
   // Same USDA category, strictly better badge; only offered when this product has concerns (useAlternatives.ts).
   const alternatives = useAlternatives(product, analysis.verdict);
+  const category = product.category || product.source?.foodCategory;
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -142,14 +144,14 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
 
         <div className="pt-16 pb-5 px-5 flex items-center gap-4">
           <div className="w-20 h-20 rounded-3xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center flex-shrink-0 shadow-xl">
-            <ShoppingBag size={36} color="white" />
+            <span className="text-4xl" aria-hidden="true">{foodIcon(product)}</span>
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-1">
               <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/60">{product.brand}</span>
-              {product.category && (<>
+              {category && (<>
                 <span className="text-white/30">·</span>
-                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/60">{product.category}</span>
+                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/60">{category}</span>
               </>)}
             </div>
             <h1 className="text-lg font-extrabold text-white leading-tight mb-2">{product.name}</h1>
@@ -259,7 +261,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
                   return (
                     <button key={p.id} onClick={() => onSelectProduct(p)} className="w-full px-4 py-3 flex items-center gap-3 text-left">
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: altLook.bg }}>
-                        <ShoppingBag size={20} style={{ color: altLook.color }} />
+                        <span className="text-xl" aria-hidden="true">{foodIcon(p)}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[10px] text-gray-400 font-medium">{p.brand}</p>

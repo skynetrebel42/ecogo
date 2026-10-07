@@ -5,7 +5,8 @@ import ProductDetailScreen from "./components/ProductDetailScreen";
 import ScanTab from "./components/ScanTab";
 import csvText from "../data/products.csv?raw";
 import { parseProductsCSV, type Product } from "../lib/productImporter";
-import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, categoryIcon, fewestConcerns } from "./components/verdict";
+import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, fewestConcerns } from "./components/verdict";
+import { foodIcon } from "../lib/foodIcon";
 import { NutritionChip } from "./components/NutritionPanel";
 import { topHigh } from "../lib/nutrition";
 import { knownNutrition, searchFoods } from "../lib/lookup";
@@ -114,7 +115,7 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
     <button onClick={() => onSelect(product)}
       className="w-full bg-card border border-border rounded-2xl p-3.5 text-left shadow-sm flex items-center gap-3 active:scale-98 transition-transform">
       <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center flex-shrink-0 text-2xl" aria-hidden="true">
-        {categoryIcon(product.category)}
+        {foodIcon(product)}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-muted-foreground font-medium">{product.brand}</p>
