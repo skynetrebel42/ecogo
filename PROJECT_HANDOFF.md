@@ -22,7 +22,9 @@
   **M7.5 (2026-10-02): the USDA key left the public JavaScript.** M9 (2026-10-02): a real Los Angeles map.
   **M10 data ownership (2026-10-05): EcoGo keeps its own copy of USDA Branded Foods** (430,127 products in the `foods`
   table, scored by the app's own engine, rev 4 after the M10.1-M10.3 processed-meat rules), so lookups no longer call
-  USDA and the relay is retired (decision 034). See the KNOWN_ISSUES.md roadmap for what comes next.
+  USDA and the relay is retired (decision 034). **M11 quick wins (2026-10-06):** a food icon per category, "Update info"
+  on crowd-sourced products, expandable Profile rows, and text size and high contrast kept on this device.
+  See the KNOWN_ISSUES.md roadmap for what comes next.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (31 food products with USDA-verified barcodes and labels),
   EcoGo's own copy of USDA FoodData Central (Branded Foods, snapshot-dated) and live Open Food Facts for any other

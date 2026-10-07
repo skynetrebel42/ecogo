@@ -17,7 +17,7 @@ the Map came back with real places in M9):
 | **Map** | Real LA County food places (162) from an OpenStreetMap snapshot (OSM data as of 2026-06-01) in `resources`; credited, dated, no ratings or open/closed (M9). Food banks, farmers markets, named community gardens; filter chips; My location (asked only on tap, never stored or sent) sorts nearest first; cards with hours in plain words, Call / Website / Directions (Google Maps, the place's position only) and "Fix it on OSM". No connection → "Places need a connection", never fake places. |
 | **Scan** | **Camera.** The Scan tab opens the back camera and reads EAN/UPC barcodes on the device (`CameraScanner`, `lib/barcodeReader.ts`: native BarcodeDetector or bundled ZXing WebAssembly; a code counts after two identical reads). Typing a barcode or a demo barcode does the same. The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Frames never leave the device; scans are **not saved** (M3), and scanning never asks for location. |
 | **Saved** | Favorites (React state only, start empty, lost on reload, K-16; a looked-up product shows here however it was opened) and Scanned (the same recent list as Home, kept on this device). The static "Lists" tab is gone (M7.4). |
-| **Profile** | Only true things (M7.2): your data on this device (Recently scanned count with Clear; a favorites note), where results come from, what leaves the phone (privacy), and the source-code link. No account, name or stats. |
+| **Profile** | Only true things (M7.2): a Display card (M11: text size Normal/Large/Larger and a High contrast switch, kept on this device, `lib/settings.ts`), then three rows that expand (closed by default): your data on this device (Recently scanned count with Clear; a favorites note), where results come from, what leaves the phone (privacy); and the source-code link. No account, name or stats. |
 
 The product catalog is **51 products in the Supabase `products` table**, seeded from `src/data/products.csv`. The
 CSV is still bundled and shown until the database answers, or instead of it when Supabase is unreachable (offline
@@ -71,7 +71,9 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 |---|---:|---|---|
 | `src/app/App.tsx` | 599 | Shell: all state, navigation, Home/Search/Saved/Profile, catalog load (once per visit) | SAFE TO EDIT (carefully; see §5) |
 | `src/app/components/ProductDetailScreen.tsx` | 280 | Product page: concern badge, findings grouped by origin (ingredients / the food itself / formed when cooked) with sources, nutrition, highlighted ingredient list, alternatives (no prices since M7.4) | SAFE TO EDIT |
-| `src/app/components/verdict.tsx` | 66 | Concern-level look (one darkening hue, filled-circle icons, no green), `safeAnalyze` (never throws), headline text, 🔥 marker, category icons; shared by the product page and lists | SAFE TO EDIT |
+| `src/app/components/verdict.tsx` | 63 | Concern-level look (one darkening hue, filled-circle icons, no green; `solid` = the gradient's darkest stop for high contrast), `safeAnalyze` (never throws), headline text, 🔥 marker; shared by the product page and lists | SAFE TO EDIT |
+| `src/lib/foodIcon.ts` | 89 | Pure: `foodIcon(product)` = one emoji from the category (catalog, then USDA, then the most specific Open Food Facts tag; else 🛒), an ordered table of patterns tuned on all 351 USDA categories (99.9%+ of products get an icon); decorative only; tested by `foodIcon.test.ts` | SAFE TO EDIT (rule order matters; keep the coverage test green) |
+| `src/lib/settings.ts` | 47 | Text size and high contrast (M11): `loadSettings`/`saveSettings` around `localStorage["ecogo.settings.v1"]` that never throw, first high-contrast value from `prefers-contrast: more`, `applySettings` sets `data-text-size`/`data-contrast` on `<html>` (`main.tsx` runs it before the first render); `theme.css` reads them; tested by `settings.test.ts` and `themeContrast.test.ts` (AA/AAA ratios read from `theme.css`) | SAFE TO EDIT |
 | `src/lib/safety/*` | 568 + tests | Safety engine: verified library, parser, analyzer; tested by `npm test` | SAFE TO EDIT (library changes must pass `npm run verify:sources` and `npm test`) |
 | `src/lib/safety/foodConcerns.ts` | 164 | Food-level concerns with sources: processed meat (IARC Group 1, raises the level) and the acrylamide marker (EU 2017/2158 food types, never sets a level) | SAFE TO EDIT (source changes must pass `npm run verify:sources`) |
 | `src/lib/safety/assess.ts` | 24 | Concern level = strongest of the additive check and food-level concerns; non-food stays non-food | SAFE TO EDIT |
@@ -307,7 +309,7 @@ static or a no-op; **broken**.
 | Scan history / stats / review queue UI | — | placeholder | Data is in `scan_events`; no screen (dashboard only) |
 | Saved › Favorites / Scanned | `SavedTab` | partial | Favorites in memory, start empty (K-16); Scanned = the recent list on this device |
 | Saved › Lists | — | **removed (M7.4)** | Three hardcoded lists and a dead New button |
-| Profile | `ProfileTab` | **working** | Your data (recent count + Clear), where results come from, privacy, source-code link; no invented content (M7.2) |
+| Profile | `ProfileTab` | **working** | Display card (text size, high contrast; M11), then expandable rows: Your data (recent count + Clear), where results come from, privacy; source-code link; no invented content (M7.2) |
 | Partners | — | placeholder | no table, no screen |
 
 ## 9. External services
