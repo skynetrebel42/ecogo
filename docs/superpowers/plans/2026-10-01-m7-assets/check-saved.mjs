@@ -98,9 +98,17 @@ try {
       focusIn: d.contains(document.activeElement), chips: [...d.querySelectorAll("button[aria-pressed]")].map(b => b.innerText) }; })()`);
   check("save opens the sheet: modal dialog titled Saved, focus inside, preset chips", dlg?.modal === "true" && dlg.title.trim() === "Saved" && dlg.focusIn
     && JSON.stringify(dlg.chips) === '["Breakfast","Lunch","Dinner","Dessert","Snacks"]', JSON.stringify(dlg));
-  await click("Snacks");
+  await run(`__btn("Snacks").focus(); true`); await click("Snacks"); // a scripted click doesn't focus; a tap does
   const snacks = await run(`(() => { const b = [...document.querySelectorAll('[role="dialog"] button[aria-pressed]')]; return b.map(x => x.innerText + ":" + x.getAttribute("aria-pressed")); })()`);
-  check("the Snacks chip creates the list with this product; it moves first and is pressed", snacks?.[0] === "Snacks:true" && !snacks.slice(1).some(s => s.startsWith("Snacks")), JSON.stringify(snacks));
+  check("the Snacks chip creates the list with this product; no chip moves, Snacks is pressed and keeps focus",
+    JSON.stringify(snacks) === '["Breakfast:false","Lunch:false","Dinner:false","Dessert:false","Snacks:true"]'
+    && await run(`document.activeElement?.innerText === "Snacks"`), JSON.stringify(snacks));
+  await click("New list");
+  await send("Input.insertText", { text: "Road trip" }); await key("Enter");
+  const chips2 = await run(`[...document.querySelectorAll('[role="dialog"] button[aria-pressed]')].map(x => x.innerText)`);
+  check("a new list goes last, just before + New list", JSON.stringify(chips2) === '["Breakfast","Lunch","Dinner","Dessert","Snacks","Road trip"]'
+    && await run(`(() => { const b = [...document.querySelectorAll('[role="dialog"] .flex-wrap button')]; return b.at(-1).innerText.trim() === "New list"; })()`), JSON.stringify(chips2));
+  await click("Road trip"); // take Oreo back out: Road trip stays as an empty list the user named
   await click("New list");
   await send("Input.insertText", { text: "snacks" }); await key("Enter");
   const err = await run(`document.querySelector('[role="alert"]')?.innerText ?? ""`);
@@ -110,7 +118,7 @@ try {
   await back(); await back();
   await send("Page.reload"); await sleep(4000); await helpers(); await run(`__guest()`); await sleep(500);
   const st = await run(`__store()`);
-  check("after a reload, Snacks still holds 1 product", st?.lists?.length === 1 && st.lists[0].name === "Snacks" && st.lists[0].ids.length === 1, JSON.stringify(st?.lists));
+  check("after a reload, Snacks still holds 1 product", st?.lists?.length === 2 && st.lists[0].name === "Snacks" && st.lists[0].ids.length === 1 && st.lists[1].ids.length === 0, JSON.stringify(st?.lists));
 
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {

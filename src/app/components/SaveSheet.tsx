@@ -16,7 +16,11 @@ export default function SaveSheet({ productId, saved, savedOk, onChange, onClose
   const [error, setError] = useState("");
   useEffect(() => panel.current?.focus(), []);
 
-  const presets = PRESETS.filter(p => !saved.lists.some(l => l.name.toLowerCase() === p.toLowerCase()));
+  // Chip order is fixed when the sheet opens, so a chip never moves under the finger: your lists, then unused presets.
+  // A list made here goes after them; a tapped preset stays put, pressed.
+  const byName = (n: string) => saved.lists.find(l => l.name.toLowerCase() === n.toLowerCase());
+  const [order] = useState(() => [...saved.lists.map(l => l.name), ...PRESETS.filter(p => !byName(p))]);
+  const chips = [...order.map(n => byName(n) ?? n), ...saved.lists.filter(l => !order.some(n => n.toLowerCase() === l.name.toLowerCase()))];
   const add = (n: string) => {
     const r = createList(saved, n, [productId]);
     if (typeof r === "string") { setError(r); return; }
@@ -41,14 +45,15 @@ export default function SaveSheet({ productId, saved, savedOk, onChange, onClose
         </h2>
         <p className="text-sm text-muted-foreground">Add to a list (optional)</p>
         <div className="flex flex-wrap gap-2">
-          {saved.lists.map(l => {
-            const on = l.ids.includes(productId);
+          {chips.map(c => {
+            // Keyed by name: a tapped preset keeps its button, and focus, when it becomes a list.
+            if (typeof c === "string") return <button key={c.toLowerCase()} aria-pressed={false} onClick={() => add(c)} className={`${CHIP} border-border`}>{c}</button>;
+            const on = c.ids.includes(productId);
             return (
-              <button key={l.id} aria-pressed={on} onClick={() => onChange(setInList(saved, l.id, productId, !on))}
-                className={`${CHIP} ${on ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}>{l.name}</button>
+              <button key={c.name.toLowerCase()} aria-pressed={on} onClick={() => onChange(setInList(saved, c.id, productId, !on))}
+                className={`${CHIP} ${on ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}>{c.name}</button>
             );
           })}
-          {presets.map(p => <button key={p} aria-pressed={false} onClick={() => add(p)} className={`${CHIP} border-border`}>{p}</button>)}
           {!naming && (
             <button onClick={() => setNaming(true)} className={`${CHIP} border-dashed border-border flex items-center gap-1`}>
               <Plus size={14} aria-hidden="true" />New list
