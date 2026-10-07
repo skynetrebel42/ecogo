@@ -99,7 +99,7 @@ test("countyReportMailto: subject with the County id, a body to fill in; REPORT_
   const q = new URLSearchParams(href.slice(href.indexOf("?") + 1));
   assert.equal(q.get("subject"), `EcoGo report: ${p.name} (County 1)`);
   assert.equal(q.get("body"), `${p.name}\n501 S BIXEL ST, LOS ANGELES 90017\nWhat's wrong: closed / moved / hours / other\nLink (optional): `);
-  assert.equal(REPORT_EMAIL, "", "the owner supplies the address; never a made-up one");
+  assert.equal(REPORT_EMAIL, "ecogo-admin@proton.me", "the owner's address (spec D12, 2026-10-07); never a made-up one");
 });
 
 test("every County site's ZIP is in the ZIP table, except 93350 and 93140 (they still show by their own coordinates)", () => {

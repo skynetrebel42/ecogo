@@ -124,8 +124,9 @@ try {
   check("County card: the footnote, the credit with the County's terms, Directions; no hours note, no 'Fix it on OSM'",
     cc.text.includes(COUNTY_NOTE) && cc.text.includes(COUNTY_CREDIT) && ccLinks["Terms"] === "https://egis-lacounty.hub.arcgis.com/pages/terms-of-use"
     && !!ccLinks["Directions"] && !ccLinks["Fix it on OSM"] && !cc.text.includes("Hours can change"), JSON.stringify(cc.links));
-  check("County card: no Report button while there's no report address, never an empty or made-up one (D12)",
-    cc.links.every(([t, h]) => t !== "Report a problem" || /^mailto:[^?@\s]+@[^?@\s]+\.[a-z]+\?/.test(h)), JSON.stringify(cc.links.filter(([t]) => t === "Report a problem")));
+  const mail = ccLinks["Report a problem"] ?? "";
+  check("County card: Report a problem emails the owner's address with the County id in the subject (D12)",
+    mail.startsWith("mailto:ecogo-admin@proton.me?subject=") && /\(County \d+\)/.test(decodeURIComponent(mail)), mail.slice(0, 120));
 
   // Type chips
   const counts = await run(`(async () => { const n0 = __list().length; __btn("Gardens").click(); await __sleep(500); const n1 = __list().length;

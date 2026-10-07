@@ -213,8 +213,8 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 
 - **County data is old:** LA County Public Health's sites are from 211LA food resources (May 2023), last updated April 2024,
   with no hours or phone. Every County row and card carries a * and the "check before you go" footnote; checked, closed sites
-  go into `src/lib/data/county-hidden.json` (D13). County "Report a problem" stays hidden until the owner supplies
-  `REPORT_EMAIL` (`src/lib/nearMe.ts`).
+  go into `src/lib/data/county-hidden.json` (D13). County "Report a problem" opens an email to the owner's address,
+  `REPORT_EMAIL` in `src/lib/nearMe.ts`.
 - **One heading for all free food:** food banks, pantries, meal sites, community fridges and County sites share "Free food"
   (no sub-type yet).
 - **Students-only pantries are left out** (`social_facility:for=student`) until the app can label "students only"; campus
