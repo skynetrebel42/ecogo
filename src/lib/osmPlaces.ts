@@ -141,12 +141,22 @@ export function formatHours(raw: string): string {
 export const LA_CENTER: [number, number] = [34.0522, -118.2437];
 
 /** LA County's bounding box, Catalina included: "near me" outside it gets the "covers LA County" note. */
-export const inLaCounty = (lat: number, lng: number) => lat >= 33.28 && lat <= 34.82 && lng >= -118.95 && lng <= -117.65;
+export const LA_BOX = { south: 33.28, north: 34.82, west: -118.95, east: -117.65 };
+export const inLaCounty = (lat: number, lng: number) =>
+  lat >= LA_BOX.south && lat <= LA_BOX.north && lng >= LA_BOX.west && lng <= LA_BOX.east;
 
 export function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const rad = (x: number) => (x * Math.PI) / 180;
   const a = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lon2 - lon1) / 2) ** 2;
   return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export const MI_PER_KM = 0.621371;
+
+/** Miles from a point to LA County's box (0 inside it). M13's ZIP table keeps ZCTAs within 20 mi. */
+export function milesFromLaBox(lat: number, lng: number): number {
+  const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi);
+  return distanceKm(lat, lng, clamp(lat, LA_BOX.south, LA_BOX.north), clamp(lng, LA_BOX.west, LA_BOX.east)) * MI_PER_KM;
 }
 
 /** A–Z, or nearest first once the user's position is known. Doesn't change the input. */
