@@ -16,8 +16,9 @@ import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
 import { refreshSnapshot, resolveSaved, loadSaved, saveSaved, type SavedStore } from "../lib/saved";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
+import ListScreen from "./components/ListScreen";
 import {
-  Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronDown,
+  Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronDown, ChevronRight,
   Bookmark, Wifi, QrCode
 } from "lucide-react";
 
@@ -295,12 +296,27 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
 
 
 // ── Saved Tab ────────────────────────────────────────────────────────────────
-function SavedTab({ saved, scanned, initialTab = "favorites", onSelectProduct, products }: {
+function SavedTab({ saved, scanned, initialTab = "favorites", onSelectProduct, products, openList, onOpenList, onChangeSaved }: {
   saved: SavedStore; scanned: Product[]; initialTab?: "favorites" | "scanned";
   onSelectProduct: (p: Product) => void; products: Product[];
+  openList: string | null; onOpenList: (id: string | null) => void; onChangeSaved: (s: SavedStore, undoText?: string) => void;
 }) {
   const [tab, setTab] = useState<"favorites" | "scanned">(initialTab);
   const favs = resolveSaved(saved, products);
+  const card = (p: Product) => <ProductCard product={p} onSelect={onSelectProduct} />;
+  // M14 part 3: with lists, Favorites shows folders ("All saved", then each list, oldest first); a row opens its screen.
+  const list = saved.lists.find(l => l.id === openList) ?? null;
+  if (openList === "all" || list) {
+    return <ListScreen list={list} products={list ? resolveSaved(saved, products, list.ids) : favs} store={saved}
+      onChangeSaved={onChangeSaved} onBack={() => onOpenList(null)} card={card} />;
+  }
+  const row = (id: string, name: string, n: number) => (
+    <button key={id} onClick={() => onOpenList(id)} aria-label={`${name}, ${n} product${n === 1 ? "" : "s"}`} className="w-full min-h-[56px] bg-card border border-border rounded-2xl px-4 flex items-center gap-3 text-left">
+      <span className="flex-1 min-w-0 font-bold truncate">{name}</span>
+      <span className="text-sm text-muted-foreground">{n}</span>
+      <ChevronRight size={18} aria-hidden="true" className="text-muted-foreground" />
+    </button>
+  );
 
   return (
     <div className="h-full overflow-y-auto bg-background" style={{ scrollbarWidth: "none" }}>
@@ -323,7 +339,8 @@ function SavedTab({ saved, scanned, initialTab = "favorites", onSelectProduct, p
               <p className="font-semibold text-foreground">No saved items</p>
               <p className="text-xs text-muted-foreground mt-1">Tap the bookmark on any product to save it</p>
             </div>
-          ) : favs.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} />)
+          ) : saved.lists.length === 0 ? favs.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} />)
+          : [row("all", "All saved", favs.length), ...saved.lists.map(l => row(l.id, l.name, resolveSaved(saved, products, l.ids).length))]
         )}
         {tab === "scanned" && (
           scanned.length === 0 ? (
@@ -509,6 +526,7 @@ export default function App() {
   const [recent, setRecent] = useState<RecentEntry[]>(loadRecent);
   useEffect(() => saveRecent(recent), [recent]);
   const [savedInitialTab, setSavedInitialTab] = useState<"favorites" | "scanned">("favorites");
+  const [openList, setOpenList] = useState<string | null>(null); // kept here so Back from a product returns to the list
   const [explainer, setExplainer] = useState<ExplainerId | null>(null);
 
 
@@ -586,7 +604,7 @@ export default function App() {
                       onSearch={openSearch}
                       onSelectProduct={openProduct}
                       onGoScan={() => setActiveTab("scan")}
-                      onSeeAllRecent={() => { setSavedInitialTab("scanned"); setActiveTab("saved"); }}
+                      onSeeAllRecent={() => { setSavedInitialTab("scanned"); setOpenList(null); setActiveTab("saved"); }}
                       onClearRecent={() => setRecent([])}
                       onOpenExplainer={setExplainer}
                       recent={recentProducts}
@@ -596,7 +614,8 @@ export default function App() {
                   {activeTab === "scan"    && (
                     <ScanTab products={products} onScanResult={openProduct} />
                   )}
-                  {activeTab === "saved"   && <SavedTab saved={saved} scanned={recentProducts} initialTab={savedInitialTab} onSelectProduct={openProduct} products={products} />}
+                  {activeTab === "saved"   && <SavedTab saved={saved} scanned={recentProducts} initialTab={savedInitialTab} onSelectProduct={openProduct} products={products}
+                    openList={openList} onOpenList={setOpenList} onChangeSaved={changeSaved} />}
                   {activeTab === "profile" && <ProfileTab recentCount={recentProducts.length} onClearRecent={() => setRecent([])} />}
                 </div>
               )}
@@ -633,7 +652,7 @@ export default function App() {
               </div>
             </div>
 
-            {!subScreen && !explainer && <BottomNav activeTab={activeTab} onTabChange={(t) => { setSavedInitialTab("favorites"); setActiveTab(t); }} />}
+            {!subScreen && !explainer && <BottomNav activeTab={activeTab} onTabChange={(t) => { setSavedInitialTab("favorites"); setOpenList(null); setActiveTab(t); }} />}
           </div>
         )}
       </div>

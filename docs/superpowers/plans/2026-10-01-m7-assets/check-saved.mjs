@@ -50,12 +50,16 @@ try {
     i.dispatchEvent(new Event("input", { bubbles: true })); await __sleep(200); __btn("Look up").click();
     await __until(() => !document.querySelector('input[aria-label="Barcode number"]') && document.querySelector("h1")?.innerText.includes(${JSON.stringify(text)}), 15000);
     await __sleep(600); return document.querySelector("h1")?.innerText; })()`);
+  // The spec's 3 views at 375×812, 1x, only when a folder is given.
+  const shot = async name => { if (!SHOTS) return; await sleep(300);
+    const r = await send("Page.captureScreenshot", { format: "png" }); writeFileSync(`${SHOTS}/${name}.png`, Buffer.from(r.result.data, "base64")); };
   const favorites = () => run(`(async () => { __btn("Saved").click(); await __sleep(500); return document.body.innerText; })()`);
 
   await send("Runtime.enable");
   await send("Page.enable");
   await send("Page.bringToFront");
   await send("Emulation.setFocusEmulationEnabled", { enabled: true });
+  await send("Emulation.setDeviceMetricsOverride", { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
   await send("Page.navigate", { url: URL_ });
   await sleep(4000);
   await helpers();
@@ -103,6 +107,7 @@ try {
   check("the Snacks chip creates the list with this product; no chip moves, Snacks is pressed and keeps focus",
     JSON.stringify(snacks) === '["Breakfast:false","Lunch:false","Dinner:false","Dessert:false","Snacks:true"]'
     && await run(`document.activeElement?.innerText === "Snacks"`), JSON.stringify(snacks));
+  await shot("1-save-sheet");
   await click("New list");
   await send("Input.insertText", { text: "Road trip" }); await key("Enter");
   const chips2 = await run(`[...document.querySelectorAll('[role="dialog"] button[aria-pressed]')].map(x => x.innerText)`);
@@ -119,6 +124,32 @@ try {
   await send("Page.reload"); await sleep(4000); await helpers(); await run(`__guest()`); await sleep(500);
   const st = await run(`__store()`);
   check("after a reload, Snacks still holds 1 product", st?.lists?.length === 2 && st.lists[0].name === "Snacks" && st.lists[0].ids.length === 1 && st.lists[1].ids.length === 0, JSON.stringify(st?.lists));
+
+  // Part 3: Saved › Favorites shows folders; a list screen renames, removes, deletes with Undo.
+  const rows = () => run(`[...document.querySelectorAll("button[aria-label]")].map(b => b.getAttribute("aria-label")).filter(l => /, \\d+ products?$/.test(l))`);
+  await favorites();
+  const r1 = await rows();
+  check("with lists, Favorites shows All saved then each list with its count", JSON.stringify(r1) === '["All saved, 2 products","Snacks, 1 product","Road trip, 0 products"]', JSON.stringify(r1));
+  await shot("2-saved-with-lists");
+  await click("Snacks, 1 product");
+  const oreoX = await run(`[...document.querySelectorAll("button[aria-label]")].map(b => b.getAttribute("aria-label")).find(l => l.startsWith("Remove Oreo"))`);
+  check("a list screen: its name and a labelled × per product", (await run(`document.querySelector("h1")?.innerText`)) === "Snacks" && /^Remove Oreo Original.* from Snacks$/.test(oreoX ?? ""), oreoX);
+  await shot("3-list-screen");
+  await click("Snacks options"); await click("Rename");
+  await run(`(() => { const i = document.querySelector('input[aria-label="List name"]'); i.select(); return true; })()`);
+  await send("Input.insertText", { text: "Movie night" }); await key("Enter");
+  check("Rename changes the list's name", (await run(`document.querySelector("h1")?.innerText`)) === "Movie night");
+  await click(oreoX.replace("Snacks", "Movie night"));
+  check("× removes the product from the list but keeps it saved", (await run(`document.body.innerText`)).includes("Nothing in this list yet")
+    && await run(`__store().items.length === 2`));
+  await back();
+  await click("Road trip, 0 products"); await click("Road trip options"); await click("Delete");
+  const del = await run(`({ note: document.querySelector('[role="status"]')?.innerText ?? "", rows: [...document.querySelectorAll("button[aria-label]")].map(b => b.getAttribute("aria-label")).filter(l => /, \\d+ products?$/.test(l)) })`);
+  check("Delete returns to Saved with a 'Deleted · Undo' note", del.note.includes("Deleted") && !del.rows.some(r => r.startsWith("Road trip")), JSON.stringify(del));
+  await click("Undo");
+  check("Undo brings the list back", JSON.stringify(await rows()) === '["All saved, 2 products","Movie night, 0 products","Road trip, 0 products"]', JSON.stringify(await rows()));
+  await click("All saved, 2 products");
+  check("All saved has no menu and no ×", await run(`document.querySelector("h1")?.innerText === "All saved" && ![...document.querySelectorAll("button[aria-label]")].some(b => /^Remove |options$/.test(b.getAttribute("aria-label")))`));
 
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {
