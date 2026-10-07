@@ -20,7 +20,7 @@ Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + S
 - Every push to `main` deploys to GitHub Pages.
 
 ## Current state (update when a milestone ships)
-- M1–M12 live on `origin/main` (M11: food icons, Update info, Profile rows, text size + high contrast; M12: Home "Learn" tiles). Next: Map near me (decisions 036, 037). **M10**: own USDA copy, 430,127 products in Supabase `foods` (engine_rev 4, after the M10.1–M10.3 processed-meat rules); the app never calls USDA. Re-import: empty the table first (a reload over a full one doubles its size).
+- M1–M13 live on `origin/main` (M11 quick wins; M12 Home "Learn" tiles; M13 Map near me: ZIP/radius, 183 OSM places + 191 LA County sites, report a problem). Next: Collections (item 4). **M10**: own USDA copy, 430,127 products in Supabase `foods` (engine_rev 4, after the M10.1–M10.3 processed-meat rules); the app never calls USDA. Re-import: empty the table first (a reload over a full one doubles its size).
 - Order after M10 (owner, 2026-10-05): `docs/superpowers/ideas/2026-10-05-owner-app-review.md` (quick wins → Home redesign → Map near me → Collections → M8 add-a-product → …).
 - Active specs: `docs/superpowers/specs/` (m10, m101–m103, m8). Decisions live ONLY in the `PROJECT_HANDOFF.md` decision log; don't re-open them.
 
