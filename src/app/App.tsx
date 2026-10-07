@@ -199,14 +199,16 @@ function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearR
         </div>
       )}
 
-      {/* M12 (decision 035): six Learn tiles, two per row; each opens its page and is named by the page's full title. */}
+      {/* M12 (decision 035): six Learn tiles, two per row; each opens its page and is named by the page's full title,
+          which must contain the visible label (D3, WCAG 2.5.3 for voice control), so a title without it gets the label first. */}
       <div>
         <h2 className="font-bold text-base mb-2">Learn</h2>
         <div className="grid grid-cols-2 gap-2.5">
           {(Object.keys(EXPLAINERS) as ExplainerId[]).map(id => {
             const { title, label, tile, Icon } = EXPLAINERS[id];
+            const name = title.toLowerCase().includes(label.toLowerCase()) ? title : `${label}: ${title}`;
             return (
-              <button key={id} onClick={() => onOpenExplainer(id)} aria-label={title} style={{ background: tile }}
+              <button key={id} onClick={() => onOpenExplainer(id)} aria-label={name} style={{ background: tile }}
                 className="min-h-[88px] rounded-2xl p-3.5 text-left text-white flex flex-col justify-between gap-2 shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 ring-primary">
                 <Icon size={24} aria-hidden="true" />
                 <span className="text-sm font-extrabold leading-tight break-words hyphens-auto">{label}</span>

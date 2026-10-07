@@ -60,7 +60,9 @@ try {
   // M12: the Learn tiles' accessible names, in order (null when there's no Learn heading).
   const learnTiles = () => run(`(() => { const h = [...document.querySelectorAll("h2")].find(e => e.innerText === "Learn");
     return h ? [...h.nextElementSibling.querySelectorAll("button")].map(b => b.getAttribute("aria-label")) : null; })()`);
-  const LEARN = ["“Nothing flagged” isn’t “healthy”", "What the badge levels mean", "Seed oils: what the evidence says",
+  // A name is the page's full title and contains the tile's visible label (spec D3, WCAG 2.5.3), so the first adds it.
+  const HEALTHY = "“Nothing flagged” isn’t “healthy”";
+  const LEARN = [`Not a health score: ${HEALTHY}`, "What the badge levels mean", "Seed oils: what the evidence says",
     "Pesticides: what a label can’t tell you", "Ultra-processed foods: no official line yet", "How EcoGo checks a product"];
 
   await send("Runtime.enable");
@@ -124,8 +126,8 @@ try {
   check("See all → Saved › Scanned shows the same list", saved.includes("Coca-Cola Zero") && saved.includes("Oreo") && !saved.includes("No scanned products"));
   await home();
 
-  for (const title of [LEARN[0], LEARN[1]]) {
-    await run(`(async () => { __btn(${JSON.stringify(title)}).click(); await __sleep(500); })()`);
+  for (const [name, title] of [[LEARN[0], HEALTHY], [LEARN[1], LEARN[1]]]) {
+    await run(`(async () => { __btn(${JSON.stringify(name)}).click(); await __sleep(500); })()`);
     const e = await run(`document.body.innerText`);
     check(`explainer opens with sources: ${title}`, e.includes("Sources") && e.includes("Source checked") && e.includes(title));
     await back();
