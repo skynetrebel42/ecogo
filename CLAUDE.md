@@ -41,6 +41,7 @@ Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + S
   | bug | diagnosing-bugs |
   | new feature with a spec | tdd, against the spec in `docs/superpowers/specs/` |
   | review changes | code-review |
+  | over-engineering check, builder, before asking for a push | ponytail-review |
   | PR text | pr |
   Tiny edits (copy, styling, one-file fixes): no skill, no plan.
 - Keep graph current: after big refactors run `/graphify --update`.
