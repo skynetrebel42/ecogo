@@ -37,17 +37,35 @@ export function useNutrition(product: Product): NutritionState {
 
 const SLATE = { text: "#1E293B", bg: "#F1F5F9", border: "#CBD5E1", bar: "#E2E8F0", fill: "#475569", fillHigh: "#1E293B" };
 
-export default function NutritionPanel({ state }: { state: NutritionState }) {
-  if (state.status === "none") return null;
+/** M11 3.2: outline "Update info" button for crowd-sourced products, opening Open Food Facts' edit form in a new tab. */
+export function UpdateInfoButton({ url, label }: { url: string; label: string }) {
+  return (
+    <a href={url} target="_blank" rel="noreferrer" aria-label={label}
+      className="flex-shrink-0 min-h-[44px] px-3 inline-flex items-center gap-1.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700">
+      Update info <ExternalLink size={12} aria-hidden="true" />
+    </a>
+  );
+}
+export const UpdateInfoHelp = () => (
+  <p className="text-[10px] text-gray-500 leading-snug mb-3">Opens Open Food Facts. Sign in there to correct the values or add a photo of the label.</p>
+);
+
+export default function NutritionPanel({ state, updateUrl }: { state: NutritionState; updateUrl?: string | null }) {
+  if (state.status === "none" && !updateUrl) return null;
   const n = state.status === "ready" ? state.nutrition : null;
+  const showUpdate = updateUrl && (state.status === "ready" || state.status === "none");
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm">
-      <div className="flex items-baseline justify-between gap-2 mb-3">
-        <span className="font-bold text-sm">Nutrition</span>
-        {n && <span className="text-[11px] text-gray-500 text-right">{n.perServing ? "per serving" : "per"} · {n.serving}</span>}
+      <div className={`flex items-center justify-between gap-2 ${showUpdate ? "mb-1" : "mb-3"}`}>
+        <div className="min-w-0">
+          <span className="font-bold text-sm">Nutrition</span>
+          {n && <span className="block text-[11px] text-gray-500">{n.perServing ? "per serving" : "per"} · {n.serving}</span>}
+        </div>
+        {showUpdate && <UpdateInfoButton url={updateUrl} label="Update nutrition info on Open Food Facts" />}
       </div>
+      {showUpdate && <UpdateInfoHelp />}
       {state.status === "loading" && <p className="text-xs text-gray-500">Nutrition loading…</p>}
-      {state.status === "unavailable" && <p className="text-xs text-gray-500">Nutrition not available for this product.</p>}
+      {(state.status === "unavailable" || state.status === "none") && <p className="text-xs text-gray-500">Nutrition not available for this product.</p>}
       {n && (
         <div className="space-y-3">
           {n.nutrients.map(x => (

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { knownNutrition, lookupBarcode, searchFoods, mapOffResponse, normalizeBarcode, barcodeKey, isBarcode, sameBarcode, tidyCase, offEditUrl, offAddUrl } from "./lookup.ts";
+import { knownNutrition, lookupBarcode, searchFoods, mapOffResponse, normalizeBarcode, barcodeKey, isBarcode, sameBarcode, tidyCase, offEditUrl, offAddUrl, updateInfoUrl } from "./lookup.ts";
 import { analyzeIngredients } from "./safety/analyze.ts";
 import { foodRow, memoryFoods, rowFromUsdaSearch } from "./foodsFake.ts";
 
@@ -199,4 +199,13 @@ test("searchFoods: one request per text for the session; errors aren't cached; b
 test("Open Food Facts edit and add links carry the cleaned barcode", () => {
   assert.equal(offEditUrl("3017620422003"), "https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=3017620422003");
   assert.equal(offAddUrl(" 30176-20429996 "), "https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code=3017620429996");
+});
+
+// M11 D2: "Update info" only where a fix can show up (crowd-sourced Open Food Facts); USDA and catalog products get none.
+test("Update info links to the Open Food Facts edit form for crowd-sourced products only", () => {
+  const src = (crowdSourced: boolean) => ({ name: crowdSourced ? "Open Food Facts" as const : "USDA FoodData Central" as const,
+    url: "", crowdSourced, ingredientsLang: "en", additiveCodes: [] });
+  assert.equal(updateInfoUrl({ barcode: "3017620422003", source: src(true) }), "https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=3017620422003");
+  assert.equal(updateInfoUrl({ barcode: "041196910759", source: src(false) }), null, "USDA");
+  assert.equal(updateInfoUrl({ barcode: "041196910759" }), null, "catalog");
 });

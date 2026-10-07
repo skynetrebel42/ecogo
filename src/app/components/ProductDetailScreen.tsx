@@ -13,12 +13,12 @@ import {
   TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame,
 } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
-import { offEditUrl } from "../../lib/lookup";
+import { updateInfoUrl } from "../../lib/lookup";
 import { escapeRegExp, type Flag } from "../../lib/safety/analyze";
 import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
-import NutritionPanel, { NutritionChip, useNutrition } from "./NutritionPanel";
+import NutritionPanel, { NutritionChip, UpdateInfoButton, UpdateInfoHelp, useNutrition } from "./NutritionPanel";
 import { topHigh } from "../../lib/nutrition";
 import { snapshotLabel } from "../../lib/foods";
 import { useAlternatives } from "./useAlternatives";
@@ -127,6 +127,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
   // Same USDA category, strictly better badge; only offered when this product has concerns (useAlternatives.ts).
   const alternatives = useAlternatives(product, analysis.verdict);
   const category = product.category || product.source?.foodCategory;
+  const updateUrl = updateInfoUrl(product);
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -179,7 +180,8 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
             <div className={`rounded-2xl p-3 text-[11px] leading-snug border ${product.source.crowdSourced
               ? "bg-amber-50 border-amber-100 text-amber-900" : "bg-white border-gray-100 text-gray-600 shadow-sm"}`}>
               {product.source.crowdSourced
-                ? "Product data from Open Food Facts (crowd-sourced, may contain errors)."
+                ? <><strong className="block">Shown from Open Food Facts, crowd-sourced. Help verify it.</strong>
+                    Anyone can edit this data, so it may contain errors. Fixes you make there show here after you reload EcoGo.</>
                 : `Label data from USDA FoodData Central, supplied by the manufacturer${product.source.snapshot ? ` (snapshot ${snapshotLabel(product.source.snapshot)})` : ""}.`}{" "}
               <a href={product.source.url} target="_blank" rel="noreferrer" className="font-bold underline">
                 {product.source.crowdSourced ? "View on Open Food Facts" : "View record"}
@@ -190,17 +192,6 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
                 </span>
               )}
               {product.source.crowdSourced && <span className="block mt-1 opacity-70">Data © Open Food Facts contributors, ODbL.</span>}
-              {product.source.crowdSourced && (
-                <span className="block mt-2">
-                  <a href={offEditUrl(product.barcode)} target="_blank" rel="noreferrer" className="font-bold underline">
-                    Looks wrong? Fix it on Open Food Facts
-                  </a>
-                  <span className="block mt-0.5 opacity-80">
-                    Sign in there to correct the values or add a photo of the label (their AI suggests nutrition values from it). Fixes
-                    show here after you reload EcoGo.
-                  </span>
-                </span>
-              )}
             </div>
           )}
 
@@ -211,7 +202,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
               <span className="font-extrabold text-sm" style={{ color: look.color }}>{verdictHeadline(analysis)}</span>
             </div>
             <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{analysis.verdict === "none"
-              ? (formsWhenCooked(analysis) ? NONE_BUT_COOKED : SMALL_PRINT.none) + nutritionNote(nutrition.status !== "none")
+              ? (formsWhenCooked(analysis) ? NONE_BUT_COOKED : SMALL_PRINT.none) + nutritionNote(nutrition.status !== "none" || !!updateUrl)
               : SMALL_PRINT[analysis.verdict]}</p>
           </div>
 
@@ -228,14 +219,16 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
             </div>
           ))}
 
-          <NutritionPanel state={nutrition} />
+          <NutritionPanel state={nutrition} updateUrl={updateUrl} />
 
           {/* ── Full ingredient list ── */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
+            <div className={`flex items-center gap-2 ${updateUrl ? "mb-1" : "mb-2"}`}>
               <FlaskConical size={15} className="text-primary" />
-              <span className="font-bold text-sm">Ingredients</span>
+              <span className="font-bold text-sm flex-1">Ingredients</span>
+              {updateUrl && <UpdateInfoButton url={updateUrl} label="Update ingredients on Open Food Facts" />}
             </div>
+            {updateUrl && <UpdateInfoHelp />}
             {product.ingredients.trim()
               ? <p className="text-xs text-gray-600 leading-relaxed"><HighlightedIngredients text={product.ingredients} flags={analysis.flags} /></p>
               : <p className="text-xs text-gray-400 italic">No ingredient list available.</p>}

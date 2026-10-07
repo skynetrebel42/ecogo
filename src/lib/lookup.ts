@@ -74,6 +74,9 @@ export function searchFoods(text: string, opts: { foods: FoodsSource }): Promise
 export const offEditUrl = (code: string) => `https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=${normalizeBarcode(code)}`;
 export const offAddUrl = (code: string) =>
   `https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code=${normalizeBarcode(code)}`;
+/** "Update info" target (M11 D2): only crowd-sourced products, where a fix shows up after a reload; else null. */
+export const updateInfoUrl = (p: Pick<Product, "barcode" | "source">): string | null =>
+  p.source?.crowdSourced ? offEditUrl(p.barcode) : null;
 
 /** Pure: an OFF v3 response body plus its HTTP status → our result. */
 export function mapOffResponse(json: unknown, httpStatus: number): LookupResult {
