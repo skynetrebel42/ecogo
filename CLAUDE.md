@@ -42,6 +42,7 @@ Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + S
   | new feature with a spec | tdd, against the spec in `docs/superpowers/specs/` |
   | review changes | code-review |
   | over-engineering check, builder, before asking for a push | ponytail-review |
+- Superpowers (loads every session): CLAUDE.md wins. The builder uses `verification-before-completion` before a report; skip `brainstorming`, `writing-plans` and `subagent-driven-development` (the planner's mockups + spec + one builder replace them).
   | PR text | pr |
   Tiny edits (copy, styling, one-file fixes): no skill, no plan.
 - Keep graph current: after big refactors run `/graphify --update`.
