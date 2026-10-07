@@ -1,7 +1,7 @@
 # M12: Home redesign, "Learn" tiles (layout A): design spec
 
 - **Date:** 2026-10-06
-- **Status:** **awaiting the owner's approval.** Front end only: no new data, no database change, no new dependency, no new
+- **Status:** **approved by the owner 2026-10-06** (D1-D5 as written). Front end only: no new data, no database change, no new dependency, no new
   claim. One milestone, one commit (plus the check-script update). **Build after M11 is pushed**, on a fresh worktree branch
   from `main` (it uses M11's text-size tokens and `themeContrast.test.ts`).
 - **From:** the owner's app review, item 2 (`docs/superpowers/ideas/2026-10-05-owner-app-review.md`); order is decision 033;
@@ -30,6 +30,9 @@ opening the explainer pages."
 | Pesticides | Pesticides: what a label can't tell you | `#33600F` green | 7.44:1 | `Sprout` |
 | Ultra-processed | Ultra-processed foods: no official line yet | `#4A42A6` purple | 8.01:1 | `Factory` |
 | How EcoGo checks | How EcoGo checks a product | `#4F4E4A` grey | 8.33:1 | `ListChecks` |
+
+**Design check:** serves minimalist design (Nielsen 8) and recognition over recall (Nielsen 6); the short labels risk "match
+the real world" (Nielsen 2), so each tile's accessible name and its page title stay in full.
 
 ## 3. Design
 
