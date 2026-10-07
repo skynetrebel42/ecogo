@@ -37,7 +37,8 @@ try {
     window.__store = () => JSON.parse(localStorage.getItem("ecogo.saved.v1") || "null"); true`);
   const click = s => run(`(async () => { const b = await __until(() => __btn(${JSON.stringify(s)}), 5000); b?.click(); await __sleep(400); return !!b; })()`);
   const key = async (k, code = k) => {
-    await send("Input.dispatchKeyEvent", { type: "keyDown", key: k, code, windowsVirtualKeyCode: k === "Escape" ? 27 : 13 });
+    // Enter needs its "\r" text, or a form's implicit submit doesn't fire.
+    await send("Input.dispatchKeyEvent", { type: "keyDown", key: k, code, windowsVirtualKeyCode: k === "Escape" ? 27 : 13, ...(k === "Enter" ? { text: "\r" } : {}) });
     await send("Input.dispatchKeyEvent", { type: "keyUp", key: k, code, windowsVirtualKeyCode: k === "Escape" ? 27 : 13 });
   };
   const back = () => run(`(async () => { document.querySelector("button svg.lucide-arrow-left")?.closest("button").click(); await __sleep(400); })()`);
@@ -80,6 +81,36 @@ try {
   await send("Page.reload"); await sleep(4000); await helpers(); await run(`__guest()`); await sleep(500);
   const fav = await favorites();
   check("after a reload both are still in Saved", !!coke && !!tos && fav.includes(coke) && fav.includes(tos), `${coke} / ${tos}`);
+
+  // Part 2: the save sheet (open Oreo again: it's saved, so unsave first, then save to open the sheet).
+  await click("Home");
+  await run(`document.querySelector('input[placeholder^="Search products"]').focus(); true`);
+  await send("Input.insertText", { text: "oreo" }); await key("Enter");
+  await run(`(async () => { (await __until(() => [...document.querySelectorAll("button")].find(b => b.innerText.includes("Oreo Original"))))?.click(); await __sleep(600); })()`);
+  await click("Remove from saved");
+  const note = await run(`document.querySelector('[role="status"]')?.innerText ?? ""`);
+  check("filled bookmark unsaves, with a 'Removed · Undo' note", note.includes("Removed") && note.includes("Undo") && !(await run(`__store().items.some(i => i.id > 0)`)), note);
+  await click("Undo");
+  check("Undo puts it back", await run(`__store().items.some(i => i.id > 0) && !!__btn("Remove from saved")`));
+  await click("Remove from saved"); await click("Save");
+  const dlg = await run(`(() => { const d = document.querySelector('[role="dialog"]'); if (!d) return null;
+    return { modal: d.getAttribute("aria-modal"), title: document.getElementById(d.getAttribute("aria-labelledby"))?.innerText,
+      focusIn: d.contains(document.activeElement), chips: [...d.querySelectorAll("button[aria-pressed]")].map(b => b.innerText) }; })()`);
+  check("save opens the sheet: modal dialog titled Saved, focus inside, preset chips", dlg?.modal === "true" && dlg.title.trim() === "Saved" && dlg.focusIn
+    && JSON.stringify(dlg.chips) === '["Breakfast","Lunch","Dinner","Dessert","Snacks"]', JSON.stringify(dlg));
+  await click("Snacks");
+  const snacks = await run(`(() => { const b = [...document.querySelectorAll('[role="dialog"] button[aria-pressed]')]; return b.map(x => x.innerText + ":" + x.getAttribute("aria-pressed")); })()`);
+  check("the Snacks chip creates the list with this product; it moves first and is pressed", snacks?.[0] === "Snacks:true" && !snacks.slice(1).some(s => s.startsWith("Snacks")), JSON.stringify(snacks));
+  await click("New list");
+  await send("Input.insertText", { text: "snacks" }); await key("Enter");
+  const err = await run(`document.querySelector('[role="alert"]')?.innerText ?? ""`);
+  check("a duplicate name shows an inline error", err.includes("already have a list"), err);
+  await key("Escape");
+  check("Escape closes the sheet and focus returns to the bookmark", await run(`!document.querySelector('[role="dialog"]') && document.activeElement?.getAttribute("aria-label") === "Remove from saved"`));
+  await back(); await back();
+  await send("Page.reload"); await sleep(4000); await helpers(); await run(`__guest()`); await sleep(500);
+  const st = await run(`__store()`);
+  check("after a reload, Snacks still holds 1 product", st?.lists?.length === 1 && st.lists[0].name === "Snacks" && st.lists[0].ids.length === 1, JSON.stringify(st?.lists));
 
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {

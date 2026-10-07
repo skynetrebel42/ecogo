@@ -14,7 +14,7 @@ import { knownNutrition, searchFoods } from "../lib/lookup";
 import { supabaseFoods } from "../lib/foodsDb";
 import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
-import { toggleSave as toggleSaved, refreshSnapshot, resolveSaved, loadSaved, saveSaved, type SavedStore } from "../lib/saved";
+import { refreshSnapshot, resolveSaved, loadSaved, saveSaved, type SavedStore } from "../lib/saved";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import {
   Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronDown,
@@ -499,7 +499,13 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   // Saved products and lists, and Recently scanned: on this device only (M14 part 1, M7 spec §4.1).
   const [saved, setSaved] = useState<SavedStore>(loadSaved);
-  useEffect(() => { saveSaved(saved); }, [saved]);
+  const [savedOk, setSavedOk] = useState(true);
+  useEffect(() => setSavedOk(saveSaved(saved)), [saved]);
+  // D6: "Removed · Undo" / "Deleted · Undo" for 5 s. Undo restores the store as it was; any other change drops the offer,
+  // so restoring never loses a later edit.
+  const [undo, setUndo] = useState<{ text: string; prev: SavedStore } | null>(null);
+  useEffect(() => { if (!undo) return; const t = setTimeout(() => setUndo(null), 5000); return () => clearTimeout(t); }, [undo]);
+  const changeSaved = (next: SavedStore, undoText?: string) => { setUndo(undoText ? { text: undoText, prev: saved } : null); setSaved(next); };
   const [recent, setRecent] = useState<RecentEntry[]>(loadRecent);
   useEffect(() => saveRecent(recent), [recent]);
   const [savedInitialTab, setSavedInitialTab] = useState<"favorites" | "scanned">("favorites");
@@ -534,11 +540,6 @@ export default function App() {
   };
   const recentProducts = resolveRecent(recent, products);
   const openSearch = (q: string) => { setSearchQuery(q); setSubScreen("search-results"); };
-
-  const toggleSave = () => {
-    if (!selectedProduct) return;
-    setSaved(prev => toggleSaved(prev, selectedProduct));
-  };
 
   return (
     <div className={IS_PHONE ? "fixed inset-0" : "min-h-screen flex items-center justify-center p-4"}
@@ -615,11 +616,21 @@ export default function App() {
                   key={selectedProduct.id}
                   product={selectedProduct}
                   onBack={() => setSubScreen(null)}
-                  saved={saved.items.some(i => i.id === selectedProduct.id)}
-                  onToggleSave={toggleSave}
+                  store={saved}
+                  savedOk={savedOk}
+                  onChangeSaved={changeSaved}
                   onSelectProduct={openProduct}
                 />
               )}
+
+              <div role="status" className="absolute bottom-4 inset-x-4 z-[70] pointer-events-none flex justify-center">
+                {undo && (
+                  <div className="pointer-events-auto flex items-center gap-3 bg-foreground text-background rounded-xl pl-4 pr-1 shadow-lg text-sm font-bold">
+                    <span>{undo.text}</span><span aria-hidden="true">·</span>
+                    <button onClick={() => { setSaved(undo.prev); setUndo(null); }} className="min-h-[44px] px-3 underline">Undo</button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {!subScreen && !explainer && <BottomNav activeTab={activeTab} onTabChange={(t) => { setSavedInitialTab("favorites"); setActiveTab(t); }} />}

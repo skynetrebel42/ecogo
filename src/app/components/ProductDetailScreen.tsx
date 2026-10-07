@@ -7,7 +7,9 @@
 // sources. Also: same-category alternatives with fewer concerns.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
+import { toggleSave, type SavedStore } from "../../lib/saved";
+import SaveSheet from "./SaveSheet";
 import {
   ArrowLeft, Bookmark,
   TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame,
@@ -113,12 +115,21 @@ function FindingRow({ finding: entry, open, onToggle }: { finding: Finding; open
 }
 
 interface ProductDetailScreenProps {
-  product: Product; onBack: () => void; saved: boolean; onToggleSave: () => void;
-  onSelectProduct: (p: Product) => void;
+  product: Product; onBack: () => void; onSelectProduct: (p: Product) => void;
+  store: SavedStore; savedOk: boolean; onChangeSaved: (s: SavedStore, undoText?: string) => void;
 }
 
-export default function ProductDetailScreen({ product, onBack, saved, onToggleSave, onSelectProduct }: ProductDetailScreenProps) {
+export default function ProductDetailScreen({ product, onBack, store, savedOk, onChangeSaved, onSelectProduct }: ProductDetailScreenProps) {
   const [openFlag, setOpenFlag] = useState<string | null>(null);
+  const saved = store.items.some(i => i.id === product.id);
+  const [sheet, setSheet] = useState(false);
+  const bookmark = useRef<HTMLButtonElement>(null);
+  // M14 D1/D6: the empty bookmark saves at once and opens the sheet; the filled one unsaves everywhere, with Undo.
+  const onBookmark = () => {
+    if (saved) { onChangeSaved(toggleSave(store, product), "Removed"); return; }
+    onChangeSaved(toggleSave(store, product)); setSheet(true);
+  };
+  const closeSheet = () => { setSheet(false); bookmark.current?.focus(); };
   const analysis = useMemo(() => safeAnalyze(product), [product]);
   const look = VERDICT_STYLE[analysis.verdict];
   const nutrition = useNutrition(product);
@@ -138,7 +149,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
           <button onClick={onBack} aria-label="Back" className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
             <ArrowLeft size={18} color="white" />
           </button>
-          <button onClick={onToggleSave} aria-label={saved ? "Remove from saved" : "Save"} aria-pressed={saved} className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
+          <button ref={bookmark} onClick={onBookmark} aria-label={saved ? "Remove from saved" : "Save"} aria-pressed={saved} className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
             <Bookmark size={16} fill={saved ? "white" : "none"} color="white" />
           </button>
         </div>
@@ -269,6 +280,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
           )}
         </div>
       </div>
+      {sheet && <SaveSheet productId={product.id} saved={store} savedOk={savedOk} onChange={s => onChangeSaved(s)} onClose={closeSheet} />}
     </div>
   );
 }
