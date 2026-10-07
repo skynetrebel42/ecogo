@@ -182,7 +182,7 @@ export default function Explainer({ id, onBack }: { id: ExplainerId; onBack: () 
                 <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold inline-flex items-center gap-1">
                   Read the source <ExternalLink size={10} />
                 </a>
-                <span className="text-[10px] text-muted-foreground">Source checked {s.checkedOn}</span>
+                <span className="text-micro text-muted-foreground">Source checked {s.checkedOn}</span>
               </div>
             </li>
           ))}

@@ -7,6 +7,7 @@ import csvText from "../data/products.csv?raw";
 import { parseProductsCSV, type Product } from "../lib/productImporter";
 import { VERDICT_STYLE, safeAnalyze, formsWhenCooked, fewestConcerns } from "./components/verdict";
 import { foodIcon } from "../lib/foodIcon";
+import { TEXT_SIZES, applySettings, loadSettings, saveSettings, type Settings } from "../lib/settings";
 import { NutritionChip } from "./components/NutritionPanel";
 import { topHigh } from "../lib/nutrition";
 import { knownNutrition, searchFoods } from "../lib/lookup";
@@ -40,7 +41,7 @@ function StatusBar({ light = false }: { light?: boolean }) {
   if (IS_PHONE) return <div className="flex-shrink-0" style={{ height: "env(safe-area-inset-top)" }} />;
   const cls = light ? "text-white" : "text-foreground";
   return (
-    <div className={`flex items-center justify-between px-7 pt-3 pb-1 text-[11px] font-bold flex-shrink-0 ${cls}`}>
+    <div className={`flex items-center justify-between px-7 pt-3 pb-1 text-mini font-bold flex-shrink-0 ${cls}`}>
       <span>9:41</span>
       <div className="flex items-center gap-1.5">
         <div className="flex items-end gap-0.5">
@@ -88,7 +89,7 @@ function WelcomeScreen({ onScan, onLookAround }: { onScan: () => void; onLookAro
         </svg>
       </div>
       <div className="bg-background rounded-t-[36px] px-6 pt-7 pb-10 flex-shrink-0">
-        <h1 className="text-[26px] font-extrabold text-foreground leading-tight text-center mb-2">
+        <h1 className="text-[calc(26px*var(--text-scale,1))] font-extrabold text-foreground leading-tight text-center mb-2">
           Know what's in your food
         </h1>
         <p className="text-muted-foreground text-sm text-center mb-7 leading-relaxed">
@@ -118,14 +119,14 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
         {foodIcon(product)}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-muted-foreground font-medium">{product.brand}</p>
+        <p className="text-micro text-muted-foreground font-medium">{product.brand}</p>
         <p className="text-sm font-semibold leading-tight line-clamp-2">{product.name}</p>
       </div>
       <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-        <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: look.color }}>
+        <span className="flex items-center gap-1 text-micro font-bold" style={{ color: look.color }}>
           <look.Icon size={12} /> {look.short}
         </span>
-        {formsWhenCooked(a) && <span className="text-[9px] text-muted-foreground">🔥 forms when cooked</span>}
+        {formsWhenCooked(a) && <span className="text-nano text-muted-foreground">🔥 forms when cooked</span>}
         {high && <NutritionChip text={high.short} />}
       </div>
     </button>
@@ -149,7 +150,7 @@ function RecentCard({ product, onSelect }: { product: Product; onSelect: (p: Pro
     <button onClick={() => onSelect(product)}
       className="flex-shrink-0 w-28 bg-card border border-border rounded-2xl p-2.5 text-left shadow-sm flex flex-col gap-1.5">
       <span className="text-xs font-bold leading-tight line-clamp-2">{product.name}</span>
-      <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: look.color }}>
+      <span className="flex items-center gap-1 text-micro font-bold" style={{ color: look.color }}>
         <look.Icon size={10} /> {look.short}
       </span>
       {high && <NutritionChip text={high.short} />}
@@ -289,7 +290,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
             {results.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} />)}
             <div className="pt-2">
               <p className="text-xs font-bold text-foreground">More from USDA FoodData Central</p>
-              <p className="text-[10px] text-muted-foreground mb-2">Label data supplied by manufacturers · not in our catalog</p>
+              <p className="text-micro text-muted-foreground mb-2">Label data supplied by manufacturers · not in our catalog</p>
               {usda.status === "loading" && <p className="text-xs text-muted-foreground">Searching USDA…</p>}
               {usda.status === "error" && <p className="text-xs text-muted-foreground">Couldn't search right now.</p>}
               {usda.status === "ok" && usda.products.length === 0 && <p className="text-xs text-muted-foreground">No USDA matches.</p>}
@@ -375,7 +376,43 @@ function Accordion({ title, summary, children }: { title: string; summary: strin
           <ChevronDown size={18} aria-hidden="true" className={`flex-shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
       </h2>
-      {open && <div id={id} role="region" aria-label={title} className="px-3.5 pb-3.5 space-y-2.5">{children}</div>}
+      <div id={id} role="region" aria-label={title} hidden={!open} className="px-3.5 pb-3.5 space-y-2.5">{children}</div>
+    </section>
+  );
+}
+
+/** M11 3.4 (D4-D6): text size and high contrast, always visible, applied at once and kept on this device. */
+function DisplayCard() {
+  const [settings, setSettings] = useState<Settings>(loadSettings);
+  const change = (s: Settings) => { setSettings(s); applySettings(document.documentElement, s); saveSettings(s); };
+  const high = settings.contrast === "high";
+  return (
+    <section className="bg-card border border-border rounded-2xl p-3.5 space-y-3">
+      <h2 className="font-bold text-base">Display</h2>
+      <div>
+        <p id="text-size-label" className="text-sm font-bold">Text size</p>
+        <p className="text-xs text-muted-foreground mb-2">Makes the words bigger; the layout stays the same.</p>
+        {/* Native radios: arrow keys and one tab stop come free; the label is the 44 px button. */}
+        <div role="radiogroup" aria-labelledby="text-size-label" className="grid grid-cols-3 gap-2">
+          {TEXT_SIZES.map(t => (
+            <label key={t.id} className="min-h-[44px] flex items-center justify-center rounded-xl border border-border text-sm font-bold cursor-pointer has-checked:bg-primary has-checked:text-primary-foreground has-checked:border-primary has-focus-visible:ring-2 has-focus-visible:ring-ring">
+              <input type="radio" name="text-size" value={t.id} checked={settings.textSize === t.id} className="sr-only"
+                onChange={() => change({ ...settings, textSize: t.id })} />
+              {t.label}
+            </label>
+          ))}
+        </div>
+      </div>
+      <button role="switch" aria-checked={high} onClick={() => change({ ...settings, contrast: high ? "normal" : "high" })}
+        className="w-full min-h-[44px] flex items-center gap-3 text-left">
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-bold">High contrast</span>
+          <span className="block text-xs text-muted-foreground">Darker text and borders. Starts from your phone's contrast setting.</span>
+        </span>
+        <span aria-hidden="true" className={`w-11 h-6 rounded-full p-0.5 flex-shrink-0 transition-colors ${high ? "bg-primary" : "bg-gray-500"}`}>
+          <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${high ? "translate-x-5" : ""}`} />
+        </span>
+      </button>
     </section>
   );
 }
@@ -387,6 +424,8 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
         <h1 className="text-xl font-extrabold leading-tight text-primary">Profile</h1>
         <p className="text-xs text-muted-foreground mt-0.5">No account yet. What you do stays on this device.</p>
       </div>
+
+      <DisplayCard />
 
       <Accordion title="Your data"
         summary={recentCount === 0 ? "Nothing scanned yet, on this device" : `${recentCount} recent product${recentCount === 1 ? "" : "s"}, on this device`}>
@@ -421,7 +460,7 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
         <p className="text-xs text-foreground/80 leading-relaxed">The map asks for your location only when you tap My location. It stays on your phone. Map images load from OpenStreetMap.</p>
       </Accordion>
 
-      <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+      <p className="text-mini text-muted-foreground text-center leading-relaxed">
         A student project. Not medical advice.{" "}
         <a href="https://github.com/skynetrebel42/ecogo" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">Source code and updates</a>
       </p>
@@ -455,7 +494,7 @@ function BottomNav({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t
                 <Icon size={20} className={active ? "text-primary" : "text-muted-foreground"} fill={active && id === "saved" ? "currentColor" : "none"} />
               </div>
             )}
-            <span className={`text-[9px] font-bold mt-0.5 ${active ? "text-primary" : "text-muted-foreground"}`}>{label}</span>
+            <span className={`text-nano font-bold mt-0.5 ${active ? "text-primary" : "text-muted-foreground"}`}>{label}</span>
           </button>
         );
       })}
@@ -541,13 +580,13 @@ export default function App() {
             {dbStatus === "offline" && (
               <div className="flex items-center justify-center gap-1.5 py-1 bg-amber-50 border-b border-amber-100 flex-shrink-0">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                <span className="text-[9px] font-bold text-amber-700 tracking-wide">Offline — showing the built-in catalog</span>
+                <span className="text-nano font-bold text-amber-700 tracking-wide">Offline — showing the built-in catalog</span>
               </div>
             )}
             {dbStatus === "live" && (
               <div className="flex items-center justify-center gap-1.5 py-0.5 bg-green-50 border-b border-green-100 flex-shrink-0">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                <span className="text-[9px] font-bold text-green-700 tracking-wide">Live data</span>
+                <span className="text-nano font-bold text-green-700 tracking-wide">Live data</span>
               </div>
             )}
 

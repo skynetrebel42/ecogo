@@ -145,7 +145,7 @@ export default function CameraScanner({ onCode, onClose, children }: {
       </div>
 
       <div className="relative z-10 px-4 pb-4 space-y-2">
-        <p className="text-center text-[10px] text-white/70">Scanning happens on your phone. No images are uploaded.</p>
+        <p className="text-center text-micro text-white/70">Scanning happens on your phone. No images are uploaded.</p>
         <button onClick={() => setDrawerOpen(o => !o)} aria-expanded={drawerOpen}
           className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-black/50 border border-white/15 text-xs font-semibold">
           <span>Type a barcode or try a demo</span>

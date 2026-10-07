@@ -25,14 +25,14 @@ function levelIcon(fill: 0 | 0.25 | 0.5 | 1) {
 }
 
 export const VERDICT_STYLE: Record<Verdict, {
-  label: string; short: string; color: string; bg: string; gradient: string; Icon: (p: IconProps) => JSX.Element;
+  label: string; short: string; color: string; bg: string; gradient: string; solid: string; Icon: (p: IconProps) => JSX.Element;
 }> = {
-  none:       { label: "Nothing flagged",  short: "Nothing flagged",  color: "#4B5563", bg: "#F3F4F6", gradient: "linear-gradient(160deg, #1f2937, #6b7280)", Icon: levelIcon(0) },
-  some:       { label: "Some concern",     short: "Some concern",     color: "#BE123C", bg: "#FFE4E6", gradient: "linear-gradient(160deg, #4c0519, #e11d48)", Icon: levelIcon(0.25) },
-  high:       { label: "High concern",     short: "High concern",     color: "#9F1239", bg: "#FECDD3", gradient: "linear-gradient(160deg, #3b0414, #be123c)", Icon: levelIcon(0.5) },
-  known:      { label: "Known carcinogen", short: "Known carcinogen", color: "#881337", bg: "#FDA4AF", gradient: "linear-gradient(160deg, #1f020a, #881337)", Icon: levelIcon(1) },
-  "no-data":  { label: "Not enough data",  short: "No data",          color: "#4B5563", bg: "#F3F4F6", gradient: "linear-gradient(160deg, #1f2937, #6b7280)", Icon: HelpCircle },
-  "non-food": { label: "Ingredient check covers food & drinks for now", short: "Food only", color: "#4B5563", bg: "#F3F4F6", gradient: "linear-gradient(160deg, #1f2937, #6b7280)", Icon: HelpCircle },
+  none:       { label: "Nothing flagged",  short: "Nothing flagged",  color: "#4B5563", bg: "#F3F4F6", gradient: "linear-gradient(160deg, #1f2937, #6b7280)", solid: "#1f2937", Icon: levelIcon(0) },
+  some:       { label: "Some concern",     short: "Some concern",     color: "#BE123C", bg: "#FFE4E6", gradient: "linear-gradient(160deg, #4c0519, #e11d48)", solid: "#4c0519", Icon: levelIcon(0.25) },
+  high:       { label: "High concern",     short: "High concern",     color: "#9F1239", bg: "#FECDD3", gradient: "linear-gradient(160deg, #3b0414, #be123c)", solid: "#3b0414", Icon: levelIcon(0.5) },
+  known:      { label: "Known carcinogen", short: "Known carcinogen", color: "#881337", bg: "#FDA4AF", gradient: "linear-gradient(160deg, #1f020a, #881337)", solid: "#1f020a", Icon: levelIcon(1) },
+  "no-data":  { label: "Not enough data",  short: "No data",          color: "#4B5563", bg: "#F3F4F6", gradient: "linear-gradient(160deg, #1f2937, #6b7280)", solid: "#1f2937", Icon: HelpCircle },
+  "non-food": { label: "Ingredient check covers food & drinks for now", short: "Food only", color: "#4B5563", bg: "#F3F4F6", gradient: "linear-gradient(160deg, #1f2937, #6b7280)", solid: "#1f2937", Icon: HelpCircle },
 };
 
 const NO_DATA: Assessment = { verdict: "no-data", flags: [], checkedCount: 0, concerns: [] };

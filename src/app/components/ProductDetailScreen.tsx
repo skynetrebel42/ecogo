@@ -7,7 +7,7 @@
 // sources. Also: same-category alternatives with fewer concerns.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import {
   ArrowLeft, Bookmark,
   TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame,
@@ -86,24 +86,24 @@ function FindingRow({ finding: entry, open, onToggle }: { finding: Finding; open
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-bold">{entry.name}</span>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: look.bg, color: look.color }}>{look.short}</span>
+            <span className="text-nano font-bold px-1.5 py-0.5 rounded-full" style={{ background: look.bg, color: look.color }}>{look.short}</span>
           </div>
           <p className="text-xs text-gray-600 mt-0.5 leading-snug">{entry.concern}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">{entry.detail}</p>
+          <p className="text-micro text-gray-500 mt-0.5">{entry.detail}</p>
         </div>
-        <ChevronDown size={14} className={`flex-shrink-0 mt-1 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={14} className={`flex-shrink-0 mt-1 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div className="mt-3 ml-7 space-y-2">
           {entry.context && (
-            <p className="text-[11px] text-gray-600 bg-gray-50 rounded-xl p-2.5 leading-snug">
+            <p className="text-mini text-gray-600 bg-gray-50 rounded-xl p-2.5 leading-snug">
               <strong>Regulator context:</strong> {entry.context}
             </p>
           )}
           {entry.sources.map((s, i) => (
-            <a key={i} href={s.url} target="_blank" rel="noreferrer" className="block text-[11px] leading-snug text-primary">
+            <a key={i} href={s.url} target="_blank" rel="noreferrer" className="block text-mini leading-snug text-primary">
               <span className="font-bold">{s.body}:</span> {s.finding} <ExternalLink size={9} className="inline" />
-              <span className="block text-[9px] text-gray-400">Source checked {s.checkedOn}</span>
+              <span className="block text-nano text-gray-500">Source checked {s.checkedOn}</span>
             </a>
           ))}
         </div>
@@ -133,7 +133,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
     <div className="absolute inset-0 z-50 flex flex-col bg-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
       {/* ── Hero ── */}
-      <div className="flex-shrink-0 relative" style={{ background: look.gradient }}>
+      <div data-hero className="flex-shrink-0 relative" style={{ background: look.gradient, "--hero-solid": look.solid } as CSSProperties}>
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4 z-10">
           <button onClick={onBack} aria-label="Back" className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
             <ArrowLeft size={18} color="white" />
@@ -149,16 +149,16 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/60">{product.brand}</span>
+              <span className="text-nano font-bold uppercase tracking-[0.15em] text-white/60">{product.brand}</span>
               {category && (<>
                 <span className="text-white/30">·</span>
-                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/60">{category}</span>
+                <span className="text-nano font-bold uppercase tracking-[0.15em] text-white/60">{category}</span>
               </>)}
             </div>
             <h1 className="text-lg font-extrabold text-white leading-tight mb-2">{product.name}</h1>
             <div className="flex gap-1.5 flex-wrap">
               {formsWhenCooked(analysis) && (
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">🔥 Forms when cooked</span>
+                <span className="text-nano font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">🔥 Forms when cooked</span>
               )}
               {highNutrient && <NutritionChip onDark text={`High in ${highNutrient.label.toLowerCase()}`} />}
             </div>
@@ -167,7 +167,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
             <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-xl">
               <look.Icon size={30} style={{ color: look.color }} />
             </div>
-            <span className="text-[10px] font-extrabold text-white leading-tight">{look.short}</span>
+            <span className="text-micro font-extrabold text-white leading-tight">{look.short}</span>
           </div>
         </div>
       </div>
@@ -177,7 +177,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
         <div className="px-4 py-4 space-y-3 pb-10">
 
           {product.source && (
-            <div className={`rounded-2xl p-3 text-[11px] leading-snug border ${product.source.crowdSourced
+            <div className={`rounded-2xl p-3 text-mini leading-snug border ${product.source.crowdSourced
               ? "bg-amber-50 border-amber-100 text-amber-900" : "bg-white border-gray-100 text-gray-600 shadow-sm"}`}>
               {product.source.crowdSourced
                 ? <><strong className="block">Shown from Open Food Facts, crowd-sourced. Help verify it.</strong>
@@ -231,8 +231,8 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
             {updateUrl && <UpdateInfoHelp />}
             {product.ingredients.trim()
               ? <p className="text-xs text-gray-600 leading-relaxed"><HighlightedIngredients text={product.ingredients} flags={analysis.flags} /></p>
-              : <p className="text-xs text-gray-400 italic">No ingredient list available.</p>}
-            <p className="text-[10px] text-gray-400 mt-3 leading-snug">
+              : <p className="text-xs text-gray-500 italic">No ingredient list available.</p>}
+            <p className="text-micro text-gray-500 mt-3 leading-snug">
               Findings are matched against official sources (IARC, EU, FDA, EFSA, WHO), linked on each finding.
               Classifications describe potential hazards; this is not medical advice.
             </p>
@@ -245,7 +245,7 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
                 <TrendingUp size={15} className="text-green-600" />
                 <span className="font-bold text-sm">Alternatives with fewer concerns</span>
               </div>
-              <p className="px-4 pt-2.5 text-[10px] text-gray-500 leading-snug">
+              <p className="px-4 pt-2.5 text-micro text-gray-500 leading-snug">
                 Other products in this USDA category with fewer findings. Availability near you isn't known.
               </p>
               <div className="divide-y divide-gray-50">
@@ -257,10 +257,10 @@ export default function ProductDetailScreen({ product, onBack, saved, onToggleSa
                         <span className="text-xl" aria-hidden="true">{foodIcon(p)}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] text-gray-400 font-medium">{p.brand}</p>
+                        <p className="text-micro text-gray-500 font-medium">{p.brand}</p>
                         <p className="text-sm font-semibold leading-tight">{p.name}</p>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: altLook.bg, color: altLook.color }}>{altLook.short}</span>
+                      <span className="text-micro font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: altLook.bg, color: altLook.color }}>{altLook.short}</span>
                     </button>
                   );
                 })}

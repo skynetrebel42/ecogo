@@ -41,13 +41,13 @@ const SLATE = { text: "#1E293B", bg: "#F1F5F9", border: "#CBD5E1", bar: "#E2E8F0
 export function UpdateInfoButton({ url, label }: { url: string; label: string }) {
   return (
     <a href={url} target="_blank" rel="noreferrer" aria-label={label}
-      className="flex-shrink-0 min-h-[44px] px-3 inline-flex items-center gap-1.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700">
+      className="flex-shrink-0 min-h-[44px] px-3 inline-flex items-center gap-1.5 rounded-xl border border-border text-xs font-bold text-gray-700">
       Update info <ExternalLink size={12} aria-hidden="true" />
     </a>
   );
 }
 export const UpdateInfoHelp = () => (
-  <p className="text-[10px] text-gray-500 leading-snug mb-3">Opens Open Food Facts. Sign in there to correct the values or add a photo of the label.</p>
+  <p className="text-micro text-gray-500 leading-snug mb-3">Opens Open Food Facts. Sign in there to correct the values or add a photo of the label.</p>
 );
 
 export default function NutritionPanel({ state, updateUrl }: { state: NutritionState; updateUrl?: string | null }) {
@@ -59,7 +59,7 @@ export default function NutritionPanel({ state, updateUrl }: { state: NutritionS
       <div className={`flex items-center justify-between gap-2 ${showUpdate ? "mb-1" : "mb-3"}`}>
         <div className="min-w-0">
           <span className="font-bold text-sm">Nutrition</span>
-          {n && <span className="block text-[11px] text-gray-500">{n.perServing ? "per serving" : "per"} · {n.serving}</span>}
+          {n && <span className="block text-mini text-gray-500">{n.perServing ? "per serving" : "per"} · {n.serving}</span>}
         </div>
         {showUpdate && <UpdateInfoButton url={updateUrl} label="Update nutrition info on Open Food Facts" />}
       </div>
@@ -83,7 +83,7 @@ export default function NutritionPanel({ state, updateUrl }: { state: NutritionS
               )}
             </div>
           ))}
-          <p className="text-[10px] text-gray-500 leading-snug">
+          <p className="text-micro text-gray-500 leading-snug">
             {n.perServing ? <>FDA: “{FDA_RULE.quote}” </> : <>Values per 100 g: FDA's high/low guide is per serving, so none is applied. </>}
             <a href={FDA_RULE.url} target="_blank" rel="noreferrer" className="underline" style={{ color: SLATE.text }}>FDA Daily Values <ExternalLink size={9} className="inline" /></a>
             <span className="block mt-1">
@@ -99,6 +99,6 @@ export default function NutritionPanel({ state, updateUrl }: { state: NutritionS
 /** Slate chip for the top High nutrient: "High sugar" on cards, "High in added sugar" in the hero. */
 export function NutritionChip({ text, onDark = false }: { text: string; onDark?: boolean }) {
   return onDark
-    ? <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">{text}</span>
-    : <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border" style={{ background: SLATE.bg, borderColor: SLATE.border, color: SLATE.text }}>{text}</span>;
+    ? <span className="text-nano font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">{text}</span>
+    : <span className="text-nano font-bold px-1.5 py-0.5 rounded-full border" style={{ background: SLATE.bg, borderColor: SLATE.border, color: SLATE.text }}>{text}</span>;
 }

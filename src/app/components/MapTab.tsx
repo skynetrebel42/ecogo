@@ -64,7 +64,7 @@ function PlaceCard({ place, distance, onClose }: { place: ResourceRow; distance:
     <div className="p-4 space-y-2.5">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: cat.color }}>{cat.one}</p>
+          <p className="text-micro font-extrabold uppercase tracking-wider" style={{ color: cat.color }}>{cat.one}</p>
           <h3 className="font-extrabold text-base leading-tight">{place.name}</h3>
           {place.address && <p className="text-xs text-muted-foreground mt-0.5">{place.address}</p>}
           {distance !== null && <p className="text-xs font-bold text-primary mt-0.5">{miles(distance)} away</p>}
@@ -73,7 +73,7 @@ function PlaceCard({ place, distance, onClose }: { place: ResourceRow; distance:
       </div>
       <div className="rounded-xl bg-muted px-3 py-2">
         <p className="text-sm font-bold">{place.hours || "No hours listed"}</p>
-        <p className="text-[11px] text-muted-foreground">{HOURS_NOTE}</p>
+        <p className="text-mini text-muted-foreground">{HOURS_NOTE}</p>
       </div>
       <div className="flex gap-2">
         {place.phone && (
@@ -91,7 +91,7 @@ function PlaceCard({ place, distance, onClose }: { place: ResourceRow; distance:
         </a>
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-border pt-2">
-        <p className="text-[10.5px] text-muted-foreground leading-snug">
+        <p className="text-micro text-muted-foreground leading-snug">
           From <a href={osmUrl(place)} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">OpenStreetMap</a> (community-edited),
           as of {formatAsOf(place.as_of)} · <a href={COPYRIGHT} target="_blank" rel="noopener noreferrer" className="underline">© OpenStreetMap contributors</a>
         </p>
@@ -236,7 +236,7 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
           <div className="px-4 pt-3 pb-3">
             <div className="mb-1.5">
               <h3 className="font-extrabold text-sm">Food places in LA County</h3>
-              <p className="text-[10.5px] text-muted-foreground">{near ? "Nearest first" : "A–Z · tap My location to sort by distance"}</p>
+              <p className="text-micro text-muted-foreground">{near ? "Nearest first" : "A–Z · tap My location to sort by distance"}</p>
             </div>
             <div className="max-h-40 overflow-y-auto -mx-1" style={{ scrollbarWidth: "none" }}>
               {shown.length === 0 && places.length > 0 && <p className="text-xs text-muted-foreground py-4 text-center">Pick a type above to see places.</p>}
@@ -249,14 +249,14 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="block text-xs font-bold truncate">{p.name}</span>
-                      <span className="block text-[10.5px] text-muted-foreground truncate">{p.hours || "No hours listed"}</span>
+                      <span className="block text-micro text-muted-foreground truncate">{p.hours || "No hours listed"}</span>
                     </span>
-                    {near && <span className="text-[10px] font-bold text-primary flex-shrink-0">{miles(distanceKm(near[0], near[1], p.latitude, p.longitude))}</span>}
+                    {near && <span className="text-micro font-bold text-primary flex-shrink-0">{miles(distanceKm(near[0], near[1], p.latitude, p.longitude))}</span>}
                   </button>
                 );
               })}
             </div>
-            <p className="text-[10.5px] text-muted-foreground leading-snug mt-2">
+            <p className="text-micro text-muted-foreground leading-snug mt-2">
               Places from <a href={COPYRIGHT} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">© OpenStreetMap contributors</a> (community-edited){asOf && `, as of ${asOf}`}. {HOURS_NOTE}
             </p>
           </div>
