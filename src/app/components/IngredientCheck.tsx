@@ -87,15 +87,15 @@ export function PhotoButtons({ onPhoto, disabled }: { onPhoto: (file: File) => v
       <button onClick={() => camera.current?.click()} disabled={disabled}
         className="flex-1 min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] disabled:opacity-50">Take a photo</button>
       <button onClick={() => library.current?.click()} disabled={disabled}
-        className="min-h-[52px] px-4 rounded-2xl border border-border bg-white font-bold text-sm disabled:opacity-50">Choose a photo</button>
+        className="min-h-[52px] px-4 rounded-2xl border border-border bg-white text-gray-900 font-bold text-sm disabled:opacity-50">Choose a photo</button>
     </div>
   );
 }
 
 /** Reads a label photo into text; on failure returns empty text and the "couldn't read" message. */
-export async function readPhoto(file: File): Promise<{ text: string; unsure: string[]; error?: string }> {
+export async function readPhoto(photo: Blob): Promise<{ text: string; unsure: string[]; error?: string }> {
   try {
-    const r = await readLabel(await preparePhoto(file).catch(() => file)); // a small photo can still be read
+    const r = await readLabel(photo);
     return r.text ? r : { ...r, error: COULDNT_READ };
   } catch (err) {
     console.warn("[ocr] couldn't read the photo", err);
@@ -122,7 +122,7 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
 
   const onPhoto = async (file: File) => {
     setStatus("reading");
-    const r = await readPhoto(file);
+    const r = await readPhoto(await preparePhoto(file).catch(() => file)); // a small photo can still be read
     setText(r.text); setUnsure(r.unsure); setError(r.error); setStatus("read");
   };
   const reset = () => { setText(""); setUnsure([]); setError(undefined); setStatus("idle"); };

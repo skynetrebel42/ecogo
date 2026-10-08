@@ -46,9 +46,11 @@ interface ScanTabProps {
   products: Product[];
   /** "No barcode? Check ingredients" (M8 D13): opens the no-barcode check. */
   onCheckIngredients: () => void;
+  /** "Add this product" on the not-found screen (M8): opens the add flow for that barcode. */
+  onAdd: (code: string) => void;
 }
 
-export default function ScanTab({ onScanResult, products, onCheckIngredients }: ScanTabProps) {
+export default function ScanTab({ onScanResult, products, onCheckIngredients, onAdd }: ScanTabProps) {
   const [scanState, setScanState]       = useState<ScanState>("idle");
   const [cameraOpen, setCameraOpen]     = useState(true);
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -146,25 +148,27 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients }: 
             <Database size={40} className="text-amber-400" />
           </div>
           <h2 className="text-2xl font-extrabold text-white mb-2">We couldn't find this barcode yet</h2>
-          <p className="text-white/60 text-sm mb-3 leading-relaxed max-w-xs">
-            It isn't in our catalog, USDA FoodData Central or Open Food Facts. You can add it to Open Food Facts,
-            the free product database, so everyone can see its ingredients. You can add photos of the label: their AI
-            suggests the nutrition values from them.
+          <p className="text-white/60 text-sm mb-2 leading-relaxed max-w-xs">It isn't in our catalog, USDA FoodData Central or Open Food Facts.</p>
+          <p className="text-white/60 text-sm mb-5 leading-relaxed max-w-xs">
+            Add it in about a minute: three photos, and EcoGo reads the ingredients for you. You'll see the safety check right away.
           </p>
-          <a href={offAddUrl(scannedCode)} target="_blank" rel="noreferrer"
-            className="text-amber-300 text-xs font-bold mb-5 inline-flex items-center gap-1">
-            Add it to Open Food Facts (barcode filled in) <ExternalLink size={11} />
-          </a>
           <div className="bg-white/8 border border-white/15 rounded-2xl px-5 py-3 w-full max-w-xs">
             <p className="text-micro text-white/40 uppercase tracking-widest mb-1">Scanned Barcode</p>
             <p className="text-white font-mono font-bold text-sm tracking-wider">{scannedCode}</p>
           </div>
         </div>
 
-        <div className="px-5 pb-8 flex-shrink-0">
-          <button onClick={scanAgain} className="w-full py-4 rounded-2xl font-bold text-base text-white shadow-xl" style={{ background: "#F59E0B" }}>
-            Scan Another Product
+        <div className="px-5 pb-8 flex-shrink-0 flex flex-col gap-2.5">
+          <button onClick={() => onAdd(scannedCode)} className="w-full py-4 rounded-2xl font-extrabold text-base shadow-xl" style={{ background: "#F59E0B", color: "#1A1200" }}>
+            Add this product
           </button>
+          <button onClick={scanAgain} className="w-full py-3.5 rounded-2xl font-bold text-sm text-white border border-white/25">
+            Scan another product
+          </button>
+          <a href={offAddUrl(scannedCode)} target="_blank" rel="noreferrer"
+            className="text-amber-300/80 text-xs font-bold inline-flex items-center justify-center gap-1 min-h-[44px]">
+            Or add it on the Open Food Facts website <ExternalLink size={11} />
+          </a>
         </div>
       </div>
     );

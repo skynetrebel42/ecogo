@@ -9,6 +9,8 @@
 // M9: the Map tab is back (its own check: docs/archive/plans/2026-10-02-m9-assets/check-map.mjs).
 // M12: Home shows six Learn tiles instead of the explainer rows and the "How EcoGo checks" box; tiles are clicked by their
 // aria-label (= the page's full title); "How EcoGo checks a product" is a page with its three steps and no Sources.
+// M8: the Scan drawer (not Home) offers the no-barcode check, where typed Red 40 shows Some concern; the not-found screen
+// offers "Add this product"; Send stays disabled until the consent box is ticked; Turnstile loads only on the Send screen.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
@@ -224,7 +226,36 @@ try {
   const more = await run(`(async () => { const first = () => [...document.querySelectorAll("p")].find(e => e.innerText === "More from USDA FoodData Central")?.parentElement.querySelector("button");
     return !!(await __until(first, 20000)); })()`);
   check("a text search lists more products from our USDA copy", more);
-  check("USDA's own API is never called", !requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
+  // M8 (spec 2026-10-02-m8-add-product-design.md §7; the photo reader has its own check, check-ocr.mjs).
+  await back(); await home();
+  check("M8: Home has no no-barcode entry", !(await run(`document.body.innerText`)).includes("No barcode"));
+  await run(`(async () => { __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
+    __btn("Close camera")?.click(); await __sleep(800); return true; })()`);
+  check("M8: the Scan drawer shows 'No barcode? Check ingredients'", !!(await run(`!!__btn("No barcode? Check ingredients")`)));
+  const typeIngredients = async text => {
+    await run(`(() => { const t = document.querySelector("#ingredients"); t.focus(); t.select(); return true; })()`);
+    await send("Input.insertText", { text }); await sleep(300);
+    return run(`document.querySelector('[role="status"]')?.innerText ?? ""`);
+  };
+  await run(`(async () => { __btn("No barcode? Check ingredients").click(); await __sleep(400); __btn("Type it").click(); await __sleep(300); return true; })()`);
+  check("M8: typing a list containing Red 40 shows Some concern", (await typeIngredients("Sugar, corn syrup, Red 40")).includes("Some concern"));
+  await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
+  const nf = await scanTyped("3017620429996", "We couldn't find this barcode yet");
+  check("M8: the not-found screen shows 'Add this product', the OFF website link stays as a fallback",
+    nf.includes("Add this product") && nf.includes("Or add it on the Open Food Facts website"));
+  const turnstile = () => requests.some(u => u.includes("challenges.cloudflare.com"));
+  await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
+    __btn("Skip the photo, type the ingredients").click(); await __sleep(300); return true; })()`);
+  await typeIngredients("Water, sugar, Red 40");
+  const beforeSend = turnstile();
+  await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); __btn("Skip").click(); await __sleep(600); return true; })()`);
+  const sendOff = await run(`__btn("Send")?.disabled`);
+  await run(`(async () => { document.querySelector('input[type="checkbox"]').click(); await __sleep(200); return true; })()`);
+  const sendOn = await run(`__btn("Send")?.disabled === false`);
+  check("M8: Send stays disabled until the checkbox is ticked", sendOff === true && sendOn === true, `before ${sendOff}, after tick disabled=${!sendOn}`);
+  check("M8: the human check loads only on the Send screen", !beforeSend && turnstile());
+  await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
+  check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {
   console.log(`${ok}/${total} checks passed`);

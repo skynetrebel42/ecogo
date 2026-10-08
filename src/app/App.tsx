@@ -17,6 +17,7 @@ import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } fr
 import { refreshSnapshot, resolveSaved, loadSaved, saveSaved, type SavedStore } from "../lib/saved";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import IngredientCheck from "./components/IngredientCheck";
+import AddProductFlow from "./components/AddProductFlow";
 import ListScreen from "./components/ListScreen";
 import {
   Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronDown, ChevronRight,
@@ -27,7 +28,7 @@ import {
 type AppState = "welcome" | "main";
 // The Map is back with real Los Angeles places from OpenStreetMap (M9).
 type Tab = "home" | "map" | "scan" | "saved" | "profile";
-type SubScreen = "search-results" | "product-detail" | "check-ingredients" | null;
+type SubScreen = "search-results" | "product-detail" | "check-ingredients" | "add-product" | null;
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 // Bundled CSV catalog: shown until Supabase answers, and kept as the offline
@@ -460,7 +461,8 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
       </Accordion>
 
       <Accordion title="Privacy" summary="What leaves your phone">
-        <p className="text-xs text-foreground/80 leading-relaxed">The camera reads barcodes on your phone. No images are uploaded.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">The camera reads barcodes on your phone. Ingredient photos are read on your phone too; checking a list without a barcode sends nothing.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">If you add a product, what you send goes to Open Food Facts and is public there: the photos, the ingredients you checked, the barcode and the name. EcoGo keeps an anonymous ID and a log of your submissions (barcode, time, result). At your first Send, Cloudflare runs a human check.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, to Open Food Facts.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The product catalog loads from EcoGo's database. Your recently scanned list stays in this browser.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The map asks for your location only when you tap My location. It stays on your phone. Map images load from OpenStreetMap.</p>
@@ -514,6 +516,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [subScreen, setSubScreen] = useState<SubScreen>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [addCode, setAddCode] = useState(""); // the not-found barcode being added (M8)
   const [searchQuery, setSearchQuery] = useState("");
   // Saved products and lists, and Recently scanned: on this device only (M14 part 1, M7 spec §4.1).
   const [saved, setSaved] = useState<SavedStore>(loadSaved);
@@ -614,7 +617,8 @@ export default function App() {
                   )}
                   {activeTab === "map"     && <MapTab places={places} status={dbStatus} />}
                   {activeTab === "scan"    && (
-                    <ScanTab products={products} onScanResult={openProduct} onCheckIngredients={() => setSubScreen("check-ingredients")} />
+                    <ScanTab products={products} onScanResult={openProduct} onCheckIngredients={() => setSubScreen("check-ingredients")}
+                      onAdd={(code) => { setAddCode(code); setSubScreen("add-product"); }} />
                   )}
                   {activeTab === "saved"   && <SavedTab saved={saved} scanned={recentProducts} initialTab={savedInitialTab} onSelectProduct={openProduct} products={products}
                     openList={openList} onOpenList={setOpenList} onChangeSaved={changeSaved} />}
@@ -633,6 +637,7 @@ export default function App() {
                 />
               )}
               {subScreen === "check-ingredients" && <IngredientCheck onClose={() => setSubScreen(null)} />}
+              {subScreen === "add-product" && <AddProductFlow code={addCode} onDone={() => setSubScreen(null)} onClose={() => setSubScreen(null)} />}
               {subScreen === "product-detail" && selectedProduct && (
                 <ProductDetailScreen
                   key={selectedProduct.id}
