@@ -20,9 +20,9 @@ Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + S
 - Every push to `main` deploys to GitHub Pages.
 
 ## Current state (update when a milestone ships)
-- M1–M14 and M8 live on `origin/main` (M11 quick wins; M12 Home "Learn" tiles; M13 Map near me: ZIP/radius, 183 OSM places + 191 LA County sites, report a problem; M14 Collections: save sheet + lists on this device; M8 add a product to Open Food Facts via the `off-submit` Edge Function, still on OFF's test server, + no-barcode ingredient check). M8 follow-up label trim + faster Send live (047). Next: Minh's phone test and the switch to the real OFF, then M8.1 Suggest a place / in-app Report a problem (045). **M10**: own USDA copy, 430,127 products in Supabase `foods` (engine_rev 4, after the M10.1–M10.3 processed-meat rules); the app never calls USDA. Re-import: empty the table first (a reload over a full one doubles its size).
+- M1–M14 and M8 live on `origin/main` (M11 quick wins; M12 Home "Learn" tiles; M13 Map near me: ZIP/radius, 183 OSM places + 191 LA County sites, report a problem; M14 Collections: save sheet + lists on this device; M8 add a product to Open Food Facts via the `off-submit` Edge Function, still on OFF's test server, + no-barcode ingredient check). M8 follow-up label trim live (047). Next: M8 follow-up 2 (048: one-by-one uploads, photo tips, retake hint), Minh's phone test, the switch to the real OFF, then M8.1 Suggest a place / in-app Report a problem (045). **M10**: own USDA copy, 430,127 products in Supabase `foods` (engine_rev 4, after the M10.1–M10.3 processed-meat rules); the app never calls USDA. Re-import: empty the table first (a reload over a full one doubles its size).
 - Order after M10 (owner, 2026-10-05): `docs/superpowers/ideas/2026-10-05-owner-app-review.md` (quick wins → Home redesign → Map near me → Collections → M8 add-a-product → …).
-- Active specs: `docs/superpowers/specs/` (m10, m101–m103). Decisions live ONLY in the `PROJECT_HANDOFF.md` decision log; don't re-open them.
+- Active specs: `docs/superpowers/specs/` (m10, m101–m103, m8-followup2). Decisions live ONLY in the `PROJECT_HANDOFF.md` decision log; don't re-open them.
 
 ## Multi-chat rules
 - Commit by exact path. Never `add -A`, `commit -a`, amend, reset, rebase, stash, or force-push on `main` (hook enforces). Builds happen on worktree branches.
