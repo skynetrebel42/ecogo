@@ -86,10 +86,13 @@ Deno.serve(async req => {
       if (body?.status !== 1) throw new Error(`OFF write ${r.status} ${body?.status_verbose ?? ""}`.trim());
       accepted++;
     } else notes.push("had ingredients: photos only");
-    for (const [kind, photo] of photos) {
+    // M8 follow-up F4: the photos go up in parallel (after the text), each result recorded as before.
+    const uploads = await Promise.all(photos.map(async ([kind, photo]) => {
       const r = await fetch(`${OFF_BASE}/cgi/product_image_upload.pl`, { method: "POST", headers, body: imageForm(code, kind, photo, account) });
       if (!r.ok) throw new Error(`OFF image ${kind} ${r.status}`);
-      const body = await r.json().catch(() => null);
+      return [kind, await r.json().catch(() => null)] as const;
+    }));
+    for (const [kind, body] of uploads) {
       if (body?.status === "status ok") accepted++;
       else notes.push(`${kind}: ${body?.error ?? body?.status ?? "no answer"}`); // e.g. a duplicate photo
     }

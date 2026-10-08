@@ -12,6 +12,8 @@
 // M8: the Scan drawer (not Home) offers the no-barcode check, where typed Red 40 shows Some concern; the not-found screen
 // offers "Add this product"; Send stays disabled until the consent box is ticked; Turnstile loads only on the Send screen.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
+// Build with a Turnstile site key (the deploy has the real one; locally Cloudflare's public test key will do:
+// VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA). The F4 check stubs the widget, so nothing is sent.
 import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
@@ -257,6 +259,13 @@ try {
   const backed = await run(`(async () => { __btn("Back").click(); await __sleep(300); const nutrition = !!__btn("Skip");
     __btn("Back").click(); await __sleep(300); return nutrition && document.querySelector("#ingredients")?.value; })()`);
   check("M8: Back from Send goes to the nutrition photo, then to the check, keeping the text", backed === "Water, sugar, Red 40", String(backed));
+  // M8 follow-up F4: a stubbed human check that never answers keeps the send pending; the button says how long it can take.
+  const waiting = await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); __btn("Skip").click(); await __sleep(600);
+    const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
+    t.render = () => "stub"; t.remove = () => {}; __btn("Send").click(); await __sleep(300);
+    const b = [...document.querySelectorAll("button")].find(b => b.innerText.startsWith("Sending")); return b ? b.innerText + (b.disabled ? " (disabled)" : "") : "no Sending button"; })()`);
+  check("M8 F4: while a send is pending the button reads 'Sending photos… this can take up to 30 seconds'",
+    waiting === "Sending photos… this can take up to 30 seconds (disabled)", waiting);
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));
