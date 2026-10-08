@@ -27,6 +27,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+        env:
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }} # public; M8 human check at the first Send
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

@@ -32,6 +32,7 @@ export async function turnstileToken(el: HTMLElement): Promise<string> {
     const id = t.render(el, {
       sitekey,
       appearance: "interaction-only",
+      retry: "never", // a failure reports once ("Try again" renders a fresh widget); its own retry would reset a removed one
       callback: (token: string) => { t.remove(id); resolve(token); },
       "error-callback": () => { t.remove(id); reject(new Error("Turnstile failed")); },
     });
