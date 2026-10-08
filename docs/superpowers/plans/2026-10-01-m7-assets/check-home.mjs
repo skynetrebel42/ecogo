@@ -13,7 +13,8 @@
 // offers "Add this product"; Send stays disabled until the consent box is ticked; Turnstile loads only on the Send screen.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 // Build with a Turnstile site key (the deploy has the real one; locally Cloudflare's public test key will do:
-// VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA). The F4 check stubs the widget, so nothing is sent.
+// VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA). The F4 and G2 checks stub the widget, and G2 answers the sign-in
+// and off-submit itself (CDP Fetch), so nothing is sent.
 import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -30,6 +31,7 @@ setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 1200
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page asked for (Network events)
+let onPaused = () => {}; // Fetch interception (M8 follow-up 2): set where it's used
 let ok = 0, total = 0;
 const check = (name, pass, detail = "") => { total++; if (pass) ok++; console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? "  — " + detail : ""}`); };
 try {
@@ -42,6 +44,7 @@ try {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
     if (m.method === "Network.requestWillBeSent") requests.push(m.params.request.url);
+    if (m.method === "Fetch.requestPaused") onPaused(m.params);
     if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.exception?.description?.slice(0, 160));
     if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map(a => a.value ?? a.description).join(" ").slice(0, 160));
   });
@@ -273,6 +276,42 @@ try {
   check("M8 F4: while a send is pending the button reads 'Sending photos… this can take up to 30 seconds'",
     waiting === "Sending photos… this can take up to 30 seconds (disabled)", waiting);
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
+  // M8 follow-up 2, G2: OFF took the text but not the nutrition photo. The anonymous sign-in and off-submit are answered
+  // here (CDP Fetch), so nothing reaches Supabase or OFF; the human check is stubbed to hand over a token.
+  const faked = [];
+  const CORS = [{ name: "Access-Control-Allow-Origin", value: "*" }, { name: "Access-Control-Allow-Headers", value: "*" },
+    { name: "Access-Control-Allow-Methods", value: "POST, OPTIONS" }, { name: "Content-Type", value: "application/json" }];
+  onPaused = p => {
+    faked.push(`${p.request.method} ${p.request.url.split("/").slice(-2).join("/")}`);
+    const body = p.request.method === "OPTIONS" ? "" : p.request.url.includes("/auth/v1/") ? JSON.stringify({ access_token: "fake",
+      token_type: "bearer", expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: "fake",
+      user: { id: "00000000-0000-4000-8000-000000000048", aud: "authenticated", role: "authenticated", is_anonymous: true } })
+      : JSON.stringify({ ok: true, textKept: false, failedPhotos: ["nutrition"] });
+    send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
+  };
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/auth/v1/signup*" }, { urlPattern: "*/functions/v1/off-submit*" }] });
+  await scanTyped("3017620429996", "We couldn't find this barcode yet");
+  await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
+    __btn("Skip the photo, type the ingredients").click(); await __sleep(300); return true; })()`);
+  await typeIngredients("Water, sugar, Red 40");
+  await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); return true; })()`);
+  const { root: docRoot2 } = (await send("DOM.getDocument")).result;
+  const lib2 = (await send("DOM.querySelector", { nodeId: docRoot2.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
+  await send("DOM.setFileInputFiles", { nodeId: lib2, files: [fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url))] });
+  const sent = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
+    document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
+    const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
+    t.render = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; }; t.remove = () => {};
+    __btn("Send").click(); await __until(() => document.body.innerText.includes("Sent to Open Food Facts"), 10000);
+    const a = [...document.querySelectorAll("a")].find(a => a.innerText === "Open Food Facts website");
+    return document.body.innerText + "|" + (a?.href ?? "no link"); })()`);
+  await send("Fetch.disable");
+  check("M8 G2: a send where only the nutrition photo failed says Sent, names it and links to OFF",
+    sent.includes("Sent to Open Food Facts") && sent.includes("The nutrition photo didn't go through. You can add it later on the Open Food Facts website.")
+    && sent.includes("|https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=3017620429996")
+    && faked.some(f => f.startsWith("POST") && f.includes("signup")) && faked.some(f => f.startsWith("POST") && f.includes("off-submit")),
+    `${sent.split("|")[1]}; answered here: ${faked.join(", ")}`);
+  await run(`(async () => { __btn("Scan another product").click(); await __sleep(600); return true; })()`);
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {

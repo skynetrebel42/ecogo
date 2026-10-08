@@ -3,7 +3,7 @@
 // account. Answers { ok: true } or { ok: false, reason } (reasons as in src/lib/contribute.ts).
 // Secrets: OFF_BASE, OFF_USER, OFF_PASSWORD, OFF_CONTACT; SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are built in.
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { imageForm, limitReason, offHeaders, productForm, type OffAccount, type PhotoKind } from "./off.ts";
+import { imageForm, limitReason, offHeaders, photoResult, productForm, sendReply, type OffAccount, type PhotoKind, type PhotoResult } from "./off.ts";
 
 const env = (name: string) => Deno.env.get(name) ?? "";
 const OFF_BASE = env("OFF_BASE").replace(/\/$/, "");
@@ -14,7 +14,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const answer = (status: number, body: { ok: boolean; reason?: string; textKept?: boolean }) =>
+const answer = (status: number, body: { ok: boolean; reason?: string; textKept?: boolean; failedPhotos?: PhotoKind[] }) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 const PHOTO_FIELDS: Record<string, PhotoKind> = { front: "front", ingredients_photo: "ingredients", nutrition: "nutrition" };
@@ -77,34 +77,26 @@ Deno.serve(async req => {
     const textKept = Boolean(product.ingredients_text || product.ingredients_text_en);
     const hasName = Boolean(product.product_name || product.product_name_en);
     const notes: string[] = [];
-    let accepted = 0; // what OFF actually took: the text, and each photo it answered "status ok" to
     if (!textKept) {
       const r = await fetch(`${OFF_BASE}/cgi/product_jqm2.pl`, {
         method: "POST", headers, body: productForm({ code, ingredients, name: hasName ? undefined : name || undefined }, account),
       });
       const body = r.ok ? await r.json() : null;
       if (body?.status !== 1) throw new Error(`OFF write ${r.status} ${body?.status_verbose ?? ""}`.trim());
-      accepted++;
     } else notes.push("had ingredients: photos only");
-    // M8 follow-up F4: the photos go up in parallel (after the text), each result recorded; any failed upload still
-    // fails the send, after all of them have answered, with what the others did in the log.
-    const uploads = await Promise.allSettled(photos.map(async ([kind, photo]) => {
-      const r = await fetch(`${OFF_BASE}/cgi/product_image_upload.pl`, { method: "POST", headers, body: imageForm(code, kind, photo, account) });
-      if (!r.ok) throw new Error(`OFF image ${kind} ${r.status}`);
-      return [kind, await r.json().catch(() => null)] as const;
-    }));
-    const failed: string[] = [];
-    for (const u of uploads) {
-      if (u.status === "rejected") { failed.push(String(u.reason)); continue; }
-      const [kind, body] = u.value;
-      if (body?.status === "status ok") accepted++;
-      else notes.push(`${kind}: ${body?.error ?? body?.status ?? "no answer"}`); // e.g. a duplicate photo
+    // M8 follow-up 2, G1: one photo at a time (OFF's test server answered 500 to parallel uploads to one product).
+    const results: PhotoResult[] = [];
+    for (const [kind, photo] of photos) {
+      const r = await fetch(`${OFF_BASE}/cgi/product_image_upload.pl`, { method: "POST", headers, body: imageForm(code, kind, photo, account) })
+        .catch(err => { console.error(`OFF image ${kind}`, err); return null; });
+      results.push(photoResult(kind, r?.status ?? 0, r?.ok ? await r.json().catch(() => null) : null));
     }
-    if (failed.length) throw new Error([...failed, `OFF took ${accepted} (text and photos)`, ...notes].join("; "));
-    // Nothing invented: if OFF took nothing (it had the text and refused every photo), the app mustn't say "Sent".
-    if (!accepted) { await finish("failed", notes.join("; ")); return answer(409, { ok: false, reason: "nothing-new" }); }
-    await finish("sent", notes.join("; ") || undefined);
-    return answer(200, { ok: true, textKept });
+    // G2: partial success is "Sent", naming the failed photos. Nothing invented: if OFF took nothing, it isn't.
+    const reply = sendReply(!textKept, results);
+    const log = [...notes, ...results.flatMap(p => p.note ?? [])].join("; ") || undefined;
+    if (!reply.ok) { await finish("failed", log); return answer(reply.reason === "off-down" ? 502 : 409, reply); }
+    await finish("sent", log);
+    return answer(200, { ...reply, textKept });
   } catch (err) {
     console.error("OFF call failed", err);
     await finish("failed", String(err).slice(0, 500));

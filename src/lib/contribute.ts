@@ -2,8 +2,11 @@
 // The Supabase client is passed in (the app passes lib/supabase.ts), so Node tests can load this module.
 
 export type SubmitReason = "limit-you" | "limit-all" | "captcha" | "off-down" | "invalid" | "nothing-new";
-/** textKept: OFF already had ingredients, so only the photos went (D10). */
-export type SubmitResult = { ok: true; textKept?: boolean } | { ok: false; reason: SubmitReason };
+export type PhotoKind = "front" | "ingredients" | "nutrition";
+/** textKept: OFF already had ingredients, so only the photos went (D10). failedPhotos: sent, but these photos didn't
+ *  go through (M8 follow-up 2, G2). */
+export type SubmitResult = { ok: true; textKept?: boolean; failedPhotos?: PhotoKind[] } | { ok: false; reason: SubmitReason };
+const KINDS: PhotoKind[] = ["front", "ingredients", "nutrition"];
 export interface Submission {
   code: string;
   name?: string;
@@ -50,8 +53,11 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
   // off-submit answers { ok, reason? }; a non-2xx answer arrives as error.context (the Response).
   const context = (error as { context?: unknown } | null)?.context;
   const answer = (!error ? reply : context instanceof Response ? await context.json().catch(() => null) : null) as
-    { ok?: boolean; reason?: SubmitReason; textKept?: boolean } | null;
-  if (answer?.ok === true) return answer.textKept ? { ok: true, textKept: true } : { ok: true };
+    { ok?: boolean; reason?: SubmitReason; textKept?: boolean; failedPhotos?: unknown } | null;
+  if (answer?.ok === true) {
+    const failedPhotos = KINDS.filter(k => Array.isArray(answer.failedPhotos) && answer.failedPhotos.includes(k));
+    return { ok: true, ...(answer.textKept && { textKept: true }), ...(failedPhotos.length > 0 && { failedPhotos }) };
+  }
   // 401: the server no longer accepts this session (expired or deleted); drop it so Try again signs in afresh.
   if (context instanceof Response && context.status === 401) await client.auth.signOut({ scope: "local" });
   return fail(answer?.reason && REASONS.includes(answer.reason) ? answer.reason : "off-down");

@@ -6,7 +6,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X, Check, ArrowLeft } from "lucide-react";
 import { preparePhoto, TOO_SMALL } from "../../lib/photo";
 import { readPhoto, type LabelLine } from "../../lib/ocr";
-import { submitProduct, type SubmitReason } from "../../lib/contribute";
+import { submitProduct, type PhotoKind, type SubmitReason } from "../../lib/contribute";
+import { offEditUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { supabase } from "../../lib/supabase";
 import { IngredientEditor, INGREDIENTS_TIP, PhotoButtons, Reading } from "./IngredientCheck";
@@ -50,6 +51,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const [consent, setConsent] = useState(false);
   const [failed, setFailed] = useState<SubmitReason>("off-down");
   const [textKept, setTextKept] = useState(false);
+  const [failedPhotos, setFailedPhotos] = useState<PhotoKind[]>([]);
   const humanCheckSlot = useRef<HTMLDivElement>(null); // where Turnstile shows a challenge, if it needs one
 
   useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
@@ -78,7 +80,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     setStep("sending");
     const r = await submitProduct({ code, name, ingredients: text, photos },
       () => turnstileToken(humanCheckSlot.current!), supabase);
-    if (r.ok) { setTextKept(!!r.textKept); setStep("sent"); } else { setFailed(r.reason); setStep("failed"); }
+    if (r.ok) { setTextKept(!!r.textKept); setFailedPhotos(r.failedPhotos ?? []); setStep("sent"); } else { setFailed(r.reason); setStep("failed"); }
   };
 
   // Back (nutrition → check, Send → nutrition) keeps every photo and the text: nothing is lost while the screen is open.
@@ -161,6 +163,13 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       <h1 className="text-2xl font-extrabold">Sent to Open Food Facts</h1>
       <p className="text-sm text-[#D1DAD4] leading-relaxed">Volunteers there review new products, so it can take a while before everyone sees it in EcoGo.</p>
       {textKept && <p className="text-xs text-[#A7B8AE] leading-relaxed">Open Food Facts already had ingredients for this product, so EcoGo sent only your photos and left its text as it was.</p>}
+      {failedPhotos.length > 0 && (
+        <p className="text-sm text-amber-300 leading-relaxed">
+          The {new Intl.ListFormat("en").format(failedPhotos)} photo{failedPhotos.length > 1 ? "s" : ""} didn't go through.
+          You can add {failedPhotos.length > 1 ? "them" : "it"} later on the{" "}
+          <a href={offEditUrl(code)} target="_blank" rel="noopener noreferrer" className="underline font-bold">Open Food Facts website</a>.
+        </p>
+      )}
     </div>
     <div className="px-5 pb-7">
       <button onClick={onDone} className="w-full min-h-[52px] rounded-2xl bg-[#F59E0B] text-[#1A1200] font-extrabold text-[15px]">Scan another product</button>

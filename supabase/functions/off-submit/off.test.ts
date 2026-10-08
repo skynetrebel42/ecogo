@@ -1,6 +1,31 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { limitReason, offHeaders, productForm, imageForm } from "./off.ts";
+import { limitReason, offHeaders, productForm, imageForm, photoResult, sendReply } from "./off.ts";
+
+// M8 follow-up 2 (docs/superpowers/specs/2026-10-08-m8-followup2-photo-quality-design.md G1, G2).
+test("a photo OFF took, or already had, counts as taken; an HTTP error or a refusal doesn't", () => {
+  assert.deepEqual(photoResult("front", 200, { status: "status ok" }), { kind: "front", taken: true });
+  assert.deepEqual(photoResult("front", 200, { status: "status not ok", error: "This picture has already been sent." }),
+    { kind: "front", taken: true, note: "front: This picture has already been sent." });
+  assert.deepEqual(photoResult("nutrition", 500, null), { kind: "nutrition", taken: false, httpError: true, note: "nutrition: HTTP 500" });
+  assert.deepEqual(photoResult("nutrition", 0, null), { kind: "nutrition", taken: false, httpError: true, note: "nutrition: HTTP 0" });
+  assert.deepEqual(photoResult("ingredients", 200, { status: "status not ok", error: "too small" }),
+    { kind: "ingredients", taken: false, note: "ingredients: too small" });
+});
+
+test("text taken and the nutrition photo failing is still sent, naming the failed photo", () => {
+  const photos = [photoResult("front", 200, { status: "status ok" }), photoResult("nutrition", 500, null)];
+  assert.deepEqual(sendReply(true, photos), { ok: true, failedPhotos: ["nutrition"] });
+  assert.deepEqual(sendReply(true, [photos[0]]), { ok: true });
+});
+
+test("with OFF's own text kept, one photo taken is enough; nothing taken is not sent", () => {
+  assert.deepEqual(sendReply(false, [photoResult("front", 200, { status: "status ok" }), photoResult("nutrition", 500, null)]),
+    { ok: true, failedPhotos: ["nutrition"] });
+  assert.deepEqual(sendReply(false, [photoResult("front", 500, null)]), { ok: false, reason: "off-down" });
+  assert.deepEqual(sendReply(false, [photoResult("front", 200, { status: "status not ok", error: "bad" })]), { ok: false, reason: "nothing-new" });
+  assert.deepEqual(sendReply(false, []), { ok: false, reason: "nothing-new" });
+});
 
 const who = { user: "ecogo-app", password: "pw", uuid: "3f1c0e2a-0000-4000-8000-000000000001" };
 

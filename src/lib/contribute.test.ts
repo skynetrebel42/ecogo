@@ -86,6 +86,11 @@ test("when Open Food Facts already had the ingredients, the result says the text
   assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, g.client), { ok: false, reason: "nothing-new" });
 });
 
+test("a send where some photos didn't go through is still sent, naming only known photo kinds (048 G2)", async () => {
+  const f = fakeClient({ session: true, reply: { data: { ok: true, textKept: false, failedPhotos: ["nutrition", "junk"] }, error: null } });
+  assert.deepEqual(await submitProduct({ ...input, photos: { nutrition: jpeg("n") } }, token, f.client), { ok: true, failedPhotos: ["nutrition"] });
+});
+
 test("a session the server no longer accepts is dropped, so Try again signs in afresh", async () => {
   const f = fakeClient({ session: true, reply: httpError(401, { ok: false, reason: "captcha" }) });
   assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, f.client), { ok: false, reason: "captcha" });

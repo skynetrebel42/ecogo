@@ -42,6 +42,26 @@ export function productForm(p: { code: string; ingredients: string; name?: strin
   return f;
 }
 
+/** What one photo upload came to (M8 follow-up 2, G1): OFF took it, or already had it, or not; `note` goes in the log. */
+export type PhotoResult = { kind: PhotoKind; taken: boolean; httpError?: boolean; note?: string };
+
+/** `status` 0 = the request itself failed. "This picture has already been sent" counts as taken. */
+export function photoResult(kind: PhotoKind, status: number, body: { status?: string; error?: string } | null): PhotoResult {
+  if (status < 200 || status >= 300) return { kind, taken: false, httpError: true, note: `${kind}: HTTP ${status}` };
+  if (body?.status === "status ok") return { kind, taken: true };
+  const why = body?.error ?? body?.status ?? "no answer";
+  return { kind, taken: /already been sent/i.test(why), note: `${kind}: ${why}` };
+}
+
+/** The answer once the text (if OFF had none) and the photos have gone (G2): partial success is success, naming the
+ *  photos that didn't go through; only when OFF took nothing is it not sent. */
+export function sendReply(textTaken: boolean, photos: PhotoResult[]):
+  { ok: true; failedPhotos?: PhotoKind[] } | { ok: false; reason: "off-down" | "nothing-new" } {
+  const failedPhotos = photos.filter(p => !p.taken).map(p => p.kind);
+  if (textTaken || photos.some(p => p.taken)) return failedPhotos.length ? { ok: true, failedPhotos } : { ok: true };
+  return { ok: false, reason: photos.some(p => p.httpError) ? "off-down" : "nothing-new" };
+}
+
 /** Body for POST /cgi/product_image_upload.pl: one photo under `imgupload_<kind>_en`. */
 export function imageForm(code: string, kind: PhotoKind, photo: Blob, a: OffAccount): FormData {
   const f = accountForm(code, a);
