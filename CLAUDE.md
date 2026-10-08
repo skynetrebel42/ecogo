@@ -16,7 +16,7 @@ Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + S
 
 ## Rules
 - Nothing the app shows may be invented. Every safety flag needs a verbatim source (`verify:sources`).
-- Browser writes nothing to Supabase. No API key in client code: lookups read EcoGo's own `foods` table (M10); only the owner's `.env.local` holds the service-role key for `npm run import:usda`.
+- The browser writes no Supabase table rows: beyond reading `foods`, its only Supabase calls are the anonymous sign-in at M8's first Send and invoking `off-submit` (which alone writes `contributions`). No API key in client code (the Turnstile site key is public): lookups read EcoGo's own `foods` table (M10); only the owner's `.env.local` holds the service-role key for `npm run import:usda`.
 - Every push to `main` deploys to GitHub Pages.
 
 ## Current state (update when a milestone ships)
