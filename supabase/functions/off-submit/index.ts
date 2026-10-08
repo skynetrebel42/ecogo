@@ -1,0 +1,95 @@
+// off-submit — the only writer to Open Food Facts and to `contributions` (M8 spec D6, D9, D10).
+// Verifies the (anonymous) caller, enforces the daily limits, logs the submission, then calls OFF with EcoGo's app
+// account. Answers { ok: true } or { ok: false, reason } (reasons as in src/lib/contribute.ts).
+// Secrets: OFF_BASE, OFF_USER, OFF_PASSWORD, OFF_CONTACT; SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are built in.
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import { imageForm, limitReason, offHeaders, productForm, type OffAccount, type PhotoKind } from "./off.ts";
+
+const env = (name: string) => Deno.env.get(name) ?? "";
+const OFF_BASE = env("OFF_BASE").replace(/\/$/, "");
+const db = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*", // the caller is identified by its JWT, not its origin
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const answer = (status: number, body: { ok: boolean; reason?: string }) =>
+  new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+
+const PHOTO_FIELDS: Record<string, PhotoKind> = { front: "front", ingredients_photo: "ingredients", nutrition: "nutrition" };
+const MAX_PHOTO = 5 * 1024 * 1024; // the app sends ≤ 2000 px JPEGs, well under this
+
+Deno.serve(async req => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+  if (req.method !== "POST") return answer(405, { ok: false, reason: "invalid" });
+
+  // Who is asking: an (anonymous) Supabase user, from the JWT supabase-js sends.
+  const jwt = req.headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
+  const { data: { user } } = await db.auth.getUser(jwt);
+  if (!user) return answer(401, { ok: false, reason: "captcha" });
+
+  // What they send (trust boundary: check everything).
+  let form: FormData;
+  try { form = await req.formData(); } catch { return answer(400, { ok: false, reason: "invalid" }); }
+  const code = String(form.get("code") ?? "");
+  const ingredients = String(form.get("ingredients") ?? "").trim();
+  const name = String(form.get("name") ?? "").trim();
+  const photos: [PhotoKind, File][] = [];
+  for (const [field, kind] of Object.entries(PHOTO_FIELDS)) {
+    const f = form.get(field);
+    if (f === null) continue;
+    if (!(f instanceof File) || f.type !== "image/jpeg" || f.size === 0 || f.size > MAX_PHOTO) return answer(400, { ok: false, reason: "invalid" });
+    photos.push([kind, f]);
+  }
+  if (!/^[0-9]{8,14}$/.test(code) || !ingredients || ingredients.length > 5000 || name.length > 200) {
+    return answer(400, { ok: false, reason: "invalid" });
+  }
+
+  // Daily limits (UTC day), counting submissions that didn't fail.
+  // ponytail: count-then-insert, so simultaneous sends can pass a limit by a few; a DB function with a lock if that matters.
+  const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+  const count = async (mine: boolean) => {
+    let q = db.from("contributions").select("id", { count: "exact", head: true })
+      .gte("created_at", today.toISOString()).neq("status", "failed");
+    if (mine) q = q.eq("user_id", user.id);
+    const { count, error } = await q;
+    if (error) throw error;
+    return count ?? 0;
+  };
+  const limit = limitReason(await count(true), await count(false));
+  if (limit) return answer(429, { ok: false, reason: limit });
+
+  const { data: row, error: logError } = await db.from("contributions").insert({ user_id: user.id, barcode: code }).select("id").single();
+  if (logError) { console.error("log insert failed", logError); return answer(502, { ok: false, reason: "off-down" }); }
+  const finish = (status: "sent" | "failed", error?: string) => db.from("contributions").update({ status, error }).eq("id", row.id);
+
+  const headers = offHeaders(OFF_BASE, env("OFF_CONTACT"));
+  const account: OffAccount = { user: env("OFF_USER"), password: env("OFF_PASSWORD"), uuid: user.id };
+  try {
+    // D10: never overwrite OFF's data. Read the product first; send text only where it has none.
+    const existing = await fetch(`${OFF_BASE}/api/v3/product/${code}?fields=product_name,ingredients_text`, { headers });
+    const product = existing.ok ? (await existing.json()).product ?? {} : {};
+    if (!existing.ok && existing.status !== 404) throw new Error(`OFF read ${existing.status}`);
+    const notes: string[] = [];
+    if (!product.ingredients_text) {
+      const r = await fetch(`${OFF_BASE}/cgi/product_jqm2.pl`, {
+        method: "POST", headers, body: productForm({ code, ingredients, name: product.product_name ? undefined : name || undefined }, account),
+      });
+      const body = r.ok ? await r.json() : null;
+      if (body?.status !== 1) throw new Error(`OFF write ${r.status} ${body?.status_verbose ?? ""}`.trim());
+    } else notes.push("had ingredients: photos only");
+    for (const [kind, photo] of photos) {
+      const r = await fetch(`${OFF_BASE}/cgi/product_image_upload.pl`, { method: "POST", headers, body: imageForm(code, kind, photo, account) });
+      if (!r.ok) throw new Error(`OFF image ${kind} ${r.status}`);
+      const body = await r.json().catch(() => null);
+      if (body?.status !== "status ok") notes.push(`${kind}: ${body?.error ?? body?.status ?? "no answer"}`); // e.g. a duplicate photo
+    }
+    await finish("sent", notes.join("; ") || undefined);
+    return answer(200, { ok: true });
+  } catch (err) {
+    console.error("OFF call failed", err);
+    await finish("failed", String(err).slice(0, 500));
+    return answer(502, { ok: false, reason: "off-down" });
+  }
+});
