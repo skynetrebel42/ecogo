@@ -3,7 +3,7 @@
 // Everything stays in this screen's state until Send, so a failed send loses nothing.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { X, Check } from "lucide-react";
+import { X, Check, ArrowLeft } from "lucide-react";
 import { preparePhoto } from "../../lib/photo";
 import { submitProduct, type SubmitReason } from "../../lib/contribute";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
@@ -79,9 +79,15 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     if (r.ok) setStep("sent"); else { setFailed(r.reason); setStep("failed"); }
   };
 
-  const header = (title: string, sub: string, dark: boolean) => (
-    <div className="px-4 pt-4 flex items-center justify-between">
-      <div>
+  // Back (nutrition → check, Send → nutrition) keeps every photo and the text: nothing is lost while the screen is open.
+  const header = (title: string, sub: string, dark: boolean, onBack?: () => void) => (
+    <div className="px-4 pt-4 flex items-center gap-3">
+      {onBack && (
+        <button onClick={onBack} aria-label="Back" className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${dark ? "bg-white/10 text-white" : "border border-border bg-white"}`}>
+          <ArrowLeft size={16} />
+        </button>
+      )}
+      <div className="flex-1">
         <p className={`text-xs font-bold ${dark ? "text-[#A7B8AE]" : "text-gray-600"}`}>{sub}</p>
         <h1 className={`text-xl font-extrabold ${dark ? "text-white" : "text-[#1A5C39]"}`}>{title}</h1>
       </div>
@@ -98,7 +104,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     const kind: Kind = step === "reading" ? "ingredients" : step;
     const order: Kind[] = ["front", "ingredients", "nutrition"];
     return screen(true, <>
-      {header("Add this product", `Barcode ${code}`, true)}
+      {header("Add this product", `Barcode ${code}`, true, step === "nutrition" ? () => setStep("check") : undefined)}
       <ol className="px-4 pt-4 flex gap-2" aria-label="Photos">
         {order.map((k, i) => {
           const done = order.indexOf(kind) > i;
@@ -120,9 +126,11 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       {step !== "reading" && (
         <div className="px-4 pb-6 space-y-2">
           <PhotoButtons onPhoto={onPhoto(kind)} />
-          <button onClick={() => skip(kind)} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">
-            {kind === "ingredients" ? "Skip the photo, type the ingredients" : "Skip"}
-          </button>
+          {photos[kind]
+            ? <button onClick={() => setStep(next[kind])} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">Keep the photo I took</button>
+            : <button onClick={() => skip(kind)} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">
+                {kind === "ingredients" ? "Skip the photo, type the ingredients" : "Skip"}
+              </button>}
         </div>
       )}
     </>);
@@ -170,7 +178,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   // Send (and sending)
   const sending = step === "sending";
   return screen(false, <>
-    {header("Send to Open Food Facts", `Barcode ${code}`, false)}
+    {header("Send to Open Food Facts", `Barcode ${code}`, false, sending ? undefined : () => setStep("nutrition"))}
     <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
       <div className="bg-white rounded-2xl p-3.5 space-y-2.5">
         <h2 className="text-[15px] font-extrabold">What you're sending</h2>

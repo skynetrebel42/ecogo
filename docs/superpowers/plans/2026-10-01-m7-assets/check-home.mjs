@@ -254,6 +254,9 @@ try {
   const sendOn = await run(`__btn("Send")?.disabled === false`);
   check("M8: Send stays disabled until the checkbox is ticked", sendOff === true && sendOn === true, `before ${sendOff}, after tick disabled=${!sendOn}`);
   check("M8: the human check loads only on the Send screen", !beforeSend && turnstile());
+  const backed = await run(`(async () => { __btn("Back").click(); await __sleep(300); const nutrition = !!__btn("Skip");
+    __btn("Back").click(); await __sleep(300); return nutrition && document.querySelector("#ingredients")?.value; })()`);
+  check("M8: Back from Send goes to the nutrition photo, then to the check, keeping the text", backed === "Water, sugar, Red 40", String(backed));
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));
