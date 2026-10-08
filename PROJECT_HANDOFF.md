@@ -29,14 +29,20 @@
   community fridges in) plus 191 LA County free-food sites, marked and dated; "Report a problem" and "Missing a place?" links.
   **M14 (2026-10-07):** Collections: the bookmark saves at once and opens a sheet to add the product to lists (Breakfast,
   Lunch, Dinner, Dessert, Snacks suggested, or your own); Saved shows lists as folders (rename, delete, remove, Undo);
-  everything kept on this device. See the KNOWN_ISSUES.md roadmap for what comes next.
+  everything kept on this device.
+  **M8 (2026-10-08):** Add a product: from the not-found screen, three photos, the ingredients read on the phone
+  (self-hosted Tesseract.js) and checked by the person, then sent to Open Food Facts through the `off-submit` Edge
+  Function (anonymous sign-in + Turnstile at the first Send, 10 a day per person, 200 overall, never overwrites OFF
+  text); "No barcode? Check ingredients" in the Scan drawer (nothing saved or sent). Still on OFF's **test** server
+  until the owner switches `OFF_BASE`. See the KNOWN_ISSUES.md roadmap for what comes next.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (31 food products with USDA-verified barcodes and labels),
   EcoGo's own copy of USDA FoodData Central (Branded Foods, snapshot-dated) and live Open Food Facts for any other
   barcode, with search and alternatives from the same copy, on-device camera scanning, a concern level
   (strongest official finding: additives, processed meat; acrylamide marker) from the safety engine (`src/lib/safety`,
   sourced library, `npm test` over all 51 products), FDA %DV nutrition, sourced explainers, the catalog loaded once per visit
-  (scans are not saved), Recently scanned on this device, saved products and lists on this device (M14).
+  (scans are not saved), Recently scanned on this device, saved products and lists on this device (M14), and a log of
+  each person's Open Food Facts submissions (`contributions`: anonymous ID, barcode, time, result; M8).
 - **What's still invented, but not shown (M7.4):** catalog prices and store ratings (`product_prices`, the CSV; K-30)
   and the Map's Chicago places (`resources`, `MapTab.tsx`; the Map tab is hidden until M9).
 - **Backend:** Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free). There are 5 normalized tables
@@ -144,8 +150,9 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 | 041 | The LA County layer **is used** in M13 after all, relying on the County's open-data licence (it publishes the facts under terms that allow republishing; 211LA's site terms bind its own users). Credit "LA County Public Health, from 211LA food resources (May 2023), updated April 2024"; County cards and the list footer say "Listed in 2023; may have changed. Check before you go." No permission email. If LA County or 211LA object, the file is deleted and the app redeployed | Owner, 2026-10-07, after the planner laid out the risks (legal risk low; the real risk is stale listings) | Active; M13 part 2 |
 | 042 | Stale-data handling for Map places (M13 spec D11-D13): County rows get an asterisk footnote ("County listing from May 2023, last updated April 2024. Search the name or call 211 …"); every card gets "Report a problem": OSM places open an anonymous OSM note at the place, County places a pre-filled email to a dedicated EcoGo address the owner creates (button hidden until it exists); the owner keeps a checked "hidden County sites" list in the repo. Replaced by in-app reports when M8 lands (039) | Owner, 2026-10-07 | Active; M13 part 3; owner to create the email |
 | 043 | Collections (item 4 of 033) = M14, layout A, the save sheet: one tap on the bookmark saves, a sheet offers lists (optional); Saved › Favorites shows lists as folders. Kept on this device only. Presets (Breakfast, Lunch, Dinner, Dessert, Snacks) are suggested chips, never empty folders; food-exchange groups wait for a source; lists can be renamed, deleted, items removed; the filled bookmark unsaves everywhere with Undo. Spec `docs/superpowers/specs/2026-10-07-m14-collections-design.md` | Owner, 2026-10-07, picked from three mockups (A save sheet, B list chips, C pick a list on every save; the planner recommended A) | **Done** (M14, live 2026-10-07; spec `docs/archive/2026-10-07-m14-collections-design.md`) |
-| 044 | M8's "Check ingredients without a barcode" is reached from the Scan drawer (and the not-found screen's "Add this product" flow) only; **no Home entry**. Amends M8 spec D13 (its Home card) | Owner, 2026-10-07, at the M8 spec refresh (the planner recommended it: one less entry point; Home keeps Scan, search, recents, Learn) | Active; M8 spec D13 |
-| 045 | In-app "Suggest a place" (039) and "Report a problem" (042) become **M8.1**, right after M8, reusing its anonymous sign-in, Turnstile and server function; own spec after M8 ships | Owner, 2026-10-07, at the M8 spec refresh (recommended over building them inside M8) | Active; M8 spec D16 |
+| 044 | M8's "Check ingredients without a barcode" is reached from the Scan drawer (and the not-found screen's "Add this product" flow) only; **no Home entry**. Amends M8 spec D13 (its Home card) | Owner, 2026-10-07, at the M8 spec refresh (the planner recommended it: one less entry point; Home keeps Scan, search, recents, Learn) | **Done** (M8, live 2026-10-08) |
+| 045 | In-app "Suggest a place" (039) and "Report a problem" (042) become **M8.1**, right after M8, reusing its anonymous sign-in, Turnstile and server function; own spec after M8 ships | Owner, 2026-10-07, at the M8 spec refresh (recommended over building them inside M8) | Active; M8.1 is next |
+| 046 | The Supabase advisor WARN `auth_allow_anonymous_sign_ins` on `contributions` is **accepted**: anonymous users can read only their own rows (barcode, time, result), as M8 spec D7 designed for points and levels later | Owner, 2026-10-08, during the M8 E2E (Knight IV offered lock-down instead; the planner recommended accepting) | Active |
 
 ## Open questions only the owner can answer
 

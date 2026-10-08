@@ -358,7 +358,7 @@ but no screen shows them.
     `docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md`.
 
 **Next** (the owner's order after M10, 2026-10-05): see `docs/superpowers/ideas/2026-10-05-owner-app-review.md` (quick
-wins, Home redesign, Map near me, Collections, then M8 add-a-product: `docs/superpowers/specs/2026-10-02-m8-add-product-design.md`).
+wins, Home redesign, Map near me, Collections, then M8 add-a-product: `docs/archive/2026-10-02-m8-add-product-design.md`).
 
 **Revisit:** when the official US definition of ultra-processed foods is published (HHS/USDA sent the first proposed
 definition for final review in August 2026), update the "Ultra-processed foods: no official line yet" explainer and

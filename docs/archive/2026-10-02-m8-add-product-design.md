@@ -1,7 +1,7 @@
 # M8: Add a product to Open Food Facts + check ingredients without a barcode: design spec
 
 - **Date:** 2026-10-02, refreshed 2026-10-07 after M9–M14 (decisions 044, 045; upstream re-checked, §9)
-- **Status:** **Approved** by the owner 2026-10-02; refresh approved 2026-10-07
+- **Status:** **Done**, live 2026-10-08 (origin/main 668e37b); approved 2026-10-02, refresh approved 2026-10-07
 - **Mockup:** https://claude.ai/artifact/Ki9oBNTrJzSqWBTXYoTd1F (owner chose **layout A**, one step per screen)
 - **Decided with:** the owner (Minh Bui), 2026-10-02. M8 = adding data. Accounts with **points and levels** are item 6
   of decision 033 (counted from M8's `contributions` table); "M9" is now the Map, not accounts.
