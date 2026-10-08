@@ -1,7 +1,7 @@
 # M8 follow-up: keep only the ingredients from a label photo + faster Send: design spec
 
 - **Date:** 2026-10-08
-- **Status:** **Approved** by the owner 2026-10-08 (decision 047, picked from options; no mockup: one screen gains a line list)
+- **Status:** **Done**, live 2026-10-08 (origin/main 2d2136a); approved by the owner 2026-10-08 (decision 047, picked from options; no mockup: one screen gains a line list)
 - **Why:** Minh's phone test of M8 (2026-10-08): reading was mostly right, but the ingredients photo also picks up other
   package text, and Send took 15–25 s. EcoGo goes live on the real Open Food Facts only after this ships (047), so stray
   package text isn't published.
