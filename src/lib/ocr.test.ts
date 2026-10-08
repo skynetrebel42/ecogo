@@ -73,6 +73,11 @@ test("'Contains 2% or less of', 'Contains: less than 2% of' and 'Contains one or
     "flour, contains one or more of the following: canola oil, soybean oil.");
 });
 
+test("a stop phrase right after '(' or followed by '-' doesn't end the list", () => {
+  assert.equal(kept("Ingredients: pasta, cheese (contains milk), salt. Contains: wheat"), "pasta, cheese (contains milk), salt.");
+  assert.equal(kept("Ingredients: oats, Allergen-free chocolate. Distributed by Acme"), "oats, Allergen-free chocolate.");
+});
+
 test("'CONTAINS: MILK, SOY' still ends the list", () => {
   assert.equal(kept("INGREDIENTS: SUGAR, COCOA BUTTER. CONTAINS: MILK, SOY."), "SUGAR, COCOA BUTTER.");
 });

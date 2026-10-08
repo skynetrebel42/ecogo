@@ -207,7 +207,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     <div className="px-4 pt-3 pb-6 space-y-2">
       <button onClick={send} disabled={!consent || !text.trim() || sending}
         className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] disabled:opacity-50">
-        {sending ? "Sending photos… this can take up to 30 seconds" : "Send"}
+        {!sending ? "Send" : Object.values(photos).some(Boolean) ? "Sending photos… this can take up to 30 seconds" : "Sending…"}
       </button>
       <p className="text-micro text-gray-600 text-center">Sent under EcoGo's Open Food Facts account. No sign-in needed.</p>
     </div>

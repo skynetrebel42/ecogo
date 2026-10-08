@@ -18,11 +18,12 @@ export function cleanIngredients(raw: string): string {
 
 // M8 follow-up F1 (docs/superpowers/specs/2026-10-08-m8-followup-label-trim-design.md): whole words, any case, no
 // lookbehind (older iOS Safari can't parse it). "Contains 2% or less of", "Contains: less than 2% of" and "Contains one
-// or more of" are part of the list, so "Contains" followed by a number, "less" or "one or more" isn't a stop.
+// or more of" are part of the list, so "Contains" followed by a number, "less" or "one or more" isn't a stop; nor is a
+// stop phrase right after "(" ("cheese (contains milk)") or followed by "-" ("Allergen-free").
 const START = /(^|[^\p{L}\p{N}])(ingredients?)(?![\p{L}\p{N}])\s*:?/iu;
-const STOP = new RegExp(`(^|[^\\p{L}\\p{N}])(${["contains(?!\\s*:?\\s*(?:\\d|less|one or more))", "may contain", "allergens?", "allergy",
+const STOP = new RegExp(`(^|[^\\p{L}\\p{N}(])(${["contains(?!\\s*:?\\s*(?:\\d|less|one or more))", "may contain", "allergens?", "allergy",
   "distributed by", "manufactured (?:by|for)", "produced by", "packed by", "nutrition facts", "best before", "best by",
-  "keep refrigerated", "store in", "net wt"].map(s => s.replace(/ /g, "\\s+")).join("|")})(?![\\p{L}\\p{N}])`, "iu");
+  "keep refrigerated", "store in", "net wt"].map(s => s.replace(/ /g, "\\s+")).join("|")})(?![\\p{L}\\p{N}-])`, "iu");
 const asWord = (s: string) => s.replace(/\s+/g, " ").toLowerCase().replace(/^./, c => c.toUpperCase());
 
 /** Where the ingredient list is in text read from a label: just after the first "Ingredients", up to the first stop

@@ -16,6 +16,7 @@
 // VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA). The F4 check stubs the widget, so nothing is sent.
 import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const URL_ = process.argv[2];
 const PORT = 9600 + Math.floor(Math.random() * 90);
@@ -259,8 +260,13 @@ try {
   const backed = await run(`(async () => { __btn("Back").click(); await __sleep(300); const nutrition = !!__btn("Skip");
     __btn("Back").click(); await __sleep(300); return nutrition && document.querySelector("#ingredients")?.value; })()`);
   check("M8: Back from Send goes to the nutrition photo, then to the check, keeping the text", backed === "Water, sugar, Red 40", String(backed));
-  // M8 follow-up F4: a stubbed human check that never answers keeps the send pending; the button says how long it can take.
-  const waiting = await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); __btn("Skip").click(); await __sleep(600);
+  // M8 follow-up F4: with a nutrition photo attached, a stubbed human check that never answers keeps the send pending;
+  // the button says how long it can take ("Sending…" without photos is a one-line branch, not checked here).
+  await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); return true; })()`);
+  const { root: docRoot } = (await send("DOM.getDocument")).result;
+  const lib = (await send("DOM.querySelector", { nodeId: docRoot.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
+  await send("DOM.setFileInputFiles", { nodeId: lib, files: [fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url))] });
+  const waiting = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
     const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
     t.render = () => "stub"; t.remove = () => {}; __btn("Send").click(); await __sleep(300);
     const b = [...document.querySelectorAll("button")].find(b => b.innerText.startsWith("Sending")); return b ? b.innerText + (b.disabled ? " (disabled)" : "") : "no Sending button"; })()`);
