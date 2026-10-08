@@ -5,7 +5,7 @@
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
-import { readPhoto } from "../../lib/ocr";
+import { readPhoto, trimToIngredients, linesText, type LabelLine } from "../../lib/ocr";
 import { preparePhoto } from "../../lib/photo";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
 import Explainer from "./Explainer";
@@ -23,18 +23,46 @@ function check(ingredients: string): Assessment | null {
 
 export const INGREDIENTS_TIP = "Photograph the ingredients list: flat, in good light, with no glare. EcoGo reads the words on your phone.";
 
+/** The note above the lines, naming the words the trim found (M8 follow-up F2). */
+function linesNote(lines: LabelLine[]): string {
+  const { startWord: a, stopWord: b } = trimToIngredients(lines.map(l => l.text).join("\n"));
+  if (!a && !b) return "Untick any line that isn't an ingredient.";
+  return `We kept the part ${a && b ? `from "${a}" to "${b}"` : a ? `from "${a}" on` : `up to "${b}"`}. Tick or untick lines, or edit the text below.`;
+}
+
 /** Editable ingredients with unsure words underlined, and the live badge. The underlines are drawn by a copy of the
- *  text (transparent, in flow, so the box grows with it) behind a transparent textarea laid exactly over it. */
-export function IngredientEditor({ value, onChange, unsure, note }: {
+ *  text (transparent, in flow, so the box grows with it) behind a transparent textarea laid exactly over it.
+ *  With `lines` (read from a photo), each line can be ticked or unticked and the box follows; the first keystroke in the
+ *  box hides the lines for good (onLines(null)), so the box is the final say (follow-up F2, F3). */
+export function IngredientEditor({ value, onChange, unsure, note, lines, onLines }: {
   value: string; onChange: (text: string) => void; unsure: string[]; note?: string;
+  lines?: LabelLine[] | null; onLines?: (lines: LabelLine[] | null) => void;
 }) {
   const assessment = useMemo(() => check(value), [value]);
   const [explainer, setExplainer] = useState(false);
   const unsureSet = new Set(unsure);
   const box = "w-full min-h-[120px] p-3 text-sm leading-relaxed font-[inherit] whitespace-pre-wrap break-words";
   const look = assessment && VERDICT_STYLE[assessment.verdict];
+  const tick = (i: number) => {
+    const next = lines!.map((l, j) => (j === i ? { ...l, on: !l.on } : l));
+    onLines?.(next); onChange(linesText(next));
+  };
   return (
     <div className="space-y-3">
+      {lines && lines.length > 0 && <>
+        <p className="text-sm text-gray-700 leading-relaxed">{linesNote(lines)}</p>
+        <ul aria-label="Lines read from the photo" className="bg-white rounded-2xl border border-border divide-y divide-border">
+          {lines.map((l, i) => (
+            <li key={i}>
+              <label className="flex gap-2.5 items-start px-3 py-2.5 min-h-[44px] text-sm leading-snug">
+                <input type="checkbox" checked={l.on} onChange={() => tick(i)} className="w-[22px] h-[22px] m-0 flex-shrink-0" />
+                <span className={l.on ? "" : "text-gray-500"}>{l.kept || l.text}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </>}
+      {lines === null && <p className="text-xs text-muted-foreground">You're editing the text directly.</p>}
       <label htmlFor="ingredients" className="block text-sm font-bold">Ingredients</label>
       <div className="relative rounded-2xl border-2 border-[#1A5C39] bg-white">
         <div aria-hidden="true" className={`${box} text-transparent pointer-events-none`}>
@@ -43,7 +71,7 @@ export function IngredientEditor({ value, onChange, unsure, note }: {
             ? <span key={i} style={{ textDecoration: "underline wavy #D97706", textDecorationSkipInk: "none" }}>{part}</span>
             : part))}{"\n"}
         </div>
-        <textarea id="ingredients" value={value} onChange={e => onChange(e.target.value)}
+        <textarea id="ingredients" value={value} onChange={e => { if (lines?.length) onLines?.(null); onChange(e.target.value); }}
           placeholder="e.g. Sugar, corn syrup, Red 40, …" aria-describedby={unsure.length ? "unsure-note" : undefined}
           className={`${box} absolute inset-0 h-full bg-transparent resize-none outline-none rounded-2xl text-foreground overflow-hidden`} />
       </div>
@@ -105,15 +133,16 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<"photo" | "type">("photo");
   const [text, setText] = useState("");
   const [unsure, setUnsure] = useState<string[]>([]);
+  const [lines, setLines] = useState<LabelLine[] | null>();
   const [status, setStatus] = useState<"idle" | "reading" | "read">("idle");
   const [error, setError] = useState<string>();
 
   const onPhoto = async (file: File) => {
     setStatus("reading");
     const r = await readPhoto(await preparePhoto(file).catch(() => file)); // a small photo can still be read
-    setText(r.text); setUnsure(r.unsure); setError(r.error); setStatus("read");
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setStatus("read");
   };
-  const reset = () => { setText(""); setUnsure([]); setError(undefined); setStatus("idle"); };
+  const reset = () => { setText(""); setUnsure([]); setLines(undefined); setError(undefined); setStatus("idle"); };
   const showEditor = mode === "type" || status === "read";
 
   return (
@@ -141,7 +170,7 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
         </>}
         {mode === "photo" && status === "reading" && <Reading />}
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
-          note={mode === "photo" ? error : undefined} />}
+          note={mode === "photo" ? error : undefined} lines={lines} onLines={setLines} />}
 
         <p className="text-xs text-gray-600 leading-relaxed">
           Without a barcode there's no nutrition label to look up, so this checks ingredients only. Nothing is saved or sent.

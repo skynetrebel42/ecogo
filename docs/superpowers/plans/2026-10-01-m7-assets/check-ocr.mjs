@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const URL_ = process.argv[2];
 const PHOTO = fileURLToPath(new URL("./ingredients-label.jpg", import.meta.url));
+const FULL = fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url));
 const PORT = 9600 + Math.floor(Math.random() * 90);
 const PROFILE = `${process.env.TEMP}\\ecogo-ocr-${PORT}`;
 rmSync(PROFILE, { recursive: true, force: true });
@@ -84,6 +85,29 @@ try {
   const kb = Math.round(ocr.reduce((s, [, n]) => s + n, 0) / 1024);
   check("the reader comes from EcoGo's own site, never a CDN", ocr.length >= 3 && !requests.some(u => /jsdelivr|unpkg|cdnjs/.test(u)),
     `first use: ${kb} KB over ${ocr.length} files (${ocr.map(([u, n]) => `${u.split("/").pop()} ${Math.round(n / 1024)} KB`).join(", ")})`);
+
+  // M8 follow-up F1–F3 (docs/superpowers/specs/2026-10-08-m8-followup-label-trim-design.md §3): a label with a brand line
+  // above and "Distributed by …" below (ingredients-label-full.png, rendered from HTML in headless Edge).
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); return true; })()`);
+  const { root: root2 } = (await send("DOM.getDocument")).result;
+  const lib2 = (await send("DOM.querySelector", { nodeId: root2.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
+  await send("DOM.setFileInputFiles", { nodeId: lib2, files: [FULL] });
+  const LIST = `[...document.querySelectorAll('ul[aria-label="Lines read from the photo"] li')].map(li => ({ text: li.innerText, on: li.querySelector("input").checked }))`;
+  const lines = await run(`__until(() => { const l = ${LIST}; return l.length ? l : null; }, 60000)`) ?? [];
+  const box = () => run(`document.querySelector("#ingredients").value`);
+  const off = lines.filter(l => !l.on).map(l => l.text.toUpperCase());
+  check("the full label shows its lines; the brand and distributor lines start unticked", off.some(t => t.includes("FRUITY"))
+    && off.some(t => t.includes("DISTRIBUTED")) && lines.filter(l => l.on).length >= 2, JSON.stringify(lines));
+  const full = (await box()).toUpperCase();
+  check("…the text box has the ingredients without them", ["SUGAR", "CORN SYRUP", "CITRIC ACID", "CARNAUBA"].every(w => full.includes(w))
+    && !/FRUITY|DISTRIBUTED|CONTAINS|ALLERGENS/.test(full), full);
+  check("…and the note names the words found", (await run(`document.body.innerText`)).includes(`We kept the part from "Ingredients" to "Contains". Tick or untick lines, or edit the text below.`));
+  await run(`(async () => { [...document.querySelectorAll('ul[aria-label="Lines read from the photo"] li')].find(li => li.innerText.toUpperCase().includes("CITRIC")).querySelector("input").click(); await __sleep(300); return true; })()`);
+  const unticked = (await box()).toUpperCase();
+  check("unticking a kept line removes it from the text box", !unticked.includes("CITRIC") && unticked.includes("SUGAR"), unticked);
+  await typeInto("Sugar, corn syrup");
+  check("typing in the box hides the lines", (await run(`${LIST}.length`)) === 0
+    && (await run(`document.body.innerText`)).includes("You're editing the text directly"));
 
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Type it").click(); await __sleep(300); return true; })()`);
   await typeInto("Enriched flour, water, Red 40");

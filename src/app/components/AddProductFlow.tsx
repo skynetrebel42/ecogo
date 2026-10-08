@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X, Check, ArrowLeft } from "lucide-react";
 import { preparePhoto, TOO_SMALL } from "../../lib/photo";
-import { readPhoto } from "../../lib/ocr";
+import { readPhoto, type LabelLine } from "../../lib/ocr";
 import { submitProduct, type SubmitReason } from "../../lib/contribute";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { supabase } from "../../lib/supabase";
@@ -44,6 +44,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const [photoError, setPhotoError] = useState<string>();
   const [text, setText] = useState("");
   const [unsure, setUnsure] = useState<string[]>([]);
+  const [lines, setLines] = useState<LabelLine[] | null>();
   const [readError, setReadError] = useState<string>();
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
@@ -65,12 +66,12 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     if (kind !== "ingredients") { setStep(next[kind]); return; }
     setStep("reading");
     const r = await readPhoto(blob);
-    setText(r.text); setUnsure(r.unsure); setReadError(r.error); setStep("check");
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setStep("check");
   };
   const skip = (kind: Kind) => {
     setPhotoError(undefined);
     setPhotos(p => ({ ...p, [kind]: undefined }));
-    if (kind === "ingredients") { setUnsure([]); setReadError(undefined); }
+    if (kind === "ingredients") { setUnsure([]); setLines(undefined); setReadError(undefined); }
     setStep(next[kind]);
   };
   const send = async () => {
@@ -143,7 +144,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       {photos.ingredients && !readError && (
         <p className="text-sm text-gray-700 leading-relaxed">EcoGo read this from your photo. Fix anything it got wrong.{unsure.length > 0 && " Underlined words are ones it wasn't sure of."}</p>
       )}
-      <IngredientEditor value={text} onChange={setText} unsure={unsure} note={readError} />
+      <IngredientEditor value={text} onChange={setText} unsure={unsure} note={readError} lines={lines} onLines={setLines} />
     </div>
     <div className="px-4 pt-3 pb-6 flex gap-2.5">
       <button onClick={() => setStep("ingredients")} className="min-h-[52px] px-4 rounded-2xl border border-border bg-white font-bold text-sm">Retake</button>
