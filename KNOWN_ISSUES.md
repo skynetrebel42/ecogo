@@ -224,6 +224,17 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - **Data entry quirks shown as written:** OSM hours that `formatHours` can't read stay as typed ("Sa", `"See website"`), and
   County names keep their own spelling ("L A Care", "Cetner"); only the County's capitals are title-cased.
 
+### Add a product: known gaps (M8)
+
+- **The Send end to end needs a real browser:** Cloudflare Turnstile (Managed) flags headless Edge and the controlled
+  browser pane as bots (error 600010 or an interactive box), so no automated check presses Send. check-home stops at the
+  Send button; a send to OFF's test server is tested by hand in the owner's own browser.
+- **Advisor WARN accepted (owner, 2026-10-08):** `auth_allow_anonymous_sign_ins` on `contributions`. The read-own policy
+  covers anonymous users on purpose (D7: points and levels will read the same ID's rows).
+- **Limits can overshoot by a few:** `off-submit` counts, then inserts, so simultaneous sends can pass 10/200 by a few
+  (marked `ponytail:` in the function).
+- **Still on OFF's test server:** `OFF_BASE` is `world.openfoodfacts.net` until the owner approves production (spec §8).
+
 ### Hidden-risk candidates (each needs an official source before it's flagged)
 
 - Glycidyl esters, benzene and aflatoxins (process contaminants left out of M4).

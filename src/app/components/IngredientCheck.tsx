@@ -45,7 +45,7 @@ export function IngredientEditor({ value, onChange, unsure, note }: {
             : part)) : value}{"\n"}
         </div>
         <textarea id="ingredients" value={value} onChange={e => onChange(e.target.value)}
-          placeholder="Sugar, corn syrup, Red 40, …" aria-describedby={unsure.length ? "unsure-note" : undefined}
+          placeholder="e.g. Sugar, corn syrup, Red 40, …" aria-describedby={unsure.length ? "unsure-note" : undefined}
           className={`${box} absolute inset-0 h-full bg-transparent resize-none outline-none rounded-2xl text-foreground overflow-hidden`} />
       </div>
       {unsure.length > 0 && <p id="unsure-note" className="text-xs text-muted-foreground">Underlined: words EcoGo wasn't sure of ({unsure.join(", ")}).</p>}
