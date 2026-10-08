@@ -110,7 +110,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
         {selectorOpen ? <ChevronDown size={14} className="text-white/40" /> : <ChevronUp size={14} className="text-white/40" />}
       </button>
       <button onClick={onCheckIngredients} disabled={busy}
-        className="w-full flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-white/15 bg-white/5 text-white/70 text-xs font-medium disabled:opacity-40">
+        className="w-full min-h-[44px] flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-white/15 bg-white/5 text-white/70 text-xs font-medium disabled:opacity-40">
         <ScrollText size={14} className="text-white/50" />No barcode? Check ingredients
       </button>
       {selectorOpen && (

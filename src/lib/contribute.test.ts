@@ -20,6 +20,7 @@ function fakeClient(opts: {
         calls.push(`signIn ${options.captchaToken}`);
         return { error: opts.signInError ? new Error("captcha verification process failed") : null };
       },
+      signOut: async ({ scope }) => { calls.push(`signOut ${scope}`); return { error: null }; },
     },
     functions: {
       invoke: async (name, { body }) => {
@@ -76,6 +77,19 @@ test("the server's limit answers come back as their reasons", async () => {
     const f = fakeClient({ session: true, reply: httpError(reason.startsWith("limit") ? 429 : 400, { ok: false, reason }) });
     assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, f.client), { ok: false, reason });
   }
+});
+
+test("when Open Food Facts already had the ingredients, the result says the text was kept", async () => {
+  const f = fakeClient({ session: true, reply: { data: { ok: true, textKept: true }, error: null } });
+  assert.deepEqual(await submitProduct({ ...input, photos: { front: jpeg("f") } }, token, f.client), { ok: true, textKept: true });
+  const g = fakeClient({ session: true, reply: httpError(409, { ok: false, reason: "nothing-new" }) });
+  assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, g.client), { ok: false, reason: "nothing-new" });
+});
+
+test("a session the server no longer accepts is dropped, so Try again signs in afresh", async () => {
+  const f = fakeClient({ session: true, reply: httpError(401, { ok: false, reason: "captcha" }) });
+  assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, f.client), { ok: false, reason: "captcha" });
+  assert.deepEqual(f.calls, ["invoke off-submit", "signOut local"]);
 });
 
 test("no answer, or one EcoGo doesn't recognise, means Open Food Facts didn't answer", async () => {

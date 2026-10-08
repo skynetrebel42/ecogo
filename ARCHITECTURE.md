@@ -33,13 +33,13 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | Item | Value |
 |---|---|
 | Runtime | Node 24.21.0, npm 11.19.0 (`package-lock.json`) |
-| Frontend | React 18.3.1, Vite 6.3.5, Tailwind 4.1.12 via `@tailwindcss/vite`, lucide-react. 8 runtime dependencies (M0 removed 53 unused ones and the shadcn/ui kit; tw-animate-css went in the 2026-10-02 cleanup) |
+| Frontend | React 18.3.1, Vite 6.3.5, Tailwind 4.1.12 via `@tailwindcss/vite`, lucide-react. 10 runtime dependencies (M0 removed 53 unused ones and the shadcn/ui kit; tw-animate-css went in the 2026-10-02 cleanup; M8 added tesseract.js 7 and its English data, self-hosted) |
 | Map | leaflet 1.9.4 + leaflet.markercluster 1.5.3 (used directly, no react-leaflet). Back in the bundle with the Map (M9) |
-| Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. No Edge Function since M10 (the M7.5 `usda-relay` is retired, decision 034). |
+| Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. One Edge Function since M8: `off-submit` (sends added products to Open Food Facts, writes `contributions`); the M7.5 `usda-relay` is retired (decision 034). Auth: anonymous sign-ins with Turnstile CAPTCHA, only at an add-product Send. |
 | Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). No key is needed to run or build the app. The owner's gitignored `.env.local` holds `SUPABASE_SERVICE_ROLE_KEY`, only for loading the USDA copy (`npm run import:usda`); no chat reads it. |
 | Barcode / camera | **None** |
 | Types / lint / tests | Tests: Node's built-in `node --test` with native TypeScript type stripping (no test framework). No TypeScript package, tsconfig or ESLint |
-| Scripts | `npm run dev` (vite), `npm run build` (vite build), `npm test` (everything under `src/lib/**`: safety engine, 51-product check, lookup client), `npm run verify:sources` (re-fetches every library source and checks its quote; needs internet) |
+| Scripts | `npm run dev` (vite), `npm run build` (vite build), `npm test` (everything under `src/lib/**` and `supabase/functions/**`: safety engine, 51-product check, lookup client, M8 units), `predev`/`prebuild` run `scripts/copy-ocr.mjs` (label reader into `public/tesseract/`, not committed), `npm run verify:sources` (re-fetches every library source and checks its quote; needs internet) |
 
 ## 3. System diagram
 
@@ -84,7 +84,9 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | `src/lib/data/zcta-la.json` | — | The ZIP table: 477 Census 2026 ZCTA internal points within 20 mi of LA County (13 KB), built by `scripts/build-zcta-la.mjs` from the Census Gazetteer file (public domain) | Rebuild, don't hand-edit |
 | `src/lib/data/county-food-sites.json`, `county-hidden.json` | — | LA County Public Health's "Charitable Food Distribution Sites" (220, as the County publishes them, layer last edited 2024-04-23; from 211LA food resources, May 2023; decision 041), fetched by `scripts/fetch-county-food-sites.mjs`; the owner's hidden list of checked, closed sites (starts empty, D13) | Refetch, don't hand-edit the sites; the owner edits the hidden list |
 | `scripts/fetch-osm-places.mjs` | 59 | Hand-run snapshot: Overpass query (LA County boundary; food banks, food sharing, farmers markets, community gardens) or a saved response (`--save` keeps one) → migration SQL replacing every `resources` row | SAFE TO EDIT (the output is a new migration; never edit an applied one) |
-| `src/app/components/ScanTab.tsx` | 209 | Camera scanner, type-a-barcode, catalog → lookup, not-found and error states | SAFE TO EDIT |
+| `src/app/components/ScanTab.tsx` | 219 | Camera scanner, type-a-barcode, catalog → lookup, not-found (Add this product) and error states; drawer's "No barcode? Check ingredients" | SAFE TO EDIT |
+| `src/app/components/AddProductFlow.tsx` | 214 | M8: add a not-found product to Open Food Facts, one step per screen (photos, read + check ingredients, Send) | SAFE TO EDIT |
+| `src/app/components/IngredientCheck.tsx` | 158 | M8: no-barcode check (nothing saved or sent); exports `IngredientEditor` (check box + live badge) and `PhotoButtons` | SAFE TO EDIT |
 | `src/lib/catalog.ts` | 103 | **Database read layer**: `loadCatalog()` plus the row → `Product` mapper | SAFE TO EDIT |
 | `src/lib/productImporter.ts` | 76 | `parseProductsCSV(text)` → `Product[]` (first row per id; no price fields since the 2026-10-02 cleanup) and `splitCSVLine`; defines the canonical `Product` and `ProductSource` types. App.tsx feeds it the bundled CSV (`?raw`); tests and `scripts/apply-verified-barcodes.mjs` read the file directly | SAFE TO EDIT (keep it import-free so Node tests can load it) |
 | `src/lib/lookup.ts` | 143 | Barcode lookup outside the catalog: EcoGo's `foods` table (USDA Branded Foods copy) first, then Open Food Facts live; pure mappers plus a session-cached `lookupBarcode()` that attaches nutrition; `knownNutrition()` reads nutrition already fetched this session | SAFE TO EDIT |
@@ -102,13 +104,16 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | `scripts/apply-verified-barcodes.mjs` | 58 | Applies `verified-barcodes.json` to `products.csv` and prints the matching SQL migration | SAFE TO EDIT |
 | `src/lib/fixtures/{usda,off}/*.json` | — | Recorded real API responses (trimmed) for `lookup.test.ts` | Re-record, don't hand-edit |
 | `src/lib/supabase.ts` | 8 | Browser client from `.env` | SAFE TO EDIT |
+| `src/lib/ocr.ts`, `photo.ts` | 58, 27 | M8: read a label on the phone (Tesseract.js, lazy, self-hosted); prepare photos (≤ 2000 px JPEG, OFF minimum) | SAFE TO EDIT |
+| `src/lib/contribute.ts`, `turnstile.ts` | 58, 43 | M8: anonymous sign-in at the first Send (Turnstile token) and invoking `off-submit`; the client is passed in for tests | EDIT WITH CAUTION (the browser's only Supabase writes) |
+| `supabase/functions/off-submit/` | 105 + 51 | M8 Edge Function: verify caller, limits (10/ID, 200/day), log, call OFF (`off.ts` pure, node-tested). Deployed via the Supabase MCP, verify_jwt off (checks the JWT itself) | EDIT WITH CAUTION (redeploy after edits; secrets OFF_*) |
 | `src/data/products.csv` | 113 | Seed source and offline fallback (112 rows → 51 products) | SAFE TO EDIT (DB won't change; see K-17) |
 | `supabase/migrations/*.sql` | — | Schema and seed; file names match the project's migration history | **Add new migrations; never edit applied ones** |
 | `.env` | 6 | Public Supabase URL + publishable key | SAFE TO EDIT (no secrets) |
 | `vite.config.ts` | 7 | React + Tailwind plugins | EDIT WITH CAUTION |
 | `src/styles/*.css` | — | Tailwind entry, theme tokens, Google Fonts | EDIT WITH CAUTION |
 | `scripts/verify-sources.mjs` | — | Library source check (`npm run verify:sources`) | SAFE TO EDIT |
-| `.github/workflows/deploy.yml` | — | On every push to `main`: `npm ci`, `npm test`, build, deploy `dist/` to GitHub Pages (no key needed) | EDIT WITH CAUTION (every push publishes) |
+| `.github/workflows/deploy.yml` | — | On every push to `main`: `npm ci`, `npm test`, build (with the public `VITE_TURNSTILE_SITE_KEY` repository variable), deploy `dist/` to GitHub Pages | EDIT WITH CAUTION (every push publishes) |
 | `.github/workflows/keep-alive.yml` | — | Mondays: reads one `foods` row so the free Supabase project isn't paused for inactivity (a workaround: GitHub stops scheduled workflows after 60 idle days) | SAFE TO EDIT |
 | `ATTRIBUTIONS.md` | — | Figma template leftover | Leave alone |
 

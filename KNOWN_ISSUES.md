@@ -233,6 +233,8 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
   covers anonymous users on purpose (D7: points and levels will read the same ID's rows).
 - **Limits can overshoot by a few:** `off-submit` counts, then inserts, so simultaneous sends can pass 10/200 by a few
   (marked `ponytail:` in the function).
+- **Re-adding right after a Send:** the lookup caches "not found" for the session, so scanning the same barcode again
+  offers "Add this product" again. A repeat with nothing new ends as "nothing new to send" and isn't counted.
 - **Still on OFF's test server:** `OFF_BASE` is `world.openfoodfacts.net` until the owner approves production (spec §8).
 
 ### Hidden-risk candidates (each needs an official source before it's flagged)

@@ -43,3 +43,16 @@ export async function readLabel(image: Blob): Promise<{ text: string; unsure: st
   const { data } = await (await worker).recognize(image, {}, { text: true, blocks: true });
   return { text: cleanIngredients(data.text), unsure: unsureWords(data.blocks as Block[] | null) };
 }
+
+const COULDNT_READ = "Couldn't read it. Type the ingredients or retake the photo.";
+
+/** readLabel for the screens: never throws; no text comes back with the "couldn't read" message (spec §3). */
+export async function readPhoto(photo: Blob): Promise<{ text: string; unsure: string[]; error?: string }> {
+  try {
+    const r = await readLabel(photo);
+    return r.text ? r : { ...r, error: COULDNT_READ };
+  } catch (err) {
+    console.warn("[ocr] couldn't read the photo", err);
+    return { text: "", unsure: [], error: COULDNT_READ };
+  }
+}

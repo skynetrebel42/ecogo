@@ -34,7 +34,10 @@ export async function turnstileToken(el: HTMLElement): Promise<string> {
       appearance: "interaction-only",
       retry: "never", // a failure reports once ("Try again" renders a fresh widget); its own retry would reset a removed one
       callback: (token: string) => { t.remove(id); resolve(token); },
+      // Every way it can end without a token settles too, so Send never hangs on "Sending…".
       "error-callback": () => { t.remove(id); reject(new Error("Turnstile failed")); },
+      "timeout-callback": () => { t.remove(id); reject(new Error("Turnstile challenge timed out")); },
+      "expired-callback": () => { t.remove(id); reject(new Error("Turnstile token expired")); },
     });
   });
 }

@@ -14,7 +14,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const answer = (status: number, body: { ok: boolean; reason?: string }) =>
+const answer = (status: number, body: { ok: boolean; reason?: string; textKept?: boolean }) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 const PHOTO_FIELDS: Record<string, PhotoKind> = { front: "front", ingredients_photo: "ingredients", nutrition: "nutrition" };
@@ -57,7 +57,9 @@ Deno.serve(async req => {
     if (error) throw error;
     return count ?? 0;
   };
-  const limit = limitReason(await count(true), await count(false));
+  let limit;
+  try { limit = limitReason(await count(true), await count(false)); }
+  catch (err) { console.error("limit count failed", err); return answer(502, { ok: false, reason: "off-down" }); }
   if (limit) return answer(429, { ok: false, reason: limit });
 
   const { data: row, error: logError } = await db.from("contributions").insert({ user_id: user.id, barcode: code }).select("id").single();
@@ -67,26 +69,34 @@ Deno.serve(async req => {
   const headers = offHeaders(OFF_BASE, env("OFF_CONTACT"));
   const account: OffAccount = { user: env("OFF_USER"), password: env("OFF_PASSWORD"), uuid: user.id };
   try {
-    // D10: never overwrite OFF's data. Read the product first; send text only where it has none.
-    const existing = await fetch(`${OFF_BASE}/api/v3/product/${code}?fields=product_name,ingredients_text`, { headers });
+    // D10: never overwrite OFF's data. Read the product first (main language and English, which EcoGo writes);
+    // send text only where it has none.
+    const existing = await fetch(`${OFF_BASE}/api/v3/product/${code}?fields=product_name,product_name_en,ingredients_text,ingredients_text_en`, { headers });
     const product = existing.ok ? (await existing.json()).product ?? {} : {};
     if (!existing.ok && existing.status !== 404) throw new Error(`OFF read ${existing.status}`);
+    const textKept = Boolean(product.ingredients_text || product.ingredients_text_en);
+    const hasName = Boolean(product.product_name || product.product_name_en);
     const notes: string[] = [];
-    if (!product.ingredients_text) {
+    let accepted = 0; // what OFF actually took: the text, and each photo it answered "status ok" to
+    if (!textKept) {
       const r = await fetch(`${OFF_BASE}/cgi/product_jqm2.pl`, {
-        method: "POST", headers, body: productForm({ code, ingredients, name: product.product_name ? undefined : name || undefined }, account),
+        method: "POST", headers, body: productForm({ code, ingredients, name: hasName ? undefined : name || undefined }, account),
       });
       const body = r.ok ? await r.json() : null;
       if (body?.status !== 1) throw new Error(`OFF write ${r.status} ${body?.status_verbose ?? ""}`.trim());
+      accepted++;
     } else notes.push("had ingredients: photos only");
     for (const [kind, photo] of photos) {
       const r = await fetch(`${OFF_BASE}/cgi/product_image_upload.pl`, { method: "POST", headers, body: imageForm(code, kind, photo, account) });
       if (!r.ok) throw new Error(`OFF image ${kind} ${r.status}`);
       const body = await r.json().catch(() => null);
-      if (body?.status !== "status ok") notes.push(`${kind}: ${body?.error ?? body?.status ?? "no answer"}`); // e.g. a duplicate photo
+      if (body?.status === "status ok") accepted++;
+      else notes.push(`${kind}: ${body?.error ?? body?.status ?? "no answer"}`); // e.g. a duplicate photo
     }
+    // Nothing invented: if OFF took nothing (it had the text and refused every photo), the app mustn't say "Sent".
+    if (!accepted) { await finish("failed", notes.join("; ")); return answer(409, { ok: false, reason: "nothing-new" }); }
     await finish("sent", notes.join("; ") || undefined);
-    return answer(200, { ok: true });
+    return answer(200, { ok: true, textKept });
   } catch (err) {
     console.error("OFF call failed", err);
     await finish("failed", String(err).slice(0, 500));

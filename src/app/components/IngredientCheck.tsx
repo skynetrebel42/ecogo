@@ -5,12 +5,10 @@
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
-import { readLabel } from "../../lib/ocr";
+import { readPhoto } from "../../lib/ocr";
 import { preparePhoto } from "../../lib/photo";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
 import Explainer from "./Explainer";
-
-const COULDNT_READ = "Couldn't read it. Type the ingredients or retake the photo.";
 
 /** The check for typed or read text. No category: it is a food's ingredient list, like a looked-up product's. */
 function check(ingredients: string): Assessment | null {
@@ -23,26 +21,27 @@ function check(ingredients: string): Assessment | null {
   }
 }
 
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export const INGREDIENTS_TIP = "Photograph the ingredients list: flat, in good light, with no glare. EcoGo reads the words on your phone.";
 
 /** Editable ingredients with unsure words underlined, and the live badge. The underlines are drawn by a copy of the
  *  text (transparent, in flow, so the box grows with it) behind a transparent textarea laid exactly over it. */
 export function IngredientEditor({ value, onChange, unsure, note }: {
   value: string; onChange: (text: string) => void; unsure: string[]; note?: string;
 }) {
-  const a = useMemo(() => check(value), [value]);
+  const assessment = useMemo(() => check(value), [value]);
   const [explainer, setExplainer] = useState(false);
-  const pattern = unsure.length ? new RegExp(`(?<![\\p{L}\\p{N}])(${unsure.map(escape).join("|")})(?![\\p{L}\\p{N}])`, "gu") : null;
+  const unsureSet = new Set(unsure);
   const box = "w-full min-h-[120px] p-3 text-sm leading-relaxed font-[inherit] whitespace-pre-wrap break-words";
-  const s = a && VERDICT_STYLE[a.verdict];
+  const look = assessment && VERDICT_STYLE[assessment.verdict];
   return (
     <div className="space-y-3">
       <label htmlFor="ingredients" className="block text-sm font-bold">Ingredients</label>
       <div className="relative rounded-2xl border-2 border-[#1A5C39] bg-white">
         <div aria-hidden="true" className={`${box} text-transparent pointer-events-none`}>
-          {pattern ? value.split(pattern).map((part, i) => (i % 2
+          {/* Split into words (odd parts) and what's between them; no lookbehind, which older iOS Safari can't parse. */}
+          {value.split(/([\p{L}\p{N}]+)/u).map((part, i) => (i % 2 && unsureSet.has(part)
             ? <span key={i} style={{ textDecoration: "underline wavy #D97706", textDecorationSkipInk: "none" }}>{part}</span>
-            : part)) : value}{"\n"}
+            : part))}{"\n"}
         </div>
         <textarea id="ingredients" value={value} onChange={e => onChange(e.target.value)}
           placeholder="e.g. Sugar, corn syrup, Red 40, …" aria-describedby={unsure.length ? "unsure-note" : undefined}
@@ -51,18 +50,18 @@ export function IngredientEditor({ value, onChange, unsure, note }: {
       {unsure.length > 0 && <p id="unsure-note" className="text-xs text-muted-foreground">Underlined: words EcoGo wasn't sure of ({unsure.join(", ")}).</p>}
       {note && <p className="text-xs text-muted-foreground">{note}</p>}
 
-      {a && s && (
-        <div role="status" className="rounded-2xl p-3.5 space-y-1.5" style={{ background: s.bg }}>
-          <p className="flex items-center gap-1.5 text-[15px] font-extrabold" style={{ color: s.color }}>
-            <s.Icon size={16} />{verdictHeadline(a)}
+      {assessment && look && (
+        <div role="status" className="rounded-2xl p-3.5 space-y-1.5" style={{ background: look.bg }}>
+          <p className="flex items-center gap-1.5 text-[15px] font-extrabold" style={{ color: look.color }}>
+            <look.Icon size={16} />{verdictHeadline(assessment)}
           </p>
-          {a.flags.map(f => (
-            <p key={f.entry.id} className="text-xs leading-snug" style={{ color: s.solid }}><b>{f.entry.name}:</b> {f.entry.concern}</p>
+          {assessment.flags.map(f => (
+            <p key={f.entry.id} className="text-xs leading-snug" style={{ color: look.solid }}><b>{f.entry.name}:</b> {f.entry.concern}</p>
           ))}
-          {a.concerns.filter(c => c.kind === "food").map(c => (
-            <p key={c.id} className="text-xs leading-snug" style={{ color: s.solid }}><b>{c.name}:</b> {c.concern}</p>
+          {assessment.concerns.filter(c => c.kind === "food").map(c => (
+            <p key={c.id} className="text-xs leading-snug" style={{ color: look.solid }}><b>{c.name}:</b> {c.concern}</p>
           ))}
-          {a.verdict === "none" && <>
+          {assessment.verdict === "none" && <>
             <p className="text-xs leading-snug text-gray-700">None of these ingredients match an official finding in EcoGo's list. That isn't the same as "healthy".</p>
             <button onClick={() => setExplainer(true)} className="text-xs font-bold text-[#1A5C39] underline min-h-[44px] text-left">
               Why "Nothing flagged" isn't "healthy"
@@ -76,7 +75,7 @@ export function IngredientEditor({ value, onChange, unsure, note }: {
 }
 
 /** Hidden file inputs behind "Take a photo" (the phone's camera app) and "Choose a photo" (the library), spec D5. */
-export function PhotoButtons({ onPhoto, disabled }: { onPhoto: (file: File) => void; disabled?: boolean }) {
+export function PhotoButtons({ onPhoto }: { onPhoto: (file: File) => void }) {
   const camera = useRef<HTMLInputElement>(null);
   const library = useRef<HTMLInputElement>(null);
   const pick = (e: ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onPhoto(f); };
@@ -84,23 +83,12 @@ export function PhotoButtons({ onPhoto, disabled }: { onPhoto: (file: File) => v
     <div className="flex gap-2">
       <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={pick} data-photo="camera" />
       <input ref={library} type="file" accept="image/*" hidden onChange={pick} data-photo="library" />
-      <button onClick={() => camera.current?.click()} disabled={disabled}
-        className="flex-1 min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] disabled:opacity-50">Take a photo</button>
-      <button onClick={() => library.current?.click()} disabled={disabled}
-        className="min-h-[52px] px-4 rounded-2xl border border-border bg-white text-gray-900 font-bold text-sm disabled:opacity-50">Choose a photo</button>
+      <button onClick={() => camera.current?.click()}
+        className="flex-1 min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Take a photo</button>
+      <button onClick={() => library.current?.click()}
+        className="min-h-[52px] px-4 rounded-2xl border border-border bg-white text-gray-900 font-bold text-sm">Choose a photo</button>
     </div>
   );
-}
-
-/** Reads a label photo into text; on failure returns empty text and the "couldn't read" message. */
-export async function readPhoto(photo: Blob): Promise<{ text: string; unsure: string[]; error?: string }> {
-  try {
-    const r = await readLabel(photo);
-    return r.text ? r : { ...r, error: COULDNT_READ };
-  } catch (err) {
-    console.warn("[ocr] couldn't read the photo", err);
-    return { text: "", unsure: [], error: COULDNT_READ };
-  }
 }
 
 export function Reading() {
@@ -148,7 +136,7 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
         </div>
 
         {mode === "photo" && status === "idle" && <>
-          <p className="text-sm text-gray-700 leading-relaxed">Photograph the ingredients list: flat, in good light, with no glare. EcoGo reads the words on your phone.</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{INGREDIENTS_TIP}</p>
           <PhotoButtons onPhoto={onPhoto} />
         </>}
         {mode === "photo" && status === "reading" && <Reading />}

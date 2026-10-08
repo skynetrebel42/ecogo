@@ -4,11 +4,12 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X, Check, ArrowLeft } from "lucide-react";
-import { preparePhoto } from "../../lib/photo";
+import { preparePhoto, TOO_SMALL } from "../../lib/photo";
+import { readPhoto } from "../../lib/ocr";
 import { submitProduct, type SubmitReason } from "../../lib/contribute";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { supabase } from "../../lib/supabase";
-import { IngredientEditor, PhotoButtons, Reading, readPhoto } from "./IngredientCheck";
+import { IngredientEditor, INGREDIENTS_TIP, PhotoButtons, Reading } from "./IngredientCheck";
 
 type Kind = "front" | "ingredients" | "nutrition";
 type Step = Kind | "reading" | "check" | "send" | "sending" | "sent" | "failed";
@@ -19,23 +20,19 @@ const FAILED: Record<SubmitReason, string> = {
   captcha: "Couldn't confirm you're not a robot. Try again.",
   "off-down": "Open Food Facts didn't answer. Try again later.",
   invalid: "Open Food Facts couldn't take this as it is. Check the ingredients and try again.",
+  "nothing-new": "Open Food Facts already has these ingredients and these photos, so there was nothing new to send.",
 };
-const HOW: Record<Kind, string> = {
+const PHOTO_TIPS: Record<Kind, string> = {
   front: "Photograph the front of the package, with its name showing.",
-  ingredients: "Photograph the ingredients list: flat, in good light, with no glare. EcoGo reads the words on your phone.",
+  ingredients: INGREDIENTS_TIP,
   nutrition: "Photograph the Nutrition Facts panel. Open Food Facts reads the numbers from it.",
 };
 const LABEL: Record<Kind, string> = { front: "Front", ingredients: "Ingredients", nutrition: "Nutrition" };
 
-/** An object URL for a photo, released when it changes or the screen closes. */
-function useObjectUrl(blob?: Blob) {
+/** A photo's thumbnail; its object URL is released when the photo changes or the screen closes. */
+function Thumb({ blob, label }: { blob?: Blob; label: string }) {
   const url = useMemo(() => (blob ? URL.createObjectURL(blob) : undefined), [blob]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
-  return url;
-}
-
-function Thumb({ blob, label }: { blob?: Blob; label: string }) {
-  const url = useObjectUrl(blob);
   return url
     ? <img src={url} alt={`${label} photo`} className="h-20 w-full rounded-xl object-cover bg-gray-200" />
     : <div className="h-20 rounded-xl bg-gray-200 flex items-center justify-center text-xs text-gray-600">{label}: skipped</div>;
@@ -51,7 +48,8 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
   const [failed, setFailed] = useState<SubmitReason>("off-down");
-  const human = useRef<HTMLDivElement>(null);
+  const [textKept, setTextKept] = useState(false);
+  const humanCheckSlot = useRef<HTMLDivElement>(null); // where Turnstile shows a challenge, if it needs one
 
   useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
 
@@ -59,7 +57,10 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const onPhoto = (kind: Kind) => async (file: File) => {
     setPhotoError(undefined);
     let blob: Blob;
-    try { blob = await preparePhoto(file); } catch (err) { setPhotoError((err as Error).message); return; }
+    try { blob = await preparePhoto(file); } catch (err) {
+      setPhotoError((err as Error).message === TOO_SMALL ? TOO_SMALL : "Couldn't open this photo. Try another one.");
+      return;
+    }
     setPhotos(p => ({ ...p, [kind]: blob }));
     if (kind !== "ingredients") { setStep(next[kind]); return; }
     setStep("reading");
@@ -75,8 +76,8 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const send = async () => {
     setStep("sending");
     const r = await submitProduct({ code, name, ingredients: text, photos },
-      () => turnstileToken(human.current!), supabase);
-    if (r.ok) setStep("sent"); else { setFailed(r.reason); setStep("failed"); }
+      () => turnstileToken(humanCheckSlot.current!), supabase);
+    if (r.ok) { setTextKept(!!r.textKept); setStep("sent"); } else { setFailed(r.reason); setStep("failed"); }
   };
 
   // Back (nutrition → check, Send → nutrition) keeps every photo and the text: nothing is lost while the screen is open.
@@ -119,7 +120,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       <div className="flex-1 flex flex-col justify-center px-6 gap-4 text-center">
         {step === "reading" ? <div className="bg-white rounded-3xl text-gray-900"><Reading /></div> : <>
           <p className="text-base font-extrabold">{LABEL[kind]} photo</p>
-          <p className="text-sm text-[#D1DAD4] leading-relaxed">{HOW[kind]}</p>
+          <p className="text-sm text-[#D1DAD4] leading-relaxed">{PHOTO_TIPS[kind]}</p>
           {photoError && <p role="alert" className="text-sm text-amber-300">{photoError}</p>}
         </>}
       </div>
@@ -158,6 +159,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       </div>
       <h1 className="text-2xl font-extrabold">Sent to Open Food Facts</h1>
       <p className="text-sm text-[#D1DAD4] leading-relaxed">Volunteers there review new products, so it can take a while before everyone sees it in EcoGo.</p>
+      {textKept && <p className="text-xs text-[#A7B8AE] leading-relaxed">Open Food Facts already had ingredients for this product, so EcoGo sent only your photos and left its text as it was.</p>}
     </div>
     <div className="px-5 pb-7">
       <button onClick={onDone} className="w-full min-h-[52px] rounded-2xl bg-[#F59E0B] text-[#1A1200] font-extrabold text-[15px]">Scan another product</button>
@@ -199,7 +201,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
           <span>I took these photos, and they show only the product.</span>
         </label>
       </div>
-      <div ref={human} />
+      <div ref={humanCheckSlot} />
     </div>
     <div className="px-4 pt-3 pb-6 space-y-2">
       <button onClick={send} disabled={!consent || !text.trim() || sending}
