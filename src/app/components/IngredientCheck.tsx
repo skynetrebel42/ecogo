@@ -157,7 +157,7 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
       <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
         <div role="group" aria-label="How to enter the ingredients" className="grid grid-cols-2 gap-1.5 bg-gray-200 p-1 rounded-2xl">
           {(["photo", "type"] as const).map(m => (
-            <button key={m} onClick={() => setMode(m)} aria-pressed={mode === m} disabled={status === "reading"}
+            <button key={m} onClick={() => { setMode(m); if (m === "type") setLines(l => (l?.length ? null : l)); }} aria-pressed={mode === m} disabled={status === "reading"}
               className={`min-h-[44px] rounded-xl text-sm ${mode === m ? "bg-white font-extrabold text-[#1A5C39]" : "font-bold text-gray-700"}`}>
               {m === "photo" ? "Take a photo" : "Type it"}
             </button>
@@ -170,7 +170,7 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
         </>}
         {mode === "photo" && status === "reading" && <Reading />}
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
-          note={mode === "photo" ? error : undefined} lines={lines} onLines={setLines} />}
+          note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines} />}
 
         <p className="text-xs text-gray-600 leading-relaxed">
           Without a barcode there's no nutrition label to look up, so this checks ingredients only. Nothing is saved or sent.

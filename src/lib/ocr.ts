@@ -51,8 +51,10 @@ export function labelLines(lines: string[]): LabelLine[] {
   });
 }
 
-/** The ingredients text from the ticked lines: a line's kept part, or all of it when it was outside the range. */
-export const linesText = (lines: LabelLine[]) => cleanIngredients(lines.filter(l => l.on).map(l => l.kept || l.text).join("\n"));
+/** The ingredients text from the ticked lines: a line's kept part, or all of it when it was outside the range; no
+ *  dangling "," or ";" at the end. */
+export const linesText = (lines: LabelLine[]) =>
+  cleanIngredients(lines.filter(l => l.on).map(l => l.kept || l.text).join("\n")).replace(/\s*[,;]$/, "");
 
 type WordsOnly = { paragraphs: { lines: { words: { text: string; confidence: number }[] }[] }[] }[];
 

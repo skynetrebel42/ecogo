@@ -85,6 +85,13 @@ test("each line read keeps its part of the ingredients; lines outside start unti
   assert.equal(linesText(lines), "SUGAR, CORN Distributed by Acme", "an unticked line leaves; a ticked outside line comes in whole");
 });
 
+test("the ticked text doesn't end in a dangling ',' or ';'", () => {
+  const lines = labelLines(["Ingredients: sugar, corn starch,", "citric acid; Red 40;", "Contains: milk"]);
+  assert.equal(linesText(lines), "sugar, corn starch, citric acid; Red 40");
+  lines[1].on = false;
+  assert.equal(linesText(lines), "sugar, corn starch");
+});
+
 test("a line with only punctuation left in the range isn't ticked", () => {
   assert.deepEqual(labelLines(["Ingredients:", "salt", ". Contains milk"]).map(l => l.on), [false, true, false]);
 });

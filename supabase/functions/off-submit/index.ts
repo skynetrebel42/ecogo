@@ -86,16 +86,21 @@ Deno.serve(async req => {
       if (body?.status !== 1) throw new Error(`OFF write ${r.status} ${body?.status_verbose ?? ""}`.trim());
       accepted++;
     } else notes.push("had ingredients: photos only");
-    // M8 follow-up F4: the photos go up in parallel (after the text), each result recorded as before.
-    const uploads = await Promise.all(photos.map(async ([kind, photo]) => {
+    // M8 follow-up F4: the photos go up in parallel (after the text), each result recorded; any failed upload still
+    // fails the send, after all of them have answered, with what the others did in the log.
+    const uploads = await Promise.allSettled(photos.map(async ([kind, photo]) => {
       const r = await fetch(`${OFF_BASE}/cgi/product_image_upload.pl`, { method: "POST", headers, body: imageForm(code, kind, photo, account) });
       if (!r.ok) throw new Error(`OFF image ${kind} ${r.status}`);
       return [kind, await r.json().catch(() => null)] as const;
     }));
-    for (const [kind, body] of uploads) {
+    const failed: string[] = [];
+    for (const u of uploads) {
+      if (u.status === "rejected") { failed.push(String(u.reason)); continue; }
+      const [kind, body] = u.value;
       if (body?.status === "status ok") accepted++;
       else notes.push(`${kind}: ${body?.error ?? body?.status ?? "no answer"}`); // e.g. a duplicate photo
     }
+    if (failed.length) throw new Error([...failed, `OFF took ${accepted} (text and photos)`, ...notes].join("; "));
     // Nothing invented: if OFF took nothing (it had the text and refused every photo), the app mustn't say "Sent".
     if (!accepted) { await finish("failed", notes.join("; ")); return answer(409, { ok: false, reason: "nothing-new" }); }
     await finish("sent", notes.join("; ") || undefined);
