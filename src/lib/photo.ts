@@ -15,10 +15,20 @@ export const TOO_SMALL = "This photo is too small for Open Food Facts. Take it c
 
 /** How sharp a photo is (M8 follow-up 3, H2): the variance of a 4-neighbour Laplacian over its grayscale, averaged over
  *  the sharpest 4 of 16 tiles (a 4×4 grid), so a flat background doesn't drag a sharp label down. Blur flattens edges,
- *  so the score drops. `rgba` is canvas ImageData's data. */
-export function sharpness(rgba: ArrayLike<number>, width: number, height: number): number {
-  const gray = new Float32Array(width * height);
-  for (let i = 0; i < gray.length; i++) gray[i] = 0.299 * rgba[i * 4] + 0.587 * rgba[i * 4 + 1] + 0.114 * rgba[i * 4 + 2];
+ *  so the score drops. `rgba` is canvas ImageData's data, full size: the grayscale is shrunk here to ≤ 512 px by a box
+ *  average (follow-up 6, K1), because each browser's own canvas shrink scored the same photo differently (Edge's rough
+ *  one high, iPhone Safari's smooth one low). */
+export function sharpness(rgba: ArrayLike<number>, sourceWidth: number, sourceHeight: number): number {
+  const { width, height } = fitWithin(sourceWidth, sourceHeight, 512);
+  const gray = new Float64Array(width * height), count = new Float64Array(width * height);
+  for (let y = 0; y < sourceHeight; y++) {
+    const row = Math.floor((y * height) / sourceHeight) * width;
+    for (let x = 0; x < sourceWidth; x++) {
+      const i = (y * sourceWidth + x) * 4, o = row + Math.floor((x * width) / sourceWidth);
+      gray[o] += 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2]; count[o]++;
+    }
+  }
+  for (let i = 0; i < gray.length; i++) gray[i] /= count[i];
   const n = new Array(16).fill(0), sum = new Array(16).fill(0), sq = new Array(16).fill(0);
   for (let y = 1; y < height - 1; y++) for (let x = 1; x < width - 1; x++) {
     const i = y * width + x;
@@ -30,23 +40,22 @@ export function sharpness(rgba: ArrayLike<number>, width: number, height: number
   return (tiles[0] + tiles[1] + tiles[2] + tiles[3]) / 4;
 }
 
-/** The sharpness of a photo, scored on a copy at most 512 px on the long side (fast on a phone). Prepared photos are
- *  ≥ 640 px, so they all score at 512; only the no-barcode check's small-photo fallback scores smaller. */
+/** The sharpness of a photo, read at full size (prepared photos are ≤ 2000 px) and scored on its ≤ 512 px box copy. */
 export async function photoSharpness(photo: Blob): Promise<number> {
   const bitmap = await createImageBitmap(photo);
-  const { width, height } = fitWithin(bitmap.width, bitmap.height, 512);
+  const { width, height } = bitmap;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(bitmap, 0, 0, width, height);
+  ctx.drawImage(bitmap, 0, 0);
   bitmap.close();
   return sharpness(ctx.getImageData(0, 0, width, height).data, width, height);
 }
 
-/** H2: below this score a photo "looks blurry" (a hint, never a block). Set with the planner (H4), measured on tiles:
- *  Minh's sharp phone label 8416, his blurry photos 693–708, the soft curved-bag fixture 3266, clear fixtures 8554–15026. */
-export const BLURRY = 1500;
+/** H2: below this score a photo "looks blurry" (a hint, never a block). K1 (planner, 2026-10-09), on the box copy:
+ *  Minh's blurry photos 523–568, his night lentil label 1021, his sharp label 7478, the curved-bag fixture 2892. */
+export const BLURRY = 800;
 /** Whether to show the blurry-photo hint; a photo that can't be scored gets none. */
 export const isBlurry = async (photo: Blob) => (await photoSharpness(photo).catch(() => Infinity)) < BLURRY;
 

@@ -25,6 +25,19 @@ test("a sharp label on a flat background still scores as sharp: only the sharpes
   assert.ok(label > full / 2, `label on flat ${label}, full ${full}`);
 });
 
+// M8 follow-up 6, K1: the score shrinks the photo itself (box average), so every browser scores the same pixels.
+test("a big photo is scored on its own box-averaged ≤ 512 px copy", () => {
+  const S = 1024, big = new Uint8ClampedArray(S * S * 4), small = new Float64Array(512 * 512 * 4); // unrounded means
+  const v = (x: number, y: number) => ((Math.floor(x / 5) + Math.floor(y / 7)) % 2 ? 230 : 20) + (x * y) % 13;
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { const i = (y * S + x) * 4; big[i] = big[i + 1] = big[i + 2] = v(x, y); }
+  for (let y = 0; y < 512; y++) for (let x = 0; x < 512; x++) { // each small pixel = the mean of its 2 × 2 block
+    const g = (v(2 * x, 2 * y) + v(2 * x + 1, 2 * y) + v(2 * x, 2 * y + 1) + v(2 * x + 1, 2 * y + 1)) / 4, i = (y * 512 + x) * 4;
+    small[i] = small[i + 1] = small[i + 2] = g;
+  }
+  const a = sharpness(big, S, S), b = sharpness(small, 512, 512);
+  assert.ok(Math.abs(a - b) < 1e-6 * b, `big ${a}, box copy ${b}`);
+});
+
 test("a big photo shrinks so its long side is the limit, keeping its shape", () => {
   assert.deepEqual(fitWithin(4032, 3024, 2000), { width: 2000, height: 1500 });
   assert.deepEqual(fitWithin(3024, 4032, 2000), { width: 1500, height: 2000 });
