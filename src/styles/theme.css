@@ -135,3 +135,6 @@
 :root[data-contrast="high"] [class*="text-white/"] { color: #FFFFFF; }
 :root[data-contrast="high"] [data-hero] { background: var(--hero-solid, #1F2937) !important; }
 :root[data-contrast="high"] :is(.text-gray-400, .text-gray-500, .text-gray-600) { color: #374151; }
+
+/* M8 follow-up 4, P2: the moving part of the send bar while the stage has no percent (reduced motion: none). */
+@keyframes ecogo-indeterminate { from { transform: translateX(-100%); } to { transform: translateX(300%); } }

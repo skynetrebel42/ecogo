@@ -16,26 +16,52 @@ export interface Submission {
   ingredients: string;
   photos: { front?: Blob; ingredients?: Blob; nutrition?: Blob };
 }
-/** The two parts of the Supabase client this uses. */
+/** Supabase auth, and where off-submit lives: its URL and the public (publishable) key it's called with. */
 export interface ContributeClient {
   auth: {
-    getSession(): Promise<{ data: { session: unknown } }>;
+    getSession(): Promise<{ data: { session: { access_token: string } | null } }>;
     signInAnonymously(o: { options: { captchaToken: string } }): Promise<{ error: unknown }>;
     signOut(o: { scope: "local" }): Promise<{ error: unknown }>;
   };
-  functions: { invoke(name: string, o: { body: FormData }): Promise<{ data: unknown; error: unknown }> };
+  functionUrl: string;
+  apikey: string;
 }
+/** Where a send is (follow-up 4, P1): the human check, the upload with its real percent, then the server's work. */
+export type SendStage = { stage: "check" } | { stage: "upload"; percent: number } | { stage: "saving" };
 
 const REASONS: SubmitReason[] = ["limit-you", "limit-all", "captcha", "off-down", "invalid", "nothing-new"];
 const fail = (reason: SubmitReason): SubmitResult => ({ ok: false, reason });
 
-/** Signs in anonymously (with a human-check token) only when nobody is signed in yet, then sends. */
-export async function submitProduct(s: Submission, getCaptchaToken: () => Promise<string>, client: ContributeClient): Promise<SubmitResult> {
+/** POST with real upload progress (XMLHttpRequest: fetch can't report it). Resolves the status and the parsed JSON
+ *  (null when it isn't JSON), or null on a network error or timeout. */
+function post(url: string, headers: Record<string, string>, body: FormData, onProgress: (s: SendStage) => void):
+  Promise<{ status: number; json: unknown } | null> {
+  return new Promise(resolve => {
+    const x = new XMLHttpRequest();
+    x.open("POST", url);
+    for (const [k, v] of Object.entries(headers)) x.setRequestHeader(k, v);
+    x.timeout = 90_000; // ponytail: generous; the function answers in ~10 s since 049 H1
+    x.upload.onprogress = e => { if (e.lengthComputable) onProgress({ stage: "upload", percent: Math.round((100 * e.loaded) / e.total) }); };
+    x.upload.onload = () => onProgress({ stage: "saving" });
+    x.onload = () => {
+      let json: unknown = null;
+      try { json = JSON.parse(x.responseText); } catch { /* not JSON: an unknown answer */ }
+      resolve({ status: x.status, json });
+    };
+    x.onerror = x.ontimeout = x.onabort = () => resolve(null);
+    x.send(body);
+  });
+}
+
+/** Signs in anonymously (with a human-check token) only when nobody is signed in yet, then sends, reporting stages. */
+export async function submitProduct(s: Submission, getCaptchaToken: () => Promise<string>, client: ContributeClient,
+  onProgress: (s: SendStage) => void = () => {}): Promise<SubmitResult> {
   const ingredients = s.ingredients.trim();
   if (!ingredients || !/^[0-9]{8,14}$/.test(s.code)) return fail("invalid");
 
   const { data } = await client.auth.getSession();
   if (!data.session) {
+    onProgress({ stage: "check" });
     try {
       const { error } = await client.auth.signInAnonymously({ options: { captchaToken: await getCaptchaToken() } });
       if (error) return fail("captcha");
@@ -52,17 +78,18 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
   if (s.photos.ingredients) body.set("ingredients_photo", s.photos.ingredients, "ingredients.jpg");
   if (s.photos.nutrition) body.set("nutrition", s.photos.nutrition, "nutrition.jpg");
 
-  const { data: reply, error } = await client.functions.invoke("off-submit", { body });
-  // off-submit answers { ok, reason? }; a non-2xx answer arrives as error.context (the Response).
-  const context = (error as { context?: unknown } | null)?.context;
-  const answer = (!error ? reply : context instanceof Response ? await context.json().catch(() => null) : null) as
-    { ok?: boolean; reason?: SubmitReason; textKept?: boolean; failedPhotos?: unknown; pendingPhotos?: unknown } | null;
+  const session = data.session ?? (await client.auth.getSession()).data.session;
+  onProgress({ stage: "upload", percent: 0 });
+  const res = await post(client.functionUrl, { Authorization: `Bearer ${session?.access_token ?? ""}`, apikey: client.apikey }, body, onProgress);
+  // off-submit answers { ok, reason?, … } with any status.
+  const answer = res?.json as
+    { ok?: boolean; reason?: SubmitReason; textKept?: boolean; failedPhotos?: unknown; pendingPhotos?: unknown } | null | undefined;
   if (answer?.ok === true) {
     const failedPhotos = kinds(answer.failedPhotos), pendingPhotos = kinds(answer.pendingPhotos);
     return { ok: true, ...(answer.textKept && { textKept: true }), ...(failedPhotos.length > 0 && { failedPhotos }),
       ...(pendingPhotos.length > 0 && { pendingPhotos }) };
   }
   // 401: the server no longer accepts this session (expired or deleted); drop it so Try again signs in afresh.
-  if (context instanceof Response && context.status === 401) await client.auth.signOut({ scope: "local" });
+  if (res?.status === 401) await client.auth.signOut({ scope: "local" });
   return fail(answer?.reason && REASONS.includes(answer.reason) ? answer.reason : "off-down");
 }

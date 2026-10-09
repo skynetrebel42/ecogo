@@ -13,10 +13,11 @@
 // offers "Add this product"; Send stays disabled until the consent box is ticked; Turnstile loads only on the Send screen.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 // Build with a Turnstile site key (the deploy has the real one; locally Cloudflare's public test key will do:
-// VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA). The F4 and G2 checks stub the widget, and G2 answers the sign-in
-// and off-submit itself (CDP Fetch), so nothing is sent.
+// VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA). The send checks stub the widget, answer the sign-in themselves (CDP
+// Fetch) and route off-submit to a local stub server, so nothing is sent.
 import { spawn } from "node:child_process";
 import { rmSync } from "node:fs";
+import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const URL_ = process.argv[2];
@@ -265,8 +266,8 @@ try {
   const backed = await run(`(async () => { __btn("Back").click(); await __sleep(300); const nutrition = !!__btn("Skip");
     __btn("Back").click(); await __sleep(300); return nutrition && document.querySelector("#ingredients")?.value; })()`);
   check("M8: Back from Send goes to the nutrition photo, then to the check, keeping the text", backed === "Water, sugar, Red 40", String(backed));
-  // M8 follow-up F4: with a nutrition photo attached, a stubbed human check that never answers keeps the send pending;
-  // the button says how long it can take ("Sending…" without photos is a one-line branch, not checked here).
+  // M8 follow-up 4, P2: a stubbed human check that never answers keeps the send at its first stage: a moving bar with
+  // no percent, which reduced motion stills.
   await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); return true; })()`);
   const { root: docRoot } = (await send("DOM.getDocument")).result;
   const lib = (await send("DOM.querySelector", { nodeId: docRoot.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
@@ -274,21 +275,39 @@ try {
   const waiting = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
     const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
     t.render = () => "stub"; t.remove = () => {}; __btn("Send").click(); await __sleep(300);
-    const b = [...document.querySelectorAll("button")].find(b => b.innerText.startsWith("Sending")); return b ? b.innerText + (b.disabled ? " (disabled)" : "") : "no Sending button"; })()`);
-  check("M8 F4: while a send is pending the button reads 'Sending photos… this can take up to 30 seconds'",
-    waiting === "Sending photos… this can take up to 30 seconds (disabled)", waiting);
+    const b = [...document.querySelectorAll("button")].find(b => b.innerText.startsWith("Sending")), bar = document.querySelector('[role="progressbar"]');
+    return [b?.innerText, b?.disabled, bar?.getAttribute("aria-valuetext"), bar?.hasAttribute("aria-valuenow"),
+      getComputedStyle(document.querySelector("[data-moving]")).animationName].join(" | "); })()`);
+  check("M8 P2: while the human check runs: 'Checking you're human…' on a moving bar with no percent, button 'Sending…'",
+    waiting === "Sending… | true | Checking you're human… | false | ecogo-indeterminate", waiting);
+  await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+  const still = await run(`getComputedStyle(document.querySelector("[data-moving]")).animationName`);
+  await send("Emulation.setEmulatedMedia", { features: [] });
+  check("…with reduced motion the bar doesn't move", still === "none", still);
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
-  // M8 follow-up 2, G2: OFF took the text but not the nutrition photo. Every auth call and off-submit are answered here
-  // (CDP Fetch), so nothing of the send reaches Supabase or OFF; the human check is stubbed to hand over a token.
+  // M8 follow-up 2, G2: OFF took the text but not the nutrition photo. Every auth call is answered here (CDP Fetch); the
+  // off-submit POST goes to a local stub server instead (follow-up 4: a real, throttled upload, so the bar shows real
+  // percents). Nothing of the send reaches Supabase or OFF; the human check is stubbed to hand over a token.
   const faked = [];
   const CORS = [{ name: "Access-Control-Allow-Origin", value: "*" }, { name: "Access-Control-Allow-Headers", value: "*" },
     { name: "Access-Control-Allow-Methods", value: "POST, OPTIONS" }, { name: "Content-Type", value: "application/json" }];
+  const stub = createServer((req, res) => {
+    req.resume(); // read the whole upload, then answer after a moment (the "saving" stage)
+    req.on("end", () => setTimeout(() => {
+      res.writeHead(200, Object.fromEntries(CORS.map(h => [h.name, h.value])));
+      res.end(JSON.stringify({ ok: true, textKept: false, failedPhotos: ["nutrition"], pendingPhotos: ["front"] }));
+    }, 800));
+  });
+  await new Promise(r => stub.listen(0, "127.0.0.1", r));
   onPaused = p => {
     faked.push(`${p.request.method} ${p.request.url.split("/").slice(-2).join("/")}`);
-    const body = p.request.method === "OPTIONS" ? "" : p.request.url.includes("/auth/v1/") ? JSON.stringify({ access_token: "fake",
+    if (p.request.method === "POST" && p.request.url.includes("/functions/v1/off-submit")) {
+      send("Fetch.continueRequest", { requestId: p.requestId, url: `http://127.0.0.1:${stub.address().port}/off-submit` });
+      return;
+    }
+    const body = p.request.method === "OPTIONS" ? "" : JSON.stringify({ access_token: "fake",
       token_type: "bearer", expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: "fake",
-      user: { id: "00000000-0000-4000-8000-000000000048", aud: "authenticated", role: "authenticated", is_anonymous: true } })
-      : JSON.stringify({ ok: true, textKept: false, failedPhotos: ["nutrition"], pendingPhotos: ["front"] });
+      user: { id: "00000000-0000-4000-8000-000000000048", aud: "authenticated", role: "authenticated", is_anonymous: true } });
     send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
   };
   await send("Fetch.enable", { patterns: [{ urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }] });
@@ -302,14 +321,24 @@ try {
   const { root: docRoot2 } = (await send("DOM.getDocument")).result;
   const lib2 = (await send("DOM.querySelector", { nodeId: docRoot2.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
   await send("DOM.setFileInputFiles", { nodeId: lib2, files: [fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url))] });
+  await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: 40_000 }); // ~40 KB/s
   const sent = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
     document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
     const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
     t.render = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; }; t.remove = () => {};
-    __btn("Send").click(); await __until(() => document.body.innerText.includes("Sent to Open Food Facts"), 10000);
+    window.__bar = []; const seen = setInterval(() => { const b = document.querySelector('[role="progressbar"]');
+      const s = b && b.getAttribute("aria-valuetext") + "/" + (b.getAttribute("aria-valuenow") ?? "-"); if (s && __bar.at(-1) !== s) __bar.push(s); }, 20);
+    __btn("Send").click(); await __until(() => document.body.innerText.includes("Sent to Open Food Facts"), 20000); clearInterval(seen);
     const a = [...document.querySelectorAll("a")].find(a => a.innerText === "Open Food Facts website");
     return document.body.innerText + "|" + (a?.href ?? "no link"); })()`);
   await send("Fetch.disable");
+  await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+  stub.close();
+  const bar = await run(`__bar`);
+  const pct = bar.filter(s => s.startsWith("Uploading photos")).map(s => Number(s.split("/")[1]));
+  check("M8 P1/P2: the bar shows the real upload percent rising, then 'Open Food Facts is saving it…', then Sent",
+    pct.length >= 3 && pct.every((p, i) => i === 0 || p >= pct[i - 1]) && pct.some(p => p > 0 && p < 100)
+    && bar.at(-1) === "Open Food Facts is saving it…/-" && bar.every(s => s.startsWith("Uploading photos") || !/\/\d/.test(s)), bar.join(" → "));
   check("M8 G2/H1: a send where the nutrition photo failed says Sent, names it, links to OFF, and says the others are still uploading",
     sent.includes("Sent to Open Food Facts") && sent.includes("The nutrition photo didn't go through. You can add it later on the Open Food Facts website.")
     && sent.includes("Your other photos are still uploading to Open Food Facts.")
