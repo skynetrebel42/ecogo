@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fitWithin, bigEnough, sharpness } from "./photo.ts";
+import { fitWithin, bigEnough, sharpness, cropPixels, dragCrop } from "./photo.ts";
 
 // M8 follow-up 3, H2: variance of a Laplacian over a grayscale copy (docs/superpowers/specs/2026-10-09-m8-followup3-blur-speed-design.md).
 const W = 64, H = 64;
@@ -41,4 +41,35 @@ test("Open Food Facts' minimum is 640 × 160, either way round", () => {
   assert.equal(bigEnough(160, 640), true);
   assert.equal(bigEnough(639, 480), false);
   assert.equal(bigEnough(1000, 159), false);
+});
+
+// M8 follow-up 6, K4: the crop rectangle is kept as shares of the photo (0–1), turned into whole source pixels.
+test("a crop rectangle becomes whole source pixels, kept inside the photo", () => {
+  assert.deepEqual(cropPixels({ x: 0.25, y: 0.1, w: 0.5, h: 0.5 }, 2000, 1500), { x: 500, y: 150, width: 1000, height: 750 });
+  assert.deepEqual(cropPixels({ x: 0, y: 0, w: 1, h: 1 }, 1500, 2000), { x: 0, y: 0, width: 1500, height: 2000 }, "the whole photo");
+  assert.deepEqual(cropPixels({ x: 0.9, y: -0.1, w: 0.3, h: 0.5 }, 1000, 1000), { x: 900, y: 0, width: 100, height: 400 }, "clamped to the edges");
+});
+
+test("a crop under Open Food Facts' minimum is too small", () => {
+  const r = cropPixels({ x: 0, y: 0, w: 0.3, h: 0.3 }, 2000, 1500);
+  assert.equal(bigEnough(r.width, r.height), false, `${r.width} × ${r.height}`);
+  const ok = cropPixels({ x: 0, y: 0.4, w: 0.4, h: 0.2 }, 2000, 1500);
+  assert.equal(bigEnough(ok.width, ok.height), true, `${ok.width} × ${ok.height}`);
+});
+
+type Crop = { x: number; y: number; w: number; h: number };
+const near = (a: Crop, b: Crop) => (["x", "y", "w", "h"] as const).every(k => Math.abs(a[k] - b[k]) < 1e-9);
+
+test("dragging a corner moves only its two edges and never flips or leaves the photo", () => {
+  const r = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+  assert.ok(near(dragCrop(r, "se", -0.2, -0.3), { x: 0.1, y: 0.1, w: 0.6, h: 0.5 }));
+  assert.ok(near(dragCrop(r, "nw", 0.2, 0.1), { x: 0.3, y: 0.2, w: 0.6, h: 0.7 }));
+  assert.ok(near(dragCrop(r, "ne", 0.5, -0.5), { x: 0.1, y: 0, w: 0.9, h: 0.9 }), "stops at the photo's edges");
+  assert.ok(near(dragCrop(r, "sw", 2, 0), { x: 0.8, y: 0.1, w: 0.1, h: 0.8 }), "keeps a minimum size, never flips");
+});
+
+test("dragging inside the rectangle moves it whole, inside the photo", () => {
+  const r = { x: 0.1, y: 0.1, w: 0.5, h: 0.5 };
+  assert.ok(near(dragCrop(r, "move", 0.2, 0.1), { x: 0.3, y: 0.2, w: 0.5, h: 0.5 }));
+  assert.ok(near(dragCrop(r, "move", 1, -1), { x: 0.5, y: 0, w: 0.5, h: 0.5 }));
 });

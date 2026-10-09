@@ -11,6 +11,7 @@ import { offEditUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { offSubmit, supabase } from "../../lib/supabase";
 import { IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoNotice, PhotoTips, Reading } from "./IngredientCheck";
+import CropPhoto from "./CropPhoto";
 
 type Kind = PhotoKind;
 type Step = Kind | "reading" | "check" | "send" | "sending" | "sent" | "failed";
@@ -78,6 +79,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const [failedPhotos, setFailedPhotos] = useState<PhotoKind[]>([]);
   const [uploading, setUploading] = useState(false); // follow-up 3, H1: other photos still going up in the background
   const [stage, setStage] = useState<SendStage>(); // follow-up 4: where the send is, for the bar
+  const [cropping, setCropping] = useState<Kind>(); // follow-up 6, K4: the photo on the crop screen
   const humanCheckSlot = useRef<HTMLDivElement>(null); // where Turnstile shows a challenge, if it needs one
 
   useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
@@ -137,6 +139,16 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     <div className={`absolute inset-0 z-40 flex flex-col ${dark ? "bg-[#0F1F16] text-white" : "bg-[#F8F7F2] text-gray-900"}`}>{children}</div>
   );
 
+  // K4: a cropped ingredients photo is read again; the others just replace their photo.
+  const crop = cropping && photos[cropping];
+  if (cropping && crop) return <CropPhoto photo={crop} label={LABEL[cropping]} onCancel={() => setCropping(undefined)} onDone={blob => {
+    setCropping(undefined);
+    if (cropping === "ingredients") acceptPhoto(cropping, blob, false); else setPhotos(p => ({ ...p, [cropping]: blob }));
+  }} />;
+  const cropButton = (kind: Kind) => (
+    <button onClick={() => setCropping(kind)} disabled={step === "sending"} className="w-full min-h-[44px] text-xs font-bold text-[#1A5C39] underline disabled:opacity-50">Crop</button>
+  );
+
   if (step === "front" || step === "ingredients" || step === "nutrition" || step === "reading") {
     const kind: Kind = step === "reading" ? "ingredients" : step;
     const order: Kind[] = ["front", "ingredients", "nutrition"];
@@ -182,6 +194,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     {header("Check the ingredients", "Step 2 of 3", false)}
     <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
       {hard ? <PhotoNotice title="This photo is hard to read." onRetake={() => setStep("ingredients")} onUseAnyway={() => setHard(false)} /> : <>
+        {photos.ingredients && <div className="w-24"><Thumb blob={photos.ingredients} label={LABEL.ingredients} />{cropButton("ingredients")}</div>}
         {photos.ingredients && !readError && readText === undefined && (
           <p className="text-sm text-gray-700 leading-relaxed">EcoGo read this from your photo. Fix anything it got wrong.</p>
         )}
@@ -237,7 +250,9 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       <div className="bg-white rounded-2xl p-3.5 space-y-2.5">
         <h2 className="text-[15px] font-extrabold">What you're sending</h2>
         <div className="grid grid-cols-3 gap-2">
-          {(["front", "ingredients", "nutrition"] as const).map(k => <Thumb key={k} blob={photos[k]} label={LABEL[k]} />)}
+          {(["front", "ingredients", "nutrition"] as const).map(k => (
+            <div key={k}><Thumb blob={photos[k]} label={LABEL[k]} />{k !== "ingredients" && photos[k] && cropButton(k)}</div>
+          ))}
         </div>
         <label htmlFor="product-name" className="block text-sm font-bold">Product name (optional)</label>
         <input id="product-name" value={name} onChange={e => setName(e.target.value)} placeholder="As printed on the front" maxLength={200}

@@ -269,6 +269,57 @@ try {
   const backed = await run(`(async () => { __btn("Back").click(); await __sleep(300); const nutrition = !!__btn("Skip");
     __btn("Back").click(); await __sleep(300); return nutrition && document.querySelector("#ingredients")?.value; })()`);
   check("M8: Back from Send goes to the nutrition photo, then to the check, keeping the text", backed === "Water, sugar, Red 40", String(backed));
+  // M8 follow-up 6, K4: crop the ingredients photo on the check step (read again), then the nutrition photo on Send.
+  const LABEL_PNG = fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url)); // 1000 × 400
+  const dragHandle = async (sel, share) => { // drags a handle left by `share` of the photo's width
+    const [x, y, w] = await run(`(() => { const b = document.querySelector('${sel}').getBoundingClientRect(), f = document.querySelector("[data-crop]").parentElement.getBoundingClientRect();
+      return [b.x + b.width / 2, b.y + b.height / 2, f.width]; })()`);
+    await send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", buttons: 1, clickCount: 1 });
+    for (let i = 1; i <= 5; i++) await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: x - share * w * i / 5, y, button: "left", buttons: 1 });
+    await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: x - share * w, y, button: "left", clickCount: 1 });
+    await sleep(200);
+  };
+  const natural = alt => run(`__until(() => { const i = document.querySelector('img[alt="${alt}"]'); return i?.complete && i.naturalWidth ? i.naturalWidth + "×" + i.naturalHeight : null; }, 15000)`);
+  const upload = async () => {
+    const { root } = (await send("DOM.getDocument")).result;
+    const input = (await send("DOM.querySelector", { nodeId: root.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
+    await send("DOM.setFileInputFiles", { nodeId: input, files: [LABEL_PNG] });
+  };
+  await run(`(async () => { __btn("Retake").click(); await __sleep(300); return true; })()`);
+  await upload();
+  await run(`__until(() => __btn("Crop") && document.querySelector("#ingredients"), 60000)`);
+  const fullSize = await natural("Ingredients photo");
+  await run(`(async () => { __btn("Crop").click(); await __sleep(500); return true; })()`);
+  const cropScreen = await run(`({ text: document.body.innerText, handles: [...document.querySelectorAll("[data-handle]")].map(h => Math.round(Math.min(h.offsetWidth, h.offsetHeight))) })`);
+  check("K4: Crop on the check step opens the crop screen with four corner handles of at least 44 px, Done and Cancel",
+    cropScreen.text.includes("Crop the ingredients photo") && cropScreen.handles.length === 4 && cropScreen.handles.every(s => s >= 44)
+    && !!(await run(`!!__btn("Done") && !!__btn("Cancel")`)), JSON.stringify(cropScreen.handles));
+  await dragHandle('[data-handle="se"]', 0.2);
+  await run(`(() => { window.__sawReading = false; new MutationObserver(() => { if (document.body.innerText.includes("Reading the label")) window.__sawReading = true; })
+    .observe(document.body, { subtree: true, childList: true, characterData: true }); __btn("Done").click(); return true; })()`);
+  await run(`__until(() => __btn("Crop") && document.querySelector("#ingredients"), 60000)`);
+  const croppedSize = await natural("Ingredients photo");
+  check("…Done gives a smaller ingredients photo and reads it again", fullSize === "1000×400" && croppedSize === "800×400" && await run(`window.__sawReading`),
+    `${fullSize} → ${croppedSize}, read again: ${await run(`window.__sawReading`)}`);
+  await typeIngredients("Water, sugar, Red 40");
+  await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); return true; })()`);
+  await upload();
+  await run(`__until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 15000)`);
+  const cropButtons = await run(`[...document.querySelectorAll("button")].filter(b => b.innerText === "Crop").length`);
+  await run(`(async () => { [...document.querySelectorAll("button")].find(b => b.innerText === "Crop").click(); await __sleep(500); return true; })()`);
+  await dragHandle('[data-handle="se"]', 1);
+  await run(`(async () => { __btn("Done").click(); await __sleep(800); return true; })()`);
+  const small = await run(`document.querySelector('[role="alert"]')?.innerText ?? ""`);
+  check("K4: on Send, Crop is under the nutrition photo (the only one taken), and a crop under OFF's minimum gets the usual message",
+    cropButtons === 1 && small === "This photo is too small for Open Food Facts. Take it closer, or choose a bigger one.", `${cropButtons} | ${small}`);
+  await run(`(async () => { __btn("Cancel").click(); await __sleep(400); return true; })()`);
+  const kept = await natural("Nutrition photo");
+  await run(`(async () => { [...document.querySelectorAll("button")].find(b => b.innerText === "Crop").click(); await __sleep(500); return true; })()`);
+  await dragHandle('[data-handle="se"]', 0.2);
+  await run(`(async () => { __btn("Done").click(); await __sleep(800); return true; })()`);
+  check("…Cancel keeps the photo; Done replaces it with the crop", kept === "1000×400" && (await natural("Nutrition photo")) === "800×400" && !!(await run(`!!__btn("Send")`)),
+    `${kept} → ${await natural("Nutrition photo")}`);
+  await run(`(async () => { __btn("Back").click(); await __sleep(300); __btn("Back").click(); await __sleep(300); return true; })()`);
   // M8 follow-up 4, P2: a stubbed human check that never answers keeps the send at its first stage: a moving bar with
   // no percent, which reduced motion stills.
   await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); return true; })()`);

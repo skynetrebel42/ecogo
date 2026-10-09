@@ -50,15 +50,37 @@ export const BLURRY = 1500;
 /** Whether to show the blurry-photo hint; a photo that can't be scored gets none. */
 export const isBlurry = async (photo: Blob) => (await photoSharpness(photo).catch(() => Infinity)) < BLURRY;
 
-/** A JPEG at most 2000 px on the long side, upright. Throws TOO_SMALL for a photo under OFF's minimum. */
-export async function preparePhoto(file: Blob): Promise<Blob> {
+/** A crop rectangle as shares (0–1) of the photo's width and height (M8 follow-up 6, K4). */
+export type Crop = { x: number; y: number; w: number; h: number };
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** The crop's whole source pixels, kept inside a `width` × `height` photo. */
+export function cropPixels(c: Crop, width: number, height: number) {
+  const x = Math.round(clamp(c.x, 0, 1) * width), y = Math.round(clamp(c.y, 0, 1) * height);
+  return { x, y, width: Math.round(clamp(c.x + c.w, 0, 1) * width) - x, height: Math.round(clamp(c.y + c.h, 0, 1) * height) - y };
+}
+
+/** The crop after dragging a corner (its two edges move) or the inside ("move"), by shares of the photo; it stays in
+ *  the photo and never gets smaller than `min` (so it never flips). */
+export function dragCrop(c: Crop, handle: "nw" | "ne" | "sw" | "se" | "move", dx: number, dy: number, min = 0.1): Crop {
+  if (handle === "move") return { ...c, x: clamp(c.x + dx, 0, 1 - c.w), y: clamp(c.y + dy, 0, 1 - c.h) };
+  let [l, t, r, b] = [c.x, c.y, c.x + c.w, c.y + c.h];
+  if (handle[1] === "w") l = clamp(l + dx, 0, r - min); else r = clamp(r + dx, l + min, 1);
+  if (handle[0] === "n") t = clamp(t + dy, 0, b - min); else b = clamp(b + dy, t + min, 1);
+  return { x: l, y: t, w: r - l, h: b - t };
+}
+
+/** A JPEG at most 2000 px on the long side, upright, cut to `crop` if given. Throws TOO_SMALL for a photo (or crop)
+ *  under OFF's minimum. */
+export async function preparePhoto(file: Blob, crop?: Crop): Promise<Blob> {
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  if (!bigEnough(bitmap.width, bitmap.height)) throw new Error(TOO_SMALL);
-  const { width, height } = fitWithin(bitmap.width, bitmap.height, 2000);
+  const r = crop ? cropPixels(crop, bitmap.width, bitmap.height) : { x: 0, y: 0, width: bitmap.width, height: bitmap.height };
+  if (!bigEnough(r.width, r.height)) { bitmap.close(); throw new Error(TOO_SMALL); }
+  const { width, height } = fitWithin(r.width, r.height, 2000);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, width, height);
+  canvas.getContext("2d")!.drawImage(bitmap, r.x, r.y, r.width, r.height, 0, 0, width, height);
   bitmap.close();
   return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error("Couldn't prepare the photo."))), "image/jpeg", 0.85));
 }
