@@ -5,7 +5,7 @@
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
-import { readPhoto, trimToIngredients, linesText, type LabelLine } from "../../lib/ocr";
+import { hardToRead, readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
 import { preparePhoto } from "../../lib/photo";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
 import Explainer from "./Explainer";
@@ -23,9 +23,30 @@ function check(ingredients: string): Assessment | null {
 
 export const INGREDIENTS_TIP = "Photograph the ingredients list: flat, in good light, with no glare. EcoGo reads the words on your phone.";
 
+/** Photo tips, one per line (M8 follow-up 2, G3): on the ingredients photo step and in the hard-to-read notice. */
+export function PhotoTips({ className = "" }: { className?: string }) {
+  return (
+    <ul className={`text-sm leading-relaxed list-disc pl-5 text-left ${className}`}>
+      {["Flatten the bag.", "Fill the photo with just the ingredients.", "Avoid glare: tilt away from lights.", "Hold still."]
+        .map(t => <li key={t}>{t}</li>)}
+    </ul>
+  );
+}
+
+/** G4: shown instead of the check when much of the kept text was read unsure, or nothing was kept. A hint, never a block. */
+export function HardToRead({ onRetake, onUseAnyway }: { onRetake: () => void; onUseAnyway: () => void }) {
+  return (
+    <div role="alert" className="bg-white border border-border rounded-2xl p-4 space-y-3">
+      <p className="text-base font-extrabold">This photo is hard to read.</p>
+      <PhotoTips className="text-gray-700" />
+      <button onClick={onRetake} className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Retake photo</button>
+      <button onClick={onUseAnyway} className="w-full min-h-[44px] rounded-2xl border border-border bg-white font-bold text-sm">Use it anyway</button>
+    </div>
+  );
+}
+
 /** The note above the lines, naming the words the trim found (M8 follow-up F2). */
-function linesNote(lines: LabelLine[]): string {
-  const { startWord: a, stopWord: b } = trimToIngredients(lines.map(l => l.text).join("\n"));
+function linesNote(a?: string, b?: string): string {
   if (!a && !b) return "Untick any line that isn't an ingredient.";
   return `We kept the part ${a && b ? `from "${a}" to "${b}"` : a ? `from "${a}" on` : `up to "${b}"`}. Tick or untick lines, or edit the text below.`;
 }
@@ -43,6 +64,12 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
   const unsureSet = new Set(unsure);
   const box = "w-full min-h-[120px] p-3 text-sm leading-relaxed font-[inherit] whitespace-pre-wrap break-words";
   const look = assessment && VERDICT_STYLE[assessment.verdict];
+  const [showAll, setShowAll] = useState(false);
+  const found = trimToIngredients((lines ?? []).map(l => l.text).join("\n"));
+  // G5: with a start or stop word found, lines left out (and not ticked) wait behind a button.
+  const listed = (l: LabelLine) => showAll || !(found.startWord || found.stopWord) || l.kept !== "" || l.on;
+  const hidden = lines?.filter(l => !listed(l)).length ?? 0;
+  const unsureN = unsureCount(value, unsure).unsure; // G6: the box's own words
   const tick = (i: number) => {
     const next = lines!.map((l, j) => (j === i ? { ...l, on: !l.on } : l));
     onLines?.(next); onChange(linesText(next));
@@ -50,9 +77,9 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
   return (
     <div className="space-y-3">
       {lines && lines.length > 0 && <>
-        <p className="text-sm text-gray-700 leading-relaxed">{linesNote(lines)}</p>
+        <p className="text-sm text-gray-700 leading-relaxed">{linesNote(found.startWord, found.stopWord)}</p>
         <ul aria-label="Lines read from the photo" className="bg-white rounded-2xl border border-border divide-y divide-border">
-          {lines.map((l, i) => (
+          {lines.map((l, i) => listed(l) && (
             <li key={i}>
               <label className="flex gap-2.5 items-start px-3 py-2.5 min-h-[44px] text-sm leading-snug">
                 <input type="checkbox" checked={l.on} onChange={() => tick(i)} className="w-[22px] h-[22px] m-0 flex-shrink-0" />
@@ -61,6 +88,11 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
             </li>
           ))}
         </ul>
+        {hidden > 0 && (
+          <button onClick={() => setShowAll(true)} className="text-sm font-bold text-[#1A5C39] underline min-h-[44px]">
+            Show {hidden} more line{hidden > 1 ? "s" : ""} we left out
+          </button>
+        )}
       </>}
       {lines === null && <p className="text-xs text-muted-foreground">You're editing the text directly.</p>}
       <label htmlFor="ingredients" className="block text-sm font-bold">Ingredients</label>
@@ -72,10 +104,10 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
             : part))}{"\n"}
         </div>
         <textarea id="ingredients" value={value} onChange={e => { if (lines?.length) onLines?.(null); onChange(e.target.value); }}
-          placeholder="e.g. Sugar, corn syrup, Red 40, …" aria-describedby={unsure.length ? "unsure-note" : undefined}
+          placeholder="e.g. Sugar, corn syrup, Red 40, …" aria-describedby={unsureN ? "unsure-note" : undefined}
           className={`${box} absolute inset-0 h-full bg-transparent resize-none outline-none rounded-2xl text-foreground overflow-hidden`} />
       </div>
-      {unsure.length > 0 && <p id="unsure-note" className="text-xs text-muted-foreground">Underlined: words EcoGo wasn't sure of ({unsure.join(", ")}).</p>}
+      {unsureN > 0 && <p id="unsure-note" className="text-xs text-muted-foreground">{unsureN === 1 ? "1 word underlined: check it." : `${unsureN} words underlined: check them.`}</p>}
       {note && <p className="text-xs text-muted-foreground">{note}</p>}
 
       {assessment && look && (
@@ -136,14 +168,16 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
   const [lines, setLines] = useState<LabelLine[] | null>();
   const [status, setStatus] = useState<"idle" | "reading" | "read">("idle");
   const [error, setError] = useState<string>();
+  const [hard, setHard] = useState(false);
 
   const onPhoto = async (file: File) => {
     setStatus("reading");
     const r = await readPhoto(await preparePhoto(file).catch(() => file)); // a small photo can still be read
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setStatus("read");
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setHard(hardToRead(r.text, r.unsure)); setStatus("read");
   };
-  const reset = () => { setText(""); setUnsure([]); setLines(undefined); setError(undefined); setStatus("idle"); };
-  const showEditor = mode === "type" || status === "read";
+  const reset = () => { setText(""); setUnsure([]); setLines(undefined); setError(undefined); setHard(false); setStatus("idle"); };
+  const showHard = mode === "photo" && status === "read" && hard;
+  const showEditor = (mode === "type" || status === "read") && !showHard;
 
   return (
     <div className="absolute inset-0 z-40 flex flex-col bg-[#F8F7F2] text-gray-900">
@@ -166,9 +200,11 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
 
         {mode === "photo" && status === "idle" && <>
           <p className="text-sm text-gray-700 leading-relaxed">{INGREDIENTS_TIP}</p>
+          <PhotoTips className="text-gray-700" />
           <PhotoButtons onPhoto={onPhoto} />
         </>}
         {mode === "photo" && status === "reading" && <Reading />}
+        {showHard && <HardToRead onRetake={reset} onUseAnyway={() => setHard(false)} />}
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
           note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines} />}
 

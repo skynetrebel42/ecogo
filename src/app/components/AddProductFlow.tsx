@@ -5,12 +5,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X, Check, ArrowLeft } from "lucide-react";
 import { preparePhoto, TOO_SMALL } from "../../lib/photo";
-import { readPhoto, type LabelLine } from "../../lib/ocr";
+import { hardToRead, readPhoto, type LabelLine } from "../../lib/ocr";
 import { submitProduct, type PhotoKind, type SubmitReason } from "../../lib/contribute";
 import { offEditUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { supabase } from "../../lib/supabase";
-import { IngredientEditor, INGREDIENTS_TIP, PhotoButtons, Reading } from "./IngredientCheck";
+import { HardToRead, IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoTips, Reading } from "./IngredientCheck";
 
 type Kind = "front" | "ingredients" | "nutrition";
 type Step = Kind | "reading" | "check" | "send" | "sending" | "sent" | "failed";
@@ -47,6 +47,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const [unsure, setUnsure] = useState<string[]>([]);
   const [lines, setLines] = useState<LabelLine[] | null>();
   const [readError, setReadError] = useState<string>();
+  const [hard, setHard] = useState(false); // M8 follow-up 2, G4: the photo read looks hard to read
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
   const [failed, setFailed] = useState<SubmitReason>("off-down");
@@ -68,12 +69,12 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     if (kind !== "ingredients") { setStep(next[kind]); return; }
     setStep("reading");
     const r = await readPhoto(blob);
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setStep("check");
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setHard(hardToRead(r.text, r.unsure)); setStep("check");
   };
   const skip = (kind: Kind) => {
     setPhotoError(undefined);
     setPhotos(p => ({ ...p, [kind]: undefined }));
-    if (kind === "ingredients") { setUnsure([]); setLines(undefined); setReadError(undefined); }
+    if (kind === "ingredients") { setUnsure([]); setLines(undefined); setReadError(undefined); setHard(false); }
     setStep(next[kind]);
   };
   const send = async () => {
@@ -124,6 +125,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
         {step === "reading" ? <div className="bg-white rounded-3xl text-gray-900"><Reading /></div> : <>
           <p className="text-base font-extrabold">{LABEL[kind]} photo</p>
           <p className="text-sm text-[#D1DAD4] leading-relaxed">{PHOTO_TIPS[kind]}</p>
+          {kind === "ingredients" && <PhotoTips className="text-[#D1DAD4] mx-auto max-w-[300px]" />}
           {photoError && <p role="alert" className="text-sm text-amber-300">{photoError}</p>}
         </>}
       </div>
@@ -143,16 +145,18 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   if (step === "check") return screen(false, <>
     {header("Check the ingredients", "Step 2 of 3", false)}
     <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
-      {photos.ingredients && !readError && (
-        <p className="text-sm text-gray-700 leading-relaxed">EcoGo read this from your photo. Fix anything it got wrong.{unsure.length > 0 && " Underlined words are ones it wasn't sure of."}</p>
-      )}
-      <IngredientEditor value={text} onChange={setText} unsure={unsure} note={readError} lines={lines} onLines={setLines} />
+      {hard ? <HardToRead onRetake={() => setStep("ingredients")} onUseAnyway={() => setHard(false)} /> : <>
+        {photos.ingredients && !readError && (
+          <p className="text-sm text-gray-700 leading-relaxed">EcoGo read this from your photo. Fix anything it got wrong.</p>
+        )}
+        <IngredientEditor value={text} onChange={setText} unsure={unsure} note={readError} lines={lines} onLines={setLines} />
+      </>}
     </div>
-    <div className="px-4 pt-3 pb-6 flex gap-2.5">
+    {!hard && <div className="px-4 pt-3 pb-6 flex gap-2.5">
       <button onClick={() => setStep("ingredients")} className="min-h-[52px] px-4 rounded-2xl border border-border bg-white font-bold text-sm">Retake</button>
       <button onClick={() => setStep("nutrition")} disabled={!text.trim()}
         className="flex-1 min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] disabled:opacity-50">Next: nutrition photo</button>
-    </div>
+    </div>}
   </>);
 
   if (step === "sent") return screen(true, <>

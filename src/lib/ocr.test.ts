@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cleanIngredients, labelLines, linesText, trimToIngredients, unsureWords } from "./ocr.ts";
+import { cleanIngredients, hardToRead, labelLines, linesText, trimToIngredients, unsureCount, unsureWords } from "./ocr.ts";
 
 const word = (text: string, confidence: number) => ({ text, confidence });
 const page = (...lines: { text: string; confidence: number }[][]) => [{ paragraphs: [{ lines: lines.map(words => ({ words })) }] }];
@@ -95,6 +95,18 @@ test("the ticked text doesn't end in a dangling ',' or ';'", () => {
   assert.equal(linesText(lines), "sugar, corn starch, citric acid; Red 40");
   lines[1].on = false;
   assert.equal(linesText(lines), "sugar, corn starch");
+});
+
+// M8 follow-up 2 (docs/superpowers/specs/2026-10-08-m8-followup2-photo-quality-design.md G4, G6).
+test("unsure words are counted in the kept text only, each time they appear", () => {
+  assert.deepEqual(unsureCount("SUGAR, PEp2szlt, SALT, PEp2szlt", ["PEp2szlt", "Psmartlobel", "75019"]), { words: 4, unsure: 2 });
+  assert.deepEqual(unsureCount("", ["x"]), { words: 0, unsure: 0 });
+});
+
+test("a photo is hard to read at 25% unsure kept words, or when nothing was kept", () => {
+  assert.equal(hardToRead("a b c d e f g h i j k l m n o p q r s t", ["a", "b", "c", "d"]), false, "20%");
+  assert.equal(hardToRead("a b c d e f g h i j k l m n o p q r s t", ["a", "b", "c", "d", "e"]), true, "25%");
+  assert.equal(hardToRead("  ", []), true, "nothing kept");
 });
 
 test("a line with only punctuation left in the range isn't ticked", () => {

@@ -11,6 +11,7 @@ const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
 const URL_ = process.argv[2];
 const PHOTO = fileURLToPath(new URL("./ingredients-label.jpg", import.meta.url));
 const FULL = fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url));
+const BAG = fileURLToPath(new URL("./ingredients-bag-curved.png", import.meta.url));
 const PORT = 9600 + Math.floor(Math.random() * 90);
 const PROFILE = `${process.env.TEMP}\\ecogo-ocr-${PORT}`;
 rmSync(PROFILE, { recursive: true, force: true });
@@ -81,6 +82,11 @@ try {
     .every(w => read.toUpperCase().includes(w)), read ?? "nothing read");
   check("…without the 'Ingredients:' label", !!read && !/^ingredients/i.test(read));
   check("…and the badge says Some concern", (await badge()).includes("Some concern"), (await badge()).split("\n")[0]);
+  // M8 follow-up 2, G4/G6: the share of kept words read unsure (underlined) — the retake hint shows at 25 %.
+  const SHARE = `(() => { const words = (document.querySelector("#ingredients").value.match(/[\\p{L}\\p{N}]+/gu) ?? []).length;
+    const u = document.querySelectorAll('div[aria-hidden="true"] span[style*="wavy"]').length;
+    return \`\${u}/\${words} = \${words ? Math.round(100 * u / words) : 0}%\`; })()`;
+  check("…a clear label gets no retake hint", !(await run(`document.body.innerText`)).includes("This photo is hard to read."), `unsure share ${await run(SHARE)}`);
   const ocr = [...bytes].filter(([u]) => u?.includes("/tesseract/"));
   const kb = Math.round(ocr.reduce((s, [, n]) => s + n, 0) / 1024);
   check("the reader comes from EcoGo's own site, never a CDN", ocr.length >= 3 && !requests.some(u => /jsdelivr|unpkg|cdnjs/.test(u)),
@@ -93,8 +99,15 @@ try {
   const lib2 = (await send("DOM.querySelector", { nodeId: root2.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
   await send("DOM.setFileInputFiles", { nodeId: lib2, files: [FULL] });
   const LIST = `[...document.querySelectorAll('ul[aria-label="Lines read from the photo"] li')].map(li => ({ text: li.innerText, on: li.querySelector("input").checked }))`;
-  const lines = await run(`__until(() => { const l = ${LIST}; return l.length ? l : null; }, 60000)`) ?? [];
+  const kept = await run(`__until(() => { const l = ${LIST}; return l.length ? l : null; }, 60000)`) ?? [];
+  const more = await run(`__btn("more line")?.innerText ?? "no button"`);
+  check("M8 G5: only the kept lines are listed; the rest wait behind 'Show 3 more lines we left out'",
+    kept.length === 2 && kept.every(l => l.on) && more === "Show 3 more lines we left out", `${JSON.stringify(kept)} | ${more}`);
+  await run(`(async () => { __btn("more line").click(); await __sleep(300); return true; })()`);
+  const lines = await run(LIST);
+  check("…which opens them, ticks unchanged", lines.length === 5 && lines.filter(l => l.on).length === 2, JSON.stringify(lines));
   const box = () => run(`document.querySelector("#ingredients").value`);
+  console.log(`      full label: unsure share ${await run(SHARE)}`);
   const off = lines.filter(l => !l.on).map(l => l.text.toUpperCase());
   check("the full label shows its lines; the brand and distributor lines start unticked", off.some(t => t.includes("FRUITY"))
     && off.some(t => t.includes("DISTRIBUTED")) && lines.filter(l => l.on).length >= 2, JSON.stringify(lines));
@@ -108,6 +121,20 @@ try {
   await typeInto("Sugar, corn syrup");
   check("typing in the box hides the lines", (await run(`${LIST}.length`)) === 0
     && (await run(`document.body.innerText`)).includes("You're editing the text directly"));
+
+  // M8 follow-up 2, G4: a curved, shiny bag (ingredients-bag-curved.png, rendered from HTML) gets the retake hint.
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); return true; })()`);
+  const { root: root3 } = (await send("DOM.getDocument")).result;
+  const lib3 = (await send("DOM.querySelector", { nodeId: root3.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
+  await send("DOM.setFileInputFiles", { nodeId: lib3, files: [BAG] });
+  const hard = await run(`__until(() => document.querySelector("#ingredients") || [...document.querySelectorAll('[role="alert"]')].find(e => e.innerText.includes("hard to read")), 60000)
+    .then(e => e?.innerText ?? "")`);
+  check("M8 G4: a curved, shiny bag opens with 'This photo is hard to read.', the tips, Retake photo and Use it anyway",
+    hard.includes("This photo is hard to read.") && hard.includes("Flatten the bag.") && hard.includes("Retake photo") && hard.includes("Use it anyway"), hard.slice(0, 80));
+  await run(`(async () => { __btn("Use it anyway")?.click(); await __sleep(400); return true; })()`);
+  check("…Use it anyway shows the normal check", !!(await run(`!!document.querySelector("#ingredients")`)), `bag: unsure share ${await run(SHARE)}; read: ${(await run(`document.querySelector("#ingredients")?.value ?? ""`)).slice(0, 400)}`);
+  const note = await run(`document.querySelector("#unsure-note")?.innerText ?? ""`);
+  check("M8 G6: the note counts the underlined words instead of listing them", /^\d+ words? underlined: check (them|it)\.$/.test(note), note);
 
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Type it").click(); await __sleep(300); return true; })()`);
   await typeInto("Enriched flour, water, Red 40");

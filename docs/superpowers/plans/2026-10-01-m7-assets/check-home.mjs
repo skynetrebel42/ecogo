@@ -250,8 +250,10 @@ try {
   check("M8: the not-found screen shows 'Add this product', the OFF website link stays as a fallback",
     nf.includes("Add this product") && nf.includes("Or add it on the Open Food Facts website"));
   const turnstile = () => requests.some(u => u.includes("challenges.cloudflare.com"));
-  await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
-    __btn("Skip the photo, type the ingredients").click(); await __sleep(300); return true; })()`);
+  const tipsStep = await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
+    const t = document.body.innerText; __btn("Skip the photo, type the ingredients").click(); await __sleep(300); return t; })()`);
+  check("M8 G3: the ingredients photo step shows the four photo tips", ["Flatten the bag.", "Fill the photo with just the ingredients.",
+    "Avoid glare: tilt away from lights.", "Hold still."].every(t => tipsStep.includes(t)));
   await typeIngredients("Water, sugar, Red 40");
   const beforeSend = turnstile();
   await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); __btn("Skip").click(); await __sleep(600); return true; })()`);

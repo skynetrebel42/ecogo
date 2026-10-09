@@ -69,6 +69,21 @@ export function unsureWords(blocks: WordsOnly | null): string[] {
   return [...unsure];
 }
 
+/** The words in `text` (the kept ingredients) and how many of them were read with low confidence (M8 follow-up 2, G6). */
+export function unsureCount(text: string, unsure: string[]): { words: number; unsure: number } {
+  const set = new Set(unsure);
+  const words = text.match(/[\p{L}\p{N}]+/gu) ?? [];
+  return { words: words.length, unsure: words.filter(w => set.has(w)).length };
+}
+
+/** G4: suggest a retake (never block) when at least this share of the kept words is unsure, or nothing was kept.
+ *  25 % (planner, 2026-10-08): clear labels measure 0 %, the curved-bag fixture 29 %, Minh's real Takis read ~50 %. */
+export const HARD_TO_READ = 0.25;
+export function hardToRead(text: string, unsure: string[]): boolean {
+  const c = unsureCount(text, unsure);
+  return !c.words || c.unsure / c.words >= HARD_TO_READ;
+}
+
 let worker: Promise<Worker> | undefined;
 
 /** Reads the text of a label photo. The first call downloads the reader (about 7 MB), which the browser then keeps. */
