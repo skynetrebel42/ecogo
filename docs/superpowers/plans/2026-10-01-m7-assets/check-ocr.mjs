@@ -12,6 +12,7 @@ const URL_ = process.argv[2];
 const PHOTO = fileURLToPath(new URL("./ingredients-label.jpg", import.meta.url));
 const FULL = fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url));
 const BAG = fileURLToPath(new URL("./ingredients-bag-curved.png", import.meta.url));
+const BLURRED = fileURLToPath(new URL("./ingredients-label-blurred.png", import.meta.url));
 const PORT = 9600 + Math.floor(Math.random() * 90);
 const PROFILE = `${process.env.TEMP}\\ecogo-ocr-${PORT}`;
 rmSync(PROFILE, { recursive: true, force: true });
@@ -86,7 +87,7 @@ try {
   const SHARE = `(() => { const words = (document.querySelector("#ingredients").value.match(/[\\p{L}\\p{N}]+/gu) ?? []).length;
     const u = document.querySelectorAll('div[aria-hidden="true"] span[style*="wavy"]').length;
     return \`\${u}/\${words} = \${words ? Math.round(100 * u / words) : 0}%\`; })()`;
-  check("…a clear label gets no retake hint", !(await run(`document.body.innerText`)).includes("This photo is hard to read."), `unsure share ${await run(SHARE)}`);
+  check("…a clear label gets no retake or blurry hint", !/This photo is hard to read\.|This photo looks blurry\./.test(await run(`document.body.innerText`)), `unsure share ${await run(SHARE)}`);
   const ocr = [...bytes].filter(([u]) => u?.includes("/tesseract/"));
   const kb = Math.round(ocr.reduce((s, [, n]) => s + n, 0) / 1024);
   check("the reader comes from EcoGo's own site, never a CDN", ocr.length >= 3 && !requests.some(u => /jsdelivr|unpkg|cdnjs/.test(u)),
@@ -130,11 +131,25 @@ try {
   const hard = await run(`__until(() => document.querySelector("#ingredients") || [...document.querySelectorAll('[role="alert"]')].find(e => e.innerText.includes("hard to read")), 60000)
     .then(e => e?.innerText ?? "")`);
   check("M8 G4: a curved, shiny bag opens with 'This photo is hard to read.', the tips, Retake photo and Use it anyway",
-    hard.includes("This photo is hard to read.") && hard.includes("Flatten the bag.") && hard.includes("Retake photo") && hard.includes("Use it anyway"), hard.slice(0, 80));
+    hard.includes("This photo is hard to read.") && hard.includes("Lay it flat") && hard.includes("Retake photo") && hard.includes("Use it anyway"), hard.slice(0, 80));
   await run(`(async () => { __btn("Use it anyway")?.click(); await __sleep(400); return true; })()`);
   check("…Use it anyway shows the normal check", !!(await run(`!!document.querySelector("#ingredients")`)), `bag: unsure share ${await run(SHARE)}; read: ${(await run(`document.querySelector("#ingredients")?.value ?? ""`)).slice(0, 400)}`);
   const note = await run(`document.querySelector("#unsure-note")?.innerText ?? ""`);
   check("M8 G6: the note counts the underlined words instead of listing them", /^\d+ words? underlined: check (them|it)\.$/.test(note), note);
+
+  // M8 follow-up 3, H2: a blurred label (ingredients-label-blurred.png, the full label rendered with a 4 px blur) gets
+  // "This photo looks blurry." before reading; Use it anyway reads it, and the hard-to-read hint doesn't follow.
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); return true; })()`);
+  const { root: root4 } = (await send("DOM.getDocument")).result;
+  const lib4 = (await send("DOM.querySelector", { nodeId: root4.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
+  await send("DOM.setFileInputFiles", { nodeId: lib4, files: [BLURRED] });
+  const blurred = await run(`__until(() => [...document.querySelectorAll('[role="alert"]')].find(e => e.innerText.includes("blurry")), 15000).then(e => e?.innerText ?? "")`);
+  check("M8 H2: a blurred photo gets 'This photo looks blurry.' with the numbered tips, Retake photo and Use it anyway, before reading",
+    blurred.includes("This photo looks blurry.") && blurred.includes("Lay it flat") && blurred.includes("Retake photo")
+    && !(await run(`document.body.innerText`)).includes("Reading the label"), blurred.slice(0, 80));
+  await run(`(async () => { __btn("Use it anyway").click(); return true; })()`);
+  const afterBlur = await run(`__until(() => document.querySelector("#ingredients") || document.body.innerText.includes("hard to read"), 60000).then(() => document.body.innerText)`);
+  check("…Use it anyway reads it, with no hard-to-read hint after", !!(await run(`!!document.querySelector("#ingredients")`)) && !afterBlur.includes("This photo is hard to read."));
 
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Type it").click(); await __sleep(300); return true; })()`);
   await typeInto("Enriched flour, water, Red 40");

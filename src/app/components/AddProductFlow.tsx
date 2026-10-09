@@ -4,13 +4,13 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X, Check, ArrowLeft } from "lucide-react";
-import { preparePhoto, TOO_SMALL } from "../../lib/photo";
+import { isBlurry, preparePhoto, TOO_SMALL } from "../../lib/photo";
 import { readPhoto, type LabelLine } from "../../lib/ocr";
 import { submitProduct, type PhotoKind, type SubmitReason } from "../../lib/contribute";
 import { offEditUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { supabase } from "../../lib/supabase";
-import { HardToRead, IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoTips, Reading } from "./IngredientCheck";
+import { IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoNotice, PhotoTips, Reading } from "./IngredientCheck";
 
 type Kind = PhotoKind;
 type Step = Kind | "reading" | "check" | "send" | "sending" | "sent" | "failed";
@@ -48,6 +48,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const [lines, setLines] = useState<LabelLine[] | null>();
   const [readError, setReadError] = useState<string>();
   const [hard, setHard] = useState(false); // M8 follow-up 2, G4: the photo read looks hard to read
+  const [blurry, setBlurry] = useState<{ kind: Kind; blob: Blob }>(); // 049 H2: waiting on "Retake photo" / "Use it anyway"
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
   const [failed, setFailed] = useState<SubmitReason>("off-down");
@@ -59,6 +60,15 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
 
   const next: Record<Kind, Step> = { front: "ingredients", ingredients: "check", nutrition: "send" };
+  const usePhoto = async (kind: Kind, blob: Blob, blurOk: boolean) => {
+    setBlurry(undefined);
+    setPhotos(p => ({ ...p, [kind]: blob }));
+    if (kind !== "ingredients") { setStep(next[kind]); return; }
+    setStep("reading");
+    const r = await readPhoto(blob);
+    // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (049 H2).
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setHard(r.hard && !blurOk); setStep("check");
+  };
   const onPhoto = (kind: Kind) => async (file: File) => {
     setPhotoError(undefined);
     let blob: Blob;
@@ -66,14 +76,11 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       setPhotoError((err as Error).message === TOO_SMALL ? TOO_SMALL : "Couldn't open this photo. Try another one.");
       return;
     }
-    setPhotos(p => ({ ...p, [kind]: blob }));
-    if (kind !== "ingredients") { setStep(next[kind]); return; }
-    setStep("reading");
-    const r = await readPhoto(blob);
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setHard(r.hard); setStep("check");
+    // H2: the blur check runs before reading, so a retake costs no reading time.
+    if (await isBlurry(blob)) setBlurry({ kind, blob }); else await usePhoto(kind, blob, false);
   };
   const skip = (kind: Kind) => {
-    setPhotoError(undefined);
+    setPhotoError(undefined); setBlurry(undefined);
     setPhotos(p => ({ ...p, [kind]: undefined }));
     if (kind === "ingredients") { setUnsure([]); setLines(undefined); setReadError(undefined); setHard(false); }
     setStep(next[kind]);
@@ -109,6 +116,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   if (step === "front" || step === "ingredients" || step === "nutrition" || step === "reading") {
     const kind: Kind = step === "reading" ? "ingredients" : step;
     const order: Kind[] = ["front", "ingredients", "nutrition"];
+    const blur = step !== "reading" && blurry?.kind === kind ? blurry.blob : undefined;
     return screen(true, <>
       {header("Add this product", `Barcode ${code}`, true, step === "nutrition" ? () => setStep("check") : undefined)}
       <ol className="px-4 pt-4 flex gap-2" aria-label="Photos">
@@ -123,14 +131,17 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
         })}
       </ol>
       <div className="flex-1 flex flex-col justify-center px-6 gap-4 text-center">
-        {step === "reading" ? <div className="bg-white rounded-3xl text-gray-900"><Reading /></div> : <>
+        {step === "reading" ? <div className="bg-white rounded-3xl text-gray-900"><Reading /></div>
+          : blur ? <PhotoNotice title="This photo looks blurry." kind={kind === "nutrition" ? "nutrition" : "ingredients"}
+              onRetake={() => setBlurry(undefined)} onUseAnyway={() => usePhoto(kind, blur, true)} />
+          : <>
           <p className="text-base font-extrabold">{LABEL[kind]} photo</p>
           <p className="text-sm text-[#D1DAD4] leading-relaxed">{PHOTO_TIPS[kind]}</p>
-          {kind === "ingredients" && <PhotoTips className="text-[#D1DAD4] mx-auto max-w-[300px]" />}
+          {kind !== "front" && <PhotoTips kind={kind} className="text-[#D1DAD4] justify-center" />}
           {photoError && <p role="alert" className="text-sm text-amber-300">{photoError}</p>}
         </>}
       </div>
-      {step !== "reading" && (
+      {step !== "reading" && !blur && (
         <div className="px-4 pb-6 space-y-2">
           <PhotoButtons onPhoto={onPhoto(kind)} />
           {photos[kind]
@@ -146,7 +157,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   if (step === "check") return screen(false, <>
     {header("Check the ingredients", "Step 2 of 3", false)}
     <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
-      {hard ? <HardToRead onRetake={() => setStep("ingredients")} onUseAnyway={() => setHard(false)} /> : <>
+      {hard ? <PhotoNotice title="This photo is hard to read." onRetake={() => setStep("ingredients")} onUseAnyway={() => setHard(false)} /> : <>
         {photos.ingredients && !readError && (
           <p className="text-sm text-gray-700 leading-relaxed">EcoGo read this from your photo. Fix anything it got wrong.</p>
         )}

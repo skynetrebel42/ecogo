@@ -252,8 +252,8 @@ try {
   const turnstile = () => requests.some(u => u.includes("challenges.cloudflare.com"));
   const tipsStep = await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
     const t = document.body.innerText; __btn("Skip the photo, type the ingredients").click(); await __sleep(300); return t; })()`);
-  check("M8 G3: the ingredients photo step shows the four photo tips", ["Flatten the bag.", "Fill the photo with just the ingredients.",
-    "Avoid glare: tilt away from lights.", "Hold still."].every(t => tipsStep.includes(t)));
+  check("M8 H3: the ingredients photo step shows the numbered tips", ["Lay it flat", "Close & sharp", "Only the ingredients", "No glare"]
+    .every(t => tipsStep.includes(t)));
   await typeIngredients("Water, sugar, Red 40");
   const beforeSend = turnstile();
   await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); __btn("Skip").click(); await __sleep(600); return true; })()`);
@@ -296,7 +296,9 @@ try {
   await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
     __btn("Skip the photo, type the ingredients").click(); await __sleep(300); return true; })()`);
   await typeIngredients("Water, sugar, Red 40");
-  await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); return true; })()`);
+  const nutritionStep = await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); return document.body.innerText; })()`);
+  check("M8 H3: the nutrition photo step's tips say 'Only the nutrition table'", ["Lay it flat", "Close & sharp", "Only the nutrition table", "No glare"]
+    .every(t => nutritionStep.includes(t)) && !nutritionStep.includes("Only the ingredients"));
   const { root: docRoot2 } = (await send("DOM.getDocument")).result;
   const lib2 = (await send("DOM.querySelector", { nodeId: docRoot2.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
   await send("DOM.setFileInputFiles", { nodeId: lib2, files: [fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url))] });

@@ -6,7 +6,7 @@ import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
 import { readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
-import { preparePhoto } from "../../lib/photo";
+import { isBlurry, preparePhoto } from "../../lib/photo";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
 import Explainer from "./Explainer";
 
@@ -23,22 +23,30 @@ function check(ingredients: string): Assessment | null {
 
 export const INGREDIENTS_TIP = "Photograph the ingredients list: flat, in good light, with no glare. EcoGo reads the words on your phone.";
 
-/** Photo tips, one per line (M8 follow-up 2, G3): on the ingredients photo step and in the hard-to-read notice. */
-export function PhotoTips({ className = "" }: { className?: string }) {
+/** Numbered photo tips, one compact row (M8 follow-up 3, H3): above Take photo on the ingredients and nutrition steps,
+ *  and inside the photo notices. */
+export function PhotoTips({ kind = "ingredients", className = "" }: { kind?: "ingredients" | "nutrition"; className?: string }) {
+  const tips = ["Lay it flat", "Close & sharp", kind === "nutrition" ? "Only the nutrition table" : "Only the ingredients", "No glare"];
   return (
-    <ul className={`text-sm leading-relaxed list-disc pl-5 text-left ${className}`}>
-      {["Flatten the bag.", "Fill the photo with just the ingredients.", "Avoid glare: tilt away from lights.", "Hold still."]
-        .map(t => <li key={t}>{t}</li>)}
-    </ul>
+    <ol aria-label="Photo tips" className={`flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold ${className}`}>
+      {tips.map((t, i) => (
+        <li key={t} className="flex items-center gap-1">
+          <span className="w-4 h-4 rounded-full bg-[#F59E0B] text-[#1A1200] text-[10px] flex items-center justify-center" aria-hidden="true">{i + 1}</span>{t}
+        </li>
+      ))}
+    </ol>
   );
 }
 
-/** G4: shown instead of the check when much of the kept text was read unsure, or nothing was kept. A hint, never a block. */
-export function HardToRead({ onRetake, onUseAnyway }: { onRetake: () => void; onUseAnyway: () => void }) {
+/** A hint about the photo, never a block: "This photo is hard to read." (048 G4, after reading) or "This photo looks
+ *  blurry." (049 H2, before reading). */
+export function PhotoNotice({ title, kind, onRetake, onUseAnyway }: {
+  title: string; kind?: "ingredients" | "nutrition"; onRetake: () => void; onUseAnyway: () => void;
+}) {
   return (
-    <div role="alert" className="bg-white border border-border rounded-2xl p-4 space-y-3">
-      <p className="text-base font-extrabold">This photo is hard to read.</p>
-      <PhotoTips className="text-gray-700" />
+    <div role="alert" className="bg-white text-gray-900 border border-border rounded-2xl p-4 space-y-3">
+      <p className="text-base font-extrabold">{title}</p>
+      <PhotoTips kind={kind} className="text-gray-700" />
       <button onClick={onRetake} className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Retake photo</button>
       <button onClick={onUseAnyway} className="w-full min-h-[44px] rounded-2xl border border-border bg-white font-bold text-sm">Use it anyway</button>
     </div>
@@ -169,13 +177,19 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
   const [status, setStatus] = useState<"idle" | "reading" | "read">("idle");
   const [error, setError] = useState<string>();
   const [hard, setHard] = useState(false);
+  const [blurry, setBlurry] = useState<Blob>(); // 049 H2: a photo waiting on "Retake photo" / "Use it anyway"
 
-  const onPhoto = async (file: File) => {
-    setStatus("reading");
-    const r = await readPhoto(await preparePhoto(file).catch(() => file)); // a small photo can still be read
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setHard(r.hard); setStatus("read");
+  const read = async (photo: Blob, blurOk: boolean) => {
+    setBlurry(undefined); setStatus("reading");
+    const r = await readPhoto(photo);
+    // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (H2).
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setHard(r.hard && !blurOk); setStatus("read");
   };
-  const reset = () => { setText(""); setUnsure([]); setLines(undefined); setError(undefined); setHard(false); setStatus("idle"); };
+  const onPhoto = async (file: File) => {
+    const photo = await preparePhoto(file).catch(() => file); // a small photo can still be read
+    if (await isBlurry(photo)) setBlurry(photo); else await read(photo, false);
+  };
+  const reset = () => { setText(""); setUnsure([]); setLines(undefined); setError(undefined); setHard(false); setBlurry(undefined); setStatus("idle"); };
   const showHard = mode === "photo" && status === "read" && hard;
   const showEditor = (mode === "type" || status === "read") && !showHard;
 
@@ -198,13 +212,15 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
-        {mode === "photo" && status === "idle" && <>
-          <p className="text-sm text-gray-700 leading-relaxed">{INGREDIENTS_TIP}</p>
-          <PhotoTips className="text-gray-700" />
-          <PhotoButtons onPhoto={onPhoto} />
-        </>}
+        {mode === "photo" && status === "idle" && (blurry
+          ? <PhotoNotice title="This photo looks blurry." onRetake={() => setBlurry(undefined)} onUseAnyway={() => read(blurry, true)} />
+          : <>
+            <p className="text-sm text-gray-700 leading-relaxed">{INGREDIENTS_TIP}</p>
+            <PhotoTips className="text-gray-700" />
+            <PhotoButtons onPhoto={onPhoto} />
+          </>)}
         {mode === "photo" && status === "reading" && <Reading />}
-        {showHard && <HardToRead onRetake={reset} onUseAnyway={() => setHard(false)} />}
+        {showHard && <PhotoNotice title="This photo is hard to read." onRetake={reset} onUseAnyway={() => setHard(false)} />}
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
           note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines} />}
 
