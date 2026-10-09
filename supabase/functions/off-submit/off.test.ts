@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { limitReason, offHeaders, productForm, imageForm, photoResult, sendReply } from "./off.ts";
+import { limitReason, offHeaders, productForm, imageForm, photoResult, sendReply, withLater } from "./off.ts";
 
 // M8 follow-up 2 (docs/superpowers/specs/2026-10-08-m8-followup2-photo-quality-design.md G1, G2).
 test("a photo OFF took, or already had, counts as taken; an HTTP error or a refusal doesn't", () => {
@@ -17,6 +17,20 @@ test("text taken and the nutrition photo failing is still sent, naming the faile
   const photos = [photoResult("front", 200, { status: "status ok" }), photoResult("nutrition", 500, null)];
   assert.deepEqual(sendReply(true, photos), { ok: true, failedPhotos: ["nutrition"] });
   assert.deepEqual(sendReply(true, [photos[0]]), { ok: true });
+});
+
+// M8 follow-up 3 (docs/superpowers/specs/2026-10-09-m8-followup3-blur-speed-design.md H1).
+test("photos still to upload in the background are named in the reply", () => {
+  assert.deepEqual(sendReply(true, [photoResult("ingredients", 200, { status: "status ok" })], ["front", "nutrition"]),
+    { ok: true, pendingPhotos: ["front", "nutrition"] });
+  assert.deepEqual(sendReply(true, [photoResult("ingredients", 500, null)], ["nutrition"]),
+    { ok: true, failedPhotos: ["ingredients"], pendingPhotos: ["nutrition"] });
+});
+
+test("a background photo that fails is added to the row's log; one that went in adds nothing", () => {
+  assert.equal(withLater("had ingredients: photos only", [photoResult("nutrition", 500, null)]), "had ingredients: photos only; nutrition: HTTP 500");
+  assert.equal(withLater(undefined, [photoResult("front", 200, { status: "status ok" })]), undefined);
+  assert.equal(withLater(undefined, [photoResult("front", 502, null)]), "front: HTTP 502");
 });
 
 test("with OFF's own text kept, one photo taken is enough; nothing taken is not sent", () => {

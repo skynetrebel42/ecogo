@@ -91,6 +91,11 @@ test("a send where some photos didn't go through is still sent, naming only know
   assert.deepEqual(await submitProduct({ ...input, photos: { nutrition: jpeg("n") } }, token, f.client), { ok: true, failedPhotos: ["nutrition"] });
 });
 
+test("photos still uploading in the background come back as pendingPhotos, known kinds only (049 H1)", async () => {
+  const f = fakeClient({ session: true, reply: { data: { ok: true, pendingPhotos: ["front", "nutrition", "x"] }, error: null } });
+  assert.deepEqual(await submitProduct({ ...input, photos: { front: jpeg("f") } }, token, f.client), { ok: true, pendingPhotos: ["front", "nutrition"] });
+});
+
 test("a session the server no longer accepts is dropped, so Try again signs in afresh", async () => {
   const f = fakeClient({ session: true, reply: httpError(401, { ok: false, reason: "captcha" }) });
   assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, f.client), { ok: false, reason: "captcha" });

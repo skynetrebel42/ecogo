@@ -288,7 +288,7 @@ try {
     const body = p.request.method === "OPTIONS" ? "" : p.request.url.includes("/auth/v1/") ? JSON.stringify({ access_token: "fake",
       token_type: "bearer", expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: "fake",
       user: { id: "00000000-0000-4000-8000-000000000048", aud: "authenticated", role: "authenticated", is_anonymous: true } })
-      : JSON.stringify({ ok: true, textKept: false, failedPhotos: ["nutrition"] });
+      : JSON.stringify({ ok: true, textKept: false, failedPhotos: ["nutrition"], pendingPhotos: ["front"] });
     send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
   };
   await send("Fetch.enable", { patterns: [{ urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }] });
@@ -308,8 +308,9 @@ try {
     const a = [...document.querySelectorAll("a")].find(a => a.innerText === "Open Food Facts website");
     return document.body.innerText + "|" + (a?.href ?? "no link"); })()`);
   await send("Fetch.disable");
-  check("M8 G2: a send where only the nutrition photo failed says Sent, names it and links to OFF",
+  check("M8 G2/H1: a send where the nutrition photo failed says Sent, names it, links to OFF, and says the others are still uploading",
     sent.includes("Sent to Open Food Facts") && sent.includes("The nutrition photo didn't go through. You can add it later on the Open Food Facts website.")
+    && sent.includes("Your other photos are still uploading to Open Food Facts.")
     && sent.includes("|https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=3017620429996")
     && faked.some(f => f.startsWith("POST") && f.includes("signup")) && faked.some(f => f.startsWith("POST") && f.includes("off-submit"))
     && faked.every(f => /^(OPTIONS|POST) v1\/(signup|off-submit)$/.test(f)),

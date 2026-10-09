@@ -5,8 +5,11 @@ export type SubmitReason = "limit-you" | "limit-all" | "captcha" | "off-down" | 
 export type PhotoKind = "front" | "ingredients" | "nutrition";
 /** textKept: OFF already had ingredients, so only the photos went (D10). failedPhotos: sent, but these photos didn't
  *  go through (M8 follow-up 2, G2). */
-export type SubmitResult = { ok: true; textKept?: boolean; failedPhotos?: PhotoKind[] } | { ok: false; reason: SubmitReason };
+export type SubmitResult = { ok: true; textKept?: boolean; failedPhotos?: PhotoKind[]; pendingPhotos?: PhotoKind[] } | { ok: false; reason: SubmitReason };
 const KINDS: PhotoKind[] = ["front", "ingredients", "nutrition"];
+/** The known photo kinds named in a server list (anything else is dropped). pendingPhotos (follow-up 3, H1): still
+ *  uploading in the background. */
+const kinds = (v: unknown): PhotoKind[] => (Array.isArray(v) ? KINDS.filter(k => v.includes(k)) : []);
 export interface Submission {
   code: string;
   name?: string;
@@ -53,10 +56,11 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
   // off-submit answers { ok, reason? }; a non-2xx answer arrives as error.context (the Response).
   const context = (error as { context?: unknown } | null)?.context;
   const answer = (!error ? reply : context instanceof Response ? await context.json().catch(() => null) : null) as
-    { ok?: boolean; reason?: SubmitReason; textKept?: boolean; failedPhotos?: unknown } | null;
+    { ok?: boolean; reason?: SubmitReason; textKept?: boolean; failedPhotos?: unknown; pendingPhotos?: unknown } | null;
   if (answer?.ok === true) {
-    const failedPhotos = KINDS.filter(k => Array.isArray(answer.failedPhotos) && answer.failedPhotos.includes(k));
-    return { ok: true, ...(answer.textKept && { textKept: true }), ...(failedPhotos.length > 0 && { failedPhotos }) };
+    const failedPhotos = kinds(answer.failedPhotos), pendingPhotos = kinds(answer.pendingPhotos);
+    return { ok: true, ...(answer.textKept && { textKept: true }), ...(failedPhotos.length > 0 && { failedPhotos }),
+      ...(pendingPhotos.length > 0 && { pendingPhotos }) };
   }
   // 401: the server no longer accepts this session (expired or deleted); drop it so Try again signs in afresh.
   if (context instanceof Response && context.status === 401) await client.auth.signOut({ scope: "local" });

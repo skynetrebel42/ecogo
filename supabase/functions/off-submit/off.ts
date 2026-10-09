@@ -53,13 +53,21 @@ export function photoResult(kind: PhotoKind, status: number, body: { status?: st
   return { kind, taken: /already been sent/i.test(why), note: `${kind}: ${why}` };
 }
 
-/** The answer once the text (if OFF had none) and the photos have gone (G2): partial success is success, naming the
- *  photos that didn't go through; only when OFF took nothing is it not sent. */
-export function sendReply(textTaken: boolean, photos: PhotoResult[]):
-  { ok: true; failedPhotos?: PhotoKind[] } | { ok: false; reason: "off-down" | "nothing-new" } {
+/** The answer once the text (if OFF had none) and the awaited photos have gone (G2): partial success is success, naming
+ *  the photos that didn't go through and (follow-up 3, H1) those still uploading; only when OFF took nothing is it not sent. */
+export function sendReply(textTaken: boolean, photos: PhotoResult[], pending: PhotoKind[] = []):
+  { ok: true; failedPhotos?: PhotoKind[]; pendingPhotos?: PhotoKind[] } | { ok: false; reason: "off-down" | "nothing-new" } {
   const failedPhotos = photos.filter(p => !p.taken).map(p => p.kind);
-  if (textTaken || photos.some(p => p.taken)) return failedPhotos.length ? { ok: true, failedPhotos } : { ok: true };
+  if (textTaken || photos.some(p => p.taken)) {
+    return { ok: true, ...(failedPhotos.length > 0 && { failedPhotos }), ...(pending.length > 0 && { pendingPhotos: pending }) };
+  }
   return { ok: false, reason: photos.some(p => p.httpError) ? "off-down" : "nothing-new" };
+}
+
+/** H1: the row's log after the background photos: failures (and refusals) appended; undefined while there's nothing. */
+export function withLater(log: string | undefined, later: PhotoResult[]): string | undefined {
+  const notes = later.filter(p => !p.taken).flatMap(p => p.note ?? []);
+  return [log, ...notes].filter(Boolean).join("; ") || undefined;
 }
 
 /** Body for POST /cgi/product_image_upload.pl: one photo under `imgupload_<kind>_en`. */

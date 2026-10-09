@@ -53,6 +53,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const [failed, setFailed] = useState<SubmitReason>("off-down");
   const [textKept, setTextKept] = useState(false);
   const [failedPhotos, setFailedPhotos] = useState<PhotoKind[]>([]);
+  const [uploading, setUploading] = useState(false); // follow-up 3, H1: other photos still going up in the background
   const humanCheckSlot = useRef<HTMLDivElement>(null); // where Turnstile shows a challenge, if it needs one
 
   useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
@@ -81,7 +82,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     setStep("sending");
     const r = await submitProduct({ code, name, ingredients: text, photos },
       () => turnstileToken(humanCheckSlot.current!), supabase);
-    if (r.ok) { setTextKept(!!r.textKept); setFailedPhotos(r.failedPhotos ?? []); setStep("sent"); } else { setFailed(r.reason); setStep("failed"); }
+    if (r.ok) { setTextKept(!!r.textKept); setFailedPhotos(r.failedPhotos ?? []); setUploading(!!r.pendingPhotos); setStep("sent"); } else { setFailed(r.reason); setStep("failed"); }
   };
 
   // Back (nutrition → check, Send → nutrition) keeps every photo and the text: nothing is lost while the screen is open.
@@ -174,6 +175,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
           <a href={offEditUrl(code)} target="_blank" rel="noopener noreferrer" className="underline font-bold">Open Food Facts website</a>.
         </p>
       )}
+      {uploading && <p className="text-xs text-[#A7B8AE] leading-relaxed">Your other photos are still uploading to Open Food Facts.</p>}
     </div>
     <div className="px-5 pb-7">
       <button onClick={onDone} className="w-full min-h-[52px] rounded-2xl bg-[#F59E0B] text-[#1A1200] font-extrabold text-[15px]">Scan another product</button>

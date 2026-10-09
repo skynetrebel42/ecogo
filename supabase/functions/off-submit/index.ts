@@ -3,7 +3,9 @@
 // account. Answers { ok: true } or { ok: false, reason } (reasons as in src/lib/contribute.ts).
 // Secrets: OFF_BASE, OFF_USER, OFF_PASSWORD, OFF_CONTACT; SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are built in.
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { imageForm, limitReason, offHeaders, photoResult, productForm, sendReply, type OffAccount, type PhotoKind, type PhotoResult } from "./off.ts";
+import { imageForm, limitReason, offHeaders, photoResult, productForm, sendReply, withLater, type OffAccount, type PhotoKind, type PhotoResult } from "./off.ts";
+
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }; // Supabase Edge Functions: work after the answer
 
 const env = (name: string) => Deno.env.get(name) ?? "";
 const OFF_BASE = env("OFF_BASE").replace(/\/$/, "");
@@ -14,7 +16,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const answer = (status: number, body: { ok: boolean; reason?: string; textKept?: boolean; failedPhotos?: PhotoKind[] }) =>
+const answer = (status: number, body: { ok: boolean; reason?: string; textKept?: boolean; failedPhotos?: PhotoKind[]; pendingPhotos?: PhotoKind[] }) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 const PHOTO_FIELDS: Record<string, PhotoKind> = { front: "front", ingredients_photo: "ingredients", nutrition: "nutrition" };
@@ -85,17 +87,29 @@ Deno.serve(async req => {
       if (body?.status !== 1) throw new Error(`OFF write ${r.status} ${body?.status_verbose ?? ""}`.trim());
     } else notes.push("had ingredients: photos only");
     // M8 follow-up 2, G1: one photo at a time (OFF's test server answered 500 to parallel uploads to one product).
-    const results: PhotoResult[] = [];
-    for (const [kind, photo] of photos) {
+    const upload = async ([kind, photo]: [PhotoKind, File]) => {
       const r = await fetch(`${OFF_BASE}/cgi/product_image_upload.pl`, { method: "POST", headers, body: imageForm(code, kind, photo, account) })
         .catch(err => { console.error(`OFF image ${kind}`, err); return null; });
-      results.push(photoResult(kind, r?.status ?? 0, r?.ok ? await r.json().catch(() => null) : null));
-    }
+      return photoResult(kind, r?.status ?? 0, r?.ok ? await r.json().catch(() => null) : null);
+    };
+    // Follow-up 3, H1: wait only for the ingredients photo after a text write (or, with OFF's own text kept, until OFF
+    // takes a photo), answer, then send the rest in the background.
+    const queue = [...photos].sort(([a], [b]) => Number(b === "ingredients") - Number(a === "ingredients"));
+    const results: PhotoResult[] = [];
+    if (!textKept) { if (queue[0]?.[0] === "ingredients") results.push(await upload(queue.shift()!)); }
+    else while (queue.length && !results.some(p => p.taken)) results.push(await upload(queue.shift()!));
     // G2: partial success is "Sent", naming the failed photos. Nothing invented: if OFF took nothing, it isn't.
-    const reply = sendReply(!textKept, results);
+    const reply = sendReply(!textKept, results, queue.map(([kind]) => kind));
     const log = [...notes, ...results.flatMap(p => p.note ?? [])].join("; ") || undefined;
     if (!reply.ok) { await finish("failed", log); return answer(reply.reason === "off-down" ? 502 : 409, reply); }
     await finish("sent", log);
+    // ponytail: background failures are logged only (owner accepted, 049); the person isn't told.
+    if (queue.length) EdgeRuntime.waitUntil((async () => {
+      const later: PhotoResult[] = [];
+      for (const p of queue) later.push(await upload(p));
+      const all = withLater(log, later);
+      if (all !== log) await db.from("contributions").update({ error: all }).eq("id", row.id);
+    })().catch(err => console.error("background photos failed", err)));
     return answer(200, { ...reply, textKept });
   } catch (err) {
     console.error("OFF call failed", err);
