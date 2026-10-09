@@ -170,9 +170,9 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
           <PhotoButtons onPhoto={onPhoto(kind)} />
           {photos[kind]
             ? <button onClick={() => setStep(next[kind])} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">Keep the photo I took</button>
-            : <button onClick={() => skip(kind)} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">
-                {kind === "ingredients" ? "Skip the photo, type the ingredients" : "Skip"}
-              </button>}
+            : kind === "ingredients" // K3: a visible way past a bag with no ingredients panel
+              ? <button onClick={() => skip(kind)} className="w-full min-h-[52px] rounded-2xl border border-white/30 bg-white/10 text-white font-bold text-sm">No ingredients list? Type it</button>
+              : <button onClick={() => skip(kind)} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">Skip</button>}
         </div>
       )}
     </>);

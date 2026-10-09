@@ -252,9 +252,12 @@ try {
     nf.includes("Add this product") && nf.includes("Or add it on the Open Food Facts website"));
   const turnstile = () => requests.some(u => u.includes("challenges.cloudflare.com"));
   const tipsStep = await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
-    const t = document.body.innerText; __btn("Skip the photo, type the ingredients").click(); await __sleep(300); return t; })()`);
+    const t = document.body.innerText; __btn("No ingredients list? Type it").click(); await __sleep(300); return t; })()`);
   check("M8 H3: the ingredients photo step shows the numbered tips", ["Lay it flat", "Close & sharp", "Only the ingredients", "No glare"]
     .every(t => tipsStep.includes(t)));
+  const typeIt = await run(`({ box: document.querySelector("#ingredients")?.value, ph: document.querySelector("#ingredients")?.placeholder })`);
+  check("K3: 'No ingredients list? Type it' (no skip link) goes straight to an empty check box", !tipsStep.includes("Skip the photo")
+    && typeIt.box === "" && typeIt.ph?.startsWith("e.g."), JSON.stringify(typeIt));
   await typeIngredients("Water, sugar, Red 40");
   const beforeSend = turnstile();
   await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); __btn("Skip").click(); await __sleep(600); return true; })()`);
@@ -313,7 +316,7 @@ try {
   await send("Fetch.enable", { patterns: [{ urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }] });
   await scanTyped("3017620429996", "We couldn't find this barcode yet");
   await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
-    __btn("Skip the photo, type the ingredients").click(); await __sleep(300); return true; })()`);
+    __btn("No ingredients list? Type it").click(); await __sleep(300); return true; })()`);
   await typeIngredients("Water, sugar, Red 40");
   const nutritionStep = await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); return document.body.innerText; })()`);
   check("M8 H3: the nutrition photo step's tips say 'Only the nutrition table'", ["Lay it flat", "Close & sharp", "Only the nutrition table", "No glare"]
