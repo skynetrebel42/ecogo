@@ -60,7 +60,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
 
   const next: Record<Kind, Step> = { front: "ingredients", ingredients: "check", nutrition: "send" };
-  const usePhoto = async (kind: Kind, blob: Blob, blurOk: boolean) => {
+  const acceptPhoto = async (kind: Kind, blob: Blob, blurOk: boolean) => {
     setBlurry(undefined);
     setPhotos(p => ({ ...p, [kind]: blob }));
     if (kind !== "ingredients") { setStep(next[kind]); return; }
@@ -77,7 +77,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       return;
     }
     // H2: the blur check runs before reading, so a retake costs no reading time.
-    if (await isBlurry(blob)) setBlurry({ kind, blob }); else await usePhoto(kind, blob, false);
+    if (await isBlurry(blob)) setBlurry({ kind, blob }); else await acceptPhoto(kind, blob, false);
   };
   const skip = (kind: Kind) => {
     setPhotoError(undefined); setBlurry(undefined);
@@ -118,7 +118,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     const order: Kind[] = ["front", "ingredients", "nutrition"];
     const blur = step !== "reading" && blurry?.kind === kind ? blurry.blob : undefined;
     return screen(true, <>
-      {header("Add this product", `Barcode ${code}`, true, step === "nutrition" ? () => setStep("check") : undefined)}
+      {header("Add this product", `Barcode ${code}`, true, step === "nutrition" ? () => { setBlurry(undefined); setStep("check"); } : undefined)}
       <ol className="px-4 pt-4 flex gap-2" aria-label="Photos">
         {order.map((k, i) => {
           const done = order.indexOf(kind) > i;
@@ -132,8 +132,8 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       </ol>
       <div className="flex-1 flex flex-col justify-center px-6 gap-4 text-center">
         {step === "reading" ? <div className="bg-white rounded-3xl text-gray-900"><Reading /></div>
-          : blur ? <PhotoNotice title="This photo looks blurry." kind={kind === "nutrition" ? "nutrition" : "ingredients"}
-              onRetake={() => setBlurry(undefined)} onUseAnyway={() => usePhoto(kind, blur, true)} />
+          : blur ? <PhotoNotice title="This photo looks blurry." kind={kind}
+              onRetake={() => setBlurry(undefined)} onUseAnyway={() => acceptPhoto(kind, blur, true)} />
           : <>
           <p className="text-base font-extrabold">{LABEL[kind]} photo</p>
           <p className="text-sm text-[#D1DAD4] leading-relaxed">{PHOTO_TIPS[kind]}</p>

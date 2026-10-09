@@ -30,7 +30,8 @@ export function sharpness(rgba: ArrayLike<number>, width: number, height: number
   return (tiles[0] + tiles[1] + tiles[2] + tiles[3]) / 4;
 }
 
-/** The sharpness of a photo, scored on a copy at most 512 px on the long side (fast on a phone; same scale for all). */
+/** The sharpness of a photo, scored on a copy at most 512 px on the long side (fast on a phone). Prepared photos are
+ *  ≥ 640 px, so they all score at 512; only the no-barcode check's small-photo fallback scores smaller. */
 export async function photoSharpness(photo: Blob): Promise<number> {
   const bitmap = await createImageBitmap(photo);
   const { width, height } = fitWithin(bitmap.width, bitmap.height, 512);

@@ -108,7 +108,9 @@ Deno.serve(async req => {
       const later: PhotoResult[] = [];
       for (const p of queue) later.push(await upload(p));
       const all = withLater(log, later);
-      if (all !== log) await db.from("contributions").update({ error: all }).eq("id", row.id);
+      if (all === log) return;
+      const { error } = await db.from("contributions").update({ error: all }).eq("id", row.id);
+      if (error) console.error("background log write failed", error);
     })().catch(err => console.error("background photos failed", err)));
     return answer(200, { ...reply, textKept });
   } catch (err) {

@@ -104,9 +104,9 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | `scripts/apply-verified-barcodes.mjs` | 58 | Applies `verified-barcodes.json` to `products.csv` and prints the matching SQL migration | SAFE TO EDIT |
 | `src/lib/fixtures/{usda,off}/*.json` | — | Recorded real API responses (trimmed) for `lookup.test.ts` | Re-record, don't hand-edit |
 | `src/lib/supabase.ts` | 8 | Browser client from `.env` | SAFE TO EDIT |
-| `src/lib/ocr.ts`, `photo.ts` | 117, 63 | M8: read a label on the phone (Tesseract.js, lazy, self-hosted), trim it to the ingredients (047); prepare photos (≤ 2000 px JPEG, OFF minimum) and score their sharpness (049) | SAFE TO EDIT |
+| `src/lib/ocr.ts`, `photo.ts` | 117, 64 | M8: read a label on the phone (Tesseract.js, lazy, self-hosted), trim it to the ingredients (047); prepare photos (≤ 2000 px JPEG, OFF minimum) and score their sharpness (049) | SAFE TO EDIT |
 | `src/lib/contribute.ts`, `turnstile.ts` | 68, 43 | M8: anonymous sign-in at the first Send (Turnstile token) and invoking `off-submit`; the client is passed in for tests | EDIT WITH CAUTION (the browser's only Supabase writes) |
-| `supabase/functions/off-submit/` | 119 + 79 | M8 Edge Function: verify caller, limits (10/ID, 200/day), log, call OFF (`off.ts` pure, node-tested). Deployed via the Supabase MCP, verify_jwt off (checks the JWT itself) | EDIT WITH CAUTION (redeploy after edits; secrets OFF_*) |
+| `supabase/functions/off-submit/` | 121 + 79 | M8 Edge Function: verify caller, limits (10/ID, 200/day), log, call OFF (`off.ts` pure, node-tested). Deployed via the Supabase MCP, verify_jwt off (checks the JWT itself) | EDIT WITH CAUTION (redeploy after edits; secrets OFF_*) |
 | `src/data/products.csv` | 113 | Seed source and offline fallback (112 rows → 51 products) | SAFE TO EDIT (DB won't change; see K-17) |
 | `supabase/migrations/*.sql` | — | Schema and seed; file names match the project's migration history | **Add new migrations; never edit applied ones** |
 | `.env` | 6 | Public Supabase URL + publishable key | SAFE TO EDIT (no secrets) |

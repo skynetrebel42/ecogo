@@ -40,13 +40,13 @@ export function PhotoTips({ kind = "ingredients", className = "" }: { kind?: "in
 
 /** A hint about the photo, never a block: "This photo is hard to read." (048 G4, after reading) or "This photo looks
  *  blurry." (049 H2, before reading). */
-export function PhotoNotice({ title, kind, onRetake, onUseAnyway }: {
-  title: string; kind?: "ingredients" | "nutrition"; onRetake: () => void; onUseAnyway: () => void;
+export function PhotoNotice({ title, kind = "ingredients", onRetake, onUseAnyway }: {
+  title: string; kind?: "front" | "ingredients" | "nutrition"; onRetake: () => void; onUseAnyway: () => void;
 }) {
   return (
     <div role="alert" className="bg-white text-gray-900 border border-border rounded-2xl p-4 space-y-3">
       <p className="text-base font-extrabold">{title}</p>
-      <PhotoTips kind={kind} className="text-gray-700" />
+      {kind !== "front" && <PhotoTips kind={kind} className="text-gray-700" />}{/* H3 defines tips for these two only */}
       <button onClick={onRetake} className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Retake photo</button>
       <button onClick={onUseAnyway} className="w-full min-h-[44px] rounded-2xl border border-border bg-white font-bold text-sm">Use it anyway</button>
     </div>
