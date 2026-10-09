@@ -1,7 +1,7 @@
 # M8 follow-up 4: a real progress bar while sending
 
 - **Date:** 2026-10-09
-- **Status:** **Approved** by the owner 2026-10-09 (decision 050, picked from options: real upload % + steps)
+- **Status:** **Done**, live 2026-10-09 (origin/main 5a08ad6); approved by the owner 2026-10-09 (decision 050, picked from options: real upload % + steps)
 - **Why:** after follow-up 3 (Send ~10 s), Minh wants a progress bar for the photo send-off, following good UI practice:
   a wait of several seconds deserves visible progress, and the progress must be true (facts first: never a timer
   pretending to be progress).

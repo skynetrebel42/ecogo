@@ -231,6 +231,10 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
   Send button; a send to OFF's test server is tested by hand in the owner's own browser.
 - **Advisor WARN accepted (owner, 2026-10-08):** `auth_allow_anonymous_sign_ins` on `contributions`. The read-own policy
   covers anonymous users on purpose (D7: points and levels will read the same ID's rows).
+- **check-home can time out (seen 2026-10-09, Knight V):** 4 of 8 runs hit the 120 s timeout, some before any M8 step,
+  one stalled in the Saved/USDA-search part that reads live Supabase; passing runs take ~58 s. Likely slow live reads,
+  not M8 code. Watch it; if it persists, stub those reads or raise the step timeout.
+- **Since 2026-10-09 sends go to the real Open Food Facts:** live end-to-end checks use only the owner's real products.
 - **Limits can overshoot by a few:** `off-submit` counts, then inserts, so simultaneous sends can pass 10/200 by a few
   (marked `ponytail:` in the function).
 - **Re-adding right after a Send:** the lookup caches "not found" for the session, so scanning the same barcode again
