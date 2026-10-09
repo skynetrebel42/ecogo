@@ -1,7 +1,7 @@
 # M8 follow-up 2: one-by-one photo uploads, honest partial success, photo tips, retake hint, shorter line list
 
 - **Date:** 2026-10-08
-- **Status:** **Approved** by the owner 2026-10-08 (decision 048, picked from options)
+- **Status:** **Done**, live 2026-10-09 (origin/main 91389f1); approved by the owner 2026-10-08 (decision 048, picked from options)
 - **Why:** Minh's second phone test (blue Takis bag, test server, barcode 2026100800048): both Sends showed "Open Food
   Facts didn't answer" after 18 s and ~7 s. `contributions` rows 13–14: OFF took the text and the front and
   ingredients photos, but `product_image_upload.pl` answered **500 for the nutrition photo** both times; the earlier
