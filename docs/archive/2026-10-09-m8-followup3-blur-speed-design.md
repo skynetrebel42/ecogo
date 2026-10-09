@@ -1,7 +1,7 @@
 # M8 follow-up 3: "Sent" sooner, blur check on every photo, numbered tips
 
 - **Date:** 2026-10-09
-- **Status:** **Approved** by the owner 2026-10-09 (decision 049, picked from options)
+- **Status:** **Done**, live 2026-10-09 (origin/main 56069ac); approved by the owner 2026-10-09 (decision 049, picked from options)
 - **Why:** Minh's third phone test (barcode 2026100800055, test server): "Sent" (row 15) but after ~43 s; the function
   log shows 33 s inside `off-submit`, waiting on OFF's test server to take 3 photos one by one (048 G1). A blurry
   ingredients photo full of other text and a blurry nutrition photo got no warning: 048 G4 judges only the reader's
