@@ -5,14 +5,14 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X, Check, ArrowLeft } from "lucide-react";
 import { preparePhoto, TOO_SMALL } from "../../lib/photo";
-import { hardToRead, readPhoto, type LabelLine } from "../../lib/ocr";
+import { readPhoto, type LabelLine } from "../../lib/ocr";
 import { submitProduct, type PhotoKind, type SubmitReason } from "../../lib/contribute";
 import { offEditUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { supabase } from "../../lib/supabase";
 import { HardToRead, IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoTips, Reading } from "./IngredientCheck";
 
-type Kind = "front" | "ingredients" | "nutrition";
+type Kind = PhotoKind;
 type Step = Kind | "reading" | "check" | "send" | "sending" | "sent" | "failed";
 
 const FAILED: Record<SubmitReason, string> = {
@@ -69,7 +69,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     if (kind !== "ingredients") { setStep(next[kind]); return; }
     setStep("reading");
     const r = await readPhoto(blob);
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setHard(hardToRead(r.text, r.unsure)); setStep("check");
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setHard(r.hard); setStep("check");
   };
   const skip = (kind: Kind) => {
     setPhotoError(undefined);

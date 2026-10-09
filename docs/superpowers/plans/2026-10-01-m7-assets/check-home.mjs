@@ -278,8 +278,8 @@ try {
   check("M8 F4: while a send is pending the button reads 'Sending photos… this can take up to 30 seconds'",
     waiting === "Sending photos… this can take up to 30 seconds (disabled)", waiting);
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
-  // M8 follow-up 2, G2: OFF took the text but not the nutrition photo. The anonymous sign-in and off-submit are answered
-  // here (CDP Fetch), so nothing reaches Supabase or OFF; the human check is stubbed to hand over a token.
+  // M8 follow-up 2, G2: OFF took the text but not the nutrition photo. Every auth call and off-submit are answered here
+  // (CDP Fetch), so nothing of the send reaches Supabase or OFF; the human check is stubbed to hand over a token.
   const faked = [];
   const CORS = [{ name: "Access-Control-Allow-Origin", value: "*" }, { name: "Access-Control-Allow-Headers", value: "*" },
     { name: "Access-Control-Allow-Methods", value: "POST, OPTIONS" }, { name: "Content-Type", value: "application/json" }];
@@ -291,7 +291,7 @@ try {
       : JSON.stringify({ ok: true, textKept: false, failedPhotos: ["nutrition"] });
     send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
   };
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/auth/v1/signup*" }, { urlPattern: "*/functions/v1/off-submit*" }] });
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }] });
   await scanTyped("3017620429996", "We couldn't find this barcode yet");
   await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
     __btn("Skip the photo, type the ingredients").click(); await __sleep(300); return true; })()`);
@@ -311,7 +311,8 @@ try {
   check("M8 G2: a send where only the nutrition photo failed says Sent, names it and links to OFF",
     sent.includes("Sent to Open Food Facts") && sent.includes("The nutrition photo didn't go through. You can add it later on the Open Food Facts website.")
     && sent.includes("|https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=3017620429996")
-    && faked.some(f => f.startsWith("POST") && f.includes("signup")) && faked.some(f => f.startsWith("POST") && f.includes("off-submit")),
+    && faked.some(f => f.startsWith("POST") && f.includes("signup")) && faked.some(f => f.startsWith("POST") && f.includes("off-submit"))
+    && faked.every(f => /^(OPTIONS|POST) v1\/(signup|off-submit)$/.test(f)),
     `${sent.split("|")[1]}; answered here: ${faked.join(", ")}`);
   await run(`(async () => { __btn("Scan another product").click(); await __sleep(600); return true; })()`);
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));

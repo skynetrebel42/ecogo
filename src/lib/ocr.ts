@@ -105,13 +105,14 @@ export async function readLabel(image: Blob): Promise<{ text: string; unsure: st
 
 const COULDNT_READ = "Couldn't read it. Type the ingredients or retake the photo.";
 
-/** readLabel for the screens: never throws; no text comes back with the "couldn't read" message (spec §3). */
-export async function readPhoto(photo: Blob): Promise<{ text: string; unsure: string[]; lines: LabelLine[]; error?: string }> {
+/** readLabel for the screens: never throws; no text comes back with the "couldn't read" message (spec §3). `hard`
+ *  (follow-up 2, G4) only when something was read: a reader that failed (offline, say) isn't the photo's fault. */
+export async function readPhoto(photo: Blob): Promise<{ text: string; unsure: string[]; lines: LabelLine[]; hard: boolean; error?: string }> {
   try {
     const r = await readLabel(photo);
-    return r.lines.length ? r : { ...r, error: COULDNT_READ };
+    return r.lines.length ? { ...r, hard: hardToRead(r.text, r.unsure) } : { ...r, hard: false, error: COULDNT_READ };
   } catch (err) {
     console.warn("[ocr] couldn't read the photo", err);
-    return { text: "", unsure: [], lines: [], error: COULDNT_READ };
+    return { text: "", unsure: [], lines: [], hard: false, error: COULDNT_READ };
   }
 }

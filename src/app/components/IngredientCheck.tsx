@@ -5,7 +5,7 @@
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
-import { hardToRead, readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
+import { readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
 import { preparePhoto } from "../../lib/photo";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
 import Explainer from "./Explainer";
@@ -173,7 +173,7 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
   const onPhoto = async (file: File) => {
     setStatus("reading");
     const r = await readPhoto(await preparePhoto(file).catch(() => file)); // a small photo can still be read
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setHard(hardToRead(r.text, r.unsure)); setStatus("read");
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setHard(r.hard); setStatus("read");
   };
   const reset = () => { setText(""); setUnsure([]); setLines(undefined); setError(undefined); setHard(false); setStatus("idle"); };
   const showHard = mode === "photo" && status === "read" && hard;
