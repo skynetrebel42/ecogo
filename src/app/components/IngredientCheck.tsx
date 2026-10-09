@@ -87,7 +87,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
     <div className="space-y-3">
       {lines && lines.length > 0 && <>
         <p className="text-sm text-gray-700 leading-relaxed">{linesNote(found.startWord, found.stopWord)}</p>
-        <ul aria-label="Lines read from the photo" className="bg-white rounded-2xl border border-border divide-y divide-border">
+        {hidden < lines.length && <ul aria-label="Lines read from the photo" className="bg-white rounded-2xl border border-border divide-y divide-border">
           {lines.map((l, i) => listed(l) && (
             <li key={i}>
               <label className="flex gap-2.5 items-start px-3 py-2.5 min-h-[44px] text-sm leading-snug">
@@ -96,7 +96,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
               </label>
             </li>
           ))}
-        </ul>
+        </ul>}{/* K5: never an empty card */}
         {hidden > 0 && (
           <button onClick={() => setShowAll(true)} className="text-sm font-bold text-[#1A5C39] underline min-h-[44px]">
             Show {hidden} more line{hidden > 1 ? "s" : ""} we left out
