@@ -87,7 +87,7 @@ export function hardToRead(text: string, unsure: string[]): boolean {
 let worker: Promise<Worker> | undefined;
 
 /** Reads the text of a label photo. The first call downloads the reader (about 7 MB), which the browser then keeps. */
-export async function readLabel(image: Blob): Promise<{ text: string; unsure: string[]; lines: LabelLine[] }> {
+export async function readLabel(image: Blob): Promise<Read> {
   if (!worker) {
     worker = import("tesseract.js").then(({ createWorker }) => {
       // The site lives under a sub-path (Vite base './'): build absolute URLs, never "/…".
@@ -105,12 +105,21 @@ export async function readLabel(image: Blob): Promise<{ text: string; unsure: st
 
 const COULDNT_READ = "Couldn't read it. Type the ingredients or retake the photo.";
 
-/** readLabel for the screens: never throws; no text comes back with the "couldn't read" message (spec §3). `hard`
- *  (follow-up 2, G4) only when something was read: a reader that failed (offline, say) isn't the photo's fault. */
-export async function readPhoto(photo: Blob): Promise<{ text: string; unsure: string[]; lines: LabelLine[]; hard: boolean; error?: string }> {
+type Read = { text: string; unsure: string[]; lines: LabelLine[] };
+export type PhotoRead = Read & { hard: boolean; error?: string; read?: string };
+
+/** What a screen shows after a read: no lines → the "couldn't read" message; hard to read (G4) → an empty box and no
+ *  lines, the read text kept in `read` for "Show what we read" (follow-up 6, K2), so junk never goes into the box. */
+export function afterRead(r: Read): PhotoRead {
+  if (!r.lines.length) return { ...r, hard: false, error: COULDNT_READ };
+  return hardToRead(r.text, r.unsure) ? { text: "", unsure: r.unsure, lines: [], hard: true, read: r.text } : { ...r, hard: false };
+}
+
+/** readLabel for the screens: never throws (spec §3). `hard` (follow-up 2, G4) only when something was read: a reader
+ *  that failed (offline, say) isn't the photo's fault. */
+export async function readPhoto(photo: Blob): Promise<PhotoRead> {
   try {
-    const r = await readLabel(photo);
-    return r.lines.length ? { ...r, hard: hardToRead(r.text, r.unsure) } : { ...r, hard: false, error: COULDNT_READ };
+    return afterRead(await readLabel(photo));
   } catch (err) {
     console.warn("[ocr] couldn't read the photo", err);
     return { text: "", unsure: [], lines: [], hard: false, error: COULDNT_READ };

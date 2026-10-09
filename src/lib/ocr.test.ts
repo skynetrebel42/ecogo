@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cleanIngredients, hardToRead, labelLines, linesText, trimToIngredients, unsureCount, unsureWords } from "./ocr.ts";
+import { afterRead, cleanIngredients, hardToRead, labelLines, linesText, trimToIngredients, unsureCount, unsureWords } from "./ocr.ts";
 
 const word = (text: string, confidence: number) => ({ text, confidence });
 const page = (...lines: { text: string; confidence: number }[][]) => [{ paragraphs: [{ lines: lines.map(words => ({ words })) }] }];
@@ -111,4 +111,22 @@ test("a photo is hard to read at 25% unsure kept words, or when nothing was kept
 
 test("a line with only punctuation left in the range isn't ticked", () => {
   assert.deepEqual(labelLines(["Ingredients:", "salt", ". Contains milk"]).map(l => l.on), [false, true, false]);
+});
+
+// M8 follow-up 6, K2: junk never goes into the box; it waits behind "Show what we read".
+test("a hard-to-read photo starts with an empty box and no lines; what was read is kept for 'Show what we read'", () => {
+  const lines = labelLines(["Ingredients: Xq vb, Zrt"]);
+  const r = afterRead({ text: "Xq vb, Zrt", unsure: ["Xq", "vb"], lines });
+  assert.deepEqual(r, { text: "", unsure: ["Xq", "vb"], lines: [], hard: true, read: "Xq vb, Zrt" });
+});
+
+test("a clear photo fills the box and its lines, with nothing held back", () => {
+  const lines = labelLines(["Ingredients: Sugar, salt"]);
+  assert.deepEqual(afterRead({ text: "Sugar, salt", unsure: [], lines }), { text: "Sugar, salt", unsure: [], lines, hard: false });
+});
+
+test("lines with nothing kept are hard to read, with nothing to show; no lines at all is 'couldn't read'", () => {
+  assert.deepEqual(afterRead({ text: "", unsure: [], lines: labelLines(["Nutrition Facts"]).map(l => ({ ...l, kept: "", on: false })) }),
+    { text: "", unsure: [], lines: [], hard: true, read: "" });
+  assert.equal(afterRead({ text: "", unsure: [], lines: [] }).error, "Couldn't read it. Type the ingredients or retake the photo.");
 });

@@ -62,10 +62,11 @@ function linesNote(a?: string, b?: string): string {
 /** Editable ingredients with unsure words underlined, and the live badge. The underlines are drawn by a copy of the
  *  text (transparent, in flow, so the box grows with it) behind a transparent textarea laid exactly over it.
  *  With `lines` (read from a photo), each line can be ticked or unticked and the box follows; the first keystroke in the
- *  box hides the lines for good (onLines(null)), so the box is the final say (follow-up F2, F3). */
-export function IngredientEditor({ value, onChange, unsure, note, lines, onLines }: {
+ *  box hides the lines for good (onLines(null)), so the box is the final say (follow-up F2, F3).
+ *  With `read` (a hard-to-read photo, follow-up 6 K2), the box starts empty and "Show what we read" puts it there. */
+export function IngredientEditor({ value, onChange, unsure, note, lines, onLines, read, onShowRead }: {
   value: string; onChange: (text: string) => void; unsure: string[]; note?: string;
-  lines?: LabelLine[] | null; onLines?: (lines: LabelLine[] | null) => void;
+  lines?: LabelLine[] | null; onLines?: (lines: LabelLine[] | null) => void; read?: string; onShowRead?: () => void;
 }) {
   const assessment = useMemo(() => check(value), [value]);
   const [explainer, setExplainer] = useState(false);
@@ -103,6 +104,10 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
         )}
       </>}
       {lines === null && <p className="text-xs text-muted-foreground">You're editing the text directly.</p>}
+      {read !== undefined && <p className="text-sm text-gray-700 leading-relaxed">We couldn't read this label well. Type the ingredients below.</p>}
+      {read && (
+        <button onClick={onShowRead} className="text-sm font-bold text-[#1A5C39] underline min-h-[44px]">Show what we read</button>
+      )}
       <label htmlFor="ingredients" className="block text-sm font-bold">Ingredients</label>
       <div className="relative rounded-2xl border-2 border-[#1A5C39] bg-white">
         <div aria-hidden="true" className={`${box} text-transparent pointer-events-none`}>
@@ -178,18 +183,19 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string>();
   const [hard, setHard] = useState(false);
   const [blurry, setBlurry] = useState<Blob>(); // 049 H2: a photo waiting on "Retake photo" / "Use it anyway"
+  const [readText, setReadText] = useState<string>(); // K2: a hard-to-read photo's text, behind "Show what we read"
 
   const read = async (photo: Blob, blurOk: boolean) => {
     setBlurry(undefined); setStatus("reading");
     const r = await readPhoto(photo);
-    // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (H2).
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setHard(r.hard && !blurOk); setStatus("read");
+    // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (H2); the box starts empty either way (K2).
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStatus("read");
   };
   const onPhoto = async (file: File) => {
     const photo = await preparePhoto(file).catch(() => file); // a small photo can still be read
     if (await isBlurry(photo)) setBlurry(photo); else await read(photo, false);
   };
-  const reset = () => { setText(""); setUnsure([]); setLines(undefined); setError(undefined); setHard(false); setBlurry(undefined); setStatus("idle"); };
+  const reset = () => { setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setStatus("idle"); };
   const showHard = mode === "photo" && status === "read" && hard;
   const showEditor = (mode === "type" || status === "read") && !showHard;
 
@@ -222,7 +228,8 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
         {mode === "photo" && status === "reading" && <Reading />}
         {showHard && <PhotoNotice title="This photo is hard to read." onRetake={reset} onUseAnyway={() => setHard(false)} />}
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
-          note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines} />}
+          note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines}
+          read={mode === "photo" ? readText : undefined} onShowRead={() => { setText(readText!); setReadText(undefined); }} />}
 
         <p className="text-xs text-gray-600 leading-relaxed">
           Without a barcode there's no nutrition label to look up, so this checks ingredients only. Nothing is saved or sent.

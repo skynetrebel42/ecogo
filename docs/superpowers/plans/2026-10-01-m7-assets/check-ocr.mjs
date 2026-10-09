@@ -133,7 +133,16 @@ try {
   check("M8 G4: a curved, shiny bag opens with 'This photo is hard to read.', the tips, Retake photo and Use it anyway",
     hard.includes("This photo is hard to read.") && hard.includes("Lay it flat") && hard.includes("Retake photo") && hard.includes("Use it anyway"), hard.slice(0, 80));
   await run(`(async () => { __btn("Use it anyway")?.click(); await __sleep(400); return true; })()`);
-  check("…Use it anyway shows the normal check", !!(await run(`!!document.querySelector("#ingredients")`)), `bag: unsure share ${await run(SHARE)}; read: ${(await run(`document.querySelector("#ingredients")?.value ?? ""`)).slice(0, 400)}`);
+  // M8 follow-up 6, K2: the junk never goes into the box; "Show what we read" puts it there.
+  const NOTICE = "We couldn't read this label well. Type the ingredients below.";
+  const empty = await run(`({ box: document.querySelector("#ingredients")?.value, text: document.body.innerText,
+    list: !!document.querySelector('ul[aria-label="Lines read from the photo"]') })`);
+  check("K2: Use it anyway opens the check with an empty box, the notice and no line list", empty.box === "" && empty.text.includes(NOTICE)
+    && !empty.list && !!(await run(`!!__btn("Show what we read")`)), JSON.stringify({ ...empty, text: empty.text.slice(0, 120) }));
+  await run(`(async () => { __btn("Show what we read").click(); await __sleep(300); return true; })()`);
+  const shown = await run(`document.querySelector("#ingredients").value`);
+  check("…'Show what we read' puts the read text in the box", shown.length > 0 && !(await run(`!!__btn("Show what we read")`)),
+    `bag: unsure share ${await run(SHARE)}; read: ${shown.slice(0, 400)}`);
   const note = await run(`document.querySelector("#unsure-note")?.innerText ?? ""`);
   check("M8 G6: the note counts the underlined words instead of listing them", /^\d+ words? underlined: check (them|it)\.$/.test(note), note);
 
@@ -150,6 +159,8 @@ try {
   await run(`(async () => { __btn("Use it anyway").click(); return true; })()`);
   const afterBlur = await run(`__until(() => document.querySelector("#ingredients") || document.body.innerText.includes("hard to read"), 60000).then(() => document.body.innerText)`);
   check("…Use it anyway reads it, with no hard-to-read hint after", !!(await run(`!!document.querySelector("#ingredients")`)) && !afterBlur.includes("This photo is hard to read."));
+  check("…K2: and its junk doesn't go into the box", (await run(`document.querySelector("#ingredients").value`)) === "" && afterBlur.includes(NOTICE),
+    (await run(`document.querySelector("#ingredients").value`)).slice(0, 120));
 
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Type it").click(); await __sleep(300); return true; })()`);
   await typeInto("Enriched flour, water, Red 40");

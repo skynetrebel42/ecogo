@@ -70,6 +70,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const [readError, setReadError] = useState<string>();
   const [hard, setHard] = useState(false); // M8 follow-up 2, G4: the photo read looks hard to read
   const [blurry, setBlurry] = useState<{ kind: Kind; blob: Blob }>(); // 049 H2: waiting on "Retake photo" / "Use it anyway"
+  const [readText, setReadText] = useState<string>(); // K2: a hard-to-read photo's text, behind "Show what we read"
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
   const [failed, setFailed] = useState<SubmitReason>("off-down");
@@ -88,8 +89,9 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     if (kind !== "ingredients") { setStep(next[kind]); return; }
     setStep("reading");
     const r = await readPhoto(blob);
-    // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (049 H2).
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setHard(r.hard && !blurOk); setStep("check");
+    // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (049 H2); the box starts
+    // empty either way (K2).
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStep("check");
   };
   const onPhoto = (kind: Kind) => async (file: File) => {
     setPhotoError(undefined);
@@ -104,7 +106,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const skip = (kind: Kind) => {
     setPhotoError(undefined); setBlurry(undefined);
     setPhotos(p => ({ ...p, [kind]: undefined }));
-    if (kind === "ingredients") { setUnsure([]); setLines(undefined); setReadError(undefined); setHard(false); }
+    if (kind === "ingredients") { setUnsure([]); setLines(undefined); setReadError(undefined); setReadText(undefined); setHard(false); }
     setStep(next[kind]);
   };
   const send = async () => {
@@ -180,10 +182,11 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     {header("Check the ingredients", "Step 2 of 3", false)}
     <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
       {hard ? <PhotoNotice title="This photo is hard to read." onRetake={() => setStep("ingredients")} onUseAnyway={() => setHard(false)} /> : <>
-        {photos.ingredients && !readError && (
+        {photos.ingredients && !readError && readText === undefined && (
           <p className="text-sm text-gray-700 leading-relaxed">EcoGo read this from your photo. Fix anything it got wrong.</p>
         )}
-        <IngredientEditor value={text} onChange={setText} unsure={unsure} note={readError} lines={lines} onLines={setLines} />
+        <IngredientEditor value={text} onChange={setText} unsure={unsure} note={readError} lines={lines} onLines={setLines}
+          read={readText} onShowRead={() => { setText(readText!); setReadText(undefined); }} />
       </>}
     </div>
     {!hard && <div className="px-4 pt-3 pb-6 flex gap-2.5">
