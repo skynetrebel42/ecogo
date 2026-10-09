@@ -6,3 +6,9 @@ export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 );
+
+/** The off-submit Edge Function, POSTed to directly for upload progress (M8 follow-up 4). */
+export const offSubmit = {
+  functionUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/off-submit`,
+  apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+};

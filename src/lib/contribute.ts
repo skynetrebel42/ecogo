@@ -32,23 +32,28 @@ export type SendStage = { stage: "check" } | { stage: "upload"; percent: number 
 const REASONS: SubmitReason[] = ["limit-you", "limit-all", "captcha", "off-down", "invalid", "nothing-new"];
 const fail = (reason: SubmitReason): SubmitResult => ({ ok: false, reason });
 
+/** How long to wait for off-submit's answer once the upload is done (it answers in ~10 s since 049 H1). The upload
+ *  itself has no limit: a slow phone mustn't give up mid-upload and then send again while the server finishes. */
+const ANSWER_WAIT_MS = 60_000;
+
 /** POST with real upload progress (XMLHttpRequest: fetch can't report it). Resolves the status and the parsed JSON
- *  (null when it isn't JSON), or null on a network error or timeout. */
+ *  (null when it isn't JSON), or null on a network error or no answer in time. */
 function post(url: string, headers: Record<string, string>, body: FormData, onProgress: (s: SendStage) => void):
   Promise<{ status: number; json: unknown } | null> {
   return new Promise(resolve => {
     const x = new XMLHttpRequest();
+    let wait: ReturnType<typeof setTimeout> | undefined;
     x.open("POST", url);
     for (const [k, v] of Object.entries(headers)) x.setRequestHeader(k, v);
-    x.timeout = 90_000; // ponytail: generous; the function answers in ~10 s since 049 H1
     x.upload.onprogress = e => { if (e.lengthComputable) onProgress({ stage: "upload", percent: Math.round((100 * e.loaded) / e.total) }); };
-    x.upload.onload = () => onProgress({ stage: "saving" });
+    x.upload.onload = () => { onProgress({ stage: "saving" }); wait = setTimeout(() => x.abort(), ANSWER_WAIT_MS); };
     x.onload = () => {
+      clearTimeout(wait);
       let json: unknown = null;
       try { json = JSON.parse(x.responseText); } catch { /* not JSON: an unknown answer */ }
       resolve({ status: x.status, json });
     };
-    x.onerror = x.ontimeout = x.onabort = () => resolve(null);
+    x.onerror = x.onabort = () => { clearTimeout(wait); resolve(null); };
     x.send(body);
   });
 }
@@ -79,8 +84,9 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
   if (s.photos.nutrition) body.set("nutrition", s.photos.nutrition, "nutrition.jpg");
 
   const session = data.session ?? (await client.auth.getSession()).data.session;
+  if (!session) return fail("captcha"); // signed in, yet no session: treat as a failed check, send nothing
   onProgress({ stage: "upload", percent: 0 });
-  const res = await post(client.functionUrl, { Authorization: `Bearer ${session?.access_token ?? ""}`, apikey: client.apikey }, body, onProgress);
+  const res = await post(client.functionUrl, { Authorization: `Bearer ${session.access_token}`, apikey: client.apikey }, body, onProgress);
   // off-submit answers { ok, reason?, … } with any status.
   const answer = res?.json as
     { ok?: boolean; reason?: SubmitReason; textKept?: boolean; failedPhotos?: unknown; pendingPhotos?: unknown } | null | undefined;

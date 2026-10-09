@@ -326,8 +326,10 @@ try {
     document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
     const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
     t.render = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; }; t.remove = () => {};
+    const live = document.querySelector('p.sr-only[aria-live="polite"]'); window.__said = [live ? JSON.stringify(live.innerText) : "no live region"];
     window.__bar = []; const seen = setInterval(() => { const b = document.querySelector('[role="progressbar"]');
-      const s = b && b.getAttribute("aria-valuetext") + "/" + (b.getAttribute("aria-valuenow") ?? "-"); if (s && __bar.at(-1) !== s) __bar.push(s); }, 20);
+      const s = b && b.getAttribute("aria-valuetext") + "/" + (b.getAttribute("aria-valuenow") ?? "-"); if (s && __bar.at(-1) !== s) __bar.push(s);
+      const t = live?.innerText; if (t && __said.at(-1) !== t) __said.push(t); }, 20);
     __btn("Send").click(); await __until(() => document.body.innerText.includes("Sent to Open Food Facts"), 20000); clearInterval(seen);
     const a = [...document.querySelectorAll("a")].find(a => a.innerText === "Open Food Facts website");
     return document.body.innerText + "|" + (a?.href ?? "no link"); })()`);
@@ -339,6 +341,9 @@ try {
   check("M8 P1/P2: the bar shows the real upload percent rising, then 'Open Food Facts is saving it…', then Sent",
     pct.length >= 3 && pct.every((p, i) => i === 0 || p >= pct[i - 1]) && pct.some(p => p > 0 && p < 100)
     && bar.at(-1) === "Open Food Facts is saving it…/-" && bar.every(s => s.startsWith("Uploading photos") || !/\/\d/.test(s)), bar.join(" → "));
+  const said = await run(`__said`);
+  check("…and the live region, there and empty before Send, announces each stage once (no percents)",
+    JSON.stringify(said) === JSON.stringify(['""', "Checking you're human…", "Uploading photos…", "Open Food Facts is saving it…"]), said.join(" → "));
   check("M8 G2/H1: a send where the nutrition photo failed says Sent, names it, links to OFF, and says the others are still uploading",
     sent.includes("Sent to Open Food Facts") && sent.includes("The nutrition photo didn't go through. You can add it later on the Open Food Facts website.")
     && sent.includes("Your other photos are still uploading to Open Food Facts.")

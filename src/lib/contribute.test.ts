@@ -20,12 +20,13 @@ class FakeXHR {
   private url = ""; private headers: Record<string, string> = {};
   open(method: string, url: string) { this.url = `${method} ${url}`; }
   setRequestHeader(k: string, v: string) { this.headers[k] = v; }
+  abort() { this.onabort?.(); }
   send(body: FormData) {
     calls.push(this.url === `POST ${URL_}` ? "send off-submit" : `send ${this.url}`);
     request = { headers: this.headers, body };
     setTimeout(() => {
       if (reply === "network") return this.onerror?.();
-      if (reply === "timeout") return this.ontimeout?.();
+      if (reply === "timeout") return this.abort(); // the app's wait after the upload ran out
       for (const loaded of [30, 100]) this.upload.onprogress?.({ lengthComputable: true, loaded, total: 100 });
       this.upload.onload?.();
       this.status = reply.status;
@@ -95,6 +96,13 @@ test("the send reports its stages: human check, upload with rising percents, the
   const again: SendStage[] = [];
   await submitProduct({ ...input, photos: {} }, token, fakeClient({ session: true }).client, s => again.push(s));
   assert.equal(again[0].stage, "upload", "no human check when already signed in");
+});
+
+test("no session even after signing in means the human check failed; nothing is sent", async () => {
+  const f = fakeClient();
+  f.client.auth.getSession = async () => ({ data: { session: null } });
+  assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, f.client), { ok: false, reason: "captcha" });
+  assert.deepEqual(f.calls(), ["signIn turnstile-token"]);
 });
 
 test("a failed human check stops before anything is sent", async () => {

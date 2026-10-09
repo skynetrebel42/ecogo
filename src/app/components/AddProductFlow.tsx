@@ -9,7 +9,7 @@ import { readPhoto, type LabelLine } from "../../lib/ocr";
 import { submitProduct, type PhotoKind, type SendStage, type SubmitReason } from "../../lib/contribute";
 import { offEditUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
-import { supabase } from "../../lib/supabase";
+import { offSubmit, supabase } from "../../lib/supabase";
 import { IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoNotice, PhotoTips, Reading } from "./IngredientCheck";
 
 type Kind = PhotoKind;
@@ -39,11 +39,14 @@ function Thumb({ blob, label }: { blob?: Blob; label: string }) {
     : <div className="h-20 rounded-xl bg-gray-200 flex items-center justify-center text-xs text-gray-600">{label}: skipped</div>;
 }
 
-/** The send bar (follow-up 4, P2): the real upload percent, or a moving bar while the stage has none. Screen readers
- *  hear each stage once (not every percent); with reduced motion the moving bar is a still tint. */
+/** What a send stage says (follow-up 4, P2); `percent: false` leaves the number out (the live region's wording). */
+const stageLabel = (stage: SendStage, percent = true) => stage.stage === "upload" ? `Uploading photos…${percent ? ` ${stage.percent}%` : ""}`
+  : stage.stage === "check" ? "Checking you're human…" : "Open Food Facts is saving it…";
+
+/** The send bar (P2): the real upload percent, or a moving bar while the stage has none; with reduced motion the moving
+ *  bar is a still tint. Screen readers hear each stage once from the Send screen's live region, not every percent. */
 function SendProgress({ stage }: { stage: SendStage }) {
-  const label = stage.stage === "upload" ? `Uploading photos… ${stage.percent}%`
-    : stage.stage === "check" ? "Checking you're human…" : "Open Food Facts is saving it…";
+  const label = stageLabel(stage);
   return (
     <div className="space-y-1.5">
       <p className="text-sm font-bold text-gray-700" aria-hidden="true">{label}</p>
@@ -53,7 +56,6 @@ function SendProgress({ stage }: { stage: SendStage }) {
           ? <div className="h-full rounded-full bg-[#1A5C39] transition-[width] duration-200" style={{ width: `${stage.percent}%` }} />
           : <div data-moving className="h-full w-1/3 rounded-full bg-[#1A5C39] animate-[ecogo-indeterminate_1.2s_ease-in-out_infinite] motion-reduce:animate-none motion-reduce:w-full motion-reduce:opacity-40" />}
       </div>
-      <p className="sr-only" aria-live="polite">{stage.stage === "upload" ? "Uploading photos…" : label}</p>
     </div>
   );
 }
@@ -73,8 +75,8 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const [failed, setFailed] = useState<SubmitReason>("off-down");
   const [textKept, setTextKept] = useState(false);
   const [failedPhotos, setFailedPhotos] = useState<PhotoKind[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [stage, setStage] = useState<SendStage>(); // follow-up 4: where the send is, for the bar // follow-up 3, H1: other photos still going up in the background
+  const [uploading, setUploading] = useState(false); // follow-up 3, H1: other photos still going up in the background
+  const [stage, setStage] = useState<SendStage>(); // follow-up 4: where the send is, for the bar
   const humanCheckSlot = useRef<HTMLDivElement>(null); // where Turnstile shows a challenge, if it needs one
 
   useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
@@ -108,8 +110,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const send = async () => {
     setStep("sending"); setStage(undefined);
     const r = await submitProduct({ code, name, ingredients: text, photos }, () => turnstileToken(humanCheckSlot.current!),
-      { auth: supabase.auth, functionUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/off-submit`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-      setStage);
+      { auth: supabase.auth, ...offSubmit }, setStage);
     if (r.ok) { setTextKept(!!r.textKept); setFailedPhotos(r.failedPhotos ?? []); setUploading(!!r.pendingPhotos); setStep("sent"); } else { setFailed(r.reason); setStep("failed"); }
   };
 
@@ -252,6 +253,8 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       <div ref={humanCheckSlot} />
     </div>
     <div className="px-4 pt-3 pb-6 space-y-2">
+      {/* Always on this screen, so its first announcement isn't lost (a region inserted with its text isn't read). */}
+      <p className="sr-only" aria-live="polite">{sending && stage ? stageLabel(stage, false) : ""}</p>
       {sending && stage && <SendProgress stage={stage} />}
       <button onClick={send} disabled={!consent || !text.trim() || sending}
         className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] disabled:opacity-50">
