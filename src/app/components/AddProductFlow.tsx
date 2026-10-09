@@ -146,7 +146,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     if (cropping === "ingredients") acceptPhoto(cropping, blob, false); else setPhotos(p => ({ ...p, [cropping]: blob }));
   }} />;
   const cropButton = (kind: Kind) => (
-    <button onClick={() => setCropping(kind)} disabled={step === "sending"} className="w-full min-h-[44px] text-xs font-bold text-[#1A5C39] underline disabled:opacity-50">Crop</button>
+    <button onClick={() => setCropping(kind)} disabled={step === "sending"} aria-label={`Crop the ${kind} photo`} className="w-full min-h-[44px] text-xs font-bold text-[#1A5C39] underline disabled:opacity-50">Crop</button>
   );
 
   if (step === "front" || step === "ingredients" || step === "nutrition" || step === "reading") {

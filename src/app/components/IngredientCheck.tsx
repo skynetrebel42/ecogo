@@ -105,7 +105,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
       </>}
       {lines === null && <p className="text-xs text-muted-foreground">You're editing the text directly.</p>}
       {read !== undefined && <p className="text-sm text-gray-700 leading-relaxed">We couldn't read this label well. Type the ingredients below.</p>}
-      {read && (
+      {read && !value && ( // only into an empty box: never over what the person typed
         <button onClick={onShowRead} className="text-sm font-bold text-[#1A5C39] underline min-h-[44px]">Show what we read</button>
       )}
       <label htmlFor="ingredients" className="block text-sm font-bold">Ingredients</label>

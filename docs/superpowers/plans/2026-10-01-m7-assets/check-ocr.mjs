@@ -161,6 +161,9 @@ try {
   check("…Use it anyway reads it, with no hard-to-read hint after", !!(await run(`!!document.querySelector("#ingredients")`)) && !afterBlur.includes("This photo is hard to read."));
   check("…K2: and its junk doesn't go into the box", (await run(`document.querySelector("#ingredients").value`)) === "" && afterBlur.includes(NOTICE),
     (await run(`document.querySelector("#ingredients").value`)).slice(0, 120));
+  const linkBefore = await run(`!!__btn("Show what we read")`);
+  await typeInto("Red lentils");
+  check("…typing hides 'Show what we read', so it never replaces typed text", linkBefore && !(await run(`!!__btn("Show what we read")`)));
 
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Type it").click(); await __sleep(300); return true; })()`);
   await typeInto("Enriched flour, water, Red 40");
