@@ -319,6 +319,16 @@ try {
   await run(`(async () => { __btn("Done").click(); await __sleep(800); return true; })()`);
   check("…Cancel keeps the photo; Done replaces it with the crop", kept === "1000×400" && (await natural("Nutrition photo")) === "800×400" && !!(await run(`!!__btn("Send")`)),
     `${kept} → ${await natural("Nutrition photo")}`);
+  // K4 accessibility: each corner is a named button; Shift+← moves the focused one 50 px.
+  await run(`(async () => { [...document.querySelectorAll("button")].find(b => b.innerText === "Crop").click(); await __sleep(500);
+    document.querySelector('[data-handle="se"]').focus(); return true; })()`);
+  const corners = await run(`[...document.querySelectorAll("[data-handle]")].map(h => h.tagName + " " + h.getAttribute("aria-label")).join(", ")`);
+  for (const type of ["rawKeyDown", "keyUp"]) await send("Input.dispatchKeyEvent", { type, key: "ArrowLeft", code: "ArrowLeft", windowsVirtualKeyCode: 37, modifiers: 8 });
+  await run(`(async () => { __btn("Done").click(); await __sleep(800); return true; })()`);
+  const keyed = await natural("Nutrition photo");
+  check("K4: the corners are buttons named for screen readers, and Shift+← moves the focused corner",
+    corners === "BUTTON Top-left corner, BUTTON Top-right corner, BUTTON Bottom-left corner, BUTTON Bottom-right corner"
+    && parseInt(keyed) < 800 && parseInt(keyed) >= 640, `${corners} | 800×400 → ${keyed}`);
   await run(`(async () => { __btn("Back").click(); await __sleep(300); __btn("Back").click(); await __sleep(300); return true; })()`);
   // M8 follow-up 4, P2: a stubbed human check that never answers keeps the send at its first stage: a moving bar with
   // no percent, which reduced motion stills.

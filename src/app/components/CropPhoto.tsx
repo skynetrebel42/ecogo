@@ -1,11 +1,13 @@
 // CropPhoto.tsx — crop a label photo before it's sent (M8 follow-up 6, K4): drag a corner, or the rectangle itself, then
 // Done or Cancel. The crop goes through preparePhoto again, so Open Food Facts' minimum size still applies.
 
-import { useEffect, useMemo, useRef, useState, type PointerEvent, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type SyntheticEvent } from "react";
 import { dragCrop, preparePhoto, TOO_SMALL, type Crop } from "../../lib/photo";
 
 type Handle = "nw" | "ne" | "sw" | "se" | "move";
 const CORNERS = ["nw", "ne", "sw", "se"] as const;
+const CORNER_NAME = { nw: "Top-left", ne: "Top-right", sw: "Bottom-left", se: "Bottom-right" };
+const ARROWS: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
 export default function CropPhoto({ photo, label, onDone, onCancel }: {
   photo: Blob; label: string; onDone: (cropped: Blob) => void; onCancel: () => void;
@@ -34,6 +36,14 @@ export default function CropPhoto({ photo, label, onDone, onCancel }: {
     const d = drag.current;
     if (d && size) setCrop(dragCrop(d.start, d.handle, (e.clientX - d.x) / size.width, (e.clientY - d.y) / size.height));
   };
+  // Keyboard: arrow keys move a focused corner 10 px (Shift: 50 px).
+  const key = (handle: Handle) => (e: KeyboardEvent) => {
+    const [dx, dy] = ARROWS[e.key] ?? [];
+    if (dx === undefined || !size) return;
+    e.preventDefault();
+    const step = e.shiftKey ? 50 : 10;
+    setCrop(c => dragCrop(c, handle, (dx * step) / size.width, (dy * step) / size.height));
+  };
   const done = async () => {
     setBusy(true); setError(undefined);
     try { onDone(await preparePhoto(photo, crop)); } catch (err) {
@@ -56,11 +66,11 @@ export default function CropPhoto({ photo, label, onDone, onCancel }: {
           <div data-crop onPointerDown={down("move")} className="absolute border-2 border-white cursor-move"
             style={{ left: pct(crop.x), top: pct(crop.y), width: pct(crop.w), height: pct(crop.h), boxShadow: "0 0 0 9999px rgba(0,0,0,.55)" }}>
             {CORNERS.map(h => (
-              <div key={h} data-handle={h} onPointerDown={down(h)} aria-hidden="true"
-                className="absolute w-11 h-11 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
+              <button key={h} data-handle={h} onPointerDown={down(h)} onKeyDown={key(h)} aria-label={`${CORNER_NAME[h]} corner`}
+                className="absolute w-11 h-11 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#F59E0B]"
                 style={{ left: h[1] === "w" ? 0 : "100%", top: h[0] === "n" ? 0 : "100%" }}>
                 <span className="w-5 h-5 rounded-md bg-white shadow" />
-              </div>
+              </button>
             ))}
           </div>
         </div>
