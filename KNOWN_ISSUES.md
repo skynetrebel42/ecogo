@@ -234,6 +234,11 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - **check-home can time out (seen 2026-10-09, Knight V):** 4 of 8 runs hit the 120 s timeout, some before any M8 step,
   one stalled in the Saved/USDA-search part that reads live Supabase; passing runs take ~58 s. Likely slow live reads,
   not M8 code. Watch it; if it persists, stub those reads or raise the step timeout.
+- **Outside review R1 (ChatGPT Codex, 2026-10-10, at 5a08ad6; planner-triaged, all real, fix after 052):**
+  (1) failed rows don't count toward the 10/200 limits, so one session can retry without limit (each retry reads OFF
+  and logs a row): cap attempts too; (2) two Sends for the same barcode can both see empty OFF ingredients and both
+  write (D10 race; rare): serialize per barcode; (3) `photo.ts` checks the minimum size before the ≤ 2000 px shrink,
+  so a 4000×200 photo becomes 2000×100 (< 160): check after resizing.
 - **Since 2026-10-09 sends go to the real Open Food Facts:** live end-to-end checks use only the owner's real products.
 - **Limits can overshoot by a few:** `off-submit` counts, then inserts, so simultaneous sends can pass 10/200 by a few
   (marked `ponytail:` in the function).
