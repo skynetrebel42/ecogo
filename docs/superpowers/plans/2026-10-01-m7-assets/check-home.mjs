@@ -28,7 +28,7 @@ const PROFILE = `${process.env.TEMP}\\ecogo-home-${PORT}`;
 rmSync(PROFILE, { recursive: true, force: true });
 const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, "--window-size=900,1000",
   `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
-setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 120000).unref?.();
+setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 240000).unref?.();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page asked for (Network events)
@@ -76,6 +76,9 @@ try {
 
   await send("Runtime.enable");
   await send("Network.enable");
+  // The bar checks need motion on, whatever this PC's animation setting is (reduced motion is tested on its own below).
+  const MOTION = { features: [{ name: "prefers-reduced-motion", value: "no-preference" }] };
+  await send("Emulation.setEmulatedMedia", MOTION);
   await send("Page.navigate", { url: URL_ });
   await sleep(4000);
   await helpers();
@@ -279,6 +282,8 @@ try {
     await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: x - share * w, y, button: "left", clickCount: 1 });
     await sleep(200);
   };
+  const done = () => run(`(async () => { __btn("Done").click(); // until the crop screen closes, or shows its message
+    await __until(() => !__btn("Done") || document.querySelector('[role="alert"]'), 30000); return true; })()`);
   const natural = alt => run(`__until(() => { const i = document.querySelector('img[alt="${alt}"]'); return i?.complete && i.naturalWidth ? i.naturalWidth + "×" + i.naturalHeight : null; }, 15000)`);
   const upload = async () => {
     const { root } = (await send("DOM.getDocument")).result;
@@ -308,7 +313,7 @@ try {
   const cropButtons = await run(`[...document.querySelectorAll("button")].filter(b => b.innerText === "Crop").length`);
   await run(`(async () => { [...document.querySelectorAll("button")].find(b => b.innerText === "Crop").click(); await __sleep(500); return true; })()`);
   await dragHandle('[data-handle="se"]', 1);
-  await run(`(async () => { __btn("Done").click(); await __sleep(800); return true; })()`);
+  await done();
   const small = await run(`document.querySelector('[role="alert"]')?.innerText ?? ""`);
   check("K4: on Send, Crop is under the nutrition photo (the only one taken), and a crop under OFF's minimum gets the usual message",
     cropButtons === 1 && small === "This photo is too small for Open Food Facts. Take it closer, or choose a bigger one.", `${cropButtons} | ${small}`);
@@ -316,15 +321,15 @@ try {
   const kept = await natural("Nutrition photo");
   await run(`(async () => { [...document.querySelectorAll("button")].find(b => b.innerText === "Crop").click(); await __sleep(500); return true; })()`);
   await dragHandle('[data-handle="se"]', 0.2);
-  await run(`(async () => { __btn("Done").click(); await __sleep(800); return true; })()`);
+  await done();
   check("…Cancel keeps the photo; Done replaces it with the crop", kept === "1000×400" && (await natural("Nutrition photo")) === "800×400" && !!(await run(`!!__btn("Send")`)),
     `${kept} → ${await natural("Nutrition photo")}`);
   // K4 accessibility: each corner is a named button; Shift+← moves the focused one 50 px.
   await run(`(async () => { [...document.querySelectorAll("button")].find(b => b.innerText === "Crop").click(); await __sleep(500);
-    document.querySelector('[data-handle="se"]').focus(); return true; })()`);
+    await __until(() => document.querySelector("[data-crop]")?.parentElement.offsetWidth > 0); document.querySelector('[data-handle="se"]').focus(); return true; })()`);
   const corners = await run(`[...document.querySelectorAll("[data-handle]")].map(h => h.tagName + " " + h.getAttribute("aria-label")).join(", ")`);
   for (const type of ["rawKeyDown", "keyUp"]) await send("Input.dispatchKeyEvent", { type, key: "ArrowLeft", code: "ArrowLeft", windowsVirtualKeyCode: 37, modifiers: 8 });
-  await run(`(async () => { __btn("Done").click(); await __sleep(800); return true; })()`);
+  await done();
   const keyed = await natural("Nutrition photo");
   check("K4: the corners are buttons named for screen readers, and Shift+← moves the focused corner",
     corners === "BUTTON Top-left corner, BUTTON Top-right corner, BUTTON Bottom-left corner, BUTTON Bottom-right corner"
@@ -346,7 +351,7 @@ try {
     waiting === "Sending… | true | Checking you're human… | false | ecogo-indeterminate", waiting);
   await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   const still = await run(`getComputedStyle(document.querySelector("[data-moving]")).animationName`);
-  await send("Emulation.setEmulatedMedia", { features: [] });
+  await send("Emulation.setEmulatedMedia", MOTION);
   check("…with reduced motion the bar doesn't move", still === "none", still);
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
   // M8 follow-up 2, G2: OFF took the text but not the nutrition photo. Every auth call is answered here (CDP Fetch); the
