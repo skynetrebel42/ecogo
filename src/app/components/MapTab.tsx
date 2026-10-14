@@ -173,7 +173,7 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
   const asOf = places[0] ? formatAsOf(places[0].as_of) : "";
   const nextRadius = RADII.find(r => r > radius);
 
-  // Map: created once, showing LA County. Leaflet's own attribution box is off: the credit is ours, under the list
+  // Map: created once, showing LA County. Leaflet's own attribution box is off: the credit is ours, on the map and under the list
   // (ODbL, tile usage policy). The centre feeds "Add it on OpenStreetMap" (D10).
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -320,6 +320,9 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
           <button onClick={() => mapRef.current?.zoomIn()} aria-label="Zoom in" className={`${roundBtn} text-xl font-bold`}>+</button>
           <button onClick={() => mapRef.current?.zoomOut()} aria-label="Zoom out" className={`${roundBtn} text-xl font-bold`}>−</button>
         </div>
+        {/* K-23: the credit stays on screen with the list or a place card (ODbL, tile usage policy) */}
+        <a data-osm-credit href={COPYRIGHT} target="_blank" rel="noopener noreferrer"
+          className="absolute left-0 bottom-0 z-[400] bg-white/85 rounded-tr-lg px-1.5 py-0.5 text-micro text-gray-800">© OpenStreetMap</a>
         {places.length === 0 && (
           <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 z-[400] bg-white rounded-2xl shadow-xl p-3 text-center">
             <MapPin size={20} className="mx-auto mb-1 text-muted-foreground" />

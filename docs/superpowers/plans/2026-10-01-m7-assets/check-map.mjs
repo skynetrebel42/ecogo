@@ -195,6 +195,28 @@ try {
     await __sleep(300); return document.body.innerText; })()`);
   check("Profile: OpenStreetMap source and the map's location rule", p.includes("Map places, community-edited. Hours can change.")
     && p.includes("The map asks for your location only when you tap My location."));
+  // 054 K-23: the © OpenStreetMap credit is on screen (not covered) in the list and with a place card open, at normal
+  // and Larger text (375 × 812).
+  const CREDIT = `(() => { const a = document.querySelector("[data-osm-credit]"); if (!a) return "missing: " + document.body.innerText.slice(0, 120).split("\\n").join(" / "); const r = a.getBoundingClientRect();
+    const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    return r.top >= 0 && r.bottom <= innerHeight && r.width > 0 && (e === a || a.contains(e)) && a.href === "https://www.openstreetmap.org/copyright" ? "ok" : JSON.stringify(r); })()`;
+  const creditStates = async () => {
+    const inList = await run(CREDIT);
+    await run(`(async () => { document.querySelector('ul[aria-label="Places"] button').click(); await __sleep(700); return true; })()`);
+    const inCard = await run(CREDIT);
+    await run(`(async () => { __btn("Back to the list").click(); await __sleep(400); return true; })()`);
+    return `list ${inList}, card ${inCard}`;
+  };
+  await openMap();
+  const normalText = await creditStates();
+  check("K-23: the OSM credit is on screen in the list and with a place card open", normalText === "list ok, card ok", normalText);
+  await run(`localStorage.setItem("ecogo.settings.v1", JSON.stringify({ textSize: "larger", contrast: "normal" })); true`);
+  await send("Page.reload"); await sleep(4000);
+  await openMap();
+  const largerText = await creditStates();
+  check("…and at Larger text", largerText === "list ok, card ok", largerText);
+  await run(`localStorage.removeItem("ecogo.settings.v1"); true`);
+
   check("no console errors", errors.length === 0, errors.join(" | "));
 
   // No database → no places, never fake ones
