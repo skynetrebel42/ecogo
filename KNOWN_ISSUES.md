@@ -254,13 +254,13 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 
 Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` indexes them). Advice, not decisions.
 - **Fixed by 052 (live 2026-10-14, 4bb0671):** junk OCR prefill, false "blurry", hidden "Type it", crop.
-- **Still open, confirmed in the 052 code:** **RW1-01** stale reading: `AddProductFlow.acceptPhoto` and
+- **Fixed 2026-10-14 (7af98f4):** **RW1-01** stale reading: `AddProductFlow.acceptPhoto` and
   `IngredientCheck.read` set the text after `await readPhoto` without checking the photo is still the current one, so a
-  slow read can overwrite typed text or pair an old photo's text with a newer photo. Next assignment.
+  slow read could overwrite typed text or pair an old photo's text with a newer photo; now `src/lib/latest.ts` drops stale results.
 - **Open, need an owner decision first:** RW1-02/05 (Close during Send loses the draft; the name field stays editable
   after the snapshot is sent); RW1-03/04 (a lost reply shows "Not sent" though OFF may have it; a rejected photo is
   described as already present).
-- **Copy / trust (planner specs):** TRUST-01 (badge article calls every level cancer evidence; Yellow 5 isn't),
+- **Copy / trust:** fixed 2026-10-14 by 053 (7af98f4): TRUST-01 (badge article calls every level cancer evidence; Yellow 5 isn't),
   TRUST-02 ("No official finding" reads as none anywhere; scope it to EcoGo's list), COPY-01 (seed-oils fat profile;
   needs an official quote), R2-01 / PRIVACY-01 (Profile "stays on this device" vs. the OFF log, lookups and map
   tiles), R2-02 ("Live data" next to dated County/USDA records).

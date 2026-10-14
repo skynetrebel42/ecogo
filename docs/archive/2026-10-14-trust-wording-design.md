@@ -1,7 +1,7 @@
 # Trust wording fixes (ChatGPT audit TRUST-01, TRUST-02, R2-01/PRIVACY-01, R2-02)
 
 - **Date:** 2026-10-14
-- **Status:** **Approved** by the owner 2026-10-14 as written (decision 053; "Live data" removed)
+- **Status:** **Done**, live 2026-10-14 (origin/main 7af98f4); approved by the owner 2026-10-14 as written (decision 053; "Live data" removed)
 - **Why:** ChatGPT's trust/UI audit and R2 browser review (2026-10-11 → 14, triaged in KNOWN_ISSUES "Outside audits")
   found live wording that says more than EcoGo knows. EcoGo's promise is that nothing it shows is invented; these lines
   overstate. Copy only: no engine, data or layout changes. Every factual phrase below comes from EcoGo's own sourced
