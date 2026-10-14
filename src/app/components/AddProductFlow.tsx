@@ -15,9 +15,10 @@ import { IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoNotice, PhotoTips
 import CropPhoto from "./CropPhoto";
 
 type Kind = PhotoKind;
-type Step = Kind | "reading" | "check" | "send" | "sending" | "sent" | "failed";
+type Step = Kind | "reading" | "check" | "send" | "sending" | "sent" | "failed" | "unknown";
+type Failed = Exclude<SubmitReason, "unknown">; // 055 E2: unknown has its own screen, not "Not sent"
 
-const FAILED: Record<SubmitReason, string> = {
+const FAILED: Record<Failed, string> = {
   "limit-you": "You've sent 10 today. Thanks! Try again tomorrow.",
   "limit-tries": "You've tried 30 times today. Try again tomorrow.",
   "limit-all": "EcoGo has reached today's limit. Try again tomorrow.",
@@ -27,7 +28,7 @@ const FAILED: Record<SubmitReason, string> = {
   "nothing-new": "Open Food Facts already has these ingredients and these photos, so there was nothing new to send.",
 };
 /** J2b (decision 051 C): photos mode sends no ingredients, so these two speak of the photos only. */
-const PHOTOS_FAILED: Partial<Record<SubmitReason, string>> = {
+const PHOTOS_FAILED: Partial<Record<Failed, string>> = {
   invalid: "Open Food Facts couldn't take these photos. Try other photos.",
   "nothing-new": "Open Food Facts already has these photos, so there was nothing new to send.",
 };
@@ -87,7 +88,7 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
   const [readText, setReadText] = useState<string>(); // K2: a hard-to-read photo's text, behind "Show what we read"
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
-  const [failed, setFailed] = useState<SubmitReason>("off-down");
+  const [failed, setFailed] = useState<Failed>("off-down");
   const [textKept, setTextKept] = useState(false);
   const [failedPhotos, setFailedPhotos] = useState<PhotoKind[]>([]);
   const [uploading, setUploading] = useState(false); // follow-up 3, H1: other photos still going up in the background
@@ -137,7 +138,9 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
     setStep("sending"); setStage(undefined);
     const r = await submitProduct({ code, name, ingredients: text, photos, photosOnly }, () => turnstileToken(humanCheckSlot.current!),
       { auth: supabase.auth, ...offSubmit }, setStage);
-    if (r.ok) { setTextKept(!!r.textKept); setFailedPhotos(r.failedPhotos ?? []); setUploading(!!r.pendingPhotos); setStep("sent"); } else { setFailed(r.reason); setStep("failed"); }
+    if (r.ok) { setTextKept(!!r.textKept); setFailedPhotos(r.failedPhotos ?? []); setUploading(!!r.pendingPhotos); setStep("sent"); }
+    else if (r.reason === "unknown") setStep("unknown");
+    else { setFailed(r.reason); setStep("failed"); }
   };
 
   // Back (nutrition → check, Send → nutrition) keeps every photo and the text: nothing is lost while the screen is open.
@@ -266,6 +269,18 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
     <div className="px-4 pb-6">
       {/* J2b: in photos mode, after these two, Try again goes back to the photos instead of sending the same ones again. */}
       <button onClick={() => photosOnly && PHOTOS_FAILED[failed] ? goTo("front") : setStep(failed === "invalid" ? "check" : "send")} className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Try again</button>
+    </div>
+  </>);
+
+  // 055 E2: no reply, so it may have arrived. No Try again: sending again blind could send twice.
+  if (step === "unknown") return screen(false, <>
+    {header("Not sure it arrived", `Barcode ${code}`, false)}
+    <div className="flex-1 flex flex-col justify-center px-6 gap-3 text-center">
+      <p role="alert" className="text-base font-bold">We didn't hear back from Open Food Facts. It may have arrived. Check the product in a few minutes before sending again.</p>
+    </div>
+    <div className="px-4 pb-6">
+      <a href={`https://world.openfoodfacts.org/product/${code}`} target="_blank" rel="noopener noreferrer"
+        className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] flex items-center justify-center">Open on Open Food Facts</a>
     </div>
   </>);
 

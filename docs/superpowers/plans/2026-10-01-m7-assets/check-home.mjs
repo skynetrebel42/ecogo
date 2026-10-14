@@ -493,6 +493,7 @@ try {
   onPaused = p => {
     const url = p.request.url.split("?")[0], post = p.request.method === "POST";
     offAsked.push(`${p.request.method} ${url}`);
+    if (offReply === "drop" && post && url.includes("/functions/v1/off-submit")) return send("Fetch.failRequest", { requestId: p.requestId, errorReason: "ConnectionReset" });
     const [status, body] = p.request.method === "OPTIONS" ? [200, ""]
       : url.includes("/functions/v1/off-submit") ? [offReply.status, JSON.stringify({ ok: false, reason: offReply.reason })]
       : url.includes("/auth/v1/") && post ? [200, JSON.stringify({ access_token: "fake", token_type: "bearer", expires_in: 3600,
@@ -547,10 +548,22 @@ try {
     return document.body.innerText; })()`);
   check("…and one with nothing new speaks of the photos only", nothing.includes("Open Food Facts already has these photos, so there was nothing new to send.")
     && !nothing.includes("these ingredients"), nothing.replace(/\n/g, " / ").slice(0, 160));
+  // 055 E2: a dropped reply (the connection reset) isn't "Not sent": EcoGo can't know, so no Try again.
+  offReply = "drop";
+  const lost = await run(`(async () => { __btn("Try again").click(); await __sleep(400); __btn("Keep the photo I took").click(); await __sleep(300);
+    __btn("Keep the photo I took").click(); await __sleep(300); __btn("Skip").click(); await __sleep(400); __btn("Send").click();
+    await __until(() => document.body.innerText.includes("Not sure it arrived"), 15000);
+    const a = [...document.querySelectorAll("a")].find(a => a.innerText === "Open on Open Food Facts");
+    return { text: document.body.innerText, link: a ? a.href + " " + a.target : null, retry: !!__btn("Try again"), close: __btn("Close")?.disabled === false }; })()`);
+  check("055 E2: a dropped reply shows 'Not sure it arrived', its text and the OFF link; no Try again, Close works",
+    lost.text.includes("Not sure it arrived") && !lost.text.includes("Not sent")
+    && lost.text.includes("We didn't hear back from Open Food Facts. It may have arrived. Check the product in a few minutes before sending again.")
+    && lost.link === `https://world.openfoodfacts.org/product/${FAKE_OFF} _blank` && !lost.retry && lost.close,
+    `${lost.link} | retry ${lost.retry} | close ${lost.close}`);
   await run(`(async () => { __btn("Close").click(); await __sleep(500); return true; })()`);
   await send("Fetch.disable");
-  check("…and nothing left the page: OFF's product read and the two sends were answered here",
-    offAsked.filter(u => u.startsWith("POST ") && u.endsWith("/functions/v1/off-submit")).length === 2
+  check("…and nothing left the page: OFF's product read and the three sends were answered (or dropped) here",
+    offAsked.filter(u => u.startsWith("POST ") && u.endsWith("/functions/v1/off-submit")).length === 3
     && offAsked.every(u => /world\.openfoodfacts\.org\/api\/v3\/product\/|\/auth\/v1\/|\/functions\/v1\/off-submit$/.test(u)), offAsked.join(", "));
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));

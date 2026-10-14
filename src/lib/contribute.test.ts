@@ -162,11 +162,18 @@ test("a session the server no longer accepts is dropped, so Try again signs in a
   assert.deepEqual(f.calls(), ["send off-submit", "signOut local"]);
 });
 
-test("no answer, a timeout, or an answer EcoGo doesn't recognise, means Open Food Facts didn't answer", async () => {
-  for (const r of ["network", "timeout", httpError(500, { message: "boom" }), httpError(502, "<html>"), ok({ ok: "yes" })] as Reply[]) {
+// 055 E2: with no reply EcoGo can't know whether it arrived, so it doesn't say "Not sent".
+test("no answer, a timeout, or an answer that isn't EcoGo's, means we don't know whether it arrived", async () => {
+  for (const r of ["network", "timeout", httpError(500, { message: "boom" }), httpError(502, "<html>"), ok({ ok: "yes" }),
+    httpError(502, { ok: false, reason: "who-knows" })] as Reply[]) {
     const f = fakeClient({ session: true, reply: r });
-    assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, f.client), { ok: false, reason: "off-down" }, JSON.stringify(r));
+    assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, f.client), { ok: false, reason: "unknown" }, JSON.stringify(r));
   }
+});
+
+test("off-submit's own off-down answer (502 with its JSON) stays off-down", async () => {
+  const f = fakeClient({ session: true, reply: httpError(502, { ok: false, reason: "off-down" }) });
+  assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, f.client), { ok: false, reason: "off-down" });
 });
 
 test("empty ingredients or a malformed barcode are refused without signing in or sending", async () => {

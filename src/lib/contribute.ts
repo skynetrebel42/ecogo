@@ -1,7 +1,8 @@
 // contribute.ts — send a new product to Open Food Facts through EcoGo's `off-submit` function (M8 spec D6–D9).
 // The Supabase client is passed in (the app passes lib/supabase.ts), so Node tests can load this module.
 
-export type SubmitReason = "limit-you" | "limit-tries" | "limit-all" | "captcha" | "off-down" | "invalid" | "nothing-new";
+/** unknown (055 E2): no reply, or not EcoGo's, so it may have arrived; every other reason is off-submit's own answer. */
+export type SubmitReason = "limit-you" | "limit-tries" | "limit-all" | "captcha" | "off-down" | "invalid" | "nothing-new" | "unknown";
 export type PhotoKind = "front" | "ingredients" | "nutrition";
 /** textKept: OFF already had ingredients, so only the photos went (D10). failedPhotos: sent, but these photos didn't
  *  go through (M8 follow-up 2, G2). */
@@ -103,5 +104,5 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
   }
   // 401: the server no longer accepts this session (expired or deleted); drop it so Try again signs in afresh.
   if (res?.status === 401) await client.auth.signOut({ scope: "local" });
-  return fail(answer?.reason && REASONS.includes(answer.reason) ? answer.reason : "off-down");
+  return fail(answer?.reason && REASONS.includes(answer.reason) ? answer.reason : "unknown");
 }
