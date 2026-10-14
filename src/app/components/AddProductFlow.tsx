@@ -26,6 +26,7 @@ const FAILED: Record<Failed, string> = {
   "off-down": "Open Food Facts didn't answer. Try again later.",
   invalid: "Open Food Facts couldn't take this as it is. Check the ingredients and try again.",
   "nothing-new": "Open Food Facts already has these ingredients and these photos, so there was nothing new to send.",
+  "photo-rejected": "Open Food Facts couldn't use this photo. Try another one.", // 055 E3, photos mode too
 };
 /** J2b (decision 051 C): photos mode sends no ingredients, so these two speak of the photos only. */
 const PHOTOS_FAILED: Partial<Record<Failed, string>> = {
@@ -267,8 +268,8 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
       <p className="text-sm text-gray-600">{photosOnly ? "Your photos are still here." : "Your photos and text are still here."}</p>
     </div>
     <div className="px-4 pb-6">
-      {/* J2b: in photos mode, after these two, Try again goes back to the photos instead of sending the same ones again. */}
-      <button onClick={() => photosOnly && PHOTOS_FAILED[failed] ? goTo("front") : setStep(failed === "invalid" ? "check" : "send")} className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Try again</button>
+      {/* J2b, 055 E3: after these, Try again goes back to the photos instead of sending the same ones again. */}
+      <button onClick={() => failed === "photo-rejected" || (photosOnly && PHOTOS_FAILED[failed]) ? goTo("front") : setStep(failed === "invalid" ? "check" : "send")} className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Try again</button>
     </div>
   </>);
 

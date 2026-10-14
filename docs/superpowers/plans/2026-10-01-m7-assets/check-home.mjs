@@ -554,9 +554,18 @@ try {
     return document.body.innerText; })()`);
   check("…and one with nothing new speaks of the photos only", nothing.includes("Open Food Facts already has these photos, so there was nothing new to send.")
     && !nothing.includes("these ingredients"), nothing.replace(/\n/g, " / ").slice(0, 160));
+  // 055 E3: a photo OFF refused has its own line, and Try again goes back to the front photo.
+  offReply = { status: 409, reason: "photo-rejected" };
+  const rejected = await run(`(async () => { __btn("Try again").click(); await __sleep(400); __btn("Keep the photo I took").click(); await __sleep(300);
+    __btn("Keep the photo I took").click(); await __sleep(300); __btn("Skip").click(); await __sleep(400); __btn("Send").click();
+    await __until(() => document.body.innerText.includes("Not sent"), 15000); const t = document.body.innerText;
+    __btn("Try again").click(); await __sleep(400); return [t, document.body.innerText]; })()`);
+  check("055 E3: a photo-rejected answer says 'couldn't use this photo'; Try again lands on the front photo",
+    rejected[0].includes("Open Food Facts couldn't use this photo. Try another one.") && !rejected[0].includes("already has")
+    && rejected[1].includes("Front photo") && !rejected[1].includes("Not sent"), rejected.map(t => t.replace(/\n/g, " / ").slice(0, 160)).join(" → "));
   // 055 E2: a dropped reply (the connection reset) isn't "Not sent": EcoGo can't know, so no Try again.
   offReply = "drop";
-  const lost = await run(`(async () => { __btn("Try again").click(); await __sleep(400); __btn("Keep the photo I took").click(); await __sleep(300);
+  const lost = await run(`(async () => { __btn("Keep the photo I took").click(); await __sleep(300);
     __btn("Keep the photo I took").click(); await __sleep(300); __btn("Skip").click(); await __sleep(400); __btn("Send").click();
     await __until(() => document.body.innerText.includes("Not sure it arrived"), 15000);
     const a = [...document.querySelectorAll("a")].find(a => a.innerText === "Open on Open Food Facts");
@@ -568,8 +577,8 @@ try {
     `${lost.link} | retry ${lost.retry} | close ${lost.close}`);
   await run(`(async () => { __btn("Close").click(); await __sleep(500); return true; })()`);
   await send("Fetch.disable");
-  check("…and nothing left the page: OFF's product read and the three sends were answered (or dropped) here",
-    offAsked.filter(u => u.startsWith("POST ") && u.endsWith("/functions/v1/off-submit")).length === 3
+  check("…and nothing left the page: OFF's product read and the four sends were answered (or dropped) here",
+    offAsked.filter(u => u.startsWith("POST ") && u.endsWith("/functions/v1/off-submit")).length === 4
     && offAsked.every(u => /world\.openfoodfacts\.org\/api\/v3\/product\/|\/auth\/v1\/|\/functions\/v1\/off-submit$/.test(u)), offAsked.join(", "));
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));

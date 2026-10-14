@@ -37,8 +37,17 @@ test("with OFF's own text kept, one photo taken is enough; nothing taken is not 
   assert.deepEqual(sendReply(false, [photoResult("front", 200, { status: "status ok" }), photoResult("nutrition", 500, null)]),
     { ok: true, failedPhotos: ["nutrition"] });
   assert.deepEqual(sendReply(false, [photoResult("front", 500, null)]), { ok: false, reason: "off-down" });
-  assert.deepEqual(sendReply(false, [photoResult("front", 200, { status: "status not ok", error: "bad" })]), { ok: false, reason: "nothing-new" });
   assert.deepEqual(sendReply(false, []), { ok: false, reason: "nothing-new" });
+});
+
+// 055 E3 (E3a: 048 G1 stands, a duplicate counts as taken): a photo OFF refuses is no longer "already has these photos".
+test("nothing taken because OFF refused a photo is photo-rejected; all duplicates is still sent; HTTP errors stay off-down", () => {
+  const refused = photoResult("front", 200, { status: "status not ok", error: "bad" });
+  const duplicate = photoResult("nutrition", 200, { status: "status not ok", error: "This picture has already been sent." });
+  assert.deepEqual(sendReply(false, [refused]), { ok: false, reason: "photo-rejected" });
+  assert.deepEqual(sendReply(false, [duplicate]), { ok: true });
+  assert.deepEqual(sendReply(false, [refused, photoResult("nutrition", 502, null)]), { ok: false, reason: "off-down" });
+  assert.deepEqual(sendReply(true, [refused]), { ok: true, failedPhotos: ["front"] }, "text taken: partial success, as before");
 });
 
 // M8 follow-up 5 (docs/superpowers/specs/2026-10-09-m8-followup5-fix-off-products-design.md J3).

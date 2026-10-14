@@ -73,14 +73,16 @@ export function photoResult(kind: PhotoKind, status: number, body: { status?: st
 }
 
 /** The answer once the text (if OFF had none) and the awaited photos have gone (G2): partial success is success, naming
- *  the photos that didn't go through and (follow-up 3, H1) those still uploading; only when OFF took nothing is it not sent. */
+ *  the photos that didn't go through and (follow-up 3, H1) those still uploading; only when OFF took nothing is it not sent:
+ *  off-down after an HTTP error, photo-rejected when OFF refused a photo (055 E3; a duplicate counts as taken, G1), and
+ *  nothing-new when there was nothing to take. */
 export function sendReply(textTaken: boolean, photos: PhotoResult[], pending: PhotoKind[] = []):
-  { ok: true; failedPhotos?: PhotoKind[]; pendingPhotos?: PhotoKind[] } | { ok: false; reason: "off-down" | "nothing-new" } {
+  { ok: true; failedPhotos?: PhotoKind[]; pendingPhotos?: PhotoKind[] } | { ok: false; reason: "off-down" | "photo-rejected" | "nothing-new" } {
   const failedPhotos = photos.filter(p => !p.taken).map(p => p.kind);
   if (textTaken || photos.some(p => p.taken)) {
     return { ok: true, ...(failedPhotos.length > 0 && { failedPhotos }), ...(pending.length > 0 && { pendingPhotos: pending }) };
   }
-  return { ok: false, reason: photos.some(p => p.httpError) ? "off-down" : "nothing-new" };
+  return { ok: false, reason: photos.some(p => p.httpError) ? "off-down" : photos.length > 0 ? "photo-rejected" : "nothing-new" };
 }
 
 /** H1: the row's log after the background photos: failures (and refusals) appended; undefined while there's nothing. */
