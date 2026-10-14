@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { submitProduct, type ContributeClient, type SendStage } from "./contribute.ts";
 
@@ -7,7 +7,7 @@ const jpeg = (s: string) => new Blob([s], { type: "image/jpeg" });
 const URL_ = "https://example.supabase.co/functions/v1/off-submit";
 
 /** What off-submit answers: a status and a body (an object is sent as JSON), or no answer at all. */
-type Reply = { status: number; body: unknown } | "network" | "timeout";
+type Reply = { status: number; body: unknown } | "network" | "timeout" | "silent"; // silent: uploaded, then no answer
 let reply: Reply = { status: 200, body: { ok: true } };
 let calls: string[] = [];
 let request: { headers: Record<string, string>; body: FormData } | undefined;
@@ -29,6 +29,7 @@ class FakeXHR {
       if (reply === "timeout") return this.abort(); // the app's wait after the upload ran out
       for (const loaded of [30, 100]) this.upload.onprogress?.({ lengthComputable: true, loaded, total: 100 });
       this.upload.onload?.();
+      if (reply === "silent") return;
       this.status = reply.status;
       this.responseText = typeof reply.body === "string" ? reply.body : JSON.stringify(reply.body);
       this.onload?.();
@@ -169,6 +170,37 @@ test("no answer, a timeout, or an answer that isn't EcoGo's, means we don't know
     const f = fakeClient({ session: true, reply: r });
     assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, f.client), { ok: false, reason: "unknown" }, JSON.stringify(r));
   }
+});
+
+// 055 E1a: Close is locked while sending, so every send must end.
+const settles = async (p: Promise<unknown>, ms: number) => {
+  let done = false; void p.then(() => { done = true; });
+  await new Promise(r => setImmediate(r)); // let the send reach its wait
+  mock.timers.tick(ms); await new Promise(r => setImmediate(r));
+  return done;
+};
+test("no human-check token within 60 s ends the send as captcha, with no sign-in", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const f = fakeClient();
+    const p = submitProduct({ ...input, photos: {} }, () => new Promise<string>(() => {}), f.client);
+    assert.equal(await settles(p, 59_999), false);
+    assert.equal(await settles(p, 1), true);
+    assert.deepEqual(await p, { ok: false, reason: "captcha" });
+    assert.deepEqual(f.calls(), []);
+  } finally { mock.timers.reset(); }
+});
+
+test("no answer within 90 s after the upload's last byte ends the send as unknown", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const f = fakeClient({ session: true, reply: "silent" });
+    const p = submitProduct({ ...input, photos: {} }, token, f.client);
+    assert.equal(await settles(p, 0), false, "uploaded, waiting for the answer");
+    assert.equal(await settles(p, 89_999), false);
+    assert.equal(await settles(p, 1), true);
+    assert.deepEqual(await p, { ok: false, reason: "unknown" });
+  } finally { mock.timers.reset(); }
 });
 
 test("off-submit's own off-down answer (502 with its JSON) stays off-down", async () => {

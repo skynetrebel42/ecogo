@@ -389,7 +389,10 @@ try {
   await send("DOM.setFileInputFiles", { nodeId: lib, files: [fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url))] });
   const waiting = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
     const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
-    t.render = () => "stub"; t.remove = () => {}; __btn("Send").click(); await __sleep(300);
+    t.render = () => "stub"; t.remove = () => {};
+    // 055 E1a: the app's 60 s wait for a human-check token runs 5 s here (this check only).
+    const st = window.__setTimeout = window.setTimeout; window.setTimeout = (f, ms, ...a) => st(f, ms === 60000 ? 5000 : ms, ...a);
+    __btn("Send").click(); await __sleep(300);
     const b = [...document.querySelectorAll("button")].find(b => b.innerText.startsWith("Sending")), bar = document.querySelector('[role="progressbar"]');
     return [b?.innerText, b?.disabled, bar?.getAttribute("aria-valuetext"), bar?.hasAttribute("aria-valuenow"),
       getComputedStyle(document.querySelector("[data-moving]")).animationName].join(" | "); })()`);
@@ -406,8 +409,11 @@ try {
       still: !!__btn("Sending…") }; })()`);
   check("055 E1: while sending, Close, the name, the consent box and Crop are disabled; a Close click does nothing",
     locked.close && locked.name && locked.consent && locked.crop && !locked.back && locked.still, JSON.stringify(locked));
-  // This stubbed human check never answers, so the send never ends: leave by reloading.
-  await send("Page.reload"); await sleep(4000); await helpers();
+  const ended = await run(`(async () => { await __until(() => document.body.innerText.includes("Not sent"), 15000); window.setTimeout = __setTimeout;
+    const t = document.body.innerText; const close = __btn("Close"); const ok = close && !close.disabled; close?.click(); await __sleep(600);
+    return { captcha: t.includes("Couldn't confirm you're not a robot. Try again."), close: ok, gone: !__btn("Try again") }; })()`);
+  check("055 E1a: a human check that never answers ends as Not sent (captcha) after its wait; Close works again",
+    ended.captcha && ended.close && ended.gone, JSON.stringify(ended));
   // M8 follow-up 2, G2: OFF took the text but not the nutrition photo. Every auth call is answered here (CDP Fetch); the
   // off-submit POST goes to a local stub server instead (follow-up 4: a real, throttled upload, so the bar shows real
   // percents). Nothing of the send reaches Supabase or OFF; the human check is stubbed to hand over a token.

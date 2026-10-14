@@ -35,9 +35,12 @@ export type SendStage = { stage: "check" } | { stage: "upload"; percent: number 
 const REASONS: SubmitReason[] = ["limit-you", "limit-tries", "limit-all", "captcha", "off-down", "invalid", "nothing-new"];
 const fail = (reason: SubmitReason): SubmitResult => ({ ok: false, reason });
 
-/** How long to wait for off-submit's answer once the upload is done (it answers in ~10 s since 049 H1). The upload
- *  itself has no limit: a slow phone mustn't give up mid-upload and then send again while the server finishes. */
-const ANSWER_WAIT_MS = 60_000;
+/** How long to wait for off-submit's answer once the upload is done (it answers in ~10 s since 049 H1); then the
+ *  outcome is `unknown` (055 E1a, E2). The upload itself has no limit: a slow phone mustn't give up mid-upload and then
+ *  send again while the server finishes. */
+const ANSWER_WAIT_MS = 90_000;
+/** 055 E1a: Close is locked while sending, so a human check that never hands over a token ends as `captcha`. */
+const CHECK_WAIT_MS = 60_000;
 
 /** POST with real upload progress (XMLHttpRequest: fetch can't report it). Resolves the status and the parsed JSON
  *  (null when it isn't JSON), or null on a network error or no answer in time. */
@@ -71,10 +74,15 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
   const { data } = await client.auth.getSession();
   if (!data.session) {
     onProgress({ stage: "check" });
+    let wait: ReturnType<typeof setTimeout> | undefined;
     try {
-      const { error } = await client.auth.signInAnonymously({ options: { captchaToken: await getCaptchaToken() } });
+      const captchaToken = await Promise.race([getCaptchaToken(),
+        new Promise<never>((_, reject) => { wait = setTimeout(() => reject(new Error("no human-check token")), CHECK_WAIT_MS); })]);
+      clearTimeout(wait);
+      const { error } = await client.auth.signInAnonymously({ options: { captchaToken } });
       if (error) return fail("captcha");
     } catch {
+      clearTimeout(wait);
       return fail("captcha");
     }
   }
