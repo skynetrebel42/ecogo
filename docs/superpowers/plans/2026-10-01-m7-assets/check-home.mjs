@@ -11,6 +11,7 @@
 // aria-label (= the page's full title); "How EcoGo checks a product" is a page with its three steps and no Sources.
 // M8: the Scan drawer (not Home) offers the no-barcode check, where typed Red 40 shows Some concern; the not-found screen
 // offers "Add this product"; Send stays disabled until the consent box is ticked; Turnstile loads only on the Send screen.
+// M8 follow-up 5: an OFF product offers "Add the ingredients" (no ingredients) and "Send new photos" (no text step).
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-home.mjs <url>  (M7 plan Task 4; M7.1)
 // Build with a Turnstile site key (the deploy has the real one; locally Cloudflare's public test key will do:
 // VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA). The send checks stub the widget, answer the sign-in themselves (CDP
@@ -474,6 +475,46 @@ try {
     && faked.every(f => /^(OPTIONS|POST) v1\/(signup|off-submit)$/.test(f)),
     `${sent.split("|")[1]}; answered here: ${faked.join(", ")}`);
   await run(`(async () => { __btn("Scan another product").click(); await __sleep(600); return true; })()`);
+  // M8 follow-up 5 (spec 2026-10-09-m8-followup5-fix-off-products-design.md §2): a crowd-sourced OFF product with no
+  // ingredients (OFF's answer is faked here, CDP Fetch) offers "Add the ingredients" and "Send new photos". Any
+  // off-submit call would be answered here too, and none may happen: nothing reaches OFF or is sent.
+  const FAKE_OFF = "4006381333931";
+  const offAsked = [];
+  onPaused = p => {
+    offAsked.push(`${p.request.method} ${p.request.url.split("?")[0]}`);
+    const body = p.request.method === "OPTIONS" ? "" : JSON.stringify({ status: "success", code: FAKE_OFF,
+      product: { code: FAKE_OFF, product_name: "Test granola bar", brands: "Test", lang: "en" } });
+    send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
+  };
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*world.openfoodfacts.org/api/*" }, { urlPattern: "*/functions/v1/*" }] });
+  const offPage = await scanTyped(FAKE_OFF, "Test granola bar");
+  check("Follow-up 5: an OFF product with no ingredients shows 'Add the ingredients' and 'Send new photos'",
+    offPage.includes("No ingredient list available.") && offPage.includes("Add the ingredients") && offPage.includes("Send new photos"));
+  check("…a USDA product shows neither", ![tos, dor].some(t => t.includes("Add the ingredients") || t.includes("Send new photos")));
+  const j1 = await run(`(async () => { __btn("Add the ingredients").click(); await __sleep(400); return document.body.innerText; })()`);
+  const j1Back = await run(`(async () => { __btn("Close").click(); await __sleep(500); return document.body.innerText; })()`);
+  check("J1: 'Add the ingredients' opens the add flow for that barcode; Close returns to the product",
+    j1.includes("Add the ingredients") && j1.includes(`Barcode ${FAKE_OFF}`) && j1.includes("Front photo") && j1Back.includes("Test granola bar"));
+  const j2 = await run(`(async () => { __btn("Send new photos").click(); await __sleep(400); return document.body.innerText; })()`);
+  const { root: docRoot3 } = (await send("DOM.getDocument")).result;
+  const lib3 = (await send("DOM.querySelector", { nodeId: docRoot3.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
+  await send("DOM.setFileInputFiles", { nodeId: lib3, files: [LABEL_PNG] });
+  const j2Flow = await run(`(async () => { const s = [];
+    await __until(() => document.body.innerText.includes("Ingredients photo"), 15000);
+    s.push(__btn("No ingredients list? Type it") ? "type-it" : "ingredients photo"); __btn("Skip").click(); await __sleep(300);
+    s.push(document.body.innerText.includes("Nutrition photo") ? "nutrition photo" : "not nutrition"); __btn("Skip").click(); await __sleep(400);
+    const off = __btn("Send")?.disabled; document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
+    return { s: s.join(" → "), off, on: __btn("Send")?.disabled === false, name: !!document.querySelector("#product-name"),
+      front: !!document.querySelector('img[alt="Front photo"]'), text: document.body.innerText }; })()`);
+  check("J2: 'Send new photos' opens a photos-only flow with its intro line, for that barcode", j2.includes("Send new photos") && j2.includes(`Barcode ${FAKE_OFF}`)
+    && j2.includes("Photos of the current label help Open Food Facts fix wrong or missing details. EcoGo never changes the text itself."));
+  check("…no text step: front → ingredients photo → nutrition photo → Send, no name field; Send needs the tick",
+    j2Flow.s === "ingredients photo → nutrition photo" && j2Flow.front && !j2Flow.name && j2Flow.text.includes("Plus the barcode.")
+    && j2Flow.off === true && j2Flow.on, JSON.stringify({ ...j2Flow, text: undefined }));
+  await run(`(async () => { __btn("Close").click(); await __sleep(500); return true; })()`);
+  await send("Fetch.disable");
+  check("…and nothing was sent: only OFF's (faked) product read was answered", offAsked.length > 0 && offAsked.every(u => u.includes("world.openfoodfacts.org/api/v3/product/")),
+    offAsked.join(", "));
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));
   // 053 W4: with Supabase unreachable the offline banner still shows (after the console check: blocked reads log errors).

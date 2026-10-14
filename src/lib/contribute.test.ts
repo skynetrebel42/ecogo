@@ -77,6 +77,22 @@ test("a first-time sender is signed in anonymously with the human-check token, t
   assert.equal(body.has("nutrition"), false, "skipped photos aren't sent");
 });
 
+// M8 follow-up 5, J2: new photos for a product OFF has, without text or name.
+test("a photos-only send carries mode=photos and the photos, never the text or the name", async () => {
+  const f = fakeClient({ session: true });
+  const r = await submitProduct({ code: CODE, ingredients: "", name: "Gummy bears", photosOnly: true, photos: { nutrition: jpeg("n") } }, token, f.client);
+  assert.deepEqual(r, { ok: true });
+  const body = f.sent()!;
+  assert.equal(body.get("mode"), "photos");
+  assert.equal(await (body.get("nutrition") as File).text(), "n");
+  assert.equal(body.has("ingredients"), false);
+  assert.equal(body.has("name"), false);
+  const g = fakeClient({ session: true });
+  assert.deepEqual(await submitProduct({ code: CODE, ingredients: "", photosOnly: true, photos: {} }, token, g.client),
+    { ok: false, reason: "invalid" }, "no photo: nothing to send");
+  assert.deepEqual(g.calls(), [], "nothing reached the server");
+});
+
 test("someone already signed in isn't asked for a human check again", async () => {
   const f = fakeClient({ session: true });
   let asked = false;

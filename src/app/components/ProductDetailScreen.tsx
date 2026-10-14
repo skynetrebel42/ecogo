@@ -117,9 +117,11 @@ function FindingRow({ finding: entry, open, onToggle }: { finding: Finding; open
 interface ProductDetailScreenProps {
   product: Product; onBack: () => void; onSelectProduct: (p: Product) => void;
   store: SavedStore; savedOk: boolean; onChangeSaved: (s: SavedStore, undoText?: string) => void;
+  /** M8 follow-up 5: open the add flow for this crowd-sourced OFF product (J1 add the ingredients, J2 new photos). */
+  onAddToOff: (mode: "ingredients" | "photos") => void;
 }
 
-export default function ProductDetailScreen({ product, onBack, store, savedOk, onChangeSaved, onSelectProduct }: ProductDetailScreenProps) {
+export default function ProductDetailScreen({ product, onBack, store, savedOk, onChangeSaved, onSelectProduct, onAddToOff }: ProductDetailScreenProps) {
   const [openFlag, setOpenFlag] = useState<string | null>(null);
   const saved = store.items.some(i => i.id === product.id);
   const [sheet, setSheet] = useState(false);
@@ -234,15 +236,21 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
 
           {/* ── Full ingredient list ── */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className={`flex items-center gap-2 ${updateUrl ? "mb-1" : "mb-2"}`}>
+            <div className={`flex flex-wrap items-center gap-2 ${updateUrl ? "mb-1" : "mb-2"}`}>
               <FlaskConical size={15} className="text-primary" />
-              <span className="font-bold text-sm flex-1">Ingredients</span>
-              {updateUrl && <UpdateInfoButton url={updateUrl} label="Update ingredients on Open Food Facts" />}
+              <span className="font-bold text-sm flex-auto">Ingredients</span>
+              {updateUrl && <div className="flex gap-2">
+                <button onClick={() => onAddToOff("photos")} className="flex-shrink-0 min-h-[44px] px-3 rounded-xl border border-border text-xs font-bold text-gray-700">Send new photos</button>
+                <UpdateInfoButton url={updateUrl} label="Update ingredients on Open Food Facts" />
+              </div>}
             </div>
             {updateUrl && <UpdateInfoHelp />}
             {product.ingredients.trim()
               ? <p className="text-xs text-gray-600 leading-relaxed"><HighlightedIngredients text={product.ingredients} flags={analysis.flags} /></p>
-              : <p className="text-xs text-gray-500 italic">No ingredient list available.</p>}
+              : <>
+                <p className="text-xs text-gray-500 italic">No ingredient list available.</p>
+                {updateUrl && <button onClick={() => onAddToOff("ingredients")} className="mt-2 w-full min-h-[48px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-sm">Add the ingredients</button>}
+              </>}
             <p className="text-micro text-gray-500 mt-3 leading-snug">
               Findings are matched against official sources (IARC, EU, FDA, EFSA, WHO), linked on each finding.
               Classifications describe potential hazards; this is not medical advice.

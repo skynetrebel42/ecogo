@@ -17,7 +17,7 @@ import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } fr
 import { refreshSnapshot, resolveSaved, loadSaved, saveSaved, type SavedStore } from "../lib/saved";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
 import IngredientCheck from "./components/IngredientCheck";
-import AddProductFlow from "./components/AddProductFlow";
+import AddProductFlow, { type AddMode } from "./components/AddProductFlow";
 import ListScreen from "./components/ListScreen";
 import {
   Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronDown, ChevronRight,
@@ -516,6 +516,7 @@ export default function App() {
   const [subScreen, setSubScreen] = useState<SubScreen>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [addCode, setAddCode] = useState(""); // the not-found barcode being added (M8)
+  const [addMode, setAddMode] = useState<AddMode>("new"); // follow-up 5: or an OFF product's missing ingredients / new photos
   const [searchQuery, setSearchQuery] = useState("");
   // Saved products and lists, and Recently scanned: on this device only (M14 part 1, M7 spec §4.1).
   const [saved, setSaved] = useState<SavedStore>(loadSaved);
@@ -621,7 +622,7 @@ export default function App() {
                   {activeTab === "map"     && <MapTab places={places} status={dbStatus} />}
                   {activeTab === "scan"    && (
                     <ScanTab products={products} onScanResult={openProduct} onCheckIngredients={() => setSubScreen("check-ingredients")}
-                      onAdd={(code) => { setAddCode(code); setSubScreen("add-product"); }} />
+                      onAdd={(code) => { setAddCode(code); setAddMode("new"); setSubScreen("add-product"); }} />
                   )}
                   {activeTab === "saved"   && <SavedTab saved={saved} scanned={recentProducts} tab={savedTab} onTab={setSavedTab} onSelectProduct={openProduct} products={products}
                     openList={openList} onOpenList={setOpenList} onChangeSaved={changeSaved} />}
@@ -632,7 +633,9 @@ export default function App() {
               {/* Sub-screen overlays — fill content area, slide over tab content */}
               {explainer && !subScreen && <Explainer id={explainer} onBack={() => setExplainer(null)} />}
               {subScreen === "check-ingredients" && <IngredientCheck onClose={() => setSubScreen(null)} />}
-              {subScreen === "add-product" && <AddProductFlow code={addCode} onDone={() => setSubScreen(null)} onClose={() => setSubScreen(null)} />}
+              {/* Follow-up 5: opened from a product page, Close goes back to it; "Scan another product" goes to Scan. */}
+              {subScreen === "add-product" && <AddProductFlow code={addCode} mode={addMode} onDone={() => { setSubScreen(null); setActiveTab("scan"); }}
+                onClose={() => setSubScreen(addMode === "new" ? null : "product-detail")} />}
               {subScreen === "product-detail" && selectedProduct && (
                 <ProductDetailScreen
                   key={selectedProduct.id}
@@ -642,6 +645,7 @@ export default function App() {
                   savedOk={savedOk}
                   onChangeSaved={changeSaved}
                   onSelectProduct={openProduct}
+                  onAddToOff={mode => { setAddCode(selectedProduct.barcode); setAddMode(mode); setSubScreen("add-product"); }}
                 />
               )}
 
