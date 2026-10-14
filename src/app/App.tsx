@@ -158,7 +158,7 @@ function RecentCard({ product, onSelect }: { product: Product; onSelect: (p: Pro
 
 function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearRecent, onOpenExplainer, recent }: {
   onSearch: (q: string) => void; onSelectProduct: (p: Product) => void; onGoScan: () => void;
-  onSeeAllRecent: () => void; onClearRecent: () => void; onOpenExplainer: (id: ExplainerId) => void; recent: Product[];
+  onSeeAllRecent: () => void; onClearRecent: () => void; onOpenExplainer: (id: ExplainerId, from: HTMLElement) => void; recent: Product[];
 }) {
   const [q, setQ] = useState("");
   return (
@@ -212,7 +212,7 @@ function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearR
             const { title, label, tile, Icon } = EXPLAINERS[id];
             const name = title.toLowerCase().includes(label.toLowerCase()) ? title : `${label}: ${title}`;
             return (
-              <button key={id} onClick={() => onOpenExplainer(id)} aria-label={name} style={{ background: tile }}
+              <button key={id} onClick={e => onOpenExplainer(id, e.currentTarget)} aria-label={name} style={{ background: tile }}
                 className="min-h-[88px] rounded-2xl p-3.5 text-left text-white flex flex-col justify-between gap-2 shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 ring-primary">
                 <Icon size={24} aria-hidden="true" />
                 <span className="text-sm font-extrabold leading-tight break-words hyphens-auto">{label}</span>
@@ -533,9 +533,10 @@ export default function App() {
   const [savedTab, setSavedTab] = useState<"favorites" | "scanned">("favorites");
   const [openList, setOpenList] = useState<string | null>(null); // kept here so Back from a product returns to the list
   const [explainer, setExplainer] = useState<ExplainerId | null>(null);
-  // 054 ACCESS-01: Back from an article returns focus to what opened it (the screen behind stays mounted, inert).
+  // 054 ACCESS-01: Back from an article returns focus to the tile that opened it (the screen behind stays mounted, inert).
+  // The tile comes from the click: Safari doesn't focus a tapped button.
   const explainerOpener = useRef<HTMLElement | null>(null);
-  const openExplainer = (id: ExplainerId) => { explainerOpener.current = document.activeElement as HTMLElement | null; setExplainer(id); };
+  const openExplainer = (id: ExplainerId, from: HTMLElement) => { explainerOpener.current = from; setExplainer(id); };
   useEffect(() => { if (!explainer) explainerOpener.current?.focus(); }, [explainer]);
 
 

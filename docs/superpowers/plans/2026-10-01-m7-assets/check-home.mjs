@@ -118,7 +118,7 @@ try {
     && !/\bAI\b/.test(op.text) && op.text.includes("Findings are matched against official sources"));
   check("Oreo page points to its Nutrition section", op.text.includes("see the Nutrition section") && op.text.includes("Added sugar"));
   await back();
-  check("ACCESS-01: the search screen's Back button is named 'Back'", !!(await run(`[...document.querySelectorAll('button[aria-label="Back"]')].some(b => b.checkVisibility())`)));
+  check("ACCESS-01: the search screen's Back button is named 'Back'", !!(await run(`[...document.querySelectorAll('button[aria-label="Back"]')].some(b => b.checkVisibility({ visibilityProperty: true }))`)));
   const backSearch = await run(`({ text: document.body.innerText, query: [...document.querySelectorAll("span")].some(s => s.innerText === "oreo"), oreo: !!__btn("Oreo Original") })`);
   check("054 K-19: Back from a product opened from search returns to the same query and results",
     backSearch.query && backSearch.oreo && backSearch.text.includes("Sorted by fewest concerns") && !backSearch.text.includes("What are you eating?"));
@@ -149,7 +149,7 @@ try {
   await home();
 
   for (const [name, title] of [[LEARN[0], HEALTHY], [LEARN[1], LEARN[1]]]) {
-    await run(`(async () => { __btn(${JSON.stringify(name)}).focus(); __btn(${JSON.stringify(name)}).click(); await __sleep(500); })()`);
+    await run(`(async () => { __btn(${JSON.stringify(name)}).click(); await __sleep(500); })()`); // a click, not focus (as a Safari tap)
     const e = await run(`document.body.innerText`);
     // 054 ACCESS-01: focus moves to the article's heading; the Home screen behind it can't be reached by Tab.
     const focus = await run(`({ tag: document.activeElement?.tagName, text: document.activeElement?.innerText,
