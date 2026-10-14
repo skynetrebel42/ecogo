@@ -1,5 +1,7 @@
 # EcoGo!
 
+[![EcoGo! Scan a food barcode and see which ingredients carry an official health concern](public/og-image.png)](https://skynetrebel42.github.io/ecogo/)
+
 Scan a food barcode and see which ingredients carry an **official** health concern, with the source for every flag.
 
 **Live demo:** https://skynetrebel42.github.io/ecogo/ (open it on a phone and tap Scan to read a grocery barcode with the
