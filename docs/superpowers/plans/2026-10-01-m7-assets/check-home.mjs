@@ -399,7 +399,15 @@ try {
   const still = await run(`getComputedStyle(document.querySelector("[data-moving]")).animationName`);
   await send("Emulation.setEmulatedMedia", MOTION);
   check("…with reduced motion the bar doesn't move", still === "none", still);
-  await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
+  // 055 E1: while sending, Close and every field that feeds the send are locked (Back is gone, Crop was already locked).
+  const locked = await run(`(() => { const close = __btn("Close"); __btn("Close").click();
+    return { close: close.disabled, name: document.querySelector("#product-name").disabled, consent: document.querySelector('input[type="checkbox"]').disabled,
+      crop: [...document.querySelectorAll("button")].filter(b => b.innerText === "Crop").every(b => b.disabled), back: !!__btn("Back"),
+      still: !!__btn("Sending…") }; })()`);
+  check("055 E1: while sending, Close, the name, the consent box and Crop are disabled; a Close click does nothing",
+    locked.close && locked.name && locked.consent && locked.crop && !locked.back && locked.still, JSON.stringify(locked));
+  // This stubbed human check never answers, so the send never ends: leave by reloading.
+  await send("Page.reload"); await sleep(4000); await helpers();
   // M8 follow-up 2, G2: OFF took the text but not the nutrition photo. Every auth call is answered here (CDP Fetch); the
   // off-submit POST goes to a local stub server instead (follow-up 4: a real, throttled upload, so the bar shows real
   // percents). Nothing of the send reaches Supabase or OFF; the human check is stubbed to hand over a token.

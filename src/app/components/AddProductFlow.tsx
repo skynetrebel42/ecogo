@@ -152,7 +152,8 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
         <p className={`text-xs font-bold ${dark ? "text-[#A7B8AE]" : "text-gray-600"}`}>{sub}</p>
         <h1 className={`text-xl font-extrabold ${dark ? "text-white" : "text-[#1A5C39]"}`}>{title}</h1>
       </div>
-      <button onClick={() => { begin(); onClose(); }} aria-label="Close" className={`w-11 h-11 rounded-full flex items-center justify-center ${dark ? "bg-white/10 text-white" : "border border-border bg-white"}`}>
+      {/* 055 E1: no Close while sending (the send would run on with no receipt). */}
+      <button onClick={() => { begin(); onClose(); }} disabled={step === "sending"} aria-label="Close" className={`w-11 h-11 rounded-full flex items-center justify-center disabled:opacity-50 ${dark ? "bg-white/10 text-white" : "border border-border bg-white"}`}>
         <X size={16} />
       </button>
     </div>
@@ -284,8 +285,8 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
           ? <p className="text-xs text-gray-600">{hasPhoto ? "Plus the barcode." : "Add at least one photo to send."}</p>
           : <>
             <label htmlFor="product-name" className="block text-sm font-bold">Product name (optional)</label>
-            <input id="product-name" value={name} onChange={e => setName(e.target.value)} placeholder="As printed on the front" maxLength={200}
-              className="w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm" />
+            <input id="product-name" value={name} onChange={e => setName(e.target.value)} disabled={sending} placeholder="As printed on the front" maxLength={200}
+              className="w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm disabled:opacity-60" />
             <p className="text-xs text-gray-600">Plus the ingredients you checked and the barcode.</p>
           </>}
       </div>
@@ -294,7 +295,7 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
         <p className="text-xs text-gray-700 leading-relaxed">Open Food Facts is a free, open database. Your photos and text will be public there, for anyone to see and reuse, under its open licenses (photos CC BY-SA, data ODbL).</p>
         <p className="text-xs text-gray-700 leading-relaxed">Make sure no faces, receipts or anything personal show in the photos.</p>
         <label className="flex gap-2.5 items-start text-sm font-semibold leading-snug pt-1">
-          <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} className="w-[22px] h-[22px] m-0 flex-shrink-0" />
+          <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} disabled={sending} className="w-[22px] h-[22px] m-0 flex-shrink-0" />
           <span>I took these photos, and they show only the product.</span>
         </label>
       </div>
