@@ -14,8 +14,9 @@ export const ATTEMPTS_DAILY = 30;
 
 /** Why a submission must wait until tomorrow, from today's counts before this one (`mine` and `all` exclude failed
  *  sends; `attempts` is all of this person's rows); null = it may go. */
-export function limitReason(mine: number, all: number, attempts = 0): "limit-you" | "limit-all" | null {
-  if (mine >= PER_PERSON_DAILY || attempts >= ATTEMPTS_DAILY) return "limit-you";
+export function limitReason(mine: number, all: number, attempts = 0): "limit-you" | "limit-tries" | "limit-all" | null {
+  if (mine >= PER_PERSON_DAILY) return "limit-you";
+  if (attempts >= ATTEMPTS_DAILY) return "limit-tries"; // its own message: maybe nothing was sent
   if (all >= ALL_DAILY) return "limit-all";
   return null;
 }

@@ -58,8 +58,8 @@ test("after 200 submissions a day across everyone, nobody may send", () => {
 // row). Every attempt today, failed or not, counts toward a cap of 30 per person.
 test("after 30 attempts a day, failed ones included, a person must wait until tomorrow", () => {
   assert.equal(limitReason(0, 0, 29), null);
-  assert.equal(limitReason(0, 0, 30), "limit-you", "30 failed attempts, none sent");
-  assert.equal(limitReason(3, 50, 30), "limit-you");
+  assert.equal(limitReason(0, 0, 30), "limit-tries", "30 failed attempts, none sent: not 'you've sent 10'");
+  assert.equal(limitReason(3, 50, 30), "limit-tries");
   assert.equal(limitReason(10, 0, 10), "limit-you", "the 10 sent still stop first");
   assert.equal(ATTEMPTS_DAILY, 30);
 });

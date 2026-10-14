@@ -1,7 +1,7 @@
 // contribute.ts — send a new product to Open Food Facts through EcoGo's `off-submit` function (M8 spec D6–D9).
 // The Supabase client is passed in (the app passes lib/supabase.ts), so Node tests can load this module.
 
-export type SubmitReason = "limit-you" | "limit-all" | "captcha" | "off-down" | "invalid" | "nothing-new";
+export type SubmitReason = "limit-you" | "limit-tries" | "limit-all" | "captcha" | "off-down" | "invalid" | "nothing-new";
 export type PhotoKind = "front" | "ingredients" | "nutrition";
 /** textKept: OFF already had ingredients, so only the photos went (D10). failedPhotos: sent, but these photos didn't
  *  go through (M8 follow-up 2, G2). */
@@ -29,7 +29,7 @@ export interface ContributeClient {
 /** Where a send is (follow-up 4, P1): the human check, the upload with its real percent, then the server's work. */
 export type SendStage = { stage: "check" } | { stage: "upload"; percent: number } | { stage: "saving" };
 
-const REASONS: SubmitReason[] = ["limit-you", "limit-all", "captcha", "off-down", "invalid", "nothing-new"];
+const REASONS: SubmitReason[] = ["limit-you", "limit-tries", "limit-all", "captcha", "off-down", "invalid", "nothing-new"];
 const fail = (reason: SubmitReason): SubmitResult => ({ ok: false, reason });
 
 /** How long to wait for off-submit's answer once the upload is done (it answers in ~10 s since 049 H1). The upload

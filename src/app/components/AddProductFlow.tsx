@@ -19,6 +19,7 @@ type Step = Kind | "reading" | "check" | "send" | "sending" | "sent" | "failed";
 
 const FAILED: Record<SubmitReason, string> = {
   "limit-you": "You've sent 10 today. Thanks! Try again tomorrow.",
+  "limit-tries": "You've tried 30 times today. Try again tomorrow.",
   "limit-all": "EcoGo has reached today's limit. Try again tomorrow.",
   captcha: "Couldn't confirm you're not a robot. Try again.",
   "off-down": "Open Food Facts didn't answer. Try again later.",

@@ -117,7 +117,7 @@ test("a failed human check stops before anything is sent", async () => {
 });
 
 test("the server's limit answers come back as their reasons", async () => {
-  for (const reason of ["limit-you", "limit-all", "invalid", "off-down"] as const) {
+  for (const reason of ["limit-you", "limit-tries", "limit-all", "invalid", "off-down"] as const) {
     const f = fakeClient({ session: true, reply: httpError(reason.startsWith("limit") ? 429 : 400, { ok: false, reason }) });
     assert.deepEqual(await submitProduct({ ...input, photos: {} }, token, f.client), { ok: false, reason });
   }
