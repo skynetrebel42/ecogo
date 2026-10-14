@@ -3,7 +3,7 @@
 // foods: docs/superpowers/specs/2026-10-01-m71-explainers-design.md (sources §3, text §4); the Learn tiles and
 // "How EcoGo checks": docs/superpowers/specs/2026-10-06-m12-home-tiles-design.md.
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ExternalLink, Apple, Gauge, Droplet, Sprout, Factory, ListChecks, type LucideIcon } from "lucide-react";
 import { FDA_RULE } from "../../lib/nutrition";
 import { PROCESSED_MEAT, ACRYLAMIDE } from "../../lib/safety/foodConcerns";
@@ -182,13 +182,16 @@ export default function Explainer({ id, onBack }: { id: ExplainerId; onBack: () 
   const [linked, setLinked] = useState<ExplainerId | null>(null);
   const shown = linked ?? id;
   const e = EXPLAINERS[shown];
+  // 054 ACCESS-01: focus starts at the page's heading, so screen readers and keyboards land in it.
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => heading.current?.focus(), [shown]);
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-background">
       <div className="px-4 pt-3 pb-3 flex items-center gap-3 border-b border-border">
         <button onClick={() => (linked ? setLinked(null) : onBack())} aria-label="Back" className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
           <ArrowLeft size={16} />
         </button>
-        <h1 className="text-base font-extrabold leading-tight">{e.title}</h1>
+        <h1 ref={heading} tabIndex={-1} className="text-base font-extrabold leading-tight focus:outline-none">{e.title}</h1>
       </div>
       <div key={shown} className="flex-1 overflow-y-auto px-5 py-4 space-y-3 text-sm leading-relaxed" style={{ scrollbarWidth: "none" }}>
         <Body id={shown} onOpen={setLinked} />

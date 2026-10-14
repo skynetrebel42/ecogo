@@ -118,6 +118,7 @@ try {
     && !/\bAI\b/.test(op.text) && op.text.includes("Findings are matched against official sources"));
   check("Oreo page points to its Nutrition section", op.text.includes("see the Nutrition section") && op.text.includes("Added sugar"));
   await back();
+  check("ACCESS-01: the search screen's Back button is named 'Back'", !!(await run(`[...document.querySelectorAll('button[aria-label="Back"]')].some(b => b.checkVisibility())`)));
   const backSearch = await run(`({ text: document.body.innerText, query: [...document.querySelectorAll("span")].some(s => s.innerText === "oreo"), oreo: !!__btn("Oreo Original") })`);
   check("054 K-19: Back from a product opened from search returns to the same query and results",
     backSearch.query && backSearch.oreo && backSearch.text.includes("Sorted by fewest concerns") && !backSearch.text.includes("What are you eating?"));
@@ -148,8 +149,12 @@ try {
   await home();
 
   for (const [name, title] of [[LEARN[0], HEALTHY], [LEARN[1], LEARN[1]]]) {
-    await run(`(async () => { __btn(${JSON.stringify(name)}).click(); await __sleep(500); })()`);
+    await run(`(async () => { __btn(${JSON.stringify(name)}).focus(); __btn(${JSON.stringify(name)}).click(); await __sleep(500); })()`);
     const e = await run(`document.body.innerText`);
+    // 054 ACCESS-01: focus moves to the article's heading; the Home screen behind it can't be reached by Tab.
+    const focus = await run(`({ tag: document.activeElement?.tagName, text: document.activeElement?.innerText,
+      covered: !!document.querySelector(${JSON.stringify(`button[aria-label="${name}"]`)})?.closest("[inert]") })`);
+    check(`ACCESS-01: opening "${title}" focuses its heading; Home behind it is inert`, focus.tag === "H1" && focus.text === title && focus.covered, JSON.stringify(focus));
     check(`explainer opens with sources: ${title}`, e.includes("Sources") && e.includes("Source checked") && e.includes(title));
     if (title === LEARN[1]) { // 053 W1, W2 (spec 2026-10-14-trust-wording-design.md)
       const b = e.replace(/’/g, "'");
@@ -162,6 +167,8 @@ try {
         && !b.includes("No official finding for its additives"));
     }
     await back();
+    const returned = await run(`document.activeElement?.getAttribute("aria-label")`);
+    check(`ACCESS-01: Back returns focus to the "${title}" tile`, returned === name, returned);
   }
 
   // M12 (spec 2026-10-06-m12-home-tiles-design.md §2): six tiles, the two badge explainers first, How EcoGo checks last.

@@ -1,4 +1,4 @@
-import { useState, useEffect, useId, type ReactNode } from "react";
+import { useState, useEffect, useId, useRef, type ReactNode } from "react";
 import { loadCatalog, type ResourceRow } from "../lib/catalog";
 import MapTab from "./components/MapTab";
 import ProductDetailScreen from "./components/ProductDetailScreen";
@@ -250,7 +250,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
     <div className="absolute inset-0 z-50 flex flex-col bg-background">
       {/* No inner StatusBar — outer one persists */}
       <div className="px-4 pt-3 pb-3 flex items-center gap-3 border-b border-border">
-        <button onClick={onBack} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+        <button onClick={onBack} aria-label="Back" className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
           <ArrowLeft size={16} />
         </button>
         <div className="flex-1 flex items-center gap-2 bg-muted rounded-xl px-3 py-2.5">
@@ -533,6 +533,10 @@ export default function App() {
   const [savedTab, setSavedTab] = useState<"favorites" | "scanned">("favorites");
   const [openList, setOpenList] = useState<string | null>(null); // kept here so Back from a product returns to the list
   const [explainer, setExplainer] = useState<ExplainerId | null>(null);
+  // 054 ACCESS-01: Back from an article returns focus to what opened it (the screen behind stays mounted, inert).
+  const explainerOpener = useRef<HTMLElement | null>(null);
+  const openExplainer = (id: ExplainerId) => { explainerOpener.current = document.activeElement as HTMLElement | null; setExplainer(id); };
+  useEffect(() => { if (!explainer) explainerOpener.current?.focus(); }, [explainer]);
 
 
   // ── Live data from Supabase ──────────────────────────────────────────────
@@ -601,7 +605,7 @@ export default function App() {
             <div className="flex-1 overflow-hidden relative">
               {/* Tab content — animated on switch, hidden when sub-screen is open */}
               {!subScreen && (
-                <div key={activeTab} style={{ animation: "ft 0.16s ease-out", height: "100%", overflow: "hidden", position: "relative" }}>
+                <div key={activeTab} {...(explainer ? { inert: "" } : {})} style={{ animation: "ft 0.16s ease-out", height: "100%", overflow: "hidden", position: "relative" }}>
                   {activeTab === "home" && (
                     <HomeTab
                       onSearch={openSearch}
@@ -609,7 +613,7 @@ export default function App() {
                       onGoScan={() => setActiveTab("scan")}
                       onSeeAllRecent={() => { setSavedTab("scanned"); setOpenList(null); setActiveTab("saved"); }}
                       onClearRecent={() => setRecent([])}
-                      onOpenExplainer={setExplainer}
+                      onOpenExplainer={openExplainer}
                       recent={recentProducts}
                     />
                   )}
