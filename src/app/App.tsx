@@ -429,7 +429,7 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
     <div className="h-full overflow-y-auto bg-background px-5 pt-4 pb-8 space-y-3.5" style={{ scrollbarWidth: "none" }}>
       <div>
         <h1 className="text-xl font-extrabold leading-tight text-primary">Profile</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">No account yet. What you do stays on this device.</p>
+        <p className="text-xs text-muted-foreground mt-0.5">No account. Your saved products, lists and history stay in this browser. Privacy, below, lists what's sent.</p>
       </div>
 
       <DisplayCard />
@@ -465,7 +465,7 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
         <p className="text-xs text-foreground/80 leading-relaxed">If you add a product, what you send goes to Open Food Facts and is public there: the photos, the ingredients you checked, the barcode and the name. EcoGo keeps an anonymous ID and a log of your submissions (barcode, time, result). At your first Send, Cloudflare runs a human check.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, to Open Food Facts.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The product catalog loads from EcoGo's database. Your recently scanned list stays in this browser.</p>
-        <p className="text-xs text-foreground/80 leading-relaxed">The map asks for your location only when you tap My location. It stays on your phone. Map images load from OpenStreetMap.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">The map asks for your location only when you tap My location. Your location stays on your phone. Map images load from OpenStreetMap's servers, which see the map area you're viewing, as with any web map.</p>
       </Accordion>
 
       <p className="text-mini text-muted-foreground text-center leading-relaxed">
@@ -591,12 +591,6 @@ export default function App() {
               <div className="flex items-center justify-center gap-1.5 py-1 bg-amber-50 border-b border-amber-100 flex-shrink-0">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                 <span className="text-nano font-bold text-amber-700 tracking-wide">Offline — showing the built-in catalog</span>
-              </div>
-            )}
-            {dbStatus === "live" && (
-              <div className="flex items-center justify-center gap-1.5 py-0.5 bg-green-50 border-b border-green-100 flex-shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                <span className="text-nano font-bold text-green-700 tracking-wide">Live data</span>
               </div>
             )}
 

@@ -102,7 +102,7 @@ const HOW_STEPS = [
 ];
 
 const LEVELS = [
-  { v: "none", basis: "No official finding for its additives or the food itself" },
+  { v: "none", basis: "Nothing matched EcoGo’s list of official findings (this doesn’t mean none exist)" },
   { v: "some", basis: "IARC Group 2B, or an EU warning label" },
   { v: "high", basis: "IARC Group 2A, a ban in the EU or US, or contains processed meat" },
   { v: "known", basis: "IARC Group 1 (for example, a processed meat product)" },
@@ -172,7 +172,7 @@ function Body({ id, onOpen }: { id: ExplainerId; onOpen: (id: ExplainerId) => vo
           </tr>
         </tbody>
       </table>
-      <p><strong>The key point:</strong> the levels describe how strong the evidence is that something can cause cancer, not how much harm one serving does. Processed meat and tobacco are both Group 1, but IARC says that doesn’t make them equally dangerous.</p>
+      <p><strong>The key point:</strong> Each level shows the strongest official finding EcoGo matched, and the table says what kind it is. IARC’s groups rate how strong the evidence is that something can cause cancer. EU warning labels and EU or US bans are regulators’ decisions, and not all of them are about cancer: the EU label on Red 40, for example, warns about activity and attention in children. None of them measures how much harm one serving does. Processed meat and tobacco are both IARC Group 1, but IARC says that doesn’t make them equally dangerous.</p>
     </>
   );
 }

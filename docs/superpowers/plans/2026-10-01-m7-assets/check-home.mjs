@@ -89,6 +89,7 @@ try {
 
   const t = await run(`document.body.innerText`);
   check("Home has no invented content", !/Alex|Chicago|Rating|Why Recommended|Deals|Nearby Resources/i.test(t));
+  check("053 W4: no 'Live data' label", !t.includes("Live data"));
   const h = new Date().getHours(), g = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
   check("greeting matches the time", t.includes(g) && t.includes("What are you eating?"), g);
   check("first visit shows Learn and no Recently scanned", JSON.stringify(await learnTiles()) === JSON.stringify(LEARN) && !t.includes("Recently scanned"));
@@ -142,6 +143,16 @@ try {
     await run(`(async () => { __btn(${JSON.stringify(name)}).click(); await __sleep(500); })()`);
     const e = await run(`document.body.innerText`);
     check(`explainer opens with sources: ${title}`, e.includes("Sources") && e.includes("Source checked") && e.includes(title));
+    if (title === LEARN[1]) { // 053 W1, W2 (spec 2026-10-14-trust-wording-design.md)
+      const b = e.replace(/’/g, "'");
+      check("053 W1: the badge page says each level is the strongest official finding, not all about cancer", b.includes("Each level shows the strongest "
+        + "official finding EcoGo matched, and the table says what kind it is. IARC's groups rate how strong the evidence is that something can cause "
+        + "cancer. EU warning labels and EU or US bans are regulators' decisions, and not all of them are about cancer: the EU label on Red 40, for "
+        + "example, warns about activity and attention in children. None of them measures how much harm one serving does. Processed meat and "
+        + "tobacco are both IARC Group 1, but IARC says that doesn't make them equally dangerous.") && !b.includes("the levels describe how strong"));
+      check("053 W2: the 'none' row says nothing matched EcoGo's list", b.includes("Nothing matched EcoGo's list of official findings (this doesn't mean none exist)")
+        && !b.includes("No official finding for its additives"));
+    }
     await back();
   }
 
@@ -178,6 +189,12 @@ try {
   check("Profile has no invented content", !/Alex|Level 4|Money Saved|CO₂|Ethical Purchases|Achievements|Notifications|Dark Mode/i.test(p));
   // M11: Your data is a closed accordion row; its summary carries the count.
   check("Profile: your data, sources and privacy", p.includes("2 recent products, on this device") && p.includes("Where results come from") && p.includes("Privacy"));
+  check("053 W3: the Profile subtitle says what stays in this browser", p.includes("No account. Your saved products, lists and history stay in this browser. Privacy, below, lists what's sent.")
+    && !p.includes("What you do stays on this device"));
+  const privacy = await run(`(async () => { const b = [...document.querySelectorAll("button[aria-expanded]")].find(b => b.innerText.startsWith("Privacy"));
+    b.click(); await __sleep(400); const t = document.body.innerText; b.click(); await __sleep(300); return t; })()`);
+  check("053 W5: Privacy says OpenStreetMap's servers see the map area", privacy.includes("The map asks for your location only when you tap My location. "
+    + "Your location stays on your phone. Map images load from OpenStreetMap's servers, which see the map area you're viewing, as with any web map."));
   const gh = await run(`(() => { const a = [...document.querySelectorAll("a")].find(a => a.innerText.includes("Source code")); return a ? a.href + " " + a.target : null; })()`);
   check("Profile: source-code link opens GitHub in a new tab", gh === "https://github.com/skynetrebel42/ecogo _blank", gh);
   await home();
@@ -444,6 +461,12 @@ try {
   await run(`(async () => { __btn("Scan another product").click(); await __sleep(600); return true; })()`);
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));
+  // 053 W4: with Supabase unreachable the offline banner still shows (after the console check: blocked reads log errors).
+  await send("Network.setBlockedURLs", { urls: ["*supabase.co*"] });
+  await send("Page.reload"); await sleep(4000); await helpers();
+  const off = await run(`__until(() => document.body.innerText.includes("Offline — showing the built-in catalog"), 15000).then(() => document.body.innerText)`);
+  await send("Network.setBlockedURLs", { urls: [] });
+  check("053 W4: Supabase unreachable → the offline banner still shows, and no 'Live data'", off.includes("Offline — showing the built-in catalog") && !off.includes("Live data"));
 } finally {
   console.log(`${ok}/${total} checks passed`);
   edge.kill();
