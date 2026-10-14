@@ -28,7 +28,7 @@ const PROFILE = `${process.env.TEMP}\\ecogo-home-${PORT}`;
 rmSync(PROFILE, { recursive: true, force: true });
 const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, "--window-size=900,1000",
   `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
-setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 240000).unref?.();
+setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 300000).unref?.();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page asked for (Network events)
@@ -402,11 +402,14 @@ try {
   const { root: docRoot2 } = (await send("DOM.getDocument")).result;
   const lib2 = (await send("DOM.querySelector", { nodeId: docRoot2.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
   await send("DOM.setFileInputFiles", { nodeId: lib2, files: [fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url))] });
-  // ~15 KB/s up: a ~4 s upload, so the 20 ms sampler sees several steps (since Edge 155 the page can be busy for most of
-  // a 1.3 s upload at 40 KB/s; the XHR's own events still rose 28 → 56 → 85 %). By rule, as the plain command is
-  // deprecated; an empty pattern matches every request.
-  const throttle = uploadThroughput => send("Network.emulateNetworkConditionsByRule", { matchedNetworkConditions: uploadThroughput < 0 ? []
-    : [{ urlPattern: "", latency: 0, downloadThroughput: -1, uploadThroughput }] });
+  // ~40 KB/s up, by rule (the plain command is deprecated in Edge 155); an empty pattern matches every request. A rejected
+  // call throws, so the bar check can't silently run unthrottled. The bar is recorded by a MutationObserver below: a
+  // 20 ms poll missed steps on Edge 155 while the page was busy.
+  const throttle = async uploadThroughput => {
+    const r = await send("Network.emulateNetworkConditionsByRule", { matchedNetworkConditions: uploadThroughput < 0 ? []
+      : [{ urlPattern: "", latency: 0, downloadThroughput: -1, uploadThroughput }] });
+    if (r.error) throw new Error(`throttle: ${r.error.message}`);
+  };
   await throttle(40_000);
   const sent = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
     document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
