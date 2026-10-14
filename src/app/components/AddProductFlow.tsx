@@ -26,6 +26,11 @@ const FAILED: Record<SubmitReason, string> = {
   invalid: "Open Food Facts couldn't take this as it is. Check the ingredients and try again.",
   "nothing-new": "Open Food Facts already has these ingredients and these photos, so there was nothing new to send.",
 };
+/** J2b (decision 051 C): photos mode sends no ingredients, so these two speak of the photos only. */
+const PHOTOS_FAILED: Partial<Record<SubmitReason, string>> = {
+  invalid: "Open Food Facts couldn't take these photos. Try other photos.",
+  "nothing-new": "Open Food Facts already has these photos, so there was nothing new to send.",
+};
 const PHOTO_TIPS: Record<Kind, string> = {
   front: "Photograph the front of the package, with its name showing.",
   ingredients: INGREDIENTS_TIP,
@@ -63,7 +68,13 @@ function SendProgress({ stage }: { stage: SendStage }) {
   );
 }
 
-export default function AddProductFlow({ code, onDone, onClose }: { code: string; onDone: () => void; onClose: () => void }) {
+/** new: a product found nowhere (M8). Follow-up 5: "ingredients" (J1) is the same flow for an OFF product with no
+ *  ingredients; "photos" (J2) sends only new photos for an OFF product: no reading, no text, no name. */
+export type AddMode = "new" | "ingredients" | "photos";
+const TITLE: Record<AddMode, string> = { new: "Add this product", ingredients: "Add the ingredients", photos: "Send new photos" };
+
+export default function AddProductFlow({ code, mode = "new", onDone, onClose }: { code: string; mode?: AddMode; onDone: () => void; onClose: () => void }) {
+  const photosOnly = mode === "photos";
   const [step, setStep] = useState<Step>("front");
   const [photos, setPhotos] = useState<Partial<Record<Kind, Blob>>>({});
   const [photoError, setPhotoError] = useState<string>();
@@ -86,7 +97,8 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
 
   useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
 
-  const next: Record<Kind, Step> = { front: "ingredients", ingredients: "check", nutrition: "send" };
+  const next: Record<Kind, Step> = { front: "ingredients", ingredients: photosOnly ? "nutrition" : "check", nutrition: "send" };
+  const hasPhoto = Object.values(photos).some(Boolean);
   // RW1-01: latest photo wins. Each photo, crop, Type it, Skip, Retake, Back or Close begins anew; a slow preparation,
   // blur check or read whose own check (`live`) went false since then is dropped.
   const [begin] = useState(latestWins);
@@ -94,7 +106,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const acceptPhoto = async (kind: Kind, blob: Blob, blurOk: boolean, live = begin()) => {
     setBlurry(undefined);
     setPhotos(p => ({ ...p, [kind]: blob }));
-    if (kind !== "ingredients") { setStep(next[kind]); return; }
+    if (kind !== "ingredients" || photosOnly) { setStep(next[kind]); return; }
     setStep("reading");
     const r = await readPhoto(blob);
     if (!live()) return;
@@ -123,7 +135,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   };
   const send = async () => {
     setStep("sending"); setStage(undefined);
-    const r = await submitProduct({ code, name, ingredients: text, photos }, () => turnstileToken(humanCheckSlot.current!),
+    const r = await submitProduct({ code, name, ingredients: text, photos, photosOnly }, () => turnstileToken(humanCheckSlot.current!),
       { auth: supabase.auth, ...offSubmit }, setStage);
     if (r.ok) { setTextKept(!!r.textKept); setFailedPhotos(r.failedPhotos ?? []); setUploading(!!r.pendingPhotos); setStep("sent"); } else { setFailed(r.reason); setStep("failed"); }
   };
@@ -153,7 +165,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   const crop = cropping && photos[cropping];
   if (cropping && crop) return <CropPhoto photo={crop} label={LABEL[cropping]} onCancel={() => setCropping(undefined)} onDone={blob => {
     setCropping(undefined);
-    if (cropping === "ingredients") acceptPhoto(cropping, blob, false); else setPhotos(p => ({ ...p, [cropping]: blob }));
+    if (cropping === "ingredients" && !photosOnly) acceptPhoto(cropping, blob, false); else setPhotos(p => ({ ...p, [cropping]: blob }));
   }} />;
   const cropButton = (kind: Kind) => (
     <button onClick={() => setCropping(kind)} disabled={step === "sending"} aria-label={`Crop the ${kind} photo`} className="w-full min-h-[44px] text-xs font-bold text-[#1A5C39] underline disabled:opacity-50">Crop</button>
@@ -164,7 +176,8 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     const order: Kind[] = ["front", "ingredients", "nutrition"];
     const blur = step !== "reading" && blurry?.kind === kind ? blurry.blob : undefined;
     return screen(true, <>
-      {header("Add this product", `Barcode ${code}`, true, step === "nutrition" ? () => { setBlurry(undefined); goTo("check"); } : undefined)}
+      {header(TITLE[mode], `Barcode ${code}`, true, step === "nutrition" ? () => { setBlurry(undefined); goTo(photosOnly ? "ingredients" : "check"); }
+        : photosOnly && step === "ingredients" ? () => { setBlurry(undefined); goTo("front"); } : undefined)}
       <ol className="px-4 pt-4 flex gap-2" aria-label="Photos">
         {order.map((k, i) => {
           const done = order.indexOf(kind) > i;
@@ -181,6 +194,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
           : blur ? <PhotoNotice title="This photo looks blurry." kind={kind}
               onRetake={() => { begin(); setBlurry(undefined); }} onUseAnyway={() => acceptPhoto(kind, blur, true)} />
           : <>
+          {photosOnly && kind === "front" && <p className="text-sm text-[#D1DAD4] leading-relaxed">Photos of the current label help Open Food Facts fix wrong or missing details. EcoGo never changes the text itself.</p>}
           <p className="text-base font-extrabold">{LABEL[kind]} photo</p>
           <p className="text-sm text-[#D1DAD4] leading-relaxed">{PHOTO_TIPS[kind]}</p>
           {kind !== "front" && <PhotoTips kind={kind} className="text-[#D1DAD4] justify-center" />}
@@ -192,7 +206,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
           <PhotoButtons onPhoto={onPhoto(kind)} />
           {photos[kind]
             ? <button onClick={() => goTo(next[kind])} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">Keep the photo I took</button>
-            : kind === "ingredients" // K3: a visible way past a bag with no ingredients panel
+            : kind === "ingredients" && !photosOnly // K3: a visible way past a bag with no ingredients panel
               ? <button onClick={() => skip(kind)} className="w-full min-h-[52px] rounded-2xl border border-white/30 bg-white/10 text-white font-bold text-sm">No ingredients list? Type it</button>
               : <button onClick={() => skip(kind)} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">Skip</button>}
         </div>
@@ -225,8 +239,9 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
         <Check size={44} className="text-emerald-300" />
       </div>
       <h1 className="text-2xl font-extrabold">Sent to Open Food Facts</h1>
-      <p className="text-sm text-[#D1DAD4] leading-relaxed">Volunteers there review new products, so it can take a while before everyone sees it in EcoGo.</p>
-      {textKept && <p className="text-xs text-[#A7B8AE] leading-relaxed">Open Food Facts already had ingredients for this product, so EcoGo sent only your photos and left its text as it was.</p>}
+      <p className="text-sm text-[#D1DAD4] leading-relaxed">{photosOnly ? "Volunteers use new photos to update the details, so it can take a while."
+        : "Volunteers there review new products, so it can take a while before everyone sees it in EcoGo."}</p>
+      {textKept && !photosOnly && <p className="text-xs text-[#A7B8AE] leading-relaxed">Open Food Facts already had ingredients for this product, so EcoGo sent only your photos and left its text as it was.</p>}
       {failedPhotos.length > 0 && (
         <p className="text-sm text-amber-300 leading-relaxed">
           The {new Intl.ListFormat("en").format(failedPhotos)} photo{failedPhotos.length > 1 ? "s" : ""} didn't go through.
@@ -244,11 +259,12 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   if (step === "failed") return screen(false, <>
     {header("Not sent", `Barcode ${code}`, false)}
     <div className="flex-1 flex flex-col justify-center px-6 gap-3 text-center">
-      <p role="alert" className="text-base font-bold">{FAILED[failed]}</p>
-      <p className="text-sm text-gray-600">Your photos and text are still here.</p>
+      <p role="alert" className="text-base font-bold">{(photosOnly && PHOTOS_FAILED[failed]) || FAILED[failed]}</p>
+      <p className="text-sm text-gray-600">{photosOnly ? "Your photos are still here." : "Your photos and text are still here."}</p>
     </div>
     <div className="px-4 pb-6">
-      <button onClick={() => setStep(failed === "invalid" ? "check" : "send")} className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Try again</button>
+      {/* J2b: in photos mode, after these two, Try again goes back to the photos instead of sending the same ones again. */}
+      <button onClick={() => photosOnly && PHOTOS_FAILED[failed] ? goTo("front") : setStep(failed === "invalid" ? "check" : "send")} className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Try again</button>
     </div>
   </>);
 
@@ -261,13 +277,17 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
         <h2 className="text-[15px] font-extrabold">What you're sending</h2>
         <div className="grid grid-cols-3 gap-2">
           {(["front", "ingredients", "nutrition"] as const).map(k => (
-            <div key={k}><Thumb blob={photos[k]} label={LABEL[k]} />{k !== "ingredients" && photos[k] && cropButton(k)}</div>
+            <div key={k}><Thumb blob={photos[k]} label={LABEL[k]} />{(k !== "ingredients" || photosOnly) && photos[k] && cropButton(k)}</div>
           ))}
         </div>
-        <label htmlFor="product-name" className="block text-sm font-bold">Product name (optional)</label>
-        <input id="product-name" value={name} onChange={e => setName(e.target.value)} placeholder="As printed on the front" maxLength={200}
-          className="w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm" />
-        <p className="text-xs text-gray-600">Plus the ingredients you checked and the barcode.</p>
+        {photosOnly
+          ? <p className="text-xs text-gray-600">{hasPhoto ? "Plus the barcode." : "Add at least one photo to send."}</p>
+          : <>
+            <label htmlFor="product-name" className="block text-sm font-bold">Product name (optional)</label>
+            <input id="product-name" value={name} onChange={e => setName(e.target.value)} placeholder="As printed on the front" maxLength={200}
+              className="w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm" />
+            <p className="text-xs text-gray-600">Plus the ingredients you checked and the barcode.</p>
+          </>}
       </div>
       <div className="bg-white border border-border rounded-2xl p-3.5 space-y-2">
         <h2 className="text-[15px] font-extrabold">This will be public</h2>
@@ -284,7 +304,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       {/* Always on this screen, so its first announcement isn't lost (a region inserted with its text isn't read). */}
       <p className="sr-only" aria-live="polite">{sending && stage ? stageLabel(stage, false) : ""}</p>
       {sending && stage && <SendProgress stage={stage} />}
-      <button onClick={send} disabled={!consent || !text.trim() || sending}
+      <button onClick={send} disabled={!consent || !(photosOnly ? hasPhoto : text.trim()) || sending}
         className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] disabled:opacity-50">
         {sending ? "Sending…" : "Send"}
       </button>

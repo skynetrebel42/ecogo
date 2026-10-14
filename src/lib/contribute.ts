@@ -15,6 +15,8 @@ export interface Submission {
   name?: string;
   ingredients: string;
   photos: { front?: Blob; ingredients?: Blob; nutrition?: Blob };
+  /** Follow-up 5, J2: new photos for a product OFF has; no text or name is sent, at least one photo is. */
+  photosOnly?: boolean;
 }
 /** Supabase auth, and where off-submit lives: its URL and the public (publishable) key it's called with. */
 export interface ContributeClient {
@@ -62,7 +64,8 @@ function post(url: string, headers: Record<string, string>, body: FormData, onPr
 export async function submitProduct(s: Submission, getCaptchaToken: () => Promise<string>, client: ContributeClient,
   onProgress: (s: SendStage) => void = () => {}): Promise<SubmitResult> {
   const ingredients = s.ingredients.trim();
-  if (!ingredients || !/^[0-9]{8,14}$/.test(s.code)) return fail("invalid");
+  const hasPhoto = KINDS.some(k => s.photos[k]);
+  if (!(s.photosOnly ? hasPhoto : ingredients) || !/^[0-9]{8,14}$/.test(s.code)) return fail("invalid");
 
   const { data } = await client.auth.getSession();
   if (!data.session) {
@@ -77,8 +80,11 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
 
   const body = new FormData();
   body.set("code", s.code);
-  body.set("ingredients", ingredients);
-  if (s.name?.trim()) body.set("name", s.name.trim());
+  if (s.photosOnly) body.set("mode", "photos");
+  else {
+    body.set("ingredients", ingredients);
+    if (s.name?.trim()) body.set("name", s.name.trim());
+  }
   if (s.photos.front) body.set("front", s.photos.front, "front.jpg");
   if (s.photos.ingredients) body.set("ingredients_photo", s.photos.ingredients, "ingredients.jpg");
   if (s.photos.nutrition) body.set("nutrition", s.photos.nutrition, "nutrition.jpg");

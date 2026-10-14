@@ -21,6 +21,20 @@ export function limitReason(mine: number, all: number, attempts = 0): "limit-you
   return null;
 }
 
+/** The sent fields check (trust boundary). Follow-up 5, J3: photos mode (`mode=photos`) needs no ingredients text but at
+ *  least one photo; a normal send needs the text, as before. */
+export function validForm(f: { code: string; ingredients: string; name: string; photosMode: boolean; photos: number }): boolean {
+  if (!/^[0-9]{8,14}$/.test(f.code) || f.ingredients.length > 5000 || f.name.length > 200) return false;
+  return f.photosMode ? f.photos > 0 : f.ingredients !== "";
+}
+
+/** After reading OFF's product: write the text, or upload photos only (D10: OFF's text is kept; J3: photos mode never
+ *  writes text or name); null = photos mode for a product OFF doesn't have, which is invalid. */
+export function sendPlan(photosMode: boolean, found: boolean, hasText: boolean): "text" | "photos" | null {
+  if (photosMode) return found ? "photos" : null;
+  return hasText ? "photos" : "text";
+}
+
 /** Headers for every OFF request: a custom User-Agent, and OFF's public `off`/`off` basic auth on the test server. */
 export function offHeaders(base: string, contact: string): Record<string, string> {
   const headers: Record<string, string> = { "User-Agent": `EcoGo/${APP_VERSION} (${contact})` };

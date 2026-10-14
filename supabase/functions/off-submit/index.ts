@@ -3,7 +3,7 @@
 // account. Answers { ok: true } or { ok: false, reason } (reasons as in src/lib/contribute.ts).
 // Secrets: OFF_BASE, OFF_USER, OFF_PASSWORD, OFF_CONTACT; SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are built in.
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { imageForm, limitReason, offHeaders, photoResult, productForm, sendReply, withLater, type OffAccount, type PhotoKind, type PhotoResult } from "./off.ts";
+import { imageForm, limitReason, offHeaders, photoResult, productForm, sendPlan, sendReply, validForm, withLater, type OffAccount, type PhotoKind, type PhotoResult } from "./off.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }; // Supabase Edge Functions: work after the answer
 
@@ -37,6 +37,7 @@ Deno.serve(async req => {
   const code = String(form.get("code") ?? "");
   const ingredients = String(form.get("ingredients") ?? "").trim();
   const name = String(form.get("name") ?? "").trim();
+  const photosMode = form.get("mode") === "photos"; // follow-up 5, J3: new photos for a product OFF has, no text
   const photos: [PhotoKind, File][] = [];
   for (const [field, kind] of Object.entries(PHOTO_FIELDS)) {
     const f = form.get(field);
@@ -44,9 +45,7 @@ Deno.serve(async req => {
     if (!(f instanceof File) || f.type !== "image/jpeg" || f.size === 0 || f.size > MAX_PHOTO) return answer(400, { ok: false, reason: "invalid" });
     photos.push([kind, f]);
   }
-  if (!/^[0-9]{8,14}$/.test(code) || !ingredients || ingredients.length > 5000 || name.length > 200) {
-    return answer(400, { ok: false, reason: "invalid" });
-  }
+  if (!validForm({ code, ingredients, name, photosMode, photos: photos.length })) return answer(400, { ok: false, reason: "invalid" });
 
   // Daily limits (UTC day): submissions that didn't fail (10 a person, 200 in all), and every attempt (30 a person, 054 B2).
   // ponytail: count-then-insert, so simultaneous sends can pass a limit by a few; a DB function with a lock if that matters.
@@ -78,28 +77,31 @@ Deno.serve(async req => {
     if (!existing.ok && existing.status !== 404) throw new Error(`OFF read ${existing.status}`);
     const textKept = Boolean(product.ingredients_text || product.ingredients_text_en);
     const hasName = Boolean(product.product_name || product.product_name_en);
+    const plan = sendPlan(photosMode, existing.ok, textKept);
+    if (!plan) { await finish("failed", "photos mode: not on OFF"); return answer(400, { ok: false, reason: "invalid" }); }
+    const writeText = plan === "text";
     const notes: string[] = [];
-    if (!textKept) {
+    if (writeText) {
       const r = await fetch(`${OFF_BASE}/cgi/product_jqm2.pl`, {
         method: "POST", headers, body: productForm({ code, ingredients, name: hasName ? undefined : name || undefined }, account),
       });
       const body = r.ok ? await r.json() : null;
       if (body?.status !== 1) throw new Error(`OFF write ${r.status} ${body?.status_verbose ?? ""}`.trim());
-    } else notes.push("had ingredients: photos only");
+    } else notes.push(photosMode ? "photos mode: photos only" : "had ingredients: photos only");
     // M8 follow-up 2, G1: one photo at a time (OFF's test server answered 500 to parallel uploads to one product).
     const upload = async ([kind, photo]: [PhotoKind, File]) => {
       const r = await fetch(`${OFF_BASE}/cgi/product_image_upload.pl`, { method: "POST", headers, body: imageForm(code, kind, photo, account) })
         .catch(err => { console.error(`OFF image ${kind}`, err); return null; });
       return photoResult(kind, r?.status ?? 0, r?.ok ? await r.json().catch(() => null) : null);
     };
-    // Follow-up 3, H1: wait only for the ingredients photo after a text write (or, with OFF's own text kept, until OFF
-    // takes a photo), answer, then send the rest in the background.
+    // Follow-up 3, H1: wait only for the ingredients photo after a text write (or, with no text written, until OFF takes
+    // a photo), answer, then send the rest in the background.
     const queue = [...photos].sort(([a], [b]) => Number(b === "ingredients") - Number(a === "ingredients"));
     const results: PhotoResult[] = [];
-    if (!textKept) { if (queue[0]?.[0] === "ingredients") results.push(await upload(queue.shift()!)); }
+    if (writeText) { if (queue[0]?.[0] === "ingredients") results.push(await upload(queue.shift()!)); }
     else while (queue.length && !results.some(p => p.taken)) results.push(await upload(queue.shift()!));
     // G2: partial success is "Sent", naming the failed photos. Nothing invented: if OFF took nothing, it isn't.
-    const reply = sendReply(!textKept, results, queue.map(([kind]) => kind));
+    const reply = sendReply(writeText, results, queue.map(([kind]) => kind));
     const log = [...notes, ...results.flatMap(p => p.note ?? [])].join("; ") || undefined;
     if (!reply.ok) { await finish("failed", log); return answer(reply.reason === "off-down" ? 502 : 409, reply); }
     await finish("sent", log);
