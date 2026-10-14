@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ATTEMPTS_DAILY, limitReason, offHeaders, productForm, imageForm, photoResult, sendReply, withLater } from "./off.ts";
+import { ATTEMPTS_DAILY, limitReason, offHeaders, productForm, imageForm, photoResult, sendPlan, sendReply, validForm, withLater } from "./off.ts";
 
 // M8 follow-up 2 (docs/superpowers/specs/2026-10-08-m8-followup2-photo-quality-design.md G1, G2).
 test("a photo OFF took, or already had, counts as taken; an HTTP error or a refusal doesn't", () => {
@@ -39,6 +39,25 @@ test("with OFF's own text kept, one photo taken is enough; nothing taken is not 
   assert.deepEqual(sendReply(false, [photoResult("front", 500, null)]), { ok: false, reason: "off-down" });
   assert.deepEqual(sendReply(false, [photoResult("front", 200, { status: "status not ok", error: "bad" })]), { ok: false, reason: "nothing-new" });
   assert.deepEqual(sendReply(false, []), { ok: false, reason: "nothing-new" });
+});
+
+// M8 follow-up 5 (docs/superpowers/specs/2026-10-09-m8-followup5-fix-off-products-design.md J3).
+const form = { code: "0123456789012", ingredients: "", name: "", photosMode: false, photos: 1 };
+test("empty ingredients are invalid in a normal send, as before; photos mode accepts them with at least one photo", () => {
+  assert.equal(validForm({ ...form, ingredients: "Water" }), true);
+  assert.equal(validForm(form), false);
+  assert.equal(validForm({ ...form, photosMode: true }), true);
+  assert.equal(validForm({ ...form, photosMode: true, photos: 0 }), false, "photos mode with no photo sends nothing");
+  assert.equal(validForm({ ...form, photosMode: true, code: "12" }), false);
+});
+
+test("photos mode uploads photos only, never the text, and only for a product OFF already has", () => {
+  assert.equal(sendPlan(true, true, false), "photos", "OFF has the product but no text: still no text write");
+  assert.equal(sendPlan(true, true, true), "photos");
+  assert.equal(sendPlan(true, false, false), null, "unknown product: invalid");
+  assert.equal(sendPlan(false, false, false), "text", "a normal send of a new product writes the text");
+  assert.equal(sendPlan(false, true, false), "text");
+  assert.equal(sendPlan(false, true, true), "photos", "OFF's own text is kept (D10)");
 });
 
 const who = { user: "ecogo-app", password: "pw", uuid: "3f1c0e2a-0000-4000-8000-000000000001" };
