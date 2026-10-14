@@ -1,7 +1,7 @@
 # M8 follow-up 6: no false "blurry", no junk text, a clear "Type it", optional crop
 
 - **Date:** 2026-10-09
-- **Status:** **Approved** by the owner 2026-10-09 (decision 052; built after follow-up 4 and **before** follow-up 5)
+- **Status:** **Done**, live 2026-10-14 (origin/main 4bb0671); approved by the owner 2026-10-09 (decision 052; built after follow-up 4 and **before** follow-up 5)
 - **Why:** Minh's first real submission (Celia's Red Lentils, 0094922021397, row 17, live on world.openfoodfacts.org
   with "Red lentils" typed by him): a clear photo, taken at night, kept getting "This photo looks blurry"; after "Use it
   anyway" the reader's junk (243 underlined words) went straight into the text box, because 049 H2 skips 048 G4's
