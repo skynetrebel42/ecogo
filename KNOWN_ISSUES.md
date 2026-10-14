@@ -235,6 +235,9 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - **check-home can time out (seen 2026-10-09, Knight V):** 4 of 8 runs hit the 120 s timeout, some before any M8 step,
   one stalled in the Saved/USDA-search part that reads live Supabase; passing runs take ~58 s. Likely slow live reads,
   not M8 code. Watch it; if it persists, stub those reads or raise the step timeout.
+- **check-home "upload percent rising" fails since Edge 155 (2026-10-14):** the throttled upload reports one sample
+  (85%); the send code is unchanged, so it's the check's network emulation. Knight VI fixes the check with RW1-01.
+  check-home's budget is now 240 s (crop reads made runs ~210 s).
 - **Outside review R1 (ChatGPT Codex, 2026-10-10, at 5a08ad6; planner-triaged, all real, fix after 052):**
   (1) failed rows don't count toward the 10/200 limits, so one session can retry without limit (each retry reads OFF
   and logs a row): cap attempts too; (2) two Sends for the same barcode can both see empty OFF ingredients and both
@@ -250,7 +253,7 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 ### Outside audits by ChatGPT, 2026-10-11 → 14 (RC1 / RW1 / trust-UI / R2; at 5a08ad6; planner triage 2026-10-14)
 
 Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` indexes them). Advice, not decisions.
-- **Fixed by 052 (unpushed branch `worktree-m8-followup6`):** junk OCR prefill, false "blurry", hidden "Type it", crop.
+- **Fixed by 052 (live 2026-10-14, 4bb0671):** junk OCR prefill, false "blurry", hidden "Type it", crop.
 - **Still open, confirmed in the 052 code:** **RW1-01** stale reading: `AddProductFlow.acceptPhoto` and
   `IngredientCheck.read` set the text after `await readPhoto` without checking the photo is still the current one, so a
   slow read can overwrite typed text or pair an old photo's text with a newer photo. Next assignment.
