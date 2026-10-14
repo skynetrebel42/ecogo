@@ -117,7 +117,11 @@ try {
   check("Oreo page: no prices, Price Comparison, Share or AI", !op.text.includes("$") && !op.text.includes("Price Comparison") && !op.share
     && !/\bAI\b/.test(op.text) && op.text.includes("Findings are matched against official sources"));
   check("Oreo page points to its Nutrition section", op.text.includes("see the Nutrition section") && op.text.includes("Added sugar"));
-  await back(); await back(); // product → search → home
+  await back();
+  const backSearch = await run(`({ text: document.body.innerText, query: [...document.querySelectorAll("span")].some(s => s.innerText === "oreo"), oreo: !!__btn("Oreo Original") })`);
+  check("054 K-19: Back from a product opened from search returns to the same query and results",
+    backSearch.query && backSearch.oreo && backSearch.text.includes("Sorted by fewest concerns") && !backSearch.text.includes("What are you eating?"));
+  await back(); // search → home
   await run(`(async () => { __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
     __btn("Close camera")?.click(); await __sleep(800); const i = await __until(() => document.querySelector('input[aria-label="Barcode number"]'));
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, "049000042566");
@@ -137,6 +141,10 @@ try {
   await run(`(async () => { __btn("See all").click(); await __sleep(500); })()`);
   const saved = await run(`document.body.innerText`);
   check("See all → Saved › Scanned shows the same list", saved.includes("Coca-Cola Zero") && saved.includes("Oreo") && !saved.includes("No scanned products"));
+  await run(`(async () => { __btn("Oreo Original").click(); await __sleep(600); return true; })()`);
+  await back();
+  const scannedTab = await run(`[...document.querySelectorAll("button")].find(b => b.innerText === "Scanned")?.className.includes("bg-white")`);
+  check("054 K-19: Back from a product opened in Saved › Scanned stays on Scanned", scannedTab === true && (await run(`document.body.innerText`)).includes("Coca-Cola Zero"));
   await home();
 
   for (const [name, title] of [[LEARN[0], HEALTHY], [LEARN[1], LEARN[1]]]) {

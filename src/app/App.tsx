@@ -298,12 +298,11 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
 
 
 // ── Saved Tab ────────────────────────────────────────────────────────────────
-function SavedTab({ saved, scanned, initialTab = "favorites", onSelectProduct, products, openList, onOpenList, onChangeSaved }: {
-  saved: SavedStore; scanned: Product[]; initialTab?: "favorites" | "scanned";
+function SavedTab({ saved, scanned, tab, onTab, onSelectProduct, products, openList, onOpenList, onChangeSaved }: {
+  saved: SavedStore; scanned: Product[]; tab: "favorites" | "scanned"; onTab: (t: "favorites" | "scanned") => void;
   onSelectProduct: (p: Product) => void; products: Product[];
   openList: string | null; onOpenList: (id: string | null) => void; onChangeSaved: (s: SavedStore, undoText?: string) => void;
 }) {
-  const [tab, setTab] = useState<"favorites" | "scanned">(initialTab);
   const favs = resolveSaved(saved, products);
   const card = (p: Product) => <ProductCard product={p} onSelect={onSelectProduct} />;
   // M14 part 3: with lists, Favorites shows folders ("All saved", then each list, oldest first); a row opens its screen.
@@ -326,7 +325,7 @@ function SavedTab({ saved, scanned, initialTab = "favorites", onSelectProduct, p
         <h1 className="text-xl font-extrabold mb-4">Saved</h1>
         <div className="flex gap-1 bg-muted rounded-xl p-1 mb-4">
           {(["favorites", "scanned"] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
+            <button key={t} onClick={() => onTab(t)}
               className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${tab === t ? "bg-white shadow text-foreground" : "text-muted-foreground"}`}>
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
@@ -530,7 +529,8 @@ export default function App() {
   const changeSaved = (next: SavedStore, undoText?: string) => { setSavedOk(saveSaved(next)); setUndo(undoText ? { text: undoText, prev: saved } : null); setSaved(next); };
   const [recent, setRecent] = useState<RecentEntry[]>(loadRecent);
   useEffect(() => saveRecent(recent), [recent]);
-  const [savedInitialTab, setSavedInitialTab] = useState<"favorites" | "scanned">("favorites");
+  // Kept here, like openList, so Back from a product returns to the same Saved sub-tab (054 K-19).
+  const [savedTab, setSavedTab] = useState<"favorites" | "scanned">("favorites");
   const [openList, setOpenList] = useState<string | null>(null); // kept here so Back from a product returns to the list
   const [explainer, setExplainer] = useState<ExplainerId | null>(null);
 
@@ -556,9 +556,13 @@ export default function App() {
   }, []);
 
   // Every product opened counts as "looked at": Scan, search (catalog or USDA), Saved and Recently scanned.
+  // 054 K-19: a product opened from search goes Back to the same results (kept mounted underneath, scroll and all);
+  // one opened from another product (alternatives) keeps where that one came from.
+  const [productFrom, setProductFrom] = useState<SubScreen>(null);
   const openProduct = (p: Product) => {
     setRecent(prev => addRecent(prev, p));
     setSaved(prev => refreshSnapshot(prev, p));
+    if (subScreen !== "product-detail") setProductFrom(subScreen === "search-results" ? "search-results" : null);
     setSelectedProduct(p); setSubScreen("product-detail");
   };
   const recentProducts = resolveRecent(recent, products);
@@ -603,7 +607,7 @@ export default function App() {
                       onSearch={openSearch}
                       onSelectProduct={openProduct}
                       onGoScan={() => setActiveTab("scan")}
-                      onSeeAllRecent={() => { setSavedInitialTab("scanned"); setOpenList(null); setActiveTab("saved"); }}
+                      onSeeAllRecent={() => { setSavedTab("scanned"); setOpenList(null); setActiveTab("saved"); }}
                       onClearRecent={() => setRecent([])}
                       onOpenExplainer={setExplainer}
                       recent={recentProducts}
@@ -614,7 +618,7 @@ export default function App() {
                     <ScanTab products={products} onScanResult={openProduct} onCheckIngredients={() => setSubScreen("check-ingredients")}
                       onAdd={(code) => { setAddCode(code); setSubScreen("add-product"); }} />
                   )}
-                  {activeTab === "saved"   && <SavedTab saved={saved} scanned={recentProducts} initialTab={savedInitialTab} onSelectProduct={openProduct} products={products}
+                  {activeTab === "saved"   && <SavedTab saved={saved} scanned={recentProducts} tab={savedTab} onTab={setSavedTab} onSelectProduct={openProduct} products={products}
                     openList={openList} onOpenList={setOpenList} onChangeSaved={changeSaved} />}
                   {activeTab === "profile" && <ProfileTab recentCount={recentProducts.length} onClearRecent={() => setRecent([])} />}
                 </div>
@@ -622,26 +626,30 @@ export default function App() {
 
               {/* Sub-screen overlays — fill content area, slide over tab content */}
               {explainer && !subScreen && <Explainer id={explainer} onBack={() => setExplainer(null)} />}
-              {subScreen === "search-results" && (
-                <SearchResultsScreen
-                  query={searchQuery}
-                  onBack={() => setSubScreen(null)}
-                  onSelectProduct={openProduct}
-                  products={products}
-                />
-              )}
               {subScreen === "check-ingredients" && <IngredientCheck onClose={() => setSubScreen(null)} />}
               {subScreen === "add-product" && <AddProductFlow code={addCode} onDone={() => setSubScreen(null)} onClose={() => setSubScreen(null)} />}
               {subScreen === "product-detail" && selectedProduct && (
                 <ProductDetailScreen
                   key={selectedProduct.id}
                   product={selectedProduct}
-                  onBack={() => setSubScreen(null)}
+                  onBack={() => setSubScreen(productFrom)}
                   store={saved}
                   savedOk={savedOk}
                   onChangeSaved={changeSaved}
                   onSelectProduct={openProduct}
                 />
+              )}
+
+              {/* After the product, so the product's Back comes first; hidden (not unmounted) while a product from it is open */}
+              {(subScreen === "search-results" || (subScreen === "product-detail" && productFrom === "search-results")) && (
+                <div style={subScreen === "search-results" ? undefined : { visibility: "hidden" }}>
+                  <SearchResultsScreen
+                    query={searchQuery}
+                    onBack={() => setSubScreen(null)}
+                    onSelectProduct={openProduct}
+                    products={products}
+                  />
+                </div>
               )}
 
               <div role="status" className="absolute bottom-4 inset-x-4 z-[70] pointer-events-none flex justify-center">
@@ -654,7 +662,7 @@ export default function App() {
               </div>
             </div>
 
-            {!subScreen && !explainer && <BottomNav activeTab={activeTab} onTabChange={(t) => { setSavedInitialTab("favorites"); setOpenList(null); setActiveTab(t); }} />}
+            {!subScreen && !explainer && <BottomNav activeTab={activeTab} onTabChange={(t) => { setSavedTab("favorites"); setOpenList(null); setActiveTab(t); }} />}
           </div>
         )}
       </div>
