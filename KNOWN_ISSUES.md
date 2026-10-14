@@ -67,7 +67,7 @@
 | K-20 ✔ | Search: a leading space matches every product, brand is not searched, and short keywords over-match ("steak" contains "tea"). | `App.tsx:686-690` |
 | ~~K-21~~ ✅ | **Resolved:** Sign In and the Profile settings rows went in M7.2/M7.3; Lists "New" and Share in M7.4; Map "Call" is hidden with the Map (M9 decides). Share returns when links work. *Was:* dead controls: Sign In, all 5 Profile settings rows, Lists "New", Share, Map "Call". (The home location Refresh was removed in M3.) | `App.tsx:240,521,882,967`; `ProductDetailScreen.tsx:714`; `MapTab.tsx:260` |
 | K-22 ✔ | Leaving the Scan tab mid-scan still yanks you into product detail about 3 s later, (The false "Scan saved at" part is moot: scans aren't saved since M3.) | `ScanTab.tsx:114-124` |
-| ~~K-23~~ ✅ | **Closed by M9:** no open/closed badge, ratings or Smart Score; the © credit is always visible. *Was:* Map details: the hours parser misreads "12–6pm" and "dawn–dusk"; open/closed uses the viewer's timezone and goes stale; "Smart Score" sort equals rating sort; the list shows 10 with no "more"; zoom-out and OSM attribution are covered by the sheet. | `MapTab.tsx:125-148,276-283,399-410,523-554` |
+| K-23 ↺ | **Reopened 2026-10-14 (R2 browser review): no visible OSM credit in the Map list and place-detail views.** *Closed by M9:* no open/closed badge, ratings or Smart Score; the © credit is always visible. *Was:* Map details: the hours parser misreads "12–6pm" and "dawn–dusk"; open/closed uses the viewer's timezone and goes stale; "Smart Score" sort equals rating sort; the list shows 10 with no "more"; zoom-out and OSM attribution are covered by the sheet. | `MapTab.tsx:125-148,276-283,399-410,523-554` |
 | K-24 ✔ | Importer edge cases (still true after the 2026-10-02 rewrite, which kept the behaviour): rows sharing an id are one product read from its first row; `'1'` and `'01'` become duplicate ids; quoted newlines drop the row. *Moot:* the empty FB condition (store fields are gone) and the invented barcodes' check digits (M5/M6 removed them). | `productImporter.ts` `parseProductsCSV` |
 | ~~K-25~~ ✅ | **Moot: `scoring.ts` was deleted (the score is no longer computed).** *Original issue:* Floating-point rounding makes 58.5 → 58 (id 41 only). | (deleted) |
 | ~~K-26~~ ✅ | **Moot since the 2026-10-02 audit:** the realtime channel is gone (one load per visit). *Was:* *mostly fixed in step 2:* realtime now re-fetches on INSERT/UPDATE/DELETE of products, prices and resources. **Remaining:** an open product detail keeps its snapshot until reopened; no subscribe-status check; overlapping re-fetches could resolve out of order (harmless at this scale). | `App.tsx` realtime effect |
@@ -228,18 +228,49 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 
 - **The Send end to end needs a real browser:** Cloudflare Turnstile (Managed) flags headless Edge and the controlled
   browser pane as bots (error 600010 or an interactive box), so no automated check presses Send. check-home stops at the
-  Send button; a send to OFF's test server is tested by hand in the owner's own browser.
+  Send button; a live Send is tested by hand in the owner's own browser, on a real product only (real OFF since
+  2026-10-09).
 - **Advisor WARN accepted (owner, 2026-10-08):** `auth_allow_anonymous_sign_ins` on `contributions`. The read-own policy
   covers anonymous users on purpose (D7: points and levels will read the same ID's rows).
 - **check-home can time out (seen 2026-10-09, Knight V):** 4 of 8 runs hit the 120 s timeout, some before any M8 step,
   one stalled in the Saved/USDA-search part that reads live Supabase; passing runs take ~58 s. Likely slow live reads,
   not M8 code. Watch it; if it persists, stub those reads or raise the step timeout.
+- **Outside review R1 (ChatGPT Codex, 2026-10-10, at 5a08ad6; planner-triaged, all real, fix after 052):**
+  (1) failed rows don't count toward the 10/200 limits, so one session can retry without limit (each retry reads OFF
+  and logs a row): cap attempts too; (2) two Sends for the same barcode can both see empty OFF ingredients and both
+  write (D10 race; rare): serialize per barcode; (3) `photo.ts` checks the minimum size before the ≤ 2000 px shrink,
+  so a 4000×200 photo becomes 2000×100 (< 160): check after resizing.
 - **Since 2026-10-09 sends go to the real Open Food Facts:** live end-to-end checks use only the owner's real products.
 - **Limits can overshoot by a few:** `off-submit` counts, then inserts, so simultaneous sends can pass 10/200 by a few
   (marked `ponytail:` in the function).
 - **Re-adding right after a Send:** the lookup caches "not found" for the session, so scanning the same barcode again
   offers "Add this product" again. A repeat with nothing new ends as "nothing new to send" and isn't counted.
-- **Still on OFF's test server:** `OFF_BASE` is `world.openfoodfacts.net` until the owner approves production (spec §8).
+- ~~**Still on OFF's test server**~~ **Done 2026-10-09:** the owner switched `OFF_BASE` to `world.openfoodfacts.org`.
+
+### Outside audits by ChatGPT, 2026-10-11 → 14 (RC1 / RW1 / trust-UI / R2; at 5a08ad6; planner triage 2026-10-14)
+
+Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` indexes them). Advice, not decisions.
+- **Fixed by 052 (unpushed branch `worktree-m8-followup6`):** junk OCR prefill, false "blurry", hidden "Type it", crop.
+- **Still open, confirmed in the 052 code:** **RW1-01** stale reading: `AddProductFlow.acceptPhoto` and
+  `IngredientCheck.read` set the text after `await readPhoto` without checking the photo is still the current one, so a
+  slow read can overwrite typed text or pair an old photo's text with a newer photo. Next assignment.
+- **Open, need an owner decision first:** RW1-02/05 (Close during Send loses the draft; the name field stays editable
+  after the snapshot is sent); RW1-03/04 (a lost reply shows "Not sent" though OFF may have it; a rejected photo is
+  described as already present).
+- **Copy / trust (planner specs):** TRUST-01 (badge article calls every level cancer evidence; Yellow 5 isn't),
+  TRUST-02 ("No official finding" reads as none anywhere; scope it to EcoGo's list), COPY-01 (seed-oils fat profile;
+  needs an official quote), R2-01 / PRIVACY-01 (Profile "stays on this device" vs. the OFF log, lookups and map
+  tiles), R2-02 ("Live data" next to dated County/USDA records).
+- **Evidence added to existing issues:** K-19 (search → product → Back loses the results, confirmed in the browser);
+  K-23 is **reopened**: no visible OSM credit in the Map list and place-detail views (R2, MAP-01).
+- **New, small:** ACCESS-01 (opening a Learn article leaves focus on covered Home buttons; search Back has no name);
+  SOURCE-01 (`verify:sources` can pass with zero verified sources; Learn citations not checked); R2-03 (near-identical
+  search rows; show size/barcode where present); R2-04 ("Recently scanned" also lists viewed products; a skipped photo
+  step shows a checkmark).
+- **Already tracked or accepted:** B1/B2/same-barcode race (R1 above), re-add after Send (above), K-22, background
+  photos (049), no cancel (050), limit overshoot.
+- **Research waiting on planner review:** R3 (map suggestions) for M8.1, R4 (recognition) for points and levels, R5
+  (hidden-risk sources) pending.
 
 ### Hidden-risk candidates (each needs an official source before it's flagged)
 
