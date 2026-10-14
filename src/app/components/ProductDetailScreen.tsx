@@ -24,6 +24,7 @@ import NutritionPanel, { NutritionChip, UpdateInfoButton, UpdateInfoHelp, useNut
 import { topHigh } from "../../lib/nutrition";
 import { snapshotLabel } from "../../lib/foods";
 import { useAlternatives } from "./useAlternatives";
+import type { AddMode } from "./AddProductFlow";
 import { foodIcon } from "../../lib/foodIcon";
 
 /** "fr" → "French" (native Intl; falls back to the code). */
@@ -118,7 +119,7 @@ interface ProductDetailScreenProps {
   product: Product; onBack: () => void; onSelectProduct: (p: Product) => void;
   store: SavedStore; savedOk: boolean; onChangeSaved: (s: SavedStore, undoText?: string) => void;
   /** M8 follow-up 5: open the add flow for this crowd-sourced OFF product (J1 add the ingredients, J2 new photos). */
-  onAddToOff: (mode: "ingredients" | "photos") => void;
+  onAddToOff: (mode: Exclude<AddMode, "new">) => void;
 }
 
 export default function ProductDetailScreen({ product, onBack, store, savedOk, onChangeSaved, onSelectProduct, onAddToOff }: ProductDetailScreenProps) {

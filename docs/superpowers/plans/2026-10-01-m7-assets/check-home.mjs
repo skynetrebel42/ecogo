@@ -496,21 +496,28 @@ try {
   check("J1: 'Add the ingredients' opens the add flow for that barcode; Close returns to the product",
     j1.includes("Add the ingredients") && j1.includes(`Barcode ${FAKE_OFF}`) && j1.includes("Front photo") && j1Back.includes("Test granola bar"));
   const j2 = await run(`(async () => { __btn("Send new photos").click(); await __sleep(400); return document.body.innerText; })()`);
-  const { root: docRoot3 } = (await send("DOM.getDocument")).result;
-  const lib3 = (await send("DOM.querySelector", { nodeId: docRoot3.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
-  await send("DOM.setFileInputFiles", { nodeId: lib3, files: [LABEL_PNG] });
+  const pickPhoto = async () => {
+    const { root } = (await send("DOM.getDocument")).result;
+    const input = (await send("DOM.querySelector", { nodeId: root.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
+    await send("DOM.setFileInputFiles", { nodeId: input, files: [LABEL_PNG] });
+  };
+  await pickPhoto();
+  const j2Step = await run(`(async () => { await __until(() => document.body.innerText.includes("Ingredients photo"), 15000);
+    return [__btn("No ingredients list? Type it") ? "type-it" : "ingredients photo", __btn("Back") ? "with Back" : "no Back"].join(", "); })()`);
+  await pickPhoto(); // the ingredients photo: not read, straight to the nutrition photo
   const j2Flow = await run(`(async () => { const s = [];
-    await __until(() => document.body.innerText.includes("Ingredients photo"), 15000);
-    s.push(__btn("No ingredients list? Type it") ? "type-it" : "ingredients photo"); __btn("Skip").click(); await __sleep(300);
-    s.push(document.body.innerText.includes("Nutrition photo") ? "nutrition photo" : "not nutrition"); __btn("Skip").click(); await __sleep(400);
+    s.push(await __until(() => document.body.innerText.includes("Nutrition photo"), 15000) ? "nutrition photo" : "not nutrition");
+    __btn("Skip").click(); await __sleep(400);
     const off = __btn("Send")?.disabled; document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
     return { s: s.join(" → "), off, on: __btn("Send")?.disabled === false, name: !!document.querySelector("#product-name"),
-      front: !!document.querySelector('img[alt="Front photo"]'), text: document.body.innerText }; })()`);
+      crops: [...document.querySelectorAll("button")].filter(b => b.innerText === "Crop").map(b => b.getAttribute("aria-label")).join(", "),
+      text: document.body.innerText }; })()`);
   check("J2: 'Send new photos' opens a photos-only flow with its intro line, for that barcode", j2.includes("Send new photos") && j2.includes(`Barcode ${FAKE_OFF}`)
     && j2.includes("Photos of the current label help Open Food Facts fix wrong or missing details. EcoGo never changes the text itself."));
-  check("…no text step: front → ingredients photo → nutrition photo → Send, no name field; Send needs the tick",
-    j2Flow.s === "ingredients photo → nutrition photo" && j2Flow.front && !j2Flow.name && j2Flow.text.includes("Plus the barcode.")
-    && j2Flow.off === true && j2Flow.on, JSON.stringify({ ...j2Flow, text: undefined }));
+  check("…no text step: front → ingredients photo (with Back) → nutrition photo → Send, no name field; Send needs the tick",
+    j2Step === "ingredients photo, with Back" && j2Flow.s === "nutrition photo" && !j2Flow.name && j2Flow.text.includes("Plus the barcode.")
+    && j2Flow.off === true && j2Flow.on, `${j2Step} | ${JSON.stringify({ ...j2Flow, text: undefined })}`);
+  check("…on Send both photos taken can be cropped, the ingredients one too", j2Flow.crops === "Crop the front photo, Crop the ingredients photo", j2Flow.crops);
   await run(`(async () => { __btn("Close").click(); await __sleep(500); return true; })()`);
   await send("Fetch.disable");
   check("…and nothing was sent: only OFF's (faked) product read was answered", offAsked.length > 0 && offAsked.every(u => u.includes("world.openfoodfacts.org/api/v3/product/")),

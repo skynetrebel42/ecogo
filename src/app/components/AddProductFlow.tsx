@@ -160,7 +160,7 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
   const crop = cropping && photos[cropping];
   if (cropping && crop) return <CropPhoto photo={crop} label={LABEL[cropping]} onCancel={() => setCropping(undefined)} onDone={blob => {
     setCropping(undefined);
-    if (cropping === "ingredients") acceptPhoto(cropping, blob, false); else setPhotos(p => ({ ...p, [cropping]: blob }));
+    if (cropping === "ingredients" && !photosOnly) acceptPhoto(cropping, blob, false); else setPhotos(p => ({ ...p, [cropping]: blob }));
   }} />;
   const cropButton = (kind: Kind) => (
     <button onClick={() => setCropping(kind)} disabled={step === "sending"} aria-label={`Crop the ${kind} photo`} className="w-full min-h-[44px] text-xs font-bold text-[#1A5C39] underline disabled:opacity-50">Crop</button>
@@ -171,7 +171,8 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
     const order: Kind[] = ["front", "ingredients", "nutrition"];
     const blur = step !== "reading" && blurry?.kind === kind ? blurry.blob : undefined;
     return screen(true, <>
-      {header(TITLE[mode], `Barcode ${code}`, true, step === "nutrition" ? () => { setBlurry(undefined); goTo(photosOnly ? "ingredients" : "check"); } : undefined)}
+      {header(TITLE[mode], `Barcode ${code}`, true, step === "nutrition" ? () => { setBlurry(undefined); goTo(photosOnly ? "ingredients" : "check"); }
+        : photosOnly && step === "ingredients" ? () => { setBlurry(undefined); goTo("front"); } : undefined)}
       <ol className="px-4 pt-4 flex gap-2" aria-label="Photos">
         {order.map((k, i) => {
           const done = order.indexOf(kind) > i;
@@ -270,7 +271,7 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
         <h2 className="text-[15px] font-extrabold">What you're sending</h2>
         <div className="grid grid-cols-3 gap-2">
           {(["front", "ingredients", "nutrition"] as const).map(k => (
-            <div key={k}><Thumb blob={photos[k]} label={LABEL[k]} />{k !== "ingredients" && photos[k] && cropButton(k)}</div>
+            <div key={k}><Thumb blob={photos[k]} label={LABEL[k]} />{(k !== "ingredients" || photosOnly) && photos[k] && cropButton(k)}</div>
           ))}
         </div>
         {photosOnly
