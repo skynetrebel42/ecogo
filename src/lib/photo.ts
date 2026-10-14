@@ -13,6 +13,14 @@ export function bigEnough(width: number, height: number): boolean {
 
 export const TOO_SMALL = "This photo is too small for Open Food Facts. Take it closer, or choose a bigger one.";
 
+/** The size a photo (or crop) is sent at: at most 2000 px on the long side. Throws TOO_SMALL when that is under OFF's
+ *  minimum, so a long, thin photo the shrink would take under 160 px is refused too (054 B1). */
+export function preparedSize(width: number, height: number): { width: number; height: number } {
+  const size = fitWithin(width, height, 2000);
+  if (!bigEnough(size.width, size.height)) throw new Error(TOO_SMALL);
+  return size;
+}
+
 /** How sharp a photo is (M8 follow-up 3, H2): the variance of a 4-neighbour Laplacian over its grayscale, averaged over
  *  the sharpest 4 of 16 tiles (a 4×4 grid), so a flat background doesn't drag a sharp label down. Blur flattens edges,
  *  so the score drops. `rgba` is canvas ImageData's data, full size: the grayscale is shrunk here to ≤ 512 px by a box
@@ -79,13 +87,13 @@ export function dragCrop(c: Crop, handle: "nw" | "ne" | "sw" | "se" | "move", dx
   return { x: l, y: t, w: r - l, h: b - t };
 }
 
-/** A JPEG at most 2000 px on the long side, upright, cut to `crop` if given. Throws TOO_SMALL for a photo (or crop)
- *  under OFF's minimum. */
+/** A JPEG at most 2000 px on the long side, upright, cut to `crop` if given. Throws TOO_SMALL when the size it would be
+ *  sent at (after the shrink and any crop) is under OFF's minimum. */
 export async function preparePhoto(file: Blob, crop?: Crop): Promise<Blob> {
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   const r = crop ? cropPixels(crop, bitmap.width, bitmap.height) : { x: 0, y: 0, width: bitmap.width, height: bitmap.height };
-  if (!bigEnough(r.width, r.height)) { bitmap.close(); throw new Error(TOO_SMALL); }
-  const { width, height } = fitWithin(r.width, r.height, 2000);
+  let width: number, height: number;
+  try { ({ width, height } = preparedSize(r.width, r.height)); } catch (err) { bitmap.close(); throw err; }
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;

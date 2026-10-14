@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fitWithin, bigEnough, sharpness, cropPixels, dragCrop } from "./photo.ts";
+import { fitWithin, bigEnough, sharpness, cropPixels, dragCrop, preparedSize, TOO_SMALL } from "./photo.ts";
 
 // M8 follow-up 3, H2: variance of a Laplacian over a grayscale copy (docs/superpowers/specs/2026-10-09-m8-followup3-blur-speed-design.md).
 const W = 64, H = 64;
@@ -47,6 +47,14 @@ test("a big photo shrinks so its long side is the limit, keeping its shape", () 
 test("a photo already within the limit is never enlarged", () => {
   assert.deepEqual(fitWithin(1200, 900, 2000), { width: 1200, height: 900 });
   assert.deepEqual(fitWithin(2000, 2000, 2000), { width: 2000, height: 2000 });
+});
+
+// 054 B1 (R1 3): the minimum applies to what is sent, after the ≤ 2000 px shrink (and after a crop).
+test("a photo that the shrink would take under the minimum is refused with the too-small message", () => {
+  assert.throws(() => preparedSize(4000, 200), { message: TOO_SMALL }, "4000 × 200 → 2000 × 100");
+  assert.deepEqual(preparedSize(4000, 400), { width: 2000, height: 200 });
+  assert.deepEqual(preparedSize(1000, 400), { width: 1000, height: 400 }, "small enough to keep its size");
+  assert.throws(() => preparedSize(639, 480), { message: TOO_SMALL });
 });
 
 test("Open Food Facts' minimum is 640 × 160, either way round", () => {
