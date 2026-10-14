@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X, Check, ArrowLeft } from "lucide-react";
 import { isBlurry, preparePhoto, TOO_SMALL } from "../../lib/photo";
+import { latestWins } from "../../lib/latest";
 import { readPhoto, type LabelLine } from "../../lib/ocr";
 import { submitProduct, type PhotoKind, type SendStage, type SubmitReason } from "../../lib/contribute";
 import { offEditUrl } from "../../lib/lookup";
@@ -85,28 +86,36 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
 
   const next: Record<Kind, Step> = { front: "ingredients", ingredients: "check", nutrition: "send" };
-  const acceptPhoto = async (kind: Kind, blob: Blob, blurOk: boolean) => {
+  // RW1-01: latest photo wins. Each photo, crop, Type it, Skip, Retake, Back or Close begins anew; a slow preparation,
+  // blur check or read whose own check (`live`) went false since then is dropped.
+  const [begin] = useState(latestWins);
+  const goTo = (s: Step) => { begin(); setStep(s); };
+  const acceptPhoto = async (kind: Kind, blob: Blob, blurOk: boolean, live = begin()) => {
     setBlurry(undefined);
     setPhotos(p => ({ ...p, [kind]: blob }));
     if (kind !== "ingredients") { setStep(next[kind]); return; }
     setStep("reading");
     const r = await readPhoto(blob);
+    if (!live()) return;
     // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (049 H2); the box starts
     // empty either way (K2).
     setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStep("check");
   };
   const onPhoto = (kind: Kind) => async (file: File) => {
     setPhotoError(undefined);
+    const live = begin();
     let blob: Blob;
     try { blob = await preparePhoto(file); } catch (err) {
-      setPhotoError((err as Error).message === TOO_SMALL ? TOO_SMALL : "Couldn't open this photo. Try another one.");
+      if (live()) setPhotoError((err as Error).message === TOO_SMALL ? TOO_SMALL : "Couldn't open this photo. Try another one.");
       return;
     }
     // H2: the blur check runs before reading, so a retake costs no reading time.
-    if (await isBlurry(blob)) setBlurry({ kind, blob }); else await acceptPhoto(kind, blob, false);
+    const blurred = await isBlurry(blob);
+    if (!live()) return;
+    if (blurred) setBlurry({ kind, blob }); else await acceptPhoto(kind, blob, false, live);
   };
   const skip = (kind: Kind) => {
-    setPhotoError(undefined); setBlurry(undefined);
+    begin(); setPhotoError(undefined); setBlurry(undefined);
     setPhotos(p => ({ ...p, [kind]: undefined }));
     if (kind === "ingredients") { setUnsure([]); setLines(undefined); setReadError(undefined); setReadText(undefined); setHard(false); }
     setStep(next[kind]);
@@ -130,7 +139,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
         <p className={`text-xs font-bold ${dark ? "text-[#A7B8AE]" : "text-gray-600"}`}>{sub}</p>
         <h1 className={`text-xl font-extrabold ${dark ? "text-white" : "text-[#1A5C39]"}`}>{title}</h1>
       </div>
-      <button onClick={onClose} aria-label="Close" className={`w-11 h-11 rounded-full flex items-center justify-center ${dark ? "bg-white/10 text-white" : "border border-border bg-white"}`}>
+      <button onClick={() => { begin(); onClose(); }} aria-label="Close" className={`w-11 h-11 rounded-full flex items-center justify-center ${dark ? "bg-white/10 text-white" : "border border-border bg-white"}`}>
         <X size={16} />
       </button>
     </div>
@@ -154,7 +163,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
     const order: Kind[] = ["front", "ingredients", "nutrition"];
     const blur = step !== "reading" && blurry?.kind === kind ? blurry.blob : undefined;
     return screen(true, <>
-      {header("Add this product", `Barcode ${code}`, true, step === "nutrition" ? () => { setBlurry(undefined); setStep("check"); } : undefined)}
+      {header("Add this product", `Barcode ${code}`, true, step === "nutrition" ? () => { setBlurry(undefined); goTo("check"); } : undefined)}
       <ol className="px-4 pt-4 flex gap-2" aria-label="Photos">
         {order.map((k, i) => {
           const done = order.indexOf(kind) > i;
@@ -169,7 +178,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       <div className="flex-1 flex flex-col justify-center px-6 gap-4 text-center">
         {step === "reading" ? <div className="bg-white rounded-3xl text-gray-900"><Reading /></div>
           : blur ? <PhotoNotice title="This photo looks blurry." kind={kind}
-              onRetake={() => setBlurry(undefined)} onUseAnyway={() => acceptPhoto(kind, blur, true)} />
+              onRetake={() => { begin(); setBlurry(undefined); }} onUseAnyway={() => acceptPhoto(kind, blur, true)} />
           : <>
           <p className="text-base font-extrabold">{LABEL[kind]} photo</p>
           <p className="text-sm text-[#D1DAD4] leading-relaxed">{PHOTO_TIPS[kind]}</p>
@@ -181,7 +190,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
         <div className="px-4 pb-6 space-y-2">
           <PhotoButtons onPhoto={onPhoto(kind)} />
           {photos[kind]
-            ? <button onClick={() => setStep(next[kind])} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">Keep the photo I took</button>
+            ? <button onClick={() => goTo(next[kind])} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">Keep the photo I took</button>
             : kind === "ingredients" // K3: a visible way past a bag with no ingredients panel
               ? <button onClick={() => skip(kind)} className="w-full min-h-[52px] rounded-2xl border border-white/30 bg-white/10 text-white font-bold text-sm">No ingredients list? Type it</button>
               : <button onClick={() => skip(kind)} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">Skip</button>}
@@ -193,7 +202,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
   if (step === "check") return screen(false, <>
     {header("Check the ingredients", "Step 2 of 3", false)}
     <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
-      {hard ? <PhotoNotice title="This photo is hard to read." onRetake={() => setStep("ingredients")} onUseAnyway={() => setHard(false)} /> : <>
+      {hard ? <PhotoNotice title="This photo is hard to read." onRetake={() => goTo("ingredients")} onUseAnyway={() => setHard(false)} /> : <>
         {photos.ingredients && <div className="w-24"><Thumb blob={photos.ingredients} label={LABEL.ingredients} />{cropButton("ingredients")}</div>}
         {photos.ingredients && !readError && readText === undefined && (
           <p className="text-sm text-gray-700 leading-relaxed">EcoGo read this from your photo. Fix anything it got wrong.</p>
@@ -203,7 +212,7 @@ export default function AddProductFlow({ code, onDone, onClose }: { code: string
       </>}
     </div>
     {!hard && <div className="px-4 pt-3 pb-6 flex gap-2.5">
-      <button onClick={() => setStep("ingredients")} className="min-h-[52px] px-4 rounded-2xl border border-border bg-white font-bold text-sm">Retake</button>
+      <button onClick={() => goTo("ingredients")} className="min-h-[52px] px-4 rounded-2xl border border-border bg-white font-bold text-sm">Retake</button>
       <button onClick={() => setStep("nutrition")} disabled={!text.trim()}
         className="flex-1 min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] disabled:opacity-50">Next: nutrition photo</button>
     </div>}

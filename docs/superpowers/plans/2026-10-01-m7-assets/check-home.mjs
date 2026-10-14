@@ -16,7 +16,7 @@
 // VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA). The send checks stub the widget, answer the sign-in themselves (CDP
 // Fetch) and route off-submit to a local stub server, so nothing is sent.
 import { spawn } from "node:child_process";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
@@ -254,14 +254,24 @@ try {
   check("M8: the not-found screen shows 'Add this product', the OFF website link stays as a fallback",
     nf.includes("Add this product") && nf.includes("Or add it on the Open Food Facts website"));
   const turnstile = () => requests.some(u => u.includes("challenges.cloudflare.com"));
+  // RW1-01: picks a photo in the page itself, so the next click lands while the photo is still being prepared.
+  const pickJs = file => `(() => { const b = Uint8Array.from(atob("${readFileSync(file).toString("base64")}"), c => c.charCodeAt(0)), dt = new DataTransfer();
+    dt.items.add(new File([b], "label.png", { type: "image/png" })); const i = document.querySelector('input[data-photo="library"]');
+    i.files = dt.files; i.dispatchEvent(new Event("change", { bubbles: true })); })();`;
   const tipsStep = await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
-    const t = document.body.innerText; __btn("No ingredients list? Type it").click(); await __sleep(300); return t; })()`);
+    const t = document.body.innerText; ${pickJs(fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url)))}
+    __btn("No ingredients list? Type it").click(); await __sleep(300); return t; })()`);
   check("M8 H3: the ingredients photo step shows the numbered tips", ["Lay it flat", "Close & sharp", "Only the ingredients", "No glare"]
     .every(t => tipsStep.includes(t)));
   const typeIt = await run(`({ box: document.querySelector("#ingredients")?.value, ph: document.querySelector("#ingredients")?.placeholder })`);
   check("K3: 'No ingredients list? Type it' (no skip link) goes straight to an empty check box", !tipsStep.includes("Skip the photo")
     && typeIt.box === "" && typeIt.ph?.startsWith("e.g."), JSON.stringify(typeIt));
   await typeIngredients("Water, sugar, Red 40");
+  await sleep(3000); // longer than preparing and blur-checking the photo picked just before "Type it"
+  const late = await run(`({ box: document.querySelector("#ingredients")?.value, photo: !!document.querySelector('img[alt="Ingredients photo"]'),
+    reading: document.body.innerText.includes("Reading the label") })`);
+  check("RW1-01 (a): a photo picked just before 'Type it' never lands: the typed text and the check step stay",
+    late.box === "Water, sugar, Red 40" && !late.photo && !late.reading, JSON.stringify(late));
   const beforeSend = turnstile();
   await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); __btn("Skip").click(); await __sleep(600); return true; })()`);
   const sendOff = await run(`__btn("Send")?.disabled`);
@@ -300,9 +310,11 @@ try {
     cropScreen.text.includes("Crop the ingredients photo") && cropScreen.handles.length === 4 && cropScreen.handles.every(s => s >= 44)
     && !!(await run(`!!__btn("Done") && !!__btn("Cancel")`)), JSON.stringify(cropScreen.handles));
   await dragHandle('[data-handle="se"]', 0.2);
-  await run(`(() => { window.__sawReading = false; new MutationObserver(() => { if (document.body.innerText.includes("Reading the label")) window.__sawReading = true; })
-    .observe(document.body, { subtree: true, childList: true, characterData: true }); __btn("Done").click(); return true; })()`);
-  await run(`__until(() => __btn("Crop") && document.querySelector("#ingredients"), 60000)`);
+  // Watches for "Reading the label…" until it shows, then stops (innerText on every DOM change slows the whole page).
+  await run(`(() => { window.__sawReading = false; const o = window.__readWatch = new MutationObserver(() => {
+    if (document.body.innerText.includes("Reading the label")) { window.__sawReading = true; o.disconnect(); } });
+    o.observe(document.body, { subtree: true, childList: true, characterData: true }); __btn("Done").click(); return true; })()`);
+  await run(`(async () => { await __until(() => __btn("Crop") && document.querySelector("#ingredients"), 60000); __readWatch.disconnect(); return true; })()`);
   const croppedSize = await natural("Ingredients photo");
   check("…Done gives a smaller ingredients photo and reads it again", fullSize === "1000×400" && croppedSize === "800×400" && await run(`window.__sawReading`),
     `${fullSize} → ${croppedSize}, read again: ${await run(`window.__sawReading`)}`);
@@ -390,20 +402,26 @@ try {
   const { root: docRoot2 } = (await send("DOM.getDocument")).result;
   const lib2 = (await send("DOM.querySelector", { nodeId: docRoot2.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
   await send("DOM.setFileInputFiles", { nodeId: lib2, files: [fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url))] });
-  await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: 40_000 }); // ~40 KB/s
+  // ~15 KB/s up: a ~4 s upload, so the 20 ms sampler sees several steps (since Edge 155 the page can be busy for most of
+  // a 1.3 s upload at 40 KB/s; the XHR's own events still rose 28 → 56 → 85 %). By rule, as the plain command is
+  // deprecated; an empty pattern matches every request.
+  const throttle = uploadThroughput => send("Network.emulateNetworkConditionsByRule", { matchedNetworkConditions: uploadThroughput < 0 ? []
+    : [{ urlPattern: "", latency: 0, downloadThroughput: -1, uploadThroughput }] });
+  await throttle(40_000);
   const sent = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
     document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
     const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
     t.render = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; }; t.remove = () => {};
     const live = document.querySelector('p.sr-only[aria-live="polite"]'); window.__said = [live ? JSON.stringify(live.innerText) : "no live region"];
-    window.__bar = []; const seen = setInterval(() => { const b = document.querySelector('[role="progressbar"]');
+    window.__bar = []; const seen = new MutationObserver(() => { const b = document.querySelector('[role="progressbar"]');
       const s = b && b.getAttribute("aria-valuetext") + "/" + (b.getAttribute("aria-valuenow") ?? "-"); if (s && __bar.at(-1) !== s) __bar.push(s);
-      const t = live?.innerText; if (t && __said.at(-1) !== t) __said.push(t); }, 20);
-    __btn("Send").click(); await __until(() => document.body.innerText.includes("Sent to Open Food Facts"), 20000); clearInterval(seen);
+      const t = live?.innerText; if (t && __said.at(-1) !== t) __said.push(t); }); // every DOM change, however busy the page
+    seen.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
+    __btn("Send").click(); await __until(() => document.body.innerText.includes("Sent to Open Food Facts"), 20000); seen.disconnect();
     const a = [...document.querySelectorAll("a")].find(a => a.innerText === "Open Food Facts website");
     return document.body.innerText + "|" + (a?.href ?? "no link"); })()`);
   await send("Fetch.disable");
-  await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+  await throttle(-1);
   stub.close();
   const bar = await run(`__bar`);
   const pct = bar.filter(s => s.startsWith("Uploading photos")).map(s => Number(s.split("/")[1]));

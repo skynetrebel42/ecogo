@@ -5,7 +5,7 @@
 // Prints the reader's first-use download size.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-ocr.mjs <url>
 import { spawn } from "node:child_process";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const URL_ = process.argv[2];
@@ -164,6 +164,24 @@ try {
   const linkBefore = await run(`!!__btn("Show what we read")`);
   await typeInto("Red lentils");
   check("…typing hides 'Show what we read', so it never replaces typed text", linkBefore && !(await run(`!!__btn("Show what we read")`)));
+
+  // RW1-01: latest photo wins. Photos are picked in the page itself, so the next action lands while one is still being
+  // prepared.
+  const pickJs = (file, type) => `(() => { const b = Uint8Array.from(atob("${readFileSync(file).toString("base64")}"), c => c.charCodeAt(0)), dt = new DataTransfer();
+    dt.items.add(new File([b], "label", { type: "${type}" })); const i = document.querySelector('input[data-photo="library"]');
+    i.files = dt.files; i.dispatchEvent(new Event("change", { bubbles: true })); })();`;
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); ${pickJs(PHOTO, "image/jpeg")} __btn("Type it").click(); await __sleep(200); return true; })()`);
+  await typeInto("Oats, salt");
+  await sleep(3000); // longer than preparing and blur-checking the photo
+  const typed = await run(`({ box: document.querySelector("#ingredients")?.value, typeOn: __btn("Type it")?.getAttribute("aria-pressed"),
+    reading: document.body.innerText.includes("Reading the label"), locked: __btn("Type it")?.disabled })`);
+  check("RW1-01 (a): a photo picked just before 'Type it' is dropped: the typed text stays, no reading starts",
+    typed.box === "Oats, salt" && typed.typeOn === "true" && !typed.reading && !typed.locked, JSON.stringify(typed));
+  await run(`(async () => { __btn("Take a photo").click(); await __sleep(300); ${pickJs(PHOTO, "image/jpeg")} ${pickJs(FULL, "image/png")} return true; })()`);
+  const second = await run(`__until(() => { const l = [...document.querySelectorAll('ul[aria-label="Lines read from the photo"] li')].map(li => li.innerText); return l.length ? l : null; }, 90000)`) ?? [];
+  await run(`(async () => { __btn("more line")?.click(); await __sleep(300); return true; })()`);
+  const all = await run(`[...document.querySelectorAll('ul[aria-label="Lines read from the photo"] li')].map(li => li.innerText.toUpperCase()).join(" | ")`);
+  check("RW1-01 (b): two photos picked back to back: the second one's lines are shown", second.length > 0 && /DISTRIBUTED/.test(all), all.slice(0, 160));
 
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Type it").click(); await __sleep(300); return true; })()`);
   await typeInto("Enriched flour, water, Red 40");

@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
 import { readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
 import { isBlurry, preparePhoto } from "../../lib/photo";
+import { latestWins } from "../../lib/latest";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
 import Explainer from "./Explainer";
 
@@ -185,17 +186,24 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
   const [blurry, setBlurry] = useState<Blob>(); // 049 H2: a photo waiting on "Retake photo" / "Use it anyway"
   const [readText, setReadText] = useState<string>(); // K2: a hard-to-read photo's text, behind "Show what we read"
 
-  const read = async (photo: Blob, blurOk: boolean) => {
+  // RW1-01: latest photo wins. A photo, Type it, Check another, Retake or Close begins anew; a slow preparation, blur
+  // check or read whose own check (`live`) went false since then is dropped.
+  const [begin] = useState(latestWins);
+  const read = async (photo: Blob, blurOk: boolean, live = begin()) => {
     setBlurry(undefined); setStatus("reading");
     const r = await readPhoto(photo);
+    if (!live()) return;
     // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (H2); the box starts empty either way (K2).
     setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStatus("read");
   };
   const onPhoto = async (file: File) => {
+    const live = begin();
     const photo = await preparePhoto(file).catch(() => file); // a small photo can still be read
-    if (await isBlurry(photo)) setBlurry(photo); else await read(photo, false);
+    const blurred = live() && await isBlurry(photo);
+    if (!live()) return;
+    if (blurred) setBlurry(photo); else await read(photo, false, live);
   };
-  const reset = () => { setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setStatus("idle"); };
+  const reset = () => { begin(); setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setStatus("idle"); };
   const showHard = mode === "photo" && status === "read" && hard;
   const showEditor = (mode === "type" || status === "read") && !showHard;
 
@@ -203,7 +211,7 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
     <div className="absolute inset-0 z-40 flex flex-col bg-[#F8F7F2] text-gray-900">
       <div className="px-4 pt-4 flex items-center justify-between">
         <h1 className="text-xl font-extrabold text-[#1A5C39]">Check ingredients</h1>
-        <button onClick={onClose} aria-label="Close" className="w-11 h-11 rounded-full border border-border bg-white flex items-center justify-center">
+        <button onClick={() => { begin(); onClose(); }} aria-label="Close" className="w-11 h-11 rounded-full border border-border bg-white flex items-center justify-center">
           <X size={16} />
         </button>
       </div>
@@ -211,7 +219,7 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
       <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
         <div role="group" aria-label="How to enter the ingredients" className="grid grid-cols-2 gap-1.5 bg-gray-200 p-1 rounded-2xl">
           {(["photo", "type"] as const).map(m => (
-            <button key={m} onClick={() => { setMode(m); if (m === "type") setLines(l => (l?.length ? null : l)); }} aria-pressed={mode === m} disabled={status === "reading"}
+            <button key={m} onClick={() => { if (m !== mode) begin(); setMode(m); if (m === "type") setLines(l => (l?.length ? null : l)); }} aria-pressed={mode === m} disabled={status === "reading"}
               className={`min-h-[44px] rounded-xl text-sm ${mode === m ? "bg-white font-extrabold text-[#1A5C39]" : "font-bold text-gray-700"}`}>
               {m === "photo" ? "Take a photo" : "Type it"}
             </button>
