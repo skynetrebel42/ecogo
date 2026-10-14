@@ -71,6 +71,7 @@ export function searchFoods(text: string, opts: { foods: FoodsSource }): Promise
 
 /** Open Food Facts pages where a user, signed in with their own OFF account, can fix a product or add a missing one
  *  (values or a label photo; OFF's own AI reads nutrition from photos). EcoGo itself never writes to OFF. */
+export const offProductUrl = (code: string) => `https://world.openfoodfacts.org/product/${normalizeBarcode(code)}`;
 export const offEditUrl = (code: string) => `https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=${normalizeBarcode(code)}`;
 export const offAddUrl = (code: string) =>
   `https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code=${normalizeBarcode(code)}`;
@@ -91,7 +92,7 @@ export function mapOffResponse(json: unknown, httpStatus: number): LookupResult 
   const ingredients = english || str(p.ingredients_text);
   if (!code || (!name && !ingredients)) return { status: "not-found" };
   const product = toProduct(code, name, str(p.brands).split(",")[0].trim(), ingredients, {
-    name: "Open Food Facts", url: `https://world.openfoodfacts.org/product/${code}`, crowdSourced: true,
+    name: "Open Food Facts", url: offProductUrl(code), crowdSourced: true,
     ingredientsLang: english ? "en" : str(p.lang) || "en", additiveCodes: strings(p.additives_tags), categoryTags: strings(p.categories_tags),
   });
   const nutrition = offNutrition(p);

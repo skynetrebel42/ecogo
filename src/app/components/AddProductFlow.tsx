@@ -8,7 +8,7 @@ import { isBlurry, preparePhoto, TOO_SMALL } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
 import { readPhoto, type LabelLine } from "../../lib/ocr";
 import { submitProduct, type PhotoKind, type SendStage, type SubmitReason } from "../../lib/contribute";
-import { offEditUrl } from "../../lib/lookup";
+import { offEditUrl, offProductUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { offSubmit, supabase } from "../../lib/supabase";
 import { IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoNotice, PhotoTips, Reading } from "./IngredientCheck";
@@ -280,7 +280,7 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
       <p role="alert" className="text-base font-bold">We didn't hear back from Open Food Facts. It may have arrived. Check the product in a few minutes before sending again.</p>
     </div>
     <div className="px-4 pb-6">
-      <a href={`https://world.openfoodfacts.org/product/${code}`} target="_blank" rel="noopener noreferrer"
+      <a href={offProductUrl(code)} target="_blank" rel="noopener noreferrer"
         className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] flex items-center justify-center">Open on Open Food Facts</a>
     </div>
   </>);

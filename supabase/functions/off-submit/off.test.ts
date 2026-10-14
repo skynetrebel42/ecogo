@@ -48,6 +48,9 @@ test("nothing taken because OFF refused a photo is photo-rejected; all duplicate
   assert.deepEqual(sendReply(false, [duplicate]), { ok: true });
   assert.deepEqual(sendReply(false, [refused, photoResult("nutrition", 502, null)]), { ok: false, reason: "off-down" });
   assert.deepEqual(sendReply(true, [refused]), { ok: true, failedPhotos: ["front"] }, "text taken: partial success, as before");
+  // OFF said nothing about the photo (a 200 that isn't JSON, e.g. a maintenance page): not "couldn't use this photo".
+  assert.deepEqual(photoResult("front", 200, null), { kind: "front", taken: false, httpError: true, note: "front: no answer" });
+  assert.deepEqual(sendReply(false, [photoResult("front", 200, null)]), { ok: false, reason: "off-down" });
 });
 
 // M8 follow-up 5 (docs/superpowers/specs/2026-10-09-m8-followup5-fix-off-products-design.md J3).

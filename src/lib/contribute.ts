@@ -78,12 +78,12 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
     try {
       const captchaToken = await Promise.race([getCaptchaToken(),
         new Promise<never>((_, reject) => { wait = setTimeout(() => reject(new Error("no human-check token")), CHECK_WAIT_MS); })]);
-      clearTimeout(wait);
       const { error } = await client.auth.signInAnonymously({ options: { captchaToken } });
       if (error) return fail("captcha");
     } catch {
-      clearTimeout(wait);
       return fail("captcha");
+    } finally {
+      clearTimeout(wait);
     }
   }
 

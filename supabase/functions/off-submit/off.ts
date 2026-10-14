@@ -64,9 +64,11 @@ export function productForm(p: { code: string; ingredients: string; name?: strin
 /** What one photo upload came to (M8 follow-up 2, G1): OFF took it, or already had it, or not; `note` goes in the log. */
 export type PhotoResult = { kind: PhotoKind; taken: boolean; httpError?: boolean; note?: string };
 
-/** `status` 0 = the request itself failed. "This picture has already been sent" counts as taken. */
+/** `status` 0 = the request itself failed. "This picture has already been sent" counts as taken. A 2xx that isn't JSON
+ *  (`body` null) is OFF not answering, like an HTTP error: it mustn't read as OFF refusing the photo (055 E3). */
 export function photoResult(kind: PhotoKind, status: number, body: { status?: string; error?: string } | null): PhotoResult {
   if (status < 200 || status >= 300) return { kind, taken: false, httpError: true, note: `${kind}: HTTP ${status}` };
+  if (!body) return { kind, taken: false, httpError: true, note: `${kind}: no answer` };
   if (body?.status === "status ok") return { kind, taken: true };
   const why = body?.error ?? body?.status ?? "no answer";
   return { kind, taken: /already been sent/i.test(why), note: `${kind}: ${why}` };

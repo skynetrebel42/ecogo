@@ -390,7 +390,8 @@ try {
   const waiting = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
     const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
     t.render = () => "stub"; t.remove = () => {};
-    // 055 E1a: the app's 60 s wait for a human-check token runs 5 s here (this check only).
+    // 055 E1a: the app's 60 s wait for a human-check token runs 5 s here (this check only; any other 60 s timer too,
+    // for these few seconds).
     const st = window.__setTimeout = window.setTimeout; window.setTimeout = (f, ms, ...a) => st(f, ms === 60000 ? 5000 : ms, ...a);
     __btn("Send").click(); await __sleep(300);
     const b = [...document.querySelectorAll("button")].find(b => b.innerText.startsWith("Sending")), bar = document.querySelector('[role="progressbar"]');
@@ -403,13 +404,13 @@ try {
   await send("Emulation.setEmulatedMedia", MOTION);
   check("…with reduced motion the bar doesn't move", still === "none", still);
   // 055 E1: while sending, Close and every field that feeds the send are locked (Back is gone, Crop was already locked).
-  const locked = await run(`(() => { const close = __btn("Close"); __btn("Close").click();
+  const locked = await run(`(async () => { const close = __btn("Close"); close.click(); await __sleep(300); // a render after the click
+    const crops = [...document.querySelectorAll("button")].filter(b => b.innerText === "Crop");
     return { close: close.disabled, name: document.querySelector("#product-name").disabled, consent: document.querySelector('input[type="checkbox"]').disabled,
-      crop: [...document.querySelectorAll("button")].filter(b => b.innerText === "Crop").every(b => b.disabled), back: !!__btn("Back"),
-      still: !!__btn("Sending…") }; })()`);
+      crop: crops.length > 0 && crops.every(b => b.disabled), back: !!__btn("Back"), still: !!__btn("Sending…") }; })()`);
   check("055 E1: while sending, Close, the name, the consent box and Crop are disabled; a Close click does nothing",
     locked.close && locked.name && locked.consent && locked.crop && !locked.back && locked.still, JSON.stringify(locked));
-  const ended = await run(`(async () => { await __until(() => document.body.innerText.includes("Not sent"), 15000); window.setTimeout = __setTimeout;
+  const ended = await run(`(async () => { await __until(() => document.body.innerText.includes("Not sent"), 15000); if (window.__setTimeout) window.setTimeout = __setTimeout;
     const t = document.body.innerText; const close = __btn("Close"); const ok = close && !close.disabled; close?.click(); await __sleep(600);
     return { captcha: t.includes("Couldn't confirm you're not a robot. Try again."), close: ok, gone: !__btn("Try again") }; })()`);
   check("055 E1a: a human check that never answers ends as Not sent (captcha) after its wait; Close works again",
