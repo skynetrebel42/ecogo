@@ -48,19 +48,19 @@ Deno.serve(async req => {
     return answer(400, { ok: false, reason: "invalid" });
   }
 
-  // Daily limits (UTC day), counting submissions that didn't fail.
+  // Daily limits (UTC day): submissions that didn't fail (10 a person, 200 in all), and every attempt (30 a person, 054 B2).
   // ponytail: count-then-insert, so simultaneous sends can pass a limit by a few; a DB function with a lock if that matters.
   const today = new Date(); today.setUTCHours(0, 0, 0, 0);
-  const count = async (mine: boolean) => {
-    let q = db.from("contributions").select("id", { count: "exact", head: true })
-      .gte("created_at", today.toISOString()).neq("status", "failed");
+  const count = async (mine: boolean, failedToo = false) => {
+    let q = db.from("contributions").select("id", { count: "exact", head: true }).gte("created_at", today.toISOString());
+    if (!failedToo) q = q.neq("status", "failed");
     if (mine) q = q.eq("user_id", user.id);
     const { count, error } = await q;
     if (error) throw error;
     return count ?? 0;
   };
   let limit;
-  try { limit = limitReason(await count(true), await count(false)); }
+  try { limit = limitReason(await count(true), await count(false), await count(true, true)); }
   catch (err) { console.error("limit count failed", err); return answer(502, { ok: false, reason: "off-down" }); }
   if (limit) return answer(429, { ok: false, reason: limit });
 

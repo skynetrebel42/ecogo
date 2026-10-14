@@ -9,9 +9,13 @@ export type PhotoKind = "front" | "ingredients" | "nutrition";
 /** The shared EcoGo app account on OFF, and the person's own app ID (their anonymous Supabase user ID). */
 export interface OffAccount { user: string; password: string; uuid: string }
 
-/** Why a submission must wait until tomorrow, from today's counts before this one; null = it may go. */
-export function limitReason(mine: number, all: number): "limit-you" | "limit-all" | null {
-  if (mine >= PER_PERSON_DAILY) return "limit-you";
+/** Every attempt a person makes in a day, failed ones included (054 B2: failed retries weren't limited). */
+export const ATTEMPTS_DAILY = 30;
+
+/** Why a submission must wait until tomorrow, from today's counts before this one (`mine` and `all` exclude failed
+ *  sends; `attempts` is all of this person's rows); null = it may go. */
+export function limitReason(mine: number, all: number, attempts = 0): "limit-you" | "limit-all" | null {
+  if (mine >= PER_PERSON_DAILY || attempts >= ATTEMPTS_DAILY) return "limit-you";
   if (all >= ALL_DAILY) return "limit-all";
   return null;
 }
