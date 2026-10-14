@@ -29,7 +29,8 @@ const PROFILE = `${process.env.TEMP}\\ecogo-home-${PORT}`;
 rmSync(PROFILE, { recursive: true, force: true });
 const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, "--window-size=900,1000",
   `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
-setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 300000).unref?.();
+// 360 s (051 D): follow-up 5's checks brought a full run to ~285 s, too close to the old 300.
+setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 360000).unref?.();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page asked for (Network events)
@@ -476,17 +477,23 @@ try {
     `${sent.split("|")[1]}; answered here: ${faked.join(", ")}`);
   await run(`(async () => { __btn("Scan another product").click(); await __sleep(600); return true; })()`);
   // M8 follow-up 5 (spec 2026-10-09-m8-followup5-fix-off-products-design.md §2): a crowd-sourced OFF product with no
-  // ingredients (OFF's answer is faked here, CDP Fetch) offers "Add the ingredients" and "Send new photos". Any
-  // off-submit call would be answered here too, and none may happen: nothing reaches OFF or is sent.
+  // ingredients (OFF's answer is faked here, CDP Fetch) offers "Add the ingredients" and "Send new photos". OFF's
+  // product read, auth and off-submit (its failed answers, J2b) are all answered here: nothing reaches OFF or is sent.
   const FAKE_OFF = "4006381333931";
   const offAsked = [];
+  let offReply = { status: 400, reason: "invalid" };
   onPaused = p => {
-    offAsked.push(`${p.request.method} ${p.request.url.split("?")[0]}`);
-    const body = p.request.method === "OPTIONS" ? "" : JSON.stringify({ status: "success", code: FAKE_OFF,
-      product: { code: FAKE_OFF, product_name: "Test granola bar", brands: "Test", lang: "en" } });
-    send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
+    const url = p.request.url.split("?")[0], post = p.request.method === "POST";
+    offAsked.push(`${p.request.method} ${url}`);
+    const [status, body] = p.request.method === "OPTIONS" ? [200, ""]
+      : url.includes("/functions/v1/off-submit") ? [offReply.status, JSON.stringify({ ok: false, reason: offReply.reason })]
+      : url.includes("/auth/v1/") && post ? [200, JSON.stringify({ access_token: "fake", token_type: "bearer", expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: "fake",
+        user: { id: "00000000-0000-4000-8000-000000000048", aud: "authenticated", role: "authenticated", is_anonymous: true } })]
+      : [200, JSON.stringify({ status: "success", code: FAKE_OFF, product: { code: FAKE_OFF, product_name: "Test granola bar", brands: "Test", lang: "en" } })];
+    send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: status, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
   };
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*world.openfoodfacts.org/api/*" }, { urlPattern: "*/functions/v1/*" }] });
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*world.openfoodfacts.org/api/*" }, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }] });
   const offPage = await scanTyped(FAKE_OFF, "Test granola bar");
   check("Follow-up 5: an OFF product with no ingredients shows 'Add the ingredients' and 'Send new photos'",
     offPage.includes("No ingredient list available.") && offPage.includes("Add the ingredients") && offPage.includes("Send new photos"));
@@ -518,10 +525,25 @@ try {
     j2Step === "ingredients photo, with Back" && j2Flow.s === "nutrition photo" && !j2Flow.name && j2Flow.text.includes("Plus the barcode.")
     && j2Flow.off === true && j2Flow.on, `${j2Step} | ${JSON.stringify({ ...j2Flow, text: undefined })}`);
   check("…on Send both photos taken can be cropped, the ingredients one too", j2Flow.crops === "Crop the front photo, Crop the ingredients photo", j2Flow.crops);
+  // J2b (decision 051 C): a failed photos-only send speaks of photos, and Try again goes back to the front photo instead
+  // of sending the same photos again.
+  const invalid = await run(`(async () => { __btn("Send").click(); await __until(() => document.body.innerText.includes("Not sent"), 15000);
+    const t = document.body.innerText; __btn("Try again").click(); await __sleep(400); return [t, document.body.innerText]; })()`);
+  check("J2b: a photos-only send OFF can't take gets its own line; Try again goes back to the front photo",
+    invalid[0].includes("Open Food Facts couldn't take these photos. Try other photos.") && invalid[0].includes("Your photos are still here.")
+    && !invalid[0].includes("Check the ingredients") && invalid[1].includes("Front photo") && invalid[1].includes("Photos of the current label help"),
+    invalid.map(t => t.replace(/\n/g, " / ").slice(0, 160)).join(" → "));
+  offReply = { status: 409, reason: "nothing-new" };
+  const nothing = await run(`(async () => { __btn("Keep the photo I took").click(); await __sleep(300); __btn("Keep the photo I took").click(); await __sleep(300);
+    __btn("Skip").click(); await __sleep(400); __btn("Send").click(); await __until(() => document.body.innerText.includes("Not sent"), 15000);
+    return document.body.innerText; })()`);
+  check("…and one with nothing new speaks of the photos only", nothing.includes("Open Food Facts already has these photos, so there was nothing new to send.")
+    && !nothing.includes("these ingredients"), nothing.replace(/\n/g, " / ").slice(0, 160));
   await run(`(async () => { __btn("Close").click(); await __sleep(500); return true; })()`);
   await send("Fetch.disable");
-  check("…and nothing was sent: only OFF's (faked) product read was answered", offAsked.length > 0 && offAsked.every(u => u.includes("world.openfoodfacts.org/api/v3/product/")),
-    offAsked.join(", "));
+  check("…and nothing left the page: OFF's product read and the two sends were answered here",
+    offAsked.filter(u => u.startsWith("POST ") && u.endsWith("/functions/v1/off-submit")).length === 2
+    && offAsked.every(u => /world\.openfoodfacts\.org\/api\/v3\/product\/|\/auth\/v1\/|\/functions\/v1\/off-submit$/.test(u)), offAsked.join(", "));
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));
   // 053 W4: with Supabase unreachable the offline banner still shows (after the console check: blocked reads log errors).

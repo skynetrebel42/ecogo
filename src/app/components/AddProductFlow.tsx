@@ -26,6 +26,11 @@ const FAILED: Record<SubmitReason, string> = {
   invalid: "Open Food Facts couldn't take this as it is. Check the ingredients and try again.",
   "nothing-new": "Open Food Facts already has these ingredients and these photos, so there was nothing new to send.",
 };
+/** J2b (decision 051 C): photos mode sends no ingredients, so these two speak of the photos only. */
+const PHOTOS_FAILED: Partial<Record<SubmitReason, string>> = {
+  invalid: "Open Food Facts couldn't take these photos. Try other photos.",
+  "nothing-new": "Open Food Facts already has these photos, so there was nothing new to send.",
+};
 const PHOTO_TIPS: Record<Kind, string> = {
   front: "Photograph the front of the package, with its name showing.",
   ingredients: INGREDIENTS_TIP,
@@ -254,11 +259,12 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
   if (step === "failed") return screen(false, <>
     {header("Not sent", `Barcode ${code}`, false)}
     <div className="flex-1 flex flex-col justify-center px-6 gap-3 text-center">
-      <p role="alert" className="text-base font-bold">{FAILED[failed]}</p>
+      <p role="alert" className="text-base font-bold">{(photosOnly && PHOTOS_FAILED[failed]) || FAILED[failed]}</p>
       <p className="text-sm text-gray-600">{photosOnly ? "Your photos are still here." : "Your photos and text are still here."}</p>
     </div>
     <div className="px-4 pb-6">
-      <button onClick={() => setStep(failed === "invalid" && !photosOnly ? "check" : "send")} className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Try again</button>
+      {/* J2b: in photos mode, after these two, Try again goes back to the photos instead of sending the same ones again. */}
+      <button onClick={() => photosOnly && PHOTOS_FAILED[failed] ? goTo("front") : setStep(failed === "invalid" ? "check" : "send")} className="w-full min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px]">Try again</button>
     </div>
   </>);
 
