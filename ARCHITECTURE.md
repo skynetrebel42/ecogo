@@ -7,16 +7,16 @@
 
 ## 1. What the app does today
 
-EcoGo! is a **single-screen phone mock-up** (a fixed 390×844 frame centred on a desktop page) built by
-Figma Make. After a one-time welcome screen (first visit on this device) it has five tabs (Home, Map, Scan, Saved, Profile;
+EcoGo! is a **phone web app** (originally a Figma Make mock-up): full-screen on phones, and a 390×844 phone frame
+centred on the page on desktop. After a one-time welcome screen (first visit on this device) it has five tabs (Home, Map, Scan, Saved, Profile;
 the Map came back with real places in M9):
 
 | Tab | Reality |
 |---|---|
 | **Home** | Real content only (M7): a time-based greeting, a Scan card, product search, "Recently scanned" (last 10 products opened, on this device, `lib/recent.ts`; shown only when it has products) and "Learn" (M12): six coloured tiles, two per row, that open the explainer pages and "How EcoGo checks a product" (`Explainer.tsx`). |
 | **Map** | "Map near me" (M13, layout A): a ZIP box (looked up in a table inside the app, `lib/nearMe.ts`, never sent) and My location (asked only on tap, never stored or sent), radius chips 5/10/15/20 mi, the map with the search circle, then the list nearest first with distances ("N places within R mi of 90017"); before a ZIP, all of LA County A–Z. Places: an OpenStreetMap snapshot in `resources` (183, OSM data as of 2026-10-07: free food incl. community fridges, farmers markets, named community gardens; students-only pantries left out) plus LA County Public Health's free-food sites (static file, 191 after a 100 m dedup against OSM; marked * with their May 2023 age). Credited and dated, no ratings or open/closed. Cards: hours in plain words, Call / Website / Directions (Google Maps, the place's position only), "Fix it on OSM", "Report a problem" (an OSM note; County sites by email to the owner); "Missing a place? Add it on OpenStreetMap" under the list. No connection → "Places need a connection", never fake places. |
-| **Scan** | **Camera.** The Scan tab opens the back camera and reads EAN/UPC barcodes on the device (`CameraScanner`, `lib/barcodeReader.ts`: native BarcodeDetector or bundled ZXing WebAssembly; a code counts after two identical reads). Typing a barcode or a demo barcode does the same. The barcode is matched against the catalog, then looked up in **USDA FoodData Central** and then **Open Food Facts** (`lib/lookup.ts`). Frames never leave the device; scans are **not saved** (M3), and scanning never asks for location. |
-| **Saved** | Favorites (React state only, start empty, lost on reload, K-16; a looked-up product shows here however it was opened) and Scanned (the same recent list as Home, kept on this device). The static "Lists" tab is gone (M7.4). |
+| **Scan** | **Camera.** The Scan tab opens the back camera and reads EAN/UPC barcodes on the device (`CameraScanner`, `lib/barcodeReader.ts`: native BarcodeDetector or bundled ZXing WebAssembly; a code counts after two identical reads). Typing a barcode or a demo barcode does the same. The barcode is matched against the catalog, then looked up in EcoGo's own copy of **USDA FoodData Central** (the `foods` table, M10) and then **Open Food Facts** (`lib/lookup.ts`). Not found → "Add this product" (M8: photos, the label read on the phone, sent to Open Food Facts); the drawer also has "No barcode? Check ingredients" (nothing saved or sent). Frames never leave the device; scans are **not saved** (M3), and scanning never asks for location. |
+| **Saved** | Favorites (the bookmark saves at once, M14; lists as folders: rename, delete, remove, Undo; kept on this device, `lib/saved.ts`) and Scanned (the same recent list as Home, kept on this device). |
 | **Profile** | Only true things (M7.2): a Display card (M11: text size Normal/Large/Larger and a High contrast switch, kept on this device, `lib/settings.ts`), then three rows that expand (closed by default): your data on this device (Recently scanned count with Clear; a favorites note), where results come from, what leaves the phone (privacy); and the source-code link. No account, name or stats. |
 
 The product catalog is **51 products in the Supabase `products` table**, seeded from `src/data/products.csv`. The
@@ -37,7 +37,7 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
 | Map | leaflet 1.9.4 + leaflet.markercluster 1.5.3 (used directly, no react-leaflet). Back in the bundle with the Map (M9) |
 | Backend | Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free plan): Postgres + PostgREST + Realtime, reached from the browser with `@supabase/supabase-js` 2.116.0. One Edge Function since M8: `off-submit` (sends added products to Open Food Facts, writes `contributions`); the M7.5 `usda-relay` is retired (decision 034). Auth: anonymous sign-ins with Turnstile CAPTCHA, only at an add-product Send. |
 | Config | `.env` (committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (public by design). No key is needed to run or build the app. The owner's gitignored `.env.local` holds `SUPABASE_SERVICE_ROLE_KEY`, only for loading the USDA copy (`npm run import:usda`); no chat reads it. |
-| Barcode / camera | **None** |
+| Barcode / camera | The browser's native BarcodeDetector where available, else zxing-wasm 3.1.3 (bundled WebAssembly, no CDN), M6. Label reading: tesseract.js 7, self-hosted, loaded only when a photo is read (M8) |
 | Types / lint / tests | Tests: Node's built-in `node --test` with native TypeScript type stripping (no test framework). No TypeScript package, tsconfig or ESLint |
 | Scripts | `npm run dev` (vite), `npm run build` (vite build), `npm test` (everything under `src/lib/**` and `supabase/functions/**`: safety engine, 51-product check, lookup client, M8 units), `predev`/`prebuild` run `scripts/copy-ocr.mjs` (label reader into `public/tesseract/`, not committed), `npm run verify:sources` (re-fetches every library source and checks its quote; needs internet) |
 
@@ -47,12 +47,14 @@ prices are shown anywhere (they were invented, K-30; the data stays in the datab
                        Browser (React SPA, one phone-frame page)
  ┌──────────────────────────────────────────────────────────────────────────────┐
  │ main.tsx → App.tsx (state, navigation, Home/Search/Saved/Profile inline)     │
- │   ├─ loadData() ── lib/catalog.ts ──┐        (MapTab.tsx: hidden, M7.4)      │
+ │   ├─ loadData() ── lib/catalog.ts ──┐        MapTab.tsx (live: M9, M13)      │
  │   ├─ ScanTab.tsx ─ lib/lookup.ts (our `foods` table → Open Food Facts)       │
  │   └─ ProductDetailScreen.tsx           │   lib/safety/* (concern level)      │
  │ productImporter.ts ◄─ products.csv (bundled) ─► initial / offline catalog    │
  └──────────┬─────────────────────────────┬──┼──────────────────────────────────┘
-            │ (1) SELECT products,        │  │ (3) no writes: scans aren't saved (M3)
+            │ (1) SELECT products,        │  │ (3) no table writes; M8 Send only: anonymous
+            │                             │  │     sign-in + Edge Function off-submit
+            │                             │  │     (writes contributions → Open Food Facts)
             │     categories,             │  │
             │     resources               │  │
             │ (2) No realtime since the 2026-10-02 audit: one load per visit

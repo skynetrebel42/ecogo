@@ -33,8 +33,9 @@
   **M8 (2026-10-08):** Add a product: from the not-found screen, three photos, the ingredients read on the phone
   (self-hosted Tesseract.js) and checked by the person, then sent to Open Food Facts through the `off-submit` Edge
   Function (anonymous sign-in + Turnstile at the first Send, 10 a day per person, 200 overall, never overwrites OFF
-  text); "No barcode? Check ingredients" in the Scan drawer (nothing saved or sent). Still on OFF's **test** server
-  until the owner switches `OFF_BASE`. See the KNOWN_ISSUES.md roadmap for what comes next.
+  text); "No barcode? Check ingredients" in the Scan drawer (nothing saved or sent). Sends go to the **real** Open Food
+  Facts since 2026-10-09; follow-ups 047–050 added label trimming, a blur check and a real progress bar. See the
+  KNOWN_ISSUES.md roadmap for what comes next.
 - **Runs locally:** yes. `npm install` → `npm run dev` → http://localhost:5173. It talks to the owner's live Supabase project.
 - **What's real:** a live catalog of 51 products in Postgres (31 food products with USDA-verified barcodes and labels),
   EcoGo's own copy of USDA FoodData Central (Branded Foods, snapshot-dated) and live Open Food Facts for any other
@@ -43,15 +44,19 @@
   sourced library, `npm test` over all 51 products), FDA %DV nutrition, sourced explainers, the catalog loaded once per visit
   (scans are not saved), Recently scanned on this device, saved products and lists on this device (M14), and a log of
   each person's Open Food Facts submissions (`contributions`: anonymous ID, barcode, time, result; M8).
-- **What's still invented, but not shown (M7.4):** catalog prices and store ratings (`product_prices`, the CSV; K-30)
-  and the Map's Chicago places (`resources`, `MapTab.tsx`; the Map tab is hidden until M9).
-- **Backend:** Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free). There are 5 normalized tables
-  with RLS and explicit grants, and the schema lives in `supabase/migrations/`. The browser only reads the catalog
-  and writes nothing (scan inserts revoked in M3). Since M10 the `foods` table (read-only to the public, loaded by the
-  owner's `npm run import:usda`) holds the USDA copy, with two read functions, `search_foods` and `alternatives_for`;
-  no Edge Function is left (decision 034). The old Figma project is retired (decision 008).
-- **Security:** browsers can't write anything (catalog read-only; scan inserts revoked in M3), and the security advisor's
-  only notice is the expected "RLS on, no policy" for `scan_events`. Accounts (S-06) aren't needed while nothing is written.
+- **What's still invented, but not shown (M7.4):** catalog prices and store ratings (`product_prices`, the CSV; K-30).
+  The old invented Chicago places are gone: since M9/M13 the Map shows real Los Angeles places (OpenStreetMap and LA
+  County, credited and dated).
+- **Backend:** Supabase project **`ecogo`** (`gippyavmxxzqxjkuahpt`, us-west-1, free). Normalized tables with RLS and
+  explicit grants; the schema lives in `supabase/migrations/`. The browser reads the catalog and, since M10, the `foods`
+  table (EcoGo's USDA copy, read-only to the public, loaded by the owner's `npm run import:usda`) through `search_foods`
+  and `alternatives_for`. It writes **no table rows**. Since M8 its only other Supabase calls are an anonymous sign-in
+  (with a Turnstile check) at the first add-product Send and invoking the one Edge Function, `off-submit`, which alone
+  writes `contributions` and sends the product to Open Food Facts. The M7.5 USDA relay is retired (decision 034). The old
+  Figma project is retired (decision 008).
+- **Security:** browsers can't write table rows (catalog read-only; scan inserts revoked in M3; `contributions` is
+  written only by `off-submit`). The advisor shows the expected "RLS on, no policy" for `scan_events` and the accepted
+  anonymous-sign-in notice on `contributions` (decision 046). There are no named accounts; M8 uses anonymous IDs only.
 
 ## Owner goals (captured 2026-09-23, from the owner directly)
 
@@ -109,7 +114,7 @@ sensible defaults, but they're unconfirmed. Decisions 006+ were made in this rep
 |---|---|---|---|
 | 001 | Keep the Figma-generated architecture for now *(ChatGPT)* | Preserve working prototype behavior while it's understood | Active default, unconfirmed |
 | 002 | Don't normalize the KV database yet *(ChatGPT)* | The coupling and live DB contents were unknown at the time | **Superseded by 009** (owner chose option A) |
-| 003 | Security hardening is required before any public deploy *(ChatGPT)* | S-01 to S-05 are resolved (S-04 by removing scan saving, M3); S-06 (auth) isn't needed while the app writes nothing | Done for launch (M3) |
+| 003 | Security hardening is required before any public deploy *(ChatGPT)* | S-01 to S-05 are resolved (S-04 by removing scan saving, M3); S-06 (auth) isn't needed while the app writes nothing | Done for launch (M3). Since M8 (2026-10-08) the app writes through anonymous sign-in + `off-submit` (M8 spec D6–D9, decision 046) |
 | 004 | Don't split App.tsx until behavior is pinned *(ChatGPT)* | Responsibility map now exists (ARCHITECTURE.md §5); start with the ~150 lines of dead code | Active default, unconfirmed |
 | 005 | Documentation follows stabilization *(ChatGPT)* | These are working docs, not final docs | Active default, unconfirmed |
 | 006 | The CSV `Product` (camelCase) shape is the canonical frontend product shape | It is the only shape the whole UI consumes | **Done**: `catalog.ts` maps DB rows into it |

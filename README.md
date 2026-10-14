@@ -8,11 +8,16 @@ camera; on a laptop, use the webcam, the demo barcodes or type one).
 ## How it works
 
 - **Product data:** 51 featured products live in a Supabase (Postgres) database. Any other barcode is looked up in
-  **USDA FoodData Central** (label data supplied by manufacturers), then in **Open Food Facts** (crowd-sourced, and
-  labelled as such).
+  EcoGo's own copy of **USDA FoodData Central** (430,127 branded foods, label data supplied by manufacturers), then in
+  **Open Food Facts** (crowd-sourced, and labelled as such).
+- **Missing products:** if a barcode isn't found anywhere, you can add it: photograph the label, the ingredients are
+  read on the phone and checked by you, and the product is sent to Open Food Facts for everyone. You can also check an
+  ingredient list without a barcode (nothing is saved or sent).
+- **Map:** free-food places near you in Los Angeles (food pantries, community fridges, farmers markets) from
+  OpenStreetMap and LA County Public Health, credited and dated.
 - **Safety check:** the ingredient list is parsed and matched word for word against a small library of additives that
   IARC, the EU or the FDA have flagged. Each entry quotes its source verbatim and links to it. There's no AI and no
-  made-up score: if nothing is flagged, the page says exactly that, "No flagged additives".
+  made-up score: if nothing is flagged, the page says exactly that, "Nothing flagged", and explains that this isn't the same as healthy.
 - **Trust checks:** `npm test` checks every featured product against hand-reviewed flags, and
   `npm run verify:sources` re-checks the quotes against the live source pages.
 
@@ -27,7 +32,8 @@ npm test
 Running it needs no API key: product lookups read EcoGo's copy of USDA FoodData Central from Supabase. To load or
 refresh that copy (the owner's job): download USDA's Branded Foods JSON zip, put SUPABASE_SERVICE_ROLE_KEY in
 .env.local, then run npm run import:usda -- <the zip>.
-The Supabase URL and publishable key in `.env` are public by design; the database only allows reading the catalog.
+The Supabase URL and publishable key in `.env` are public by design; the browser can only read the catalog. Adding a
+product goes through one server function (`supabase/functions/off-submit`) with an anonymous sign-in and a robot check.
 
 ## Built with
 
