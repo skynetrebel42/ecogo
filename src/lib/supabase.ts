@@ -12,3 +12,6 @@ export const offSubmit = {
   functionUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/off-submit`,
   apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
 };
+
+/** The place-submit Edge Function (M8.1): Map suggestions and reports. */
+export const placeSubmit = { ...offSubmit, functionUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/place-submit` };

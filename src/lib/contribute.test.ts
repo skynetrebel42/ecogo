@@ -1,6 +1,6 @@
 import { mock, test } from "node:test";
 import assert from "node:assert/strict";
-import { submitProduct, type ContributeClient, type SendStage } from "./contribute.ts";
+import { submitPlace, submitProduct, type ContributeClient, type SendStage } from "./contribute.ts";
 
 const CODE = "0123456789012";
 const jpeg = (s: string) => new Blob([s], { type: "image/jpeg" });
@@ -248,4 +248,48 @@ test("empty ingredients or a malformed barcode are refused without signing in or
   assert.deepEqual(await submitProduct({ code: CODE, ingredients: "   ", photos: {} }, token, f.client), { ok: false, reason: "invalid" });
   assert.deepEqual(await submitProduct({ code: "12-34", ingredients: "Water", photos: {} }, token, f.client), { ok: false, reason: "invalid" });
   assert.deepEqual(f.calls(), []);
+});
+
+// M8.1 P3: Suggest a place / Report a problem reuse the sign-in, the human check and every-send-ends rules.
+const PLACE_URL = "https://example.supabase.co/functions/v1/place-submit";
+const suggestion = { kind: "suggest" as const, name: "Westside Pantry", address: "Pico & Bundy", offers: "Food pantry", who: "Anyone", link: "https://westsidepantry.org" };
+const placeClient = (opts: Parameters<typeof fakeClient>[0] = {}) => { const f = fakeClient(opts); f.client.functionUrl = PLACE_URL; return f; };
+
+test("a place send signs in first-time senders, then posts the form as JSON to place-submit", async () => {
+  const f = placeClient();
+  assert.deepEqual(await submitPlace(suggestion, token, f.client), { ok: true });
+  assert.deepEqual(f.calls(), ["signIn turnstile-token", `send POST ${PLACE_URL}`]);
+  assert.deepEqual(JSON.parse(f.sent() as unknown as string), suggestion);
+  assert.equal(request?.headers["Content-Type"], "application/json");
+  assert.equal(request?.headers.Authorization, "Bearer user-jwt");
+});
+
+test("place-submit's reasons come through; a 401 drops the session; an answer that isn't its own is unknown", async () => {
+  for (const reason of ["limit-you", "limit-tries", "limit-all", "invalid", "off-down"] as const) {
+    const f = placeClient({ session: true, reply: httpError(reason === "invalid" ? 400 : reason === "off-down" ? 502 : 429, { ok: false, reason }) });
+    assert.deepEqual(await submitPlace(suggestion, token, f.client), { ok: false, reason });
+  }
+  const g = placeClient({ session: true, reply: httpError(401, { ok: false, reason: "captcha" }) });
+  assert.deepEqual(await submitPlace(suggestion, token, g.client), { ok: false, reason: "captcha" });
+  assert.deepEqual(g.calls(), [`send POST ${PLACE_URL}`, "signOut local"]);
+  const h = placeClient({ session: true, reply: ok("<html>gateway</html>") });
+  assert.deepEqual(await submitPlace(suggestion, token, h.client), { ok: false, reason: "unknown" });
+  const n = placeClient({ session: true, reply: "network" });
+  assert.deepEqual(await submitPlace(suggestion, token, n.client), { ok: false, reason: "unknown" });
+});
+
+test("a place send ends too: no token in 60 s is captcha, no answer 90 s after sending is unknown", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const f = placeClient();
+    const p = submitPlace(suggestion, () => new Promise<string>(() => {}), f.client);
+    assert.equal(await settles(p, 60_000), true);
+    assert.deepEqual(await p, { ok: false, reason: "captcha" });
+    const g = placeClient({ session: true, reply: "silent" });
+    const q = submitPlace(suggestion, token, g.client);
+    assert.equal(await settles(q, 0), false, "sent, waiting for the answer");
+    assert.equal(await settles(q, 89_999), false);
+    assert.equal(await settles(q, 1), true);
+    assert.deepEqual(await q, { ok: false, reason: "unknown" });
+  } finally { mock.timers.reset(); }
 });

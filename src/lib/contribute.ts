@@ -1,4 +1,5 @@
-// contribute.ts — send a new product to Open Food Facts through EcoGo's `off-submit` function (M8 spec D6–D9).
+// contribute.ts — send a new product to Open Food Facts through EcoGo's `off-submit` function (M8 spec D6–D9), and a
+// Map suggestion or report through `place-submit` (M8.1 P3).
 // The Supabase client is passed in (the app passes lib/supabase.ts), so Node tests can load this module.
 
 /** unknown (055 E2): no reply, or not EcoGo's, so it may have arrived; every other reason is off-submit's own answer. */
@@ -54,7 +55,7 @@ function within<T>(p: Promise<T>, ms: number): Promise<T> {
 
 /** POST with real upload progress (XMLHttpRequest: fetch can't report it). Resolves the status and the parsed JSON
  *  (null when it isn't JSON), or null on a network error or no answer in time. */
-function post(url: string, headers: Record<string, string>, body: FormData, onProgress: (s: SendStage) => void):
+function post(url: string, headers: Record<string, string>, body: FormData | string, onProgress: (s: SendStage) => void):
   Promise<{ status: number; json: unknown } | null> {
   return new Promise(resolve => {
     const x = new XMLHttpRequest();
@@ -76,6 +77,32 @@ function post(url: string, headers: Record<string, string>, body: FormData, onPr
   });
 }
 
+/** Signs in anonymously (with a human-check token) only when nobody is signed in yet; the session, or why not. */
+async function signedIn(getCaptchaToken: () => Promise<string>, client: ContributeClient, onProgress: (s: SendStage) => void):
+  Promise<{ access_token: string } | SubmitReason> {
+  const { data } = await client.auth.getSession();
+  if (data.session) return data.session;
+  onProgress({ stage: "check" });
+  let captchaToken: string;
+  try { captchaToken = await within(getCaptchaToken(), CHECK_WAIT_MS); } catch { return "captcha"; }
+  try {
+    const { error } = await within(client.auth.signInAnonymously({ options: { captchaToken } }), SIGN_IN_WAIT_MS);
+    if (error) return "captcha";
+  } catch (err) {
+    return err === TIMEOUT ? "off-down" : "captcha";
+  }
+  // Signed in, yet no session: treat as a failed check, send nothing.
+  return (await client.auth.getSession()).data.session ?? "captcha";
+}
+
+/** A failed answer's reason; a 401 means the server no longer accepts this session (expired or deleted), so it is
+ *  dropped and Try again signs in afresh. */
+async function failure(res: { status: number; json: unknown } | null, client: ContributeClient): Promise<SubmitResult> {
+  if (res?.status === 401) await client.auth.signOut({ scope: "local" });
+  const reason = (res?.json as { reason?: SubmitReason } | null)?.reason;
+  return fail(reason && REASONS.includes(reason) ? reason : "unknown");
+}
+
 /** Signs in anonymously (with a human-check token) only when nobody is signed in yet, then sends, reporting stages. */
 export async function submitProduct(s: Submission, getCaptchaToken: () => Promise<string>, client: ContributeClient,
   onProgress: (s: SendStage) => void = () => {}): Promise<SubmitResult> {
@@ -83,18 +110,8 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
   const hasPhoto = KINDS.some(k => s.photos[k]);
   if (!(s.photosOnly ? hasPhoto : ingredients) || !/^[0-9]{8,14}$/.test(s.code)) return fail("invalid");
 
-  const { data } = await client.auth.getSession();
-  if (!data.session) {
-    onProgress({ stage: "check" });
-    let captchaToken: string;
-    try { captchaToken = await within(getCaptchaToken(), CHECK_WAIT_MS); } catch { return fail("captcha"); }
-    try {
-      const { error } = await within(client.auth.signInAnonymously({ options: { captchaToken } }), SIGN_IN_WAIT_MS);
-      if (error) return fail("captcha");
-    } catch (err) {
-      return fail(err === TIMEOUT ? "off-down" : "captcha");
-    }
-  }
+  const session = await signedIn(getCaptchaToken, client, onProgress);
+  if (typeof session === "string") return fail(session);
 
   const body = new FormData();
   body.set("code", s.code);
@@ -107,8 +124,6 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
   if (s.photos.ingredients) body.set("ingredients_photo", s.photos.ingredients, "ingredients.jpg");
   if (s.photos.nutrition) body.set("nutrition", s.photos.nutrition, "nutrition.jpg");
 
-  const session = data.session ?? (await client.auth.getSession()).data.session;
-  if (!session) return fail("captcha"); // signed in, yet no session: treat as a failed check, send nothing
   onProgress({ stage: "upload", percent: 0 });
   const res = await post(client.functionUrl, { Authorization: `Bearer ${session.access_token}`, apikey: client.apikey }, body, onProgress);
   // off-submit answers { ok, reason?, … } with any status.
@@ -119,7 +134,18 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
     return { ok: true, ...(answer.textKept && { textKept: true }), ...(failedPhotos.length > 0 && { failedPhotos }),
       ...(pendingPhotos.length > 0 && { pendingPhotos }) };
   }
-  // 401: the server no longer accepts this session (expired or deleted); drop it so Try again signs in afresh.
-  if (res?.status === 401) await client.auth.signOut({ scope: "local" });
-  return fail(answer?.reason && REASONS.includes(answer.reason) ? answer.reason : "unknown");
+  return failure(res, client);
+}
+
+/** M8.1 P3: a Map suggestion or report, for `place-submit` (client.functionUrl). The form gates its required fields;
+ *  place-submit checks them all. Same sign-in, human check and waits as a product send. */
+export type PlaceSubmission = { kind: "suggest" | "report" } & Record<string, string>;
+export async function submitPlace(p: PlaceSubmission, getCaptchaToken: () => Promise<string>, client: ContributeClient,
+  onProgress: (s: SendStage) => void = () => {}): Promise<SubmitResult> {
+  const session = await signedIn(getCaptchaToken, client, onProgress);
+  if (typeof session === "string") return fail(session);
+  onProgress({ stage: "saving" });
+  const res = await post(client.functionUrl, { Authorization: `Bearer ${session.access_token}`, apikey: client.apikey, "Content-Type": "application/json" },
+    JSON.stringify(p), () => {});
+  return (res?.json as { ok?: boolean } | null)?.ok === true ? { ok: true } : failure(res, client);
 }
