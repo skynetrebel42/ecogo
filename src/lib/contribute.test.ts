@@ -7,7 +7,8 @@ const jpeg = (s: string) => new Blob([s], { type: "image/jpeg" });
 const URL_ = "https://example.supabase.co/functions/v1/off-submit";
 
 /** What off-submit answers: a status and a body (an object is sent as JSON), or no answer at all. */
-type Reply = { status: number; body: unknown } | "network" | "timeout" | "silent"; // silent: uploaded, then no answer
+// silent: uploaded, then no answer; stall: the upload never moves; trickle: one progress event at 50 s, then nothing
+type Reply = { status: number; body: unknown } | "network" | "timeout" | "silent" | "stall" | "trickle";
 let reply: Reply = { status: 200, body: { ok: true } };
 let calls: string[] = [];
 let request: { headers: Record<string, string>; body: FormData } | undefined;
@@ -24,6 +25,8 @@ class FakeXHR {
   send(body: FormData) {
     calls.push(this.url === `POST ${URL_}` ? "send off-submit" : `send ${this.url}`);
     request = { headers: this.headers, body };
+    if (reply === "stall") return;
+    if (reply === "trickle") { setTimeout(() => this.upload.onprogress?.({ lengthComputable: true, loaded: 50, total: 100 }), 50_000); return; }
     setTimeout(() => {
       if (reply === "network") return this.onerror?.();
       if (reply === "timeout") return this.abort(); // the app's wait after the upload ran out
@@ -39,7 +42,7 @@ class FakeXHR {
 (globalThis as { XMLHttpRequest?: unknown }).XMLHttpRequest = FakeXHR;
 
 /** A fake Supabase auth: `session` says whether someone is signed in; signing in makes a session. */
-function fakeClient(opts: { session?: boolean; signInError?: boolean; reply?: Reply } = {}) {
+function fakeClient(opts: { session?: boolean; signInError?: boolean; signInHangs?: boolean; reply?: Reply } = {}) {
   calls = []; request = undefined; reply = opts.reply ?? { status: 200, body: { ok: true } };
   let signedIn = !!opts.session;
   const client: ContributeClient = {
@@ -49,6 +52,7 @@ function fakeClient(opts: { session?: boolean; signInError?: boolean; reply?: Re
       getSession: async () => ({ data: { session: signedIn ? { access_token: "user-jwt" } : null } }),
       signInAnonymously: async ({ options }) => {
         calls.push(`signIn ${options.captchaToken}`);
+        if (opts.signInHangs) return new Promise(() => {});
         if (!opts.signInError) signedIn = true;
         return { error: opts.signInError ? new Error("captcha verification process failed") : null };
       },
@@ -200,6 +204,37 @@ test("no answer within 90 s after the upload's last byte ends the send as unknow
     assert.equal(await settles(p, 89_999), false);
     assert.equal(await settles(p, 1), true);
     assert.deepEqual(await p, { ok: false, reason: "unknown" });
+  } finally { mock.timers.reset(); }
+});
+
+// 055 E1b: the last two ways a send could hang.
+test("an upload with no progress for 60 s ends as unknown; each progress event restarts the 60 s", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const f = fakeClient({ session: true, reply: "stall" });
+    const p = submitProduct({ ...input, photos: {} }, token, f.client);
+    assert.equal(await settles(p, 59_999), false);
+    assert.equal(await settles(p, 1), true);
+    assert.deepEqual(await p, { ok: false, reason: "unknown" });
+
+    const g = fakeClient({ session: true, reply: "trickle" });
+    const q = submitProduct({ ...input, photos: {} }, token, g.client);
+    assert.equal(await settles(q, 50_000), false, "a slow upload that moves isn't cut off");
+    assert.equal(await settles(q, 59_999), false);
+    assert.equal(await settles(q, 1), true);
+    assert.deepEqual(await q, { ok: false, reason: "unknown" });
+  } finally { mock.timers.reset(); }
+});
+
+test("an anonymous sign-in with no answer in 60 s is Not sent (off-down): nothing left the phone", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const f = fakeClient({ signInHangs: true });
+    const p = submitProduct({ ...input, photos: {} }, token, f.client);
+    assert.equal(await settles(p, 59_999), false);
+    assert.equal(await settles(p, 1), true);
+    assert.deepEqual(await p, { ok: false, reason: "off-down" });
+    assert.deepEqual(f.calls(), ["signIn turnstile-token"], "nothing sent");
   } finally { mock.timers.reset(); }
 });
 

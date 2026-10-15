@@ -29,8 +29,8 @@ const PROFILE = `${process.env.TEMP}\\ecogo-home-${PORT}`;
 rmSync(PROFILE, { recursive: true, force: true });
 const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, "--window-size=900,1000",
   `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
-// 360 s (051 D): follow-up 5's checks brought a full run to ~285 s, too close to the old 300.
-setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 360000).unref?.();
+// 420 s (055): with 055's send checks a full run takes ~290–350 s on this PC (it swings ~±50 s run to run).
+setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 420000).unref?.();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page asked for (Network events)
@@ -497,10 +497,12 @@ try {
   const FAKE_OFF = "4006381333931";
   const offAsked = [];
   let offReply = { status: 400, reason: "invalid" };
+  const heldIds = []; // 055 E1b: off-submit requests held unanswered
   onPaused = p => {
     const url = p.request.url.split("?")[0], post = p.request.method === "POST";
     offAsked.push(`${p.request.method} ${url}`);
     if (offReply === "drop" && post && url.includes("/functions/v1/off-submit")) return send("Fetch.failRequest", { requestId: p.requestId, errorReason: "ConnectionReset" });
+    if (offReply === "hold" && post && url.includes("/functions/v1/off-submit")) return void heldIds.push(p.requestId);
     const [status, body] = p.request.method === "OPTIONS" ? [200, ""]
       : url.includes("/functions/v1/off-submit") ? [offReply.status, JSON.stringify({ ok: false, reason: offReply.reason })]
       : url.includes("/auth/v1/") && post ? [200, JSON.stringify({ access_token: "fake", token_type: "bearer", expires_in: 3600,
@@ -576,10 +578,22 @@ try {
     && lost.text.includes("We didn't hear back from Open Food Facts. It may have arrived. Check the product in a few minutes before sending again.")
     && lost.link === `https://world.openfoodfacts.org/product/${FAKE_OFF} _blank` && !lost.retry && lost.close,
     `${lost.link} | retry ${lost.retry} | close ${lost.close}`);
+  // 055 E1a/E1b: a send whose request is held forever (never answered, never failed) still ends. The app's 60 s and
+  // 90 s waits run 3 s here (this check only); the held request is failed afterwards, so it never leaves.
+  offReply = "hold";
+  await run(`(async () => { __btn("Close").click(); await __sleep(500); __btn("Send new photos").click(); await __sleep(400); return true; })()`);
+  await pickPhoto();
+  const held = await run(`(async () => { await __until(() => document.body.innerText.includes("Ingredients photo"), 15000);
+    __btn("Skip").click(); await __sleep(300); __btn("Skip").click(); await __sleep(400); document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
+    const st = window.setTimeout; window.setTimeout = (f, ms, ...a) => st(f, ms === 60000 || ms === 90000 ? 3000 : ms, ...a);
+    try { __btn("Send").click(); return !!(await __until(() => document.body.innerText.includes("Not sure it arrived"), 20000)); }
+    finally { window.setTimeout = st; } })()`);
+  for (const id of heldIds) await send("Fetch.failRequest", { requestId: id, errorReason: "Aborted" });
+  check("055 E1b: a send held forever ends on 'Not sure it arrived' after its wait (Close unlocked)", held === true, String(held));
   await run(`(async () => { __btn("Close").click(); await __sleep(500); return true; })()`);
   await send("Fetch.disable");
-  check("…and nothing left the page: OFF's product read and the four sends were answered (or dropped) here",
-    offAsked.filter(u => u.startsWith("POST ") && u.endsWith("/functions/v1/off-submit")).length === 4
+  check("…and nothing left the page: OFF's product read and the five sends were answered, dropped or held here",
+    offAsked.filter(u => u.startsWith("POST ") && u.endsWith("/functions/v1/off-submit")).length === 5
     && offAsked.every(u => /world\.openfoodfacts\.org\/api\/v3\/product\/|\/auth\/v1\/|\/functions\/v1\/off-submit$/.test(u)), offAsked.join(", "));
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));

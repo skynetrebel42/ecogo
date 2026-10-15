@@ -39,8 +39,18 @@ const fail = (reason: SubmitReason): SubmitResult => ({ ok: false, reason });
  *  outcome is `unknown` (055 E1a, E2). The upload itself has no limit: a slow phone mustn't give up mid-upload and then
  *  send again while the server finishes. */
 const ANSWER_WAIT_MS = 90_000;
-/** 055 E1a: Close is locked while sending, so a human check that never hands over a token ends as `captcha`. */
+/** 055 E1a, E1b: Close is locked while sending, so every wait ends: a human check with no token (`captcha`), a sign-in
+ *  with no answer (`off-down`: nothing left the phone), an upload with no progress (`unknown`), each after 60 s. */
 const CHECK_WAIT_MS = 60_000;
+const SIGN_IN_WAIT_MS = 60_000;
+const STALL_MS = 60_000;
+
+const TIMEOUT = new Error("timed out");
+/** `p`, or a rejection with TIMEOUT after `ms`; the timer is cleared either way. */
+function within<T>(p: Promise<T>, ms: number): Promise<T> {
+  let t: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([p, new Promise<never>((_, reject) => { t = setTimeout(() => reject(TIMEOUT), ms); })]).finally(() => clearTimeout(t));
+}
 
 /** POST with real upload progress (XMLHttpRequest: fetch can't report it). Resolves the status and the parsed JSON
  *  (null when it isn't JSON), or null on a network error or no answer in time. */
@@ -49,10 +59,11 @@ function post(url: string, headers: Record<string, string>, body: FormData, onPr
   return new Promise(resolve => {
     const x = new XMLHttpRequest();
     let wait: ReturnType<typeof setTimeout> | undefined;
+    const stalling = () => { clearTimeout(wait); wait = setTimeout(() => x.abort(), STALL_MS); }; // E1b: restarts on progress
     x.open("POST", url);
     for (const [k, v] of Object.entries(headers)) x.setRequestHeader(k, v);
-    x.upload.onprogress = e => { if (e.lengthComputable) onProgress({ stage: "upload", percent: Math.round((100 * e.loaded) / e.total) }); };
-    x.upload.onload = () => { onProgress({ stage: "saving" }); wait = setTimeout(() => x.abort(), ANSWER_WAIT_MS); };
+    x.upload.onprogress = e => { stalling(); if (e.lengthComputable) onProgress({ stage: "upload", percent: Math.round((100 * e.loaded) / e.total) }); };
+    x.upload.onload = () => { onProgress({ stage: "saving" }); clearTimeout(wait); wait = setTimeout(() => x.abort(), ANSWER_WAIT_MS); };
     x.onload = () => {
       clearTimeout(wait);
       let json: unknown = null;
@@ -61,6 +72,7 @@ function post(url: string, headers: Record<string, string>, body: FormData, onPr
     };
     x.onerror = x.onabort = () => { clearTimeout(wait); resolve(null); };
     x.send(body);
+    stalling();
   });
 }
 
@@ -74,16 +86,13 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
   const { data } = await client.auth.getSession();
   if (!data.session) {
     onProgress({ stage: "check" });
-    let wait: ReturnType<typeof setTimeout> | undefined;
+    let captchaToken: string;
+    try { captchaToken = await within(getCaptchaToken(), CHECK_WAIT_MS); } catch { return fail("captcha"); }
     try {
-      const captchaToken = await Promise.race([getCaptchaToken(),
-        new Promise<never>((_, reject) => { wait = setTimeout(() => reject(new Error("no human-check token")), CHECK_WAIT_MS); })]);
-      const { error } = await client.auth.signInAnonymously({ options: { captchaToken } });
+      const { error } = await within(client.auth.signInAnonymously({ options: { captchaToken } }), SIGN_IN_WAIT_MS);
       if (error) return fail("captcha");
-    } catch {
-      return fail("captcha");
-    } finally {
-      clearTimeout(wait);
+    } catch (err) {
+      return fail(err === TIMEOUT ? "off-down" : "captcha");
     }
   }
 
