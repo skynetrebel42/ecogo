@@ -8,6 +8,8 @@
 // first with distances; the 5 mi chip lowers the count; a ZIP not in the table shows the D4 note; "Nothing within 5 mi"
 // offers the next size; the ZIP is never sent (no request contains it), stored or put in the URL; "Missing a place?" links
 // to the OSM editor at the map's centre (D10); the chip reads "Free food".
+// M8.1 (spec 2026-10-15-m81-suggest-report-design.md): "Suggest a place" and every card's "Report a problem" open EcoGo's own
+// forms (the OSM note and County mailto are gone); required fields gate Send; sends are answered here (CDP Fetch).
 // Usage: node docs/superpowers/specs/2026-10-07-m13-assets/check-map.mjs <url> [rows.json]
 //   rows.json (dry run only, before a migration is live): served in place of the database's `resources` rows.
 import { spawn } from "node:child_process";
@@ -33,6 +35,7 @@ try {
   await new Promise(r => ws.addEventListener("open", r, { once: true }));
   let id = 0; const pending = new Map();
   let failResources = false;
+  let onPaused = p => send("Fetch.continueRequest", { requestId: p.requestId });
   const send = (method, params = {}) => new Promise(r => { const n = ++id; pending.set(n, r); ws.send(JSON.stringify({ id: n, method, params })); });
   ws.addEventListener("message", e => {
     const m = JSON.parse(e.data);
@@ -42,7 +45,8 @@ try {
     if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map(a => a.value ?? a.description).join(" ").slice(0, 160));
     if (m.method === "Fetch.requestPaused") {
       const { requestId, request } = m.params;
-      if (failResources) send("Fetch.failRequest", { requestId, errorReason: "InternetDisconnected" });
+      if (!request.url.includes("/rest/v1/resources")) onPaused(m.params); // M8.1: auth and place-submit, answered here
+      else if (failResources) send("Fetch.failRequest", { requestId, errorReason: "InternetDisconnected" });
       else if (ROWS && request.method === "GET") send("Fetch.fulfillRequest", { requestId, responseCode: 200, body: Buffer.from(ROWS).toString("base64"),
         responseHeaders: [{ name: "Content-Type", value: "application/json" }, { name: "Access-Control-Allow-Origin", value: "*" }] });
       else send("Fetch.continueRequest", { requestId });
@@ -56,6 +60,9 @@ try {
     window.__header = () => document.getElementById("map-list-title")?.innerText ?? "";
     window.__zip = async v => { const i = document.querySelector('input[aria-label="ZIP code"]');
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, v); i.dispatchEvent(new Event("input", { bubbles: true })); await __sleep(700); };
+    window.__type = async (id, v) => { const i = document.getElementById(id); const p = i.tagName === "TEXTAREA" ? HTMLTextAreaElement : HTMLInputElement;
+      Object.getOwnPropertyDescriptor(p.prototype, "value").set.call(i, v); i.dispatchEvent(new Event("input", { bubbles: true })); await __sleep(50); };
+    window.__pick = async (name, v) => { document.querySelector('input[name="' + name + '"][value="' + v + '"]').click(); await __sleep(50); };
     window.__radius = async mi => { document.querySelector('input[name="radius"][value="' + mi + '"]').click(); await __sleep(600); };
     window.__guest = async () => { const b = await __until(() => __btn("Look around first") || __btn("Home")); if (b.innerText.includes("Look around")) { b.click(); await __sleep(400); } }; true`);
   const openMap = async () => { await helpers(); await run(`(async () => { await __guest(); __btn("Map").click(); await __until(() => __list()?.length > 0 || document.body.innerText.includes("Places need a connection"), 15000); await __sleep(500); })()`); };
@@ -102,10 +109,23 @@ try {
   check("card: Directions opens Google Maps with only the place's position", /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=-?\d+\.\d+,-?\d+\.\d+$/.test(card.links["Directions"] ?? ""), card.links["Directions"]);
   check("card: Fix it on OSM + the OSM object link + credit", /^https:\/\/www\.openstreetmap\.org\/edit\?(node|way|relation)=\d+$/.test(card.links["Fix it on OSM"] ?? "")
     && /^https:\/\/www\.openstreetmap\.org\/(node|way|relation)\/\d+$/.test(card.links["OpenStreetMap"] ?? "") && !!card.links["© OpenStreetMap contributors"]);
-  const d = card.links["Directions"]?.match(/destination=(-?\d+\.\d+),(-?\d+\.\d+)$/);
-  const note = d ? `https://www.openstreetmap.org/note/new#map=19/${Number(d[1]).toFixed(5)}/${Number(d[2]).toFixed(5)}` : "";
-  check("card: Report a problem opens an OSM note at the place, with the hint (D12)", card.links["Report a problem"] === note
-    && card.text.includes("Say what changed: closed, moved, or new hours."), card.links["Report a problem"]);
+  // M8.1 P2, P3, P3a: "Report a problem" opens EcoGo's own form (the OSM note link is gone).
+  const NOTICE = "EcoGo's owner reads this by hand. Don't include personal details. Approved places are added to OpenStreetMap, which is public.";
+  const CONSENT = "My note has no personal details, mine or anyone else's.";
+  const rep = await run(`(async () => { __btn("Report a problem").click(); await __sleep(500);
+    const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; const send = __btn("Send"); const focus = document.activeElement?.innerText;
+    const radios = [...document.querySelectorAll('input[name="wrong"]')].map(r => r.parentElement.innerText.trim());
+    const before = send?.disabled; await __pick("wrong", "Not free"); const noConsent = send?.disabled;
+    document.querySelector('input[type="checkbox"]').click(); await __sleep(100); const ready = send && !send.disabled;
+    __btn("Close").click(); await __sleep(400);
+    return { t, radios, before, noConsent, ready, focus, back: [...document.querySelectorAll("h3")].map(e => e.innerText), opener: document.activeElement?.innerText }; })()`);
+  check("M8.1 P2: Report a problem opens EcoGo's form with the card's name, OpenStreetMap and its id; no OSM note link or hint",
+    rep.t.includes(card.name) && /From OpenStreetMap · (node|way|relation)\/\d+/.test(rep.t) && !card.links["Report a problem"]
+    && !card.text.includes("Say what changed"), rep.t.slice(0, 160));
+  check("…What's wrong: the four choices; Send waits for a choice and the consent box",
+    JSON.stringify(rep.radios) === '["Closed for good","Wrong address or hours","Not free","Other"]' && rep.before && rep.noConsent && rep.ready, JSON.stringify(rep.radios));
+  check("…the notice and the consent line (P3, P3a); the title takes focus", rep.t.includes(NOTICE) && rep.t.includes(CONSENT) && rep.focus === "Report a problem", rep.focus);
+  check("…Close goes back to the card, focus on Report a problem", rep.back.includes(card.name) && rep.opener === "Report a problem", rep.opener);
   const backList = await run(`(async () => { __btn("Back to the list").click(); await __sleep(400); return __list()?.length ?? 0; })()`);
   check("card: Back returns to the list", backList > 50, `${backList} places`);
 
@@ -124,9 +144,88 @@ try {
   check("County card: the footnote, the credit with the County's terms, Directions; no hours note, no 'Fix it on OSM'",
     cc.text.includes(COUNTY_NOTE) && cc.text.includes(COUNTY_CREDIT) && ccLinks["Terms"] === "https://egis-lacounty.hub.arcgis.com/pages/terms-of-use"
     && !!ccLinks["Directions"] && !ccLinks["Fix it on OSM"] && !cc.text.includes("Hours can change"), JSON.stringify(cc.links));
-  const mail = ccLinks["Report a problem"] ?? "";
-  check("County card: Report a problem emails the owner's address with the County id in the subject (D12)",
-    mail.startsWith("mailto:ecogo-admin@proton.me?subject=") && /\(County \d+\)/.test(decodeURIComponent(mail)), mail.slice(0, 120));
+  const crep = await run(`(async () => { const b = [...document.querySelectorAll('ul[aria-label="Places"] button')].find(b => /\\*$/.test(b.innerText.split("\\n")[0]));
+    const name = b.innerText.split("\\n")[0].replace(/\\*$/, ""); b.click(); await __sleep(900); __btn("Report a problem").click(); await __sleep(400);
+    const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; __btn("Close").click(); await __sleep(300); __btn("Back to the list").click(); await __sleep(400); return { name, t }; })()`);
+  check("M8.1 P2: a County card's Report a problem opens the same form, with LA County and the site's id; no mailto",
+    crep.t.includes(crep.name) && /From LA County · site \d+/.test(crep.t) && !cc.links.some(([, h]) => h?.startsWith("mailto:")), crep.t.slice(0, 160));
+
+  // M8.1 P1: Suggest a place, under the list
+  const HINT = "Its own site or its own Instagram/Facebook page. Not Yelp, Google Maps or news.";
+  const sug = await run(`(async () => { const a = [...document.querySelectorAll("a")].find(a => a.innerText.includes("add it on OpenStreetMap yourself"));
+    const foot = document.querySelector('section[aria-labelledby="map-list-title"]').innerText; const button = !!__btn("Suggest a place");
+    __btn("Suggest a place").click(); await __sleep(500);
+    const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; const send = () => __btn("Send").disabled; const steps = [send()];
+    await __type("place-name", "Westside Pantry"); await __type("place-address", "Pico & Bundy"); await __pick("offers", "Food pantry"); await __pick("who", "Other");
+    document.querySelector('input[type="checkbox"]').click(); await __sleep(50); steps.push(send()); // no link yet
+    await __type("place-link", "http://westsidepantry.org"); steps.push(send()); // not https://
+    await __type("place-link", "https://westsidepantry.org"); steps.push(send()); // Who: Other, with no note
+    const whoNote = !!document.getElementById("place-who-note");
+    await __type("place-who-note", "Seniors 60+"); steps.push(send());
+    return { link: a?.href ?? "", foot, button, t, steps, whoNote }; })()`);
+  check("M8.1 P1: under the list, 'Suggest a place', then 'or add it on OpenStreetMap yourself' (the OSM editor)",
+    sug.button && /^https:\/\/www\.openstreetmap\.org\/edit#map=18\//.test(sug.link) && !sug.foot.includes("Missing a place?"), sug.link);
+  check("…its form asks name, address, what it offers, who can use it, the link with its hint, and a note; notice and consent",
+    ["Name", "Address or cross streets", "What it offers", "Food pantry", "Free meals", "Community fridge", "Who can use it", "Anyone", "Students only",
+      HINT, "Note (optional)", NOTICE, CONSENT].every(s => sug.t.includes(s)), sug.t.slice(0, 300));
+  check("…Send waits for every required field: an https:// link, and a note when 'Who can use it' is Other",
+    JSON.stringify(sug.steps) === "[true,true,true,true,false]" && sug.whoNote, JSON.stringify(sug.steps));
+
+  // M8.1 P3: the sends. Auth and place-submit are answered here (CDP Fetch); the human check hands over a stub token.
+  const placeAsked = [], placeBodies = [];
+  let placeReply = { status: 200, body: { ok: true } }, heldPlace = null;
+  const CORS = [{ name: "Access-Control-Allow-Origin", value: "*" }, { name: "Access-Control-Allow-Headers", value: "*" },
+    { name: "Access-Control-Allow-Methods", value: "POST, OPTIONS" }, { name: "Content-Type", value: "application/json" }];
+  onPaused = p => {
+    const url = p.request.url.split("?")[0], post = p.request.method === "POST", place = url.includes("/functions/v1/place-submit");
+    placeAsked.push(`${p.request.method} ${url.split("/").slice(-2).join("/")}`);
+    if (post && place) { placeBodies.push(p.request.postData); if (placeReply === "hold") return void (heldPlace = p.requestId); }
+    const body = p.request.method === "OPTIONS" ? "" : place ? JSON.stringify(placeReply.body) : JSON.stringify({ access_token: "fake", token_type: "bearer",
+      expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: "fake",
+      user: { id: "00000000-0000-4000-8000-000000000081", aud: "authenticated", role: "authenticated", is_anonymous: true } });
+    send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: place && post ? placeReply.status : 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
+  };
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }] });
+  const sent = await run(`(async () => { const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
+    t.render = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; }; t.remove = () => {};
+    __btn("Send").click(); await __until(() => document.body.innerText.includes("Thanks."), 10000); return document.querySelector('[role="dialog"]')?.innerText ?? "no dialog"; })()`);
+  const sb = JSON.parse(placeBodies[0] ?? "{}");
+  check("M8.1 P3: Send signs in, posts the suggestion to place-submit and says thanks (all answered here: nothing reaches Supabase)",
+    sent.includes("Thanks. EcoGo checks these by hand, so it can take a few days.") && sb.kind === "suggest" && sb.name === "Westside Pantry"
+    && sb.link === "https://westsidepantry.org" && sb.who === "Other" && sb.whoNote === "Seniors 60+" && placeAsked.includes("POST v1/signup")
+    && placeAsked.every(f => /^(OPTIONS|POST) v1\/(signup|place-submit)$/.test(f)), `${placeAsked.join(", ")} ${placeBodies[0]} ${sent.slice(0, 200)}`);
+  const mapBack = await run(`(async () => { __btn("Back to the map").click(); await __sleep(400); return document.activeElement === __btn("Suggest a place"); })()`);
+  check("…'Back to the map' closes the form, focus back on Suggest a place", mapBack);
+
+  placeReply = { status: 429, body: { ok: false, reason: "limit-you" } }; placeBodies.length = 0;
+  const lim = await run(`(async () => { const b = [...document.querySelectorAll('ul[aria-label="Places"] button')].find(b => !/\\*$/.test(b.innerText.split("\\n")[0]));
+    const name = b.innerText.split("\\n")[0]; b.click(); await __sleep(900); __btn("Report a problem").click(); await __sleep(400);
+    await __pick("wrong", "Not free"); await __type("place-note", "Asks for $5 now");
+    document.querySelector('input[type="checkbox"]').click(); await __sleep(50); __btn("Send").click();
+    await __until(() => document.body.innerText.includes("Not sent"), 10000); const t = document.body.innerText;
+    __btn("Try again").click(); await __sleep(300);
+    return { name, t, kept: document.querySelector('input[name="wrong"][value="Not free"]')?.checked && document.getElementById("place-note")?.value === "Asks for $5 now" }; })()`);
+  const rb = JSON.parse(placeBodies[0] ?? "{}");
+  check("M8.1 P3: a limit answer is Not sent with M8's line; Try again keeps the answers",
+    lim.t.includes("You've sent 10 today. Thanks! Try again tomorrow.") && lim.kept, lim.t.slice(0, 200));
+  check("…the report names the card's place: kind, placeRef, name, what's wrong and the note",
+    rb.kind === "report" && /^(node|way|relation)\/\d+$/.test(rb.placeRef) && rb.name === lim.name && rb.wrong === "Not free" && rb.note === "Asks for $5 now", placeBodies[0]);
+
+  placeReply = "hold";
+  const held = await run(`(async () => { __btn("Send").click(); await __until(() => __btn("Sending…"), 5000); await __sleep(300);
+    const close = __btn("Close"); close.click(); await __sleep(200);
+    return { close: close.disabled, still: !!__btn("Sending…"), consent: document.querySelector('input[type="checkbox"]').disabled,
+      radio: document.querySelector('input[name="wrong"]').disabled, note: document.getElementById("place-note").disabled }; })()`);
+  check("055 E1 for M8.1: while sending, Close and every field are locked; a Close click does nothing",
+    held.close && held.still && held.consent && held.radio && held.note, JSON.stringify(held));
+  if (heldPlace) await send("Fetch.failRequest", { requestId: heldPlace, errorReason: "ConnectionReset" });
+  const unk = await run(`(async () => { await __until(() => document.body.innerText.includes("Not sure it arrived"), 10000); const t = document.body.innerText;
+    const back = !!__btn("Back to the map"), again = !!__btn("Try again"); __btn("Back to the map")?.click(); await __sleep(400);
+    __btn("Back to the list")?.click(); await __sleep(400); return { t, back, again }; })()`);
+  check("…no answer is 'Not sure it arrived' with EcoGo's line, and only 'Back to the map' (no Try again)",
+    unk.t.includes("We didn't hear back from EcoGo. It may have arrived. Wait a few minutes before sending again.") && unk.back && !unk.again, unk.t.slice(0, 200));
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }] });
+  onPaused = p => send("Fetch.continueRequest", { requestId: p.requestId });
 
   // Type chips
   const counts = await run(`(async () => { const n0 = __list().length; __btn("Gardens").click(); await __sleep(500); const n1 = __list().length;
@@ -136,7 +235,7 @@ try {
   // M13: ZIP, radius, privacy (D2-D4, D10)
   requests.length = 0;
   // The D10 link follows the map's centre on Leaflet's moveend, after the zoom-to-circle animation: wait for it to change.
-  const z10 = await run(`(async () => { const add = () => [...document.querySelectorAll("a")].find(a => a.innerText.includes("Add it on OpenStreetMap"))?.href ?? "";
+  const z10 = await run(`(async () => { const add = () => [...document.querySelectorAll("a")].find(a => a.innerText.includes("add it on OpenStreetMap yourself"))?.href ?? "";
     const before = add(); await __zip("90017"); await __until(() => add() !== before, 3000);
     return { header: __header(), rows: __list(), add: add() }; })()`);
   const n10 = Number(z10.header.match(/^(\d+) places? within 10 mi of 90017$/)?.[1]);
@@ -144,7 +243,7 @@ try {
   const d10 = z10.rows.map(miles);
   check("…nearest first, each with its distance, all within 10 mi", d10.every((d, i) => d <= 10 && (i === 0 || d >= d10[i - 1])), JSON.stringify(d10.slice(0, 5)));
   const m = z10.add.match(/^https:\/\/www\.openstreetmap\.org\/edit#map=18\/(-?\d+\.\d+)\/(-?\d+\.\d+)$/);
-  check("'Missing a place? Add it on OpenStreetMap' opens the OSM editor at the map's centre (D10)",
+  check("'or add it on OpenStreetMap yourself' opens the OSM editor at the map's centre (D10)",
     !!m && Math.abs(Number(m[1]) - 34.0531) < 0.01 && Math.abs(Number(m[2]) + 118.2645) < 0.01, z10.add);
   const z5 = await run(`(async () => { await __radius(5); return __header(); })()`);
   const n5 = Number(z5.match(/^(\d+) places? within 5 mi of 90017$/)?.[1]);

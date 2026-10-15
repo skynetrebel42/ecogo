@@ -54,17 +54,6 @@ export function countyPlaces(osm: { type: PlaceType; latitude: number; longitude
     }));
 }
 
-/** D12: where County reports go, the address the owner supplied (2026-10-07). Empty = no County "Report a problem"
- *  button (never a made-up address). */
-export const REPORT_EMAIL = "ecogo-admin@proton.me";
-
-/** D12: a filled-in email about a County site; EcoGo itself stores and sends nothing. */
-export function countyReportMailto(p: CountyPlace, email: string): string {
-  const subject = `EcoGo report: ${p.name} (County ${-p.id})`;
-  const body = `${p.name}\n${p.address}\nWhat's wrong: closed / moved / hours / other\nLink (optional): `;
-  return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
-
 /** Places within `mi` miles of `center`, nearest first, each with its distance in miles. */
 export function withinMiles<P extends { latitude: number; longitude: number }>(places: P[], center: [number, number], mi: number): (P & { miles: number })[] {
   return places

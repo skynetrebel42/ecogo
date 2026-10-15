@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { zipPoint, withinMiles, RADII, titleCase, countyPlaces, countyReportMailto, REPORT_EMAIL } from "./nearMe.ts";
+import { zipPoint, withinMiles, RADII, titleCase, countyPlaces } from "./nearMe.ts";
 import { distanceKm, milesFromLaBox, LA_CENTER, MI_PER_KM } from "./osmPlaces.ts";
 
 const table: [string, number, number][] = JSON.parse(readFileSync(new URL("./data/zcta-la.json", import.meta.url), "utf8"));
@@ -89,17 +89,6 @@ test("countyPlaces: sites on the hidden list (county-hidden.json) are left out (
   assert.equal(out.length, county.sites.length - 1);
   assert.ok(!out.some(p => p.id === -1));
   assert.deepEqual(JSON.parse(readFileSync(new URL("./data/county-hidden.json", import.meta.url), "utf8")), [], "starts empty");
-});
-
-// D12: "Report a problem". County places go by email to the owner's address; with none yet, no button at all.
-test("countyReportMailto: subject with the County id, a body to fill in; REPORT_EMAIL starts empty, so the button is hidden", () => {
-  const p = countyPlaces([]).find(x => x.id === -1)!;
-  const href = countyReportMailto(p, "reports@example.org");
-  assert.ok(href.startsWith("mailto:reports@example.org?subject="), href);
-  const q = new URLSearchParams(href.slice(href.indexOf("?") + 1));
-  assert.equal(q.get("subject"), `EcoGo report: ${p.name} (County 1)`);
-  assert.equal(q.get("body"), `${p.name}\n501 S BIXEL ST, LOS ANGELES 90017\nWhat's wrong: closed / moved / hours / other\nLink (optional): `);
-  assert.equal(REPORT_EMAIL, "ecogo-admin@proton.me", "the owner's address (spec D12, 2026-10-07); never a made-up one");
 });
 
 test("every County site's ZIP is in the ZIP table, except 93350 and 93140 (they still show by their own coordinates)", () => {

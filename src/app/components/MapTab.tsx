@@ -17,11 +17,12 @@ import L from "leaflet";
 import "leaflet.markercluster";
 import { ArrowLeft, Navigation, Phone, Globe, MapPin, Utensils, ShoppingBag, Leaf } from "lucide-react";
 import type { ResourceRow } from "../../lib/catalog";
-import { zipPoint, withinMiles, RADII, countyPlaces, countyReportMailto, REPORT_EMAIL } from "../../lib/nearMe";
+import { zipPoint, withinMiles, RADII, countyPlaces } from "../../lib/nearMe";
 import {
-  LA_BOX, LA_CENTER, inLaCounty, sortPlaces, osmUrl, osmEditUrl, osmNoteUrl, directionsUrl, formatAsOf, formatPhone,
+  LA_BOX, LA_CENTER, inLaCounty, sortPlaces, osmUrl, osmEditUrl, directionsUrl, formatAsOf, formatPhone,
   type PlaceType,
 } from "../../lib/osmPlaces";
+import PlaceForm from "./PlaceForm";
 
 // "Free food" = food banks, pantries, meal sites and (M13 part 4) community fridges (D5).
 const CAT: Record<PlaceType, { label: string; one: string; color: string; letter: string; Icon: React.ElementType }> = {
@@ -77,12 +78,11 @@ const ZIP_ICON = L.divIcon({
   className: "", iconSize: [26, 34], iconAnchor: [13, 33],
 });
 
-function PlaceCard({ place, miles, headingRef }: { place: ResourceRow; miles: number | undefined; headingRef: React.Ref<HTMLHeadingElement> }) {
+function PlaceCard({ place, miles, headingRef, onReport }:
+  { place: ResourceRow; miles: number | undefined; headingRef: React.Ref<HTMLHeadingElement>; onReport: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
   const cat = CAT[place.type];
   const county = place.source === "lacounty";
   const btn = "flex items-center justify-center gap-1.5 rounded-2xl text-xs font-bold px-2";
-  // D12: OSM places get an anonymous OSM note; County places an email, only once the owner has an address.
-  const report = !county ? osmNoteUrl(place) : REPORT_EMAIL ? countyReportMailto(place, REPORT_EMAIL) : null;
   return (
     <div className="space-y-2.5">
       <div>
@@ -110,12 +110,8 @@ function PlaceCard({ place, miles, headingRef }: { place: ResourceRow; miles: nu
           <Navigation size={13} /> Directions
         </a>
       </div>
-      {report && (
-        <div>
-          <a href={report} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-xs font-bold text-primary" style={{ minHeight: 44 }}>Report a problem</a>
-          {!county && <p className="text-micro text-muted-foreground">Say what changed: closed, moved, or new hours.</p>}
-        </div>
-      )}
+      {/* M8.1 P2: EcoGo's own form, for OSM and County places alike. */}
+      <button onClick={onReport} className="inline-flex items-center text-xs font-bold text-primary" style={{ minHeight: 44 }}>Report a problem</button>
       {county ? (
         <p className="text-micro text-muted-foreground leading-snug border-t border-border pt-2">
           From {COUNTY_CREDIT} · <a href={COUNTY_TERMS} target="_blank" rel="noopener noreferrer" className="underline">Terms</a>
@@ -151,6 +147,10 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [activeTypes, setActiveTypes] = useState<Set<PlaceType>>(new Set(TYPES));
   const [mapCenter, setMapCenter] = useState<[number, number]>(LA_CENTER);
+  // M8.1: the Suggest / Report form over the tab (the map stays mounted under it); focus goes back to its opener.
+  const [form, setForm] = useState<{ place?: ResourceRow; opener: HTMLElement } | null>(null);
+  const openForm = (e: React.MouseEvent<HTMLButtonElement>, place?: ResourceRow) => setForm({ place, opener: e.currentTarget });
+  const closeForm = () => { const opener = form?.opener; setForm(null); setTimeout(() => opener?.focus()); };
 
   const outside = userLoc !== null && !inLaCounty(userLoc[0], userLoc[1]);
   // OSM places from the database plus the County's sites (static data, deduplicated against OSM: D6), once OSM loaded.
@@ -284,8 +284,8 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
     : shown.length === 0 && typed.length > 0 ? `Nothing within ${radius} mi`
     : `${shown.length} place${shown.length === 1 ? "" : "s"} within ${radius} mi of ${center.label}`;
 
-  return (
-    <div className="h-full flex flex-col bg-white">
+  return (<>
+    <div className="h-full flex flex-col bg-white" {...(form ? { inert: "" } : {})}>
       {/* Search: ZIP or My location, then the radius (D1) */}
       <div className="flex-shrink-0 px-4 pt-3 pb-2.5 space-y-2 border-b border-border">
         <div className="flex gap-2">
@@ -337,7 +337,7 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
           <button onClick={closeCard} aria-label="Back to the list" className="flex items-center gap-1.5 text-sm font-bold text-primary -ml-1 mb-2 px-1" style={{ minHeight: 44 }}>
             <ArrowLeft size={16} /> Back
           </button>
-          <PlaceCard place={selected} miles={selected.miles} headingRef={cardRef} />
+          <PlaceCard place={selected} miles={selected.miles} headingRef={cardRef} onReport={e => openForm(e, selected)} />
         </>) : (<>
           {outside && (
             <div className="rounded-2xl border border-border p-3.5 mb-3 space-y-2">
@@ -385,11 +385,11 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
               );
             })}
           </ul>
-          {/* D10: a missing place goes into OSM, at the map's centre; EcoGo stores and sends nothing. */}
+          {/* M8.1 P1: suggest it to EcoGo's owner, or (D10) add it on OSM yourself, at the map's centre. */}
           <p className="text-xs mt-3">
-            Missing a place?{" "}
-            <a href={`https://www.openstreetmap.org/edit#map=18/${mapCenter[0].toFixed(5)}/${mapCenter[1].toFixed(5)}`}
-              target="_blank" rel="noopener noreferrer" className="text-primary font-bold">Add it on OpenStreetMap</a>
+            <button onClick={e => openForm(e)} className="text-primary font-bold" style={{ minHeight: 44 }}>Suggest a place</button>{" "}
+            or <a href={`https://www.openstreetmap.org/edit#map=18/${mapCenter[0].toFixed(5)}/${mapCenter[1].toFixed(5)}`}
+              target="_blank" rel="noopener noreferrer" className="text-primary font-bold">add it on OpenStreetMap yourself</a>
           </p>
           <p className="text-micro text-muted-foreground">Add it as Social facility → Food bank. EcoGo shows it after the next update.</p>
           {countyShown && <p className="text-micro text-muted-foreground leading-snug mt-2">{COUNTY_NOTE}</p>}
@@ -400,5 +400,6 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
         </>)}
       </section>
     </div>
-  );
+    {form && <PlaceForm place={form.place} onClose={closeForm} />}
+  </>);
 }
