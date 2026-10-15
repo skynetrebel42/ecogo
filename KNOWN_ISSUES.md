@@ -257,7 +257,7 @@ Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` index
 - **Fixed 2026-10-14 (7af98f4):** **RW1-01** stale reading: `AddProductFlow.acceptPhoto` and
   `IngredientCheck.read` set the text after `await readPhoto` without checking the photo is still the current one, so a
   slow read could overwrite typed text or pair an old photo's text with a newer photo; now `src/lib/latest.ts` drops stale results.
-- **Decided (055, being built):** RW1-02/05 (Close during Send loses the draft; the name field stays editable
+- **Fixed (055, live ba60f47):** RW1-02/05 (Close during Send loses the draft; the name field stays editable
   after the snapshot is sent); RW1-03/04 (a lost reply shows "Not sent" though OFF may have it; a rejected photo is
   described as already present).
 - **Copy / trust:** fixed 2026-10-14 by 053 (7af98f4): TRUST-01 (badge article calls every level cancer evidence; Yellow 5 isn't),
