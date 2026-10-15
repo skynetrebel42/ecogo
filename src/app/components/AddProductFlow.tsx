@@ -75,10 +75,12 @@ function SendProgress({ stage }: { stage: SendStage }) {
 export type AddMode = "new" | "ingredients" | "photos";
 const TITLE: Record<AddMode, string> = { new: "Add this product", ingredients: "Add the ingredients", photos: "Send new photos" };
 
-export default function AddProductFlow({ code, mode = "new", onDone, onClose }: { code: string; mode?: AddMode; onDone: () => void; onClose: () => void }) {
+/** ingredientsPhoto (decision 058 L2): the label photo from "Check the label yourself", already in place. */
+export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, onDone, onClose }:
+  { code: string; mode?: AddMode; ingredientsPhoto?: Blob; onDone: () => void; onClose: () => void }) {
   const photosOnly = mode === "photos";
   const [step, setStep] = useState<Step>("front");
-  const [photos, setPhotos] = useState<Partial<Record<Kind, Blob>>>({});
+  const [photos, setPhotos] = useState<Partial<Record<Kind, Blob>>>(ingredientsPhoto ? { ingredients: ingredientsPhoto } : {});
   const [photoError, setPhotoError] = useState<string>();
   const [text, setText] = useState("");
   const [unsure, setUnsure] = useState<string[]>([]);

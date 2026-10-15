@@ -1,8 +1,9 @@
 // IngredientCheck.tsx — check an ingredient list without a barcode (M8 spec D2, §3): photograph or type it, see the
-// same safety check as a product page. Nothing is saved or sent. IngredientEditor (the check box + live badge) is
+// same safety check as a product page. Nothing is saved or sent. Decision 058: the same check opens from a
+// crowd-sourced OFF product as "Check the label yourself". IngredientEditor (the check box + live badge) is
 // shared with AddProductFlow's "Check the ingredients" step.
 
-import { useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
 import { readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
@@ -65,9 +66,11 @@ function linesNote(a?: string, b?: string): string {
  *  With `lines` (read from a photo), each line can be ticked or unticked and the box follows; the first keystroke in the
  *  box hides the lines for good (onLines(null)), so the box is the final say (follow-up F2, F3).
  *  With `read` (a hard-to-read photo, follow-up 6 K2), the box starts empty and "Show what we read" puts it there. */
-export function IngredientEditor({ value, onChange, unsure, note, lines, onLines, read, onShowRead }: {
+export function IngredientEditor({ value, onChange, unsure, note, lines, onLines, read, onShowRead, from }: {
   value: string; onChange: (text: string) => void; unsure: string[]; note?: string;
   lines?: LabelLine[] | null; onLines?: (lines: LabelLine[] | null) => void; read?: string; onShowRead?: () => void;
+  /** 058 L1: where the result comes from, said inside it ("From your photo, not from Open Food Facts."). */
+  from?: string;
 }) {
   const assessment = useMemo(() => check(value), [value]);
   const [explainer, setExplainer] = useState(false);
@@ -129,6 +132,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
           <p className="flex items-center gap-1.5 text-[15px] font-extrabold" style={{ color: look.color }}>
             <look.Icon size={16} />{verdictHeadline(assessment)}
           </p>
+          {from && <p className="text-xs font-bold text-gray-700">{from}</p>}
           {assessment.flags.map(f => (
             <p key={f.entry.id} className="text-xs leading-snug" style={{ color: look.solid }}><b>{f.entry.name}:</b> {f.entry.concern}</p>
           ))}
@@ -175,8 +179,13 @@ export function Reading() {
   );
 }
 
-export default function IngredientCheck({ onClose }: { onClose: () => void }) {
+/** Without `product`: the Scan drawer's no-barcode check. With it (decision 058 L1): "Check the label yourself" for a
+ *  crowd-sourced OFF product, named in the header; `onSendPhotos` (L2) hands the label photo to Send new photos. */
+export default function IngredientCheck({ onClose, product, onSendPhotos }: { onClose: () => void; product?: string; onSendPhotos?: (photo: Blob) => void }) {
   const [mode, setMode] = useState<"photo" | "type">("photo");
+  const [sendable, setSendable] = useState<Blob>(); // L2: the prepared (sendable) photo; not a raw one preparePhoto refused
+  const title = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { if (product) title.current?.focus(); }, []);
   const [text, setText] = useState("");
   const [unsure, setUnsure] = useState<string[]>([]);
   const [lines, setLines] = useState<LabelLine[] | null>();
@@ -198,19 +207,24 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
   };
   const onPhoto = async (file: File) => {
     const live = begin();
-    const photo = await preparePhoto(file).catch(() => file); // a small photo can still be read
+    const prepared = await preparePhoto(file).catch(() => undefined);
+    const photo = prepared ?? file; // a small photo can still be read
     const blurred = live() && await isBlurry(photo);
     if (!live()) return;
+    setSendable(prepared);
     if (blurred) setBlurry(photo); else await read(photo, false, live);
   };
-  const reset = () => { begin(); setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setStatus("idle"); };
+  const reset = () => { begin(); setSendable(undefined); setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setStatus("idle"); };
   const showHard = mode === "photo" && status === "read" && hard;
   const showEditor = (mode === "type" || status === "read") && !showHard;
 
   return (
     <div className="absolute inset-0 z-40 flex flex-col bg-[#F8F7F2] text-gray-900">
-      <div className="px-4 pt-4 flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-[#1A5C39]">Check ingredients</h1>
+      <div className="px-4 pt-4 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          {product && <p className="text-xs font-bold text-gray-600 truncate">{product}</p>}
+          <h1 ref={title} tabIndex={-1} className="text-xl font-extrabold text-[#1A5C39] focus:outline-none">{product ? "Check the label yourself" : "Check ingredients"}</h1>
+        </div>
         <button onClick={() => { begin(); onClose(); }} aria-label="Close" className="w-11 h-11 rounded-full border border-border bg-white flex items-center justify-center">
           <X size={16} />
         </button>
@@ -237,15 +251,22 @@ export default function IngredientCheck({ onClose }: { onClose: () => void }) {
         {showHard && <PhotoNotice title="This photo is hard to read." onRetake={reset} onUseAnyway={() => setHard(false)} />}
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
           note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines}
-          read={mode === "photo" ? readText : undefined} onShowRead={() => { setText(readText!); setReadText(undefined); }} />}
+          read={mode === "photo" ? readText : undefined} onShowRead={() => { setText(readText!); setReadText(undefined); }}
+          from={product && (mode === "photo" ? "From your photo, not from Open Food Facts." : "From what you typed, not from Open Food Facts.")} />}
 
         <p className="text-xs text-gray-600 leading-relaxed">
-          Without a barcode there's no nutrition label to look up, so this checks ingredients only. Nothing is saved or sent.
+          {product ? "This checks the ingredients only. Nothing is saved or sent."
+            : "Without a barcode there's no nutrition label to look up, so this checks ingredients only. Nothing is saved or sent."}
         </p>
       </div>
 
       {showEditor && (
-        <div className="px-4 pt-3 pb-6">
+        <div className="px-4 pt-3 pb-6 space-y-2">
+          {/* L2: only after a photo check (typed text is never sent to OFF) */}
+          {onSendPhotos && mode === "photo" && sendable && (
+            <button onClick={() => { begin(); onSendPhotos(sendable); }}
+              className="w-full min-h-[52px] rounded-2xl border-2 border-[#1A5C39] bg-white text-[#1A5C39] font-extrabold text-[15px]">Also send these photos to Open Food Facts</button>
+          )}
           <button onClick={reset} className="w-full min-h-[52px] rounded-2xl border border-border bg-white font-extrabold text-[15px]">Check another</button>
         </div>
       )}
