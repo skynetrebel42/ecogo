@@ -14,6 +14,7 @@
 |---|---|
 | L1 | **Entry:** on every crowd-sourced OFF product (where "Send new photos" shows), a line under the ingredient list (or under "No ingredient list available."): "Doesn't match your package?" with a secondary button **"Check the label yourself"**. It opens `IngredientCheck` for that product: its header names the product, the result says it is from the photo, not from Open Food Facts. Nothing is sent, no sign-in. Not on USDA or catalog products |
 | L2 | **Optional send:** after the result, a secondary button **"Also send these photos to Open Food Facts"** opens follow-up 5's photos mode for that barcode with the ingredients photo already in place (front and nutrition optional, as J2); everything else as J2 (notice, consent, limits, 055 rules). Shown only when the check used a photo (not for typed text) |
+| L4 | (Minh, 2026-10-15) **Account-free first:** on crowd-sourced OFF products, "Send new photos" (and "Add the ingredients" where the list is empty) are the primary buttons; M11's two "Update info" buttons (Ingredients and Nutrition) become one small text link each: "Have an Open Food Facts account? Edit there." (same OFF edit URL, new tab). No auto sign-up on OFF: EcoGo never handles user credentials, and sends already go through EcoGo's own OFF account |
 | L3 | The product page's own verdict does not change from a self-check; closing the check returns to the product as it was |
 
 ## 2. Testing
