@@ -267,9 +267,10 @@ Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` index
 - **Evidence added to existing issues:** K-19 (search → product → Back loses the results, confirmed in the browser);
   K-23 is **reopened**: no visible OSM credit in the Map list and place-detail views (R2, MAP-01).
 - **New, small:** ACCESS-01 (opening a Learn article leaves focus on covered Home buttons; search Back has no name);
-  SOURCE-01 (`verify:sources` can pass with zero verified sources; Learn citations not checked); R2-03 (056, being built: near-identical
+  SOURCE-01 (`verify:sources` can pass with zero verified sources; Learn citations not checked); R2-03 (fixed in 056: near-identical
   search rows; show size/barcode where present); R2-04 ("Recently scanned" also lists viewed products; a skipped photo
-  step shows a checkmark).
+  step shows a checkmark; fixed in 056). Left: after "No ingredients list? Type it", the Photos list says "2 Ingredients
+  Skipped" (the photo was skipped; wording only, later).
 - **Already tracked or accepted:** B1/B2/same-barcode race (R1 above), re-add after Send (above), K-22, background
   photos (049), no cancel (050), limit overshoot.
 - **Research waiting on planner review:** R3 (map suggestions) for M8.1, R4 (recognition) for points and levels, R5
