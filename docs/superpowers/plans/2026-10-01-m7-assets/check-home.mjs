@@ -1,5 +1,5 @@
 // M7 (headless Edge): Home has no fake content; first visit shows "How EcoGo checks"; Scan card opens Scan;
-// Oreo (search) then Diet Coke (typed barcode) appear newest first; survives reload; Clear; explainers; Saved › Scanned.
+// Oreo (search) then Diet Coke (typed barcode) appear newest first; survives reload; Clear; explainers; Saved › Viewed.
 // M7.1: Home lists 5 explainer cards (M7's two first); seed oils, pesticides and ultra-processed open with sources;
 // the pesticides page's "What the badge levels mean" link opens it and Back returns.
 // M7.2/M7.3: the welcome screen is honest and shows once per device; Profile shows only true things.
@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const URL_ = process.argv[2];
 const PORT = 9600 + Math.floor(Math.random() * 90);
-// A fresh profile every run: a reused one can keep an old "Recently scanned" list (Edge is killed before it flushes
+// A fresh profile every run: a reused one can keep an old "Recently viewed" list (Edge is killed before it flushes
 // storage), so "first visit" wouldn't be a first visit.
 const PROFILE = `${process.env.TEMP}\\ecogo-home-${PORT}`;
 rmSync(PROFILE, { recursive: true, force: true });
@@ -66,7 +66,7 @@ try {
   };
   const back = () => run(`(async () => { document.querySelector("button svg.lucide-arrow-left")?.closest("button").click(); await __sleep(400); })()`);
   const home = () => run(`(async () => { __btn("Home").click(); await __sleep(400); })()`);
-  const recentNames = () => run(`(() => { const h = [...document.querySelectorAll("h2")].find(e => e.innerText === "Recently scanned");
+  const recentNames = () => run(`(() => { const h = [...document.querySelectorAll("h2")].find(e => e.innerText === "Recently viewed");
     return h ? [...h.parentElement.nextElementSibling.querySelectorAll("button")].map(b => b.innerText.split("\\n")[0]) : null; })()`);
   // M12: the Learn tiles' accessible names, in order (null when there's no Learn heading).
   const learnTiles = () => run(`(() => { const h = [...document.querySelectorAll("h2")].find(e => e.innerText === "Learn");
@@ -94,15 +94,15 @@ try {
   check("053 W4: no 'Live data' label", !t.includes("Live data"));
   const h = new Date().getHours(), g = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
   check("greeting matches the time", t.includes(g) && t.includes("What are you eating?"), g);
-  check("first visit shows Learn and no Recently scanned", JSON.stringify(await learnTiles()) === JSON.stringify(LEARN) && !t.includes("Recently scanned"));
+  check("first visit shows Learn and no Recently viewed", JSON.stringify(await learnTiles()) === JSON.stringify(LEARN) && !t.includes("Recently viewed"));
 
   // M7.4 (spec 2026-10-02-m74-trust-cleanup-design.md §4): nothing invented, nothing promised.
   const nav = await run(`[...document.querySelectorAll("button")].map(b => b.innerText.trim()).filter(s => ["Home", "Map", "Scan", "Saved", "Profile"].includes(s))`);
   check("bottom nav is Home, Map, Scan, Saved, Profile (M9)", JSON.stringify(nav) === '["Home","Map","Scan","Saved","Profile"]', JSON.stringify(nav));
   check("Home shows no prices", !t.includes("$"));
   await run(`(async () => { __btn("Saved").click(); await __sleep(500); })()`);
-  const sv = await run(`({ tabs: [...document.querySelectorAll("button")].map(b => b.innerText.trim()).filter(s => ["Favorites", "Scanned", "Lists"].includes(s)), text: document.body.innerText })`);
-  check("Saved: only Favorites and Scanned; Favorites empty on a fresh profile", JSON.stringify(sv.tabs) === '["Favorites","Scanned"]'
+  const sv = await run(`({ tabs: [...document.querySelectorAll("button")].map(b => b.innerText.trim()).filter(s => ["Favorites", "Viewed", "Lists"].includes(s)), text: document.body.innerText })`);
+  check("Saved: only Favorites and Viewed; Favorites empty on a fresh profile", JSON.stringify(sv.tabs) === '["Favorites","Viewed"]'
     && sv.text.includes("No saved items") && !/Weekly Groceries|Shopping Lists/.test(sv.text), JSON.stringify(sv.tabs));
   await home();
 
@@ -139,8 +139,8 @@ try {
   await run(`__until(() => !document.querySelector('input[aria-label="Barcode number"]') && document.body.innerText.includes("Coca-Cola Zero"), 15000)`); await sleep(500);
   await back(); await home();
   let names = await recentNames();
-  check("Recently scanned: Coke Zero then Oreo, newest first", names?.[0]?.includes("Coca-Cola Zero") && names?.[1]?.includes("Oreo"), JSON.stringify(names));
-  const badge = await run(`[...document.querySelectorAll("h2")].find(e => e.innerText === "Recently scanned").parentElement.nextElementSibling.innerText`);
+  check("Recently viewed: Coke Zero then Oreo, newest first", names?.[0]?.includes("Coca-Cola Zero") && names?.[1]?.includes("Oreo"), JSON.stringify(names));
+  const badge = await run(`[...document.querySelectorAll("h2")].find(e => e.innerText === "Recently viewed").parentElement.nextElementSibling.innerText`);
   check("…with badges", /Nothing flagged|concern|carcinogen/.test(badge), badge.replace(/\n/g, " / "));
 
   await send("Page.reload"); await sleep(4000); await helpers();
@@ -150,11 +150,11 @@ try {
 
   await run(`(async () => { __btn("See all").click(); await __sleep(500); })()`);
   const saved = await run(`document.body.innerText`);
-  check("See all → Saved › Scanned shows the same list", saved.includes("Coca-Cola Zero") && saved.includes("Oreo") && !saved.includes("No scanned products"));
+  check("See all → Saved › Viewed shows the same list", saved.includes("Coca-Cola Zero") && saved.includes("Oreo") && !saved.includes("No viewed products"));
   await run(`(async () => { __btn("Oreo Original").click(); await __sleep(600); return true; })()`);
   await back();
-  const scannedTab = await run(`[...document.querySelectorAll("button")].find(b => b.innerText === "Scanned")?.className.includes("bg-white")`);
-  check("054 K-19: Back from a product opened in Saved › Scanned stays on Scanned", scannedTab === true && (await run(`document.body.innerText`)).includes("Coca-Cola Zero"));
+  const scannedTab = await run(`[...document.querySelectorAll("button")].find(b => b.innerText === "Viewed")?.className.includes("bg-white")`);
+  check("054 K-19: Back from a product opened in Saved › Viewed stays on Viewed", scannedTab === true && (await run(`document.body.innerText`)).includes("Coca-Cola Zero"));
   await home();
 
   for (const [name, title] of [[LEARN[0], HEALTHY], [LEARN[1], LEARN[1]]]) {
@@ -223,11 +223,11 @@ try {
   check("Profile: source-code link opens GitHub in a new tab", gh === "https://github.com/skynetrebel42/ecogo _blank", gh);
   await home();
 
-  await run(`(async () => { __btn("Clear recently scanned").click(); await __sleep(400); })()`);
+  await run(`(async () => { __btn("Clear recently viewed").click(); await __sleep(400); })()`);
   const after = await run(`document.body.innerText`);
-  check("Clear empties the list", JSON.stringify(await learnTiles()) === JSON.stringify(LEARN) && !after.includes("Recently scanned"));
+  check("Clear empties the list", JSON.stringify(await learnTiles()) === JSON.stringify(LEARN) && !after.includes("Recently viewed"));
   await run(`(async () => { __btn("Profile").click(); await __sleep(500); })()`);
-  check("…and Profile says Nothing scanned yet", (await run(`document.body.innerText`)).includes("Nothing scanned yet"));
+  check("…and Profile says Nothing viewed yet", (await run(`document.body.innerText`)).includes("Nothing viewed yet"));
 
   // M7.4 D3: a looked-up product opened from search (not Scan), then bookmarked, is listed in Saved › Favorites.
   await home();
@@ -300,8 +300,11 @@ try {
     dt.items.add(new File([b], "label.png", { type: "image/png" })); const i = document.querySelector('input[data-photo="library"]');
     i.files = dt.files; i.dispatchEvent(new Event("change", { bubbles: true })); })();`;
   const tipsStep = await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
+    const front = document.querySelector('ol[aria-label="Photos"] li'); window.__skippedStep = [front.innerText.replace(/\\s+/g, " "), !!front.querySelector("svg")];
     const t = document.body.innerText; ${pickJs(fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url)))}
     __btn("No ingredients list? Type it").click(); await __sleep(300); return t; })()`);
+  const skippedStep = await run(`__skippedStep`);
+  check("056 R2-04: a skipped photo step says 'Skipped', with no checkmark", skippedStep[0] === "1 Front Skipped" && !skippedStep[1], JSON.stringify(skippedStep));
   check("M8 H3: the ingredients photo step shows the numbered tips", ["Lay it flat", "Close & sharp", "Only the ingredients", "No glare"]
     .every(t => tipsStep.includes(t)));
   const typeIt = await run(`({ box: document.querySelector("#ingredients")?.value, ph: document.querySelector("#ingredients")?.placeholder })`);
@@ -535,7 +538,8 @@ try {
   };
   await pickPhoto();
   const j2Step = await run(`(async () => { await __until(() => document.body.innerText.includes("Ingredients photo"), 15000);
-    return [__btn("No ingredients list? Type it") ? "type-it" : "ingredients photo", __btn("Back") ? "with Back" : "no Back"].join(", "); })()`);
+    return [__btn("No ingredients list? Type it") ? "type-it" : "ingredients photo", __btn("Back") ? "with Back" : "no Back",
+      document.querySelector('ol[aria-label="Photos"] li [aria-label="done"]') ? "front done" : "front not done"].join(", "); })()`);
   await pickPhoto(); // the ingredients photo: not read, straight to the nutrition photo
   const j2Flow = await run(`(async () => { const s = [];
     s.push(await __until(() => document.body.innerText.includes("Nutrition photo"), 15000) ? "nutrition photo" : "not nutrition");
@@ -547,7 +551,7 @@ try {
   check("J2: 'Send new photos' opens a photos-only flow with its intro line, for that barcode", j2.includes("Send new photos") && j2.includes(`Barcode ${FAKE_OFF}`)
     && j2.includes("Photos of the current label help Open Food Facts fix wrong or missing details. EcoGo never changes the text itself."));
   check("…no text step: front → ingredients photo (with Back) → nutrition photo → Send, no name field; Send needs the tick",
-    j2Step === "ingredients photo, with Back" && j2Flow.s === "nutrition photo" && !j2Flow.name && j2Flow.text.includes("Plus the barcode.")
+    j2Step === "ingredients photo, with Back, front done" && j2Flow.s === "nutrition photo" && !j2Flow.name && j2Flow.text.includes("Plus the barcode.")
     && j2Flow.off === true && j2Flow.on, `${j2Step} | ${JSON.stringify({ ...j2Flow, text: undefined })}`);
   check("…on Send both photos taken can be cropped, the ingredients one too", j2Flow.crops === "Crop the front photo, Crop the ingredients photo", j2Flow.crops);
   // J2b (decision 051 C): a failed photos-only send speaks of photos, and Try again goes back to the front photo instead

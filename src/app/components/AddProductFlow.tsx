@@ -189,7 +189,8 @@ export default function AddProductFlow({ code, mode = "new", onDone, onClose }: 
           return (
             <li key={k} aria-current={k === kind ? "step" : undefined}
               className={`flex-1 py-2 rounded-xl text-xs text-center flex items-center justify-center gap-1 ${k === kind ? "bg-[#F59E0B] text-[#1A1200] font-extrabold" : "bg-white/10 text-[#A7B8AE] font-bold"}`}>
-              {i + 1} {LABEL[k]}{done && <Check size={12} aria-label="done" />}
+              {/* 056 R2-04: a step passed without a photo says so, in the same text (and accessible name) as its label */}
+              {i + 1} {LABEL[k]}{done && (photos[k] ? <Check size={12} aria-label="done" /> : " Skipped")}
             </li>
           );
         })}

@@ -193,9 +193,9 @@ function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearR
       {recent.length > 0 && (
         <div>
           <div className="flex items-baseline justify-between mb-2">
-            <h2 className="font-bold text-base">Recently scanned</h2>
+            <h2 className="font-bold text-base">Recently viewed</h2>
             <span className="flex gap-3">
-              <button onClick={onClearRecent} aria-label="Clear recently scanned" className="text-xs font-semibold text-muted-foreground">Clear</button>
+              <button onClick={onClearRecent} aria-label="Clear recently viewed" className="text-xs font-semibold text-muted-foreground">Clear</button>
               <button onClick={onSeeAllRecent} className="text-xs font-bold text-primary">See all</button>
             </span>
           </div>
@@ -329,7 +329,7 @@ function SavedTab({ saved, scanned, tab, onTab, onSelectProduct, products, openL
           {(["favorites", "scanned"] as const).map(t => (
             <button key={t} onClick={() => onTab(t)}
               className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${tab === t ? "bg-white shadow text-foreground" : "text-muted-foreground"}`}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t === "favorites" ? "Favorites" : "Viewed" /* 056 R2-04: label only; the stored key stays "scanned" */}
             </button>
           ))}
         </div>
@@ -349,7 +349,7 @@ function SavedTab({ saved, scanned, tab, onTab, onSelectProduct, products, openL
           scanned.length === 0 ? (
             <div className="text-center py-16">
               <QrCode size={44} className="mx-auto text-muted-foreground/20 mb-4" />
-              <p className="font-semibold text-foreground">No scanned products yet</p>
+              <p className="font-semibold text-foreground">No viewed products yet</p>
             </div>
           ) : scanned.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} />)
         )}
@@ -436,16 +436,16 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
       <DisplayCard />
 
       <Accordion title="Your data"
-        summary={recentCount === 0 ? "Nothing scanned yet, on this device" : `${recentCount} recent product${recentCount === 1 ? "" : "s"}, on this device`}>
+        summary={recentCount === 0 ? "Nothing viewed yet, on this device" : `${recentCount} recent product${recentCount === 1 ? "" : "s"}, on this device`}>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-bold">Recently scanned</p>
+            <p className="text-sm font-bold">Recently viewed</p>
             <p className="text-xs text-muted-foreground">
-              {recentCount === 0 ? "Nothing scanned yet" : `${recentCount} product${recentCount === 1 ? "" : "s"}, saved in this browser only`}
+              {recentCount === 0 ? "Nothing viewed yet" : `${recentCount} product${recentCount === 1 ? "" : "s"}, saved in this browser only`}
             </p>
           </div>
           {recentCount > 0 && (
-            <button onClick={onClearRecent} aria-label="Clear recently scanned"
+            <button onClick={onClearRecent} aria-label="Clear recently viewed"
               className="px-3.5 rounded-xl border border-border text-xs font-bold flex-shrink-0" style={{ minHeight: 44 }}>Clear</button>
           )}
         </div>
@@ -465,7 +465,7 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
         <p className="text-xs text-foreground/80 leading-relaxed">The camera reads barcodes on your phone. Ingredient photos are read on your phone too; checking a list without a barcode sends nothing.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">If you add a product, what you send goes to Open Food Facts and is public there: the photos, the ingredients you checked, the barcode and the name. EcoGo keeps an anonymous ID and a log of your submissions (barcode, time, result). At your first Send, Cloudflare runs a human check.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, to Open Food Facts.</p>
-        <p className="text-xs text-foreground/80 leading-relaxed">The product catalog loads from EcoGo's database. Your recently scanned list stays in this browser.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">The product catalog loads from EcoGo's database. Your recently viewed list stays in this browser.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The map asks for your location only when you tap My location. Your location stays on your phone. Map images load from OpenStreetMap's servers, which see the map area you're viewing, as with any web map.</p>
       </Accordion>
 
