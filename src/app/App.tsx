@@ -111,7 +111,8 @@ function WelcomeScreen({ onScan, onLookAround }: { onScan: () => void; onLookAro
 }
 
 // ── Product Card (mini) ───────────────────────────────────────────────────────
-function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Product) => void }) {
+// 056 R2-03: search rows add a grey line to tell look-alikes apart. No record carries a package size, so it's the barcode.
+function ProductCard({ product, onSelect, barcodeLine = false }: { product: Product; onSelect: (p: Product) => void; barcodeLine?: boolean }) {
   const a = safeAnalyze(product);
   const look = VERDICT_STYLE[a.verdict];
   // Only nutrition already known this session: a list never triggers lookups (USDA rate limit).
@@ -125,6 +126,7 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: (p: Pr
       <div className="flex-1 min-w-0">
         <p className="text-micro text-muted-foreground font-medium">{product.brand}</p>
         <p className="text-sm font-semibold leading-tight line-clamp-2">{product.name}</p>
+        {barcodeLine && product.barcode && <p className="text-micro text-muted-foreground mt-0.5">Barcode {product.barcode}</p>}
       </div>
       <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
         <span className="flex items-center gap-1 text-micro font-bold" style={{ color: look.color }}>
@@ -278,7 +280,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
           </div>
         ) : (
           <div className="px-4 py-3 space-y-3">
-            {results.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} />)}
+            {results.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} barcodeLine />)}
             <div className="pt-2">
               <p className="text-xs font-bold text-foreground">More from USDA FoodData Central</p>
               <p className="text-micro text-muted-foreground mb-2">Label data supplied by manufacturers · not in our catalog</p>
@@ -286,7 +288,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
               {usda.status === "error" && <p className="text-xs text-muted-foreground">Couldn't search right now.</p>}
               {usda.status === "ok" && usda.products.length === 0 && <p className="text-xs text-muted-foreground">No USDA matches.</p>}
               <div className="space-y-3">
-                {usda.products.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} />)}
+                {usda.products.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} barcodeLine />)}
               </div>
             </div>
           </div>

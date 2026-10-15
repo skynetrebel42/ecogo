@@ -114,6 +114,13 @@ try {
   await type("oreo"); await sleep(800);
   const sr = await run(`(async () => { await __until(() => __btn("Oreo Original")); return document.body.innerText; })()`);
   check("search results: no prices, sorted by fewest concerns", !sr.includes("$") && sr.includes("Sorted by fewest concerns") && !sr.includes("Sort:"));
+  // 056 R2-03: each result row has a grey line telling look-alike rows apart. No record carries a package size, so it's
+  // the barcode (catalog and USDA rows alike).
+  const rows = await run(`(async () => { await __until(() => [...document.querySelectorAll("p")].find(e => e.innerText === "More from USDA FoodData Central")
+    ?.parentElement.querySelector("button"), 20000);
+    return [...document.querySelectorAll("button.bg-card")].map(b => b.innerText.split("\\n").find(l => l.startsWith("Barcode ")) ?? "none"); })()`);
+  check("056 R2-03: every search row, catalog and USDA, shows its barcode line", rows.length > 1 && rows.every(l => /^Barcode \d{8,14}$/.test(l)),
+    rows.slice(0, 4).join(" | "));
   await run(`(async () => { (await __until(() => __btn("Oreo Original"))).click(); await __sleep(600); })()`);
   const op = await run(`({ text: document.body.innerText, share: !!__btn("Share") })`);
   check("Oreo page: no prices, Price Comparison, Share or AI", !op.text.includes("$") && !op.text.includes("Price Comparison") && !op.share
