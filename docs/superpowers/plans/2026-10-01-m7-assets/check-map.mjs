@@ -113,7 +113,7 @@ try {
   const NOTICE = "EcoGo's owner reads this by hand. Don't include personal details. Approved places are added to OpenStreetMap, which is public.";
   const CONSENT = "My note has no personal details, mine or anyone else's.";
   const rep = await run(`(async () => { __btn("Report a problem").click(); await __sleep(500);
-    const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; const send = __btn("Send"); const focus = document.activeElement?.innerText;
+    const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; const send = __btn("Send"); const focus = document.activeElement?.id;
     const radios = [...document.querySelectorAll('input[name="wrong"]')].map(r => r.parentElement.innerText.trim());
     const before = send?.disabled; await __pick("wrong", "Not free"); const noConsent = send?.disabled;
     document.querySelector('input[type="checkbox"]').click(); await __sleep(100); const ready = send && !send.disabled;
@@ -124,7 +124,7 @@ try {
     && !card.text.includes("Say what changed"), rep.t.slice(0, 160));
   check("…What's wrong: the four choices; Send waits for a choice and the consent box",
     JSON.stringify(rep.radios) === '["Closed for good","Wrong address or hours","Not free","Other"]' && rep.before && rep.noConsent && rep.ready, JSON.stringify(rep.radios));
-  check("…the notice and the consent line (P3, P3a); the title takes focus", rep.t.includes(NOTICE) && rep.t.includes(CONSENT) && rep.focus === "Report a problem", rep.focus);
+  check("…the notice and the consent line (P3, P3a); the title takes focus", rep.t.includes(NOTICE) && rep.t.includes(CONSENT) && rep.focus === "place-form-title", rep.focus);
   check("…Close goes back to the card, focus on Report a problem", rep.back.includes(card.name) && rep.opener === "Report a problem", rep.opener);
   const backList = await run(`(async () => { __btn("Back to the list").click(); await __sleep(400); return __list()?.length ?? 0; })()`);
   check("card: Back returns to the list", backList > 50, `${backList} places`);
@@ -146,9 +146,10 @@ try {
     && !!ccLinks["Directions"] && !ccLinks["Fix it on OSM"] && !cc.text.includes("Hours can change"), JSON.stringify(cc.links));
   const crep = await run(`(async () => { const b = [...document.querySelectorAll('ul[aria-label="Places"] button')].find(b => /\\*$/.test(b.innerText.split("\\n")[0]));
     const name = b.innerText.split("\\n")[0].replace(/\\*$/, ""); b.click(); await __sleep(900); __btn("Report a problem").click(); await __sleep(400);
-    const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; __btn("Close").click(); await __sleep(300); __btn("Back to the list").click(); await __sleep(400); return { name, t }; })()`);
+    const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; document.querySelector('[role="dialog"]').dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await __sleep(300); const gone = !document.querySelector('[role="dialog"]'); __btn("Back to the list").click(); await __sleep(400); return { name, t, gone }; })()`);
   check("M8.1 P2: a County card's Report a problem opens the same form, with LA County and the site's id; no mailto",
     crep.t.includes(crep.name) && /From LA County · site \d+/.test(crep.t) && !cc.links.some(([, h]) => h?.startsWith("mailto:")), crep.t.slice(0, 160));
+  check("…Escape closes the form", crep.gone);
 
   // M8.1 P1: Suggest a place, under the list
   const HINT = "Its own site or its own Instagram/Facebook page. Not Yelp, Google Maps or news.";
@@ -156,20 +157,24 @@ try {
     const foot = document.querySelector('section[aria-labelledby="map-list-title"]').innerText; const button = !!__btn("Suggest a place");
     __btn("Suggest a place").click(); await __sleep(500);
     const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; const send = () => __btn("Send").disabled; const steps = [send()];
-    await __type("place-name", "Westside Pantry"); await __type("place-address", "Pico & Bundy"); await __pick("offers", "Food pantry"); await __pick("who", "Other");
+    await __type("place-name", "Westside Pantry"); await __type("place-address", "Pico & Bundy"); await __pick("offers", "Food pantry"); await __pick("who", "Anyone");
     document.querySelector('input[type="checkbox"]').click(); await __sleep(50); steps.push(send()); // no link yet
     await __type("place-link", "http://westsidepantry.org"); steps.push(send()); // not https://
-    await __type("place-link", "https://westsidepantry.org"); steps.push(send()); // Who: Other, with no note
+    await __type("place-link", "https://westsidepantry.org"); steps.push(send()); // all there: ready
+    await __pick("who", "Other"); steps.push(send()); // Who: Other, with no note
     const whoNote = !!document.getElementById("place-who-note");
     await __type("place-who-note", "Seniors 60+"); steps.push(send());
-    return { link: a?.href ?? "", foot, button, t, steps, whoNote }; })()`);
+    const tabs = [...document.querySelectorAll("button")].filter(b => ["Home", "Map", "Scan", "Saved", "Profile"].includes(b.innerText.trim()));
+    const nav = tabs.length === 5 && tabs.every(b => b.closest("[inert]"));
+    return { link: a?.href ?? "", foot, button, t, steps, whoNote, nav }; })()`);
   check("M8.1 P1: under the list, 'Suggest a place', then 'or add it on OpenStreetMap yourself' (the OSM editor)",
     sug.button && /^https:\/\/www\.openstreetmap\.org\/edit#map=18\//.test(sug.link) && !sug.foot.includes("Missing a place?"), sug.link);
   check("…its form asks name, address, what it offers, who can use it, the link with its hint, and a note; notice and consent",
     ["Name", "Address or cross streets", "What it offers", "Food pantry", "Free meals", "Community fridge", "Who can use it", "Anyone", "Students only",
       HINT, "Note (optional)", NOTICE, CONSENT].every(s => sug.t.includes(s)), sug.t.slice(0, 300));
   check("…Send waits for every required field: an https:// link, and a note when 'Who can use it' is Other",
-    JSON.stringify(sug.steps) === "[true,true,true,true,false]" && sug.whoNote, JSON.stringify(sug.steps));
+    JSON.stringify(sug.steps) === "[true,true,true,false,true,false]" && sug.whoNote, JSON.stringify(sug.steps));
+  check("…while the form is open the bottom tabs are inert (no leaving mid-send)", sug.nav);
 
   // M8.1 P3: the sends. Auth and place-submit are answered here (CDP Fetch); the human check hands over a stub token.
   const placeAsked = [], placeBodies = [];
@@ -198,8 +203,8 @@ try {
   check("…'Back to the map' closes the form, focus back on Suggest a place", mapBack);
 
   placeReply = { status: 429, body: { ok: false, reason: "limit-you" } }; placeBodies.length = 0;
-  const lim = await run(`(async () => { const b = [...document.querySelectorAll('ul[aria-label="Places"] button')].find(b => !/\\*$/.test(b.innerText.split("\\n")[0]));
-    const name = b.innerText.split("\\n")[0]; b.click(); await __sleep(900); __btn("Report a problem").click(); await __sleep(400);
+  const lim = await run(`(async () => { const b = await __until(() => [...document.querySelectorAll('ul[aria-label="Places"] button')].find(b => !/\\*$/.test(b.innerText.split("\\n")[0])));
+    const name = b.innerText.split("\\n")[0]; b.click(); (await __until(() => __btn("Report a problem"))).click(); await __until(() => document.querySelector('input[name="wrong"]'));
     await __pick("wrong", "Not free"); await __type("place-note", "Asks for $5 now");
     document.querySelector('input[type="checkbox"]').click(); await __sleep(50); __btn("Send").click();
     await __until(() => document.body.innerText.includes("Not sent"), 10000); const t = document.body.innerText;
@@ -324,6 +329,8 @@ try {
   await openMap();
   const offline = await run(`({ text: document.body.innerText, list: __list()?.length ?? 0 })`);
   check("database unreachable: 'Places need a connection', no places", offline.text.includes("Places need a connection") && offline.list === 0, `${offline.list} places`);
+} catch (err) {
+  check("the script ran to the end", false, String(err?.stack ?? err).slice(0, 300)); // a crash must not read as a pass
 } finally {
   console.log(`${ok}/${total} checks passed`);
   edge.kill();

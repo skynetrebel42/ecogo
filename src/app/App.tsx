@@ -478,7 +478,8 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
 }
 
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
-function BottomNav({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t: Tab) => void }) {
+/** locked: a form over the tab (M8.1's PlaceForm) is open, so the tabs can't be reached until it closes. */
+function BottomNav({ activeTab, onTabChange, locked }: { activeTab: Tab; onTabChange: (t: Tab) => void; locked: boolean }) {
   const TABS: { id: Tab; Icon: React.ElementType; label: string }[] = [
     { id: "home",    Icon: Home,   label: "Home"    },
     { id: "map",     Icon: MapIcon, label: "Map"    },
@@ -487,7 +488,7 @@ function BottomNav({ activeTab, onTabChange }: { activeTab: Tab; onTabChange: (t
     { id: "profile", Icon: User,   label: "Profile" },
   ];
   return (
-    <div className="flex-shrink-0 bg-card border-t border-border flex items-center justify-around px-3 pt-2 pb-4"
+    <div className="flex-shrink-0 bg-card border-t border-border flex items-center justify-around px-3 pt-2 pb-4" {...(locked ? { inert: "" } : {})}
       style={IS_PHONE ? { paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" } : undefined}>
       {TABS.map(({ id, Icon, label }) => {
         const active = activeTab === id;
@@ -536,6 +537,7 @@ export default function App() {
   const [savedTab, setSavedTab] = useState<"favorites" | "scanned">("favorites");
   const [openList, setOpenList] = useState<string | null>(null); // kept here so Back from a product returns to the list
   const [explainer, setExplainer] = useState<ExplainerId | null>(null);
+  const [mapForm, setMapForm] = useState(false); // M8.1: Suggest / Report open on the Map, so the tabs are locked
   // 054 ACCESS-01: Back from an article returns focus to the tile that opened it (the screen behind stays mounted, inert).
   // The tile comes from the click: Safari doesn't focus a tapped button.
   const explainerOpener = useRef<HTMLElement | null>(null);
@@ -621,7 +623,7 @@ export default function App() {
                       recent={recentProducts}
                     />
                   )}
-                  {activeTab === "map"     && <MapTab places={places} status={dbStatus} />}
+                  {activeTab === "map"     && <MapTab places={places} status={dbStatus} onFormOpen={setMapForm} />}
                   {activeTab === "scan"    && (
                     <ScanTab products={products} onScanResult={openProduct} onCheckIngredients={() => setSubScreen("check-ingredients")}
                       onAdd={(code) => { setAddCode(code); setAddMode("new"); setSubScreen("add-product"); }} />
@@ -673,7 +675,7 @@ export default function App() {
               </div>
             </div>
 
-            {!subScreen && !explainer && <BottomNav activeTab={activeTab} onTabChange={(t) => { setSavedTab("favorites"); setOpenList(null); setActiveTab(t); }} />}
+            {!subScreen && !explainer && <BottomNav activeTab={activeTab} locked={mapForm} onTabChange={(t) => { setSavedTab("favorites"); setOpenList(null); setActiveTab(t); }} />}
           </div>
         )}
       </div>

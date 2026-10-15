@@ -9,6 +9,8 @@ const KEEP_DAYS = 90;
 const NOTE_MAX = 500;
 const WHO_NOTE_MAX = 100;
 const TEXT_MAX = 200; // name, address
+const MAX_BODY = 8 * 1024; // the longest valid form is ~2 KB
+// ponytail: a body sent without Content-Length (chunked) is still read in full; Supabase caps request size anyway.
 
 const OFFERS = ["Food pantry", "Free meals", "Community fridge", "Other"];
 const WHO = ["Anyone", "Students only", "Other"];
@@ -24,7 +26,7 @@ const text = (v: unknown, max: number, optional = false): string | null => {
 };
 const httpsLink = (v: unknown): string | null => {
   const s = text(v, NOTE_MAX);
-  try { return s && new URL(s).protocol === "https:" && new URL(s).hostname ? s : null; } catch { return null; }
+  try { const u = new URL(s ?? ""); return u.protocol === "https:" && u.hostname ? s : null; } catch { return null; }
 };
 /** Drops empty optional fields. */
 const kept = (f: Record<string, string>) => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== ""));
@@ -83,8 +85,9 @@ export async function placeSubmit(req: Request, db: PlaceDb, now = new Date()): 
 
   // Who is asking: the session made at the first Send, after the human check (as off-submit).
   const jwt = req.headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
-  const user = await db.userId(jwt).catch(() => null);
+  const user = jwt ? await db.userId(jwt).catch(() => null) : null;
   if (!user) return answer(401, { ok: false, reason: "captcha" });
+  if (Number(req.headers.get("Content-Length") ?? 0) > MAX_BODY) return answer(413, { ok: false, reason: "invalid" });
 
   // P4: each call clears rows the owner reviewed more than 90 days ago; a failure here mustn't lose the send.
   await db.cleanup(new Date(now.getTime() - KEEP_DAYS * 86_400_000).toISOString()).catch(err => console.error("cleanup failed", err));

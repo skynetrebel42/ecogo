@@ -79,7 +79,7 @@ export default function PlaceForm({ place, onClose }: { place?: ResourceRow; onC
 
   const title = report ? "Report a problem" : "Suggest a place";
   const screen = (heading: string, children: ReactNode) => (
-    <div role="dialog" aria-modal="true" aria-labelledby="place-form-title" className="absolute inset-0 z-[1000] flex flex-col bg-[#F8F7F2] text-gray-900">
+    <div role="dialog" aria-modal="true" aria-labelledby="place-form-title" onKeyDown={e => { if (e.key === "Escape" && !sending) onClose(); }} className="absolute inset-0 z-[1000] flex flex-col bg-[#F8F7F2] text-gray-900">
       <div className="px-4 pt-4 flex items-center gap-3">
         <h1 id="place-form-title" ref={titleRef} tabIndex={-1} className="flex-1 text-xl font-extrabold text-[#1A5C39] focus:outline-none">{heading}</h1>
         {/* 055 E1: no Close while sending (the send would run on with no receipt). */}

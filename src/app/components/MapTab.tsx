@@ -129,7 +129,8 @@ function PlaceCard({ place, miles, headingRef, onReport }:
   );
 }
 
-export default function MapTab({ places, status }: { places: ResourceRow[]; status: "loading" | "live" | "offline" }) {
+export default function MapTab({ places, status, onFormOpen }:
+  { places: ResourceRow[]; status: "loading" | "live" | "offline"; onFormOpen: (open: boolean) => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
@@ -151,6 +152,8 @@ export default function MapTab({ places, status }: { places: ResourceRow[]; stat
   const [form, setForm] = useState<{ place?: ResourceRow; opener: HTMLElement } | null>(null);
   const openForm = (e: React.MouseEvent<HTMLButtonElement>, place?: ResourceRow) => setForm({ place, opener: e.currentTarget });
   const closeForm = () => { const opener = form?.opener; setForm(null); setTimeout(() => opener?.focus()); };
+  // The bottom tabs are locked while it's open (055 E1: leaving mid-send would lose the receipt).
+  useEffect(() => { onFormOpen(!!form); return () => onFormOpen(false); }, [!!form]);
 
   const outside = userLoc !== null && !inLaCounty(userLoc[0], userLoc[1]);
   // OSM places from the database plus the County's sites (static data, deduplicated against OSM: D6), once OSM loaded.

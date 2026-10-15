@@ -82,11 +82,15 @@ test("no session (the human check failed) is captcha, and nothing is read or wri
   const f = fakeDb();
   assert.deepEqual(await reply(await placeSubmit(post(SUGGEST, "bad-jwt"), f.db, NOW)), [401, { ok: false, reason: "captcha" }]);
   assert.deepEqual([f.inserted, f.since, f.cleaned], [[], [], []]);
+  const noAuth = new Request("https://x/", { method: "POST", body: JSON.stringify(SUGGEST) });
+  assert.deepEqual(await reply(await placeSubmit(noAuth, f.db, NOW)), [401, { ok: false, reason: "captcha" }]);
 });
 
 test("a bad body or bad fields is invalid; a limit is its reason; a database error is off-down", async () => {
   assert.deepEqual(await reply(await placeSubmit(post("{not json"), fakeDb().db, NOW)), [400, { ok: false, reason: "invalid" }]);
   assert.deepEqual(await reply(await placeSubmit(post({ ...SUGGEST, link: "" }), fakeDb().db, NOW)), [400, { ok: false, reason: "invalid" }]);
+  const big = post({ ...SUGGEST, note: "a".repeat(9000) }); big.headers.set("Content-Length", "9100");
+  assert.deepEqual(await reply(await placeSubmit(big, fakeDb().db, NOW)), [413, { ok: false, reason: "invalid" }]);
   const full = fakeDb({ mine: 5, products: 25 });
   assert.deepEqual(await reply(await placeSubmit(post(SUGGEST), full.db, NOW)), [429, { ok: false, reason: "limit-tries" }]);
   assert.deepEqual(full.inserted, []);
