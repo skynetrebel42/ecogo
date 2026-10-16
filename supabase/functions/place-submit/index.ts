@@ -25,8 +25,13 @@ const places: PlaceDb = {
     const { error } = await db.from("place_reports").insert({ user_id: user, ...row });
     if (error) throw error;
   },
-  async cleanup(before) {
-    const { error } = await db.from("place_reports").delete().lt("reviewed_at", before);
+  async deleteReviewed(status, before) {
+    const { error } = await db.from("place_reports").delete().eq("status", status).lt("reviewed_at", before);
+    if (error) throw error;
+  },
+  // ponytail: also rewrites rows already cleared, each call; add a fields filter if approved rows grow into thousands.
+  async clearReviewed(status, before) {
+    const { error } = await db.from("place_reports").update({ fields: {} }).eq("status", status).lt("reviewed_at", before);
     if (error) throw error;
   },
 };

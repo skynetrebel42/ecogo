@@ -67,8 +67,10 @@ export interface PlaceDb {
   /** Since `day`: this person's place rows, everyone's, and this person's `contributions` rows (all statuses). */
   counts(userId: string, day: string): Promise<{ mine: number; all: number; products: number }>;
   insert(userId: string, row: PlaceRow): Promise<void>;
-  /** Deletes rows reviewed before `before`. */
-  cleanup(before: string): Promise<void>;
+  /** Deletes the rows with `status` reviewed before `before`. */
+  deleteReviewed(status: "rejected", before: string): Promise<void>;
+  /** Clears the text (`fields` to {}) of the rows with `status` reviewed before `before`; the row stays. */
+  clearReviewed(status: "approved", before: string): Promise<void>;
 }
 
 const CORS = {
@@ -89,8 +91,11 @@ export async function placeSubmit(req: Request, db: PlaceDb, now = new Date()): 
   if (!user) return answer(401, { ok: false, reason: "captcha" });
   if (Number(req.headers.get("Content-Length") ?? 0) > MAX_BODY) return answer(413, { ok: false, reason: "invalid" });
 
-  // P4: each call clears rows the owner reviewed more than 90 days ago; a failure here mustn't lose the send.
-  await db.cleanup(new Date(now.getTime() - KEEP_DAYS * 86_400_000).toISOString()).catch(err => console.error("cleanup failed", err));
+  // P4, M15 C6: each call deletes rejected rows the owner reviewed more than 90 days ago; approved ones keep their row
+  // (kind, status, place_ref, dates: M15's count) and lose their text. A failure here mustn't lose the send.
+  const before = new Date(now.getTime() - KEEP_DAYS * 86_400_000).toISOString();
+  await db.deleteReviewed("rejected", before).catch(err => console.error("cleanup failed", err));
+  await db.clearReviewed("approved", before).catch(err => console.error("cleanup failed", err));
 
   let row: PlaceRow | null = null;
   try { const b = await req.json(); row = b && typeof b === "object" ? placeRow(b) : null; } catch { /* not JSON */ }

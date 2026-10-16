@@ -62,7 +62,8 @@ function fakeDb(o: { user?: string | null; mine?: number; all?: number; products
     async userId(jwt) { return jwt === "good-jwt" ? (o.user === undefined ? "user-1" : o.user) : null; },
     async counts(_user, day) { since.push(day); if (o.fail === "counts") throw new Error("db down"); return { mine: o.mine ?? 0, all: o.all ?? 0, products: o.products ?? 0 }; },
     async insert(user, row) { if (o.fail === "insert") throw new Error("db down"); inserted.push([user, row]); },
-    async cleanup(before) { cleaned.push(before); if (o.fail === "cleanup") throw new Error("db down"); },
+    async deleteReviewed(status, before) { cleaned.push(`delete ${status} ${before}`); if (o.fail === "cleanup") throw new Error("db down"); },
+    async clearReviewed(status, before) { cleaned.push(`clear ${status} ${before}`); if (o.fail === "cleanup") throw new Error("db down"); },
   };
   return { db, inserted, cleaned, since };
 }
@@ -100,10 +101,10 @@ test("a bad body or bad fields is invalid; a limit is its reason; a database err
   assert.equal((await placeSubmit(new Request("https://x/", { method: "OPTIONS" }), fakeDb().db, NOW)).status, 200);
 });
 
-test("each call deletes rows reviewed more than 90 days ago; a failed cleanup doesn't fail the send", async () => {
+test("each call, for rows reviewed more than 90 days ago: deletes rejected ones, clears approved ones' text (M15 C6); a failed cleanup doesn't fail the send", async () => {
   const f = fakeDb();
   await placeSubmit(post(SUGGEST), f.db, NOW);
-  assert.deepEqual(f.cleaned, ["2026-07-17T18:30:00.000Z"]);
+  assert.deepEqual(f.cleaned, ["delete rejected 2026-07-17T18:30:00.000Z", "clear approved 2026-07-17T18:30:00.000Z"]);
   const g = fakeDb({ fail: "cleanup" });
   assert.deepEqual(await reply(await placeSubmit(post(SUGGEST), g.db, NOW)), [200, { ok: true }]);
 });
