@@ -11,6 +11,7 @@ import { submitProduct, type PhotoKind, type SendStage, type SubmitReason } from
 import { offEditUrl, offProductUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { offSubmit, supabase } from "../../lib/supabase";
+import { justReached, readContributions } from "../../lib/contributions";
 import { IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoNotice, PhotoTips, Reading } from "./IngredientCheck";
 import CropPhoto from "./CropPhoto";
 
@@ -97,6 +98,7 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
   const [uploading, setUploading] = useState(false); // follow-up 3, H1: other photos still going up in the background
   const [stage, setStage] = useState<SendStage>(); // follow-up 4: where the send is, for the bar
   const [cropping, setCropping] = useState<Kind>(); // follow-up 6, K4: the photo on the crop screen
+  const [reached, setReached] = useState<string>(); // M15 C5: the milestone this send just reached
   const humanCheckSlot = useRef<HTMLDivElement>(null); // where Turnstile shows a challenge, if it needs one
 
   useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
@@ -141,7 +143,11 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
     setStep("sending"); setStage(undefined);
     const r = await submitProduct({ code, name, ingredients: text, photos, photosOnly }, () => turnstileToken(humanCheckSlot.current!),
       { auth: supabase.auth, ...offSubmit }, setStage);
-    if (r.ok) { setTextKept(!!r.textKept); setFailedPhotos(r.failedPhotos ?? []); setUploading(!!r.pendingPhotos); setStep("sent"); }
+    if (r.ok) {
+      setTextKept(!!r.textKept); setFailedPhotos(r.failedPhotos ?? []); setUploading(!!r.pendingPhotos); setStep("sent");
+      // C5: counted after the send; a failed read shows no line.
+      readContributions(supabase).then(c => { if (c && c !== "none") setReached(justReached(c.barcodes, code, c.places)); }).catch(() => {});
+    }
     else if (r.reason === "unknown") setStep("unknown");
     else { setFailed(r.reason); setStep("failed"); }
   };
@@ -258,6 +264,8 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
         </p>
       )}
       {uploading && <p className="text-xs text-[#A7B8AE] leading-relaxed">Your other photos are still uploading to Open Food Facts.</p>}
+      {/* Present (empty) from the start so the line is announced when the read after the send fills it. */}
+      <p role="status" className={reached ? "text-sm font-bold text-emerald-300" : "sr-only"}>{reached && `You reached ${reached}. See Profile.`}</p>
     </div>
     <div className="px-5 pb-7">
       <button onClick={onDone} className="w-full min-h-[52px] rounded-2xl bg-[#F59E0B] text-[#1A1200] font-extrabold text-[15px]">Scan another product</button>

@@ -93,14 +93,19 @@ try {
     if (offReply === "drop" && post && url.includes("/functions/v1/off-submit")) return send("Fetch.failRequest", { requestId: p.requestId, errorReason: "ConnectionReset" });
     if (offReply === "hold" && post && url.includes("/functions/v1/off-submit")) return void heldIds.push(p.requestId);
     const [status, body] = p.request.method === "OPTIONS" ? [200, ""]
-      : url.includes("/functions/v1/off-submit") ? [offReply.status, JSON.stringify({ ok: false, reason: offReply.reason })]
+      : url.includes("/functions/v1/off-submit") ? [offReply.status, JSON.stringify(offReply.status === 200 ? { ok: true } : { ok: false, reason: offReply.reason })]
+      // M15 C5: the reads after an ok send; this barcode's one sent row and no approved map fix (Content-Range below)
+      : url.includes("/rest/v1/contributions") ? [200, JSON.stringify([{ barcode: FAKE_OFF }])]
+      : url.includes("/rest/v1/place_reports") ? [200, ""]
       : url.includes("/auth/v1/") && post ? [200, JSON.stringify({ access_token: "fake", token_type: "bearer", expires_in: 3600,
         expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: "fake",
         user: { id: "00000000-0000-4000-8000-000000000048", aud: "authenticated", role: "authenticated", is_anonymous: true } })]
       : [200, JSON.stringify({ status: "success", code: FAKE_OFF, product: { code: FAKE_OFF, product_name: "Test granola bar", brands: "Test", lang: "en" } })];
-    send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: status, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
+    send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: status, body: Buffer.from(body).toString("base64"),
+      responseHeaders: [...CORS, { name: "Access-Control-Expose-Headers", value: "Content-Range" }, { name: "Content-Range", value: "*/0" }] });
   };
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*world.openfoodfacts.org/api/*" }, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }, { urlPattern: "*challenges.cloudflare.com/*" }] });
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*world.openfoodfacts.org/api/*" }, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" },
+    { urlPattern: "*/rest/v1/contributions*" }, { urlPattern: "*/rest/v1/place_reports*" }, { urlPattern: "*challenges.cloudflare.com/*" }] });
   const offPage = await scanTyped(FAKE_OFF, "Test granola bar");
   check("Follow-up 5: an OFF product with no ingredients shows 'Add the ingredients' and 'Send new photos'",
     offPage.includes("No ingredient list available.") && offPage.includes("Add the ingredients") && offPage.includes("Send new photos"));
@@ -234,10 +239,20 @@ try {
   for (const id of heldIds) await send("Fetch.failRequest", { requestId: id, errorReason: "Aborted" });
   check("055 E1b: a send held forever ends on 'Not sure it arrived' after its wait (Close unlocked)", held === true, String(held));
   await run(`(async () => { __btn("Close").click(); await __sleep(500); return true; })()`);
+  // M15 C5: an ok send that is this person's first counted help says so on the Sent screen.
+  offReply = { status: 200 };
+  await run(`(async () => { __btn("Send new photos").click(); await __sleep(400); return true; })()`);
+  await pickPhoto();
+  const first = await run(`(async () => { await __until(() => document.body.innerText.includes("Ingredients photo"), 15000);
+    __btn("Skip").click(); await __sleep(300); __btn("Skip").click(); await __sleep(400); document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
+    __btn("Send").click(); await __until(() => document.body.innerText.includes("You reached"), 10000); return document.body.innerText; })()`);
+  check("M15 C5: an ok send that reached a milestone says 'You reached First help. See Profile.' on the Sent screen",
+    first.includes("Sent to Open Food Facts") && first.includes("You reached First help. See Profile."), first.replace(/\n/g, " / ").slice(0, 200));
   await send("Fetch.disable");
-  check("…and nothing left the page: OFF's product read and the five sends were answered, dropped or held here",
-    offAsked.filter(u => u.startsWith("POST ") && u.endsWith("/functions/v1/off-submit")).length === 5
-    && offAsked.every(u => /world\.openfoodfacts\.org\/api\/v3\/product\/|\/auth\/v1\/|\/functions\/v1\/off-submit$/.test(u)), offAsked.join(", "));
+  check("…and nothing left the page: OFF's product read, the six sends and the counts after the ok one were answered, dropped or held here",
+    offAsked.filter(u => u.startsWith("POST ") && u.endsWith("/functions/v1/off-submit")).length === 6
+    && offAsked.filter(u => /\/rest\/v1\/(contributions|place_reports)$/.test(u) && !u.startsWith("OPTIONS")).length === 2
+    && offAsked.every(u => /world\.openfoodfacts\.org\/api\/v3\/product\/|\/auth\/v1\/|\/functions\/v1\/off-submit$|\/rest\/v1\/(contributions|place_reports)$/.test(u)), offAsked.join(", "));
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));
 } catch (err) {

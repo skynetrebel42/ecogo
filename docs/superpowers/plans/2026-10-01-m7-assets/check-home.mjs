@@ -439,7 +439,9 @@ try {
     }, 800));
   });
   await new Promise(r => stub.listen(0, "127.0.0.1", r));
+  let countReads = 0; // M15 C5: the reads after an ok send, failed here (no line), so nothing reaches Supabase
   onPaused = p => {
+    if (/\/rest\/v1\/(contributions|place_reports)/.test(p.request.url)) { countReads++; return send("Fetch.failRequest", { requestId: p.requestId, errorReason: "InternetDisconnected" }); }
     faked.push(`${p.request.method} ${p.request.url.split("/").slice(-2).join("/")}`);
     if (p.request.method === "POST" && p.request.url.includes("/functions/v1/off-submit")) {
       send("Fetch.continueRequest", { requestId: p.requestId, url: `http://127.0.0.1:${stub.address().port}/off-submit` });
@@ -450,7 +452,7 @@ try {
       user: { id: "00000000-0000-4000-8000-000000000048", aud: "authenticated", role: "authenticated", is_anonymous: true } });
     send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
   };
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }] });
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }, { urlPattern: "*/rest/v1/contributions*" }, { urlPattern: "*/rest/v1/place_reports*" }] });
   await scanTyped("3017620429996", "We couldn't find this barcode yet");
   await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
     __btn("No ingredients list? Type it").click(); await __sleep(300); return true; })()`);
@@ -482,6 +484,7 @@ try {
     __btn("Send").click(); await __until(() => document.body.innerText.includes("Sent to Open Food Facts"), 20000); seen.disconnect();
     const a = [...document.querySelectorAll("a")].find(a => a.innerText === "Open Food Facts website");
     return document.body.innerText + "|" + (a?.href ?? "no link"); })()`);
+  for (let t = 0; t < 30 && countReads < 2; t++) await sleep(100); // let the C5 reads arrive before interception stops
   await send("Fetch.disable");
   await throttle(-1);
   stub.close();

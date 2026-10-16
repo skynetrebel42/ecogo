@@ -53,3 +53,4 @@ links to a real quote from a trusted source. Nothing is made up.
 ## Log (one line per shipped thing, plain words)
 - 2026-10-15: Sending a new product handles edge cases: no double-sends, a "not sure it arrived" message, and rejected photos explained.
 - 2026-10-15: Search results show a barcode line so look-alike products can be told apart. "Recently viewed" was renamed.
+- 2026-10-16: Profile shows "Your contributions": how many products Open Food Facts took from you and how many map fixes EcoGo approved, with five small milestones. Private, on this device only.

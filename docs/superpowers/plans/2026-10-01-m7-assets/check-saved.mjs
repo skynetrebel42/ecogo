@@ -14,6 +14,8 @@ const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging
 setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 120000).unref?.();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
+const requests = []; // every URL the page asked for (Network events)
+let onPaused = () => {}; // Fetch interception (M15 Part 4)
 let ok = 0, total = 0;
 const check = (name, pass, detail = "") => { total++; if (pass) ok++; console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? "  — " + detail : ""}`); };
 try {
@@ -25,6 +27,8 @@ try {
   ws.addEventListener("message", e => {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
+    if (m.method === "Network.requestWillBeSent") requests.push(m.params.request.url);
+    if (m.method === "Fetch.requestPaused") onPaused(m.params);
     if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.exception?.description?.slice(0, 160));
     if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map(a => a.value ?? a.description).join(" ").slice(0, 160));
   });
@@ -56,6 +60,7 @@ try {
   const favorites = () => run(`(async () => { __btn("Saved").click(); await __sleep(500); return document.body.innerText; })()`);
 
   await send("Runtime.enable");
+  await send("Network.enable");
   await send("Page.enable");
   await send("Page.bringToFront");
   await send("Emulation.setFocusEmulationEnabled", { enabled: true });
@@ -151,6 +156,55 @@ try {
   check("Undo brings the list back", JSON.stringify(await rows()) === '["All saved, 2 products","Movie night, 0 products","Road trip, 0 products"]', JSON.stringify(await rows()));
   await click("All saved, 2 products");
   check("All saved has no menu and no ×", await run(`document.querySelector("h1")?.innerText === "All saved" && ![...document.querySelectorAll("button[aria-label]")].some(b => /^Remove |options$/.test(b.getAttribute("aria-label")))`));
+
+  // Part 4 (M15, spec docs/superpowers/specs/2026-10-16-m15-contributions-design.md C1–C4): "Your contributions" on
+  // Profile. No session: zeros and the start line, no Supabase request. A stored (fake) session: the two reads,
+  // answered here. A failed read: the error line. Nothing reaches Supabase's auth or these tables.
+  const profile = () => run(`(async () => { __btn("Home").click(); await __sleep(300); __btn("Profile").click();
+    const s = await __until(() => document.querySelector('section[aria-labelledby="contributions-title"][aria-busy="false"]'));
+    return s && { text: s.innerText, counts: [...s.querySelectorAll("dd")].map(d => d.innerText), next: s.querySelector("li.border-2")?.innerText ?? null,
+      filled: [...s.querySelectorAll("li.bg-primary")].map(l => l.firstChild.textContent), badges: s.querySelectorAll("li").length }; })()`);
+  const SB = /\/rest\/v1\/(contributions|place_reports)|\/auth\/v1\//;
+  // Answered here from the start, so even a broken no-session case can't sign anyone in for real.
+  const asked = []; let failReads = false;
+  const CORS = [{ name: "Access-Control-Allow-Origin", value: "*" }, { name: "Access-Control-Allow-Headers", value: "*" },
+    { name: "Access-Control-Expose-Headers", value: "Content-Range" }, { name: "Content-Type", value: "application/json" }];
+  onPaused = p => {
+    const { url, method } = p.request; asked.push(`${method} ${url.split(".supabase.co")[1]}`);
+    const places = url.includes("/rest/v1/place_reports"), bad = failReads || url.includes("/auth/v1/");
+    // 5 distinct barcodes ("2" twice) and 2 approved map fixes: total 7
+    const body = method === "OPTIONS" || places ? "" : bad ? '{"message":"down"}' : JSON.stringify(["1", "2", "2", "3", "4", "5"].map(barcode => ({ barcode })));
+    send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: method !== "OPTIONS" && bad ? 500 : 200, body: Buffer.from(body).toString("base64"),
+      responseHeaders: places ? [...CORS, { name: "Content-Range", value: "*/2" }] : CORS });
+  };
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/contributions*" }, { urlPattern: "*/rest/v1/place_reports*" }, { urlPattern: "*/auth/v1/*" }] });
+  const seen = requests.length;
+  const none = await profile();
+  check("M15 C1/C3: with no session, Profile shows 0 and 0, the start line, the scope line, and 'First help: 1 more to go'",
+    JSON.stringify(none?.counts) === '["0","0"]' && none.text.includes("Products sent to Open Food Facts") && none.text.includes("Map fixes EcoGo approved")
+    && none.text.includes("Send a product or a map fix to start counting.")
+    && none.text.includes("Counted from what Open Food Facts took and what EcoGo approved. Kept with this device's anonymous sign-in: clearing site data or a new phone starts from zero.")
+    && none.next === "First help: 1 more to go" && none.filled.length === 0 && none.badges === 5, JSON.stringify(none));
+  check("…and makes no Supabase request (no sign-in, no read)", !requests.slice(seen).some(u => SB.test(u)), requests.slice(seen).filter(u => SB.test(u)).join(", "));
+
+  const ref = requests.map(u => u.match(/^https:\/\/([a-z0-9]+)\.supabase\.co\//)?.[1]).find(Boolean); // from the Tostitos lookup
+  const user = { id: "00000000-0000-4000-8000-000000000060", aud: "authenticated", role: "authenticated", is_anonymous: true };
+  const session = { access_token: "fake", token_type: "bearer", expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: "fake", user };
+  await run(`localStorage.setItem(${JSON.stringify(`sb-${ref}-auth-token`)}, ${JSON.stringify(JSON.stringify(session))}); true`);
+  await send("Page.reload"); await sleep(4000); await helpers(); await run(`__guest()`); await sleep(500);
+  const mine = await profile();
+  check("M15 C1/C2: with a session, the counts (5 distinct barcodes, 2 approved), First help and 5 helps filled, '10 helps: 3 more to go'; no start line",
+    JSON.stringify(mine?.counts) === '["5","2"]' && JSON.stringify(mine.filled) === '["First help","5 helps"]' && mine.next === "10 helps: 3 more to go"
+    && mine.badges === 5 && !mine.text.includes("start counting"), JSON.stringify(mine));
+  const gets = asked.filter(a => !a.startsWith("OPTIONS"));
+  check("M15 C4: exactly two reads, sent barcodes and an approved head count; no sign-in",
+    gets.length === 2 && gets.includes("GET /rest/v1/contributions?select=barcode&status=eq.sent")
+    && gets.includes("HEAD /rest/v1/place_reports?select=id&status=eq.approved"), asked.join(", "));
+  failReads = true;
+  const failed = await profile();
+  check("M15 C4: a failed read says 'Couldn't load your contributions.' with no counts and no badges",
+    failed?.text.includes("Couldn't load your contributions.") && failed.counts.length === 0 && failed.badges === 0, JSON.stringify(failed));
+  await send("Fetch.disable");
 
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {

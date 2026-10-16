@@ -19,6 +19,8 @@ import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer"
 import IngredientCheck from "./components/IngredientCheck";
 import AddProductFlow, { type AddMode } from "./components/AddProductFlow";
 import ListScreen from "./components/ListScreen";
+import { BADGES, milestones, productCount, readContributions } from "../lib/contributions";
+import { supabase } from "../lib/supabase";
 import {
   Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronDown, ChevronRight,
   Bookmark, Wifi, QrCode
@@ -425,6 +427,46 @@ function DisplayCard() {
   );
 }
 
+/** M15 C1–C4: counts from the person's own server rows, read each time Profile opens; never signs anyone in. */
+function ContributionsCard() {
+  const [read, setRead] = useState<Awaited<ReturnType<typeof readContributions>> | "loading">("loading");
+  useEffect(() => {
+    let live = true;
+    readContributions(supabase).catch(() => null).then(r => { if (live) setRead(r); });
+    return () => { live = false; };
+  }, []);
+  const counts = read === "none" ? { products: 0, places: 0 }
+    : read && read !== "loading" ? { products: productCount(read.barcodes), places: read.places } : undefined;
+  const m = counts && milestones(counts.products + counts.places);
+  return (
+    <section aria-labelledby="contributions-title" aria-busy={read === "loading"} className="bg-card border border-border rounded-2xl p-3.5 space-y-3">
+      <h2 id="contributions-title" className="font-bold text-base">Your contributions</h2>
+      {read === null && <p role="alert" className="text-sm font-bold">Couldn't load your contributions.</p>}
+      {counts && (
+        <dl className="grid grid-cols-2 gap-2">
+          {([["Products sent to Open Food Facts", counts.products], ["Map fixes EcoGo approved", counts.places]] as const).map(([label, n]) => (
+            <div key={label} className="rounded-xl bg-muted p-2.5 flex flex-col-reverse justify-end">
+              <dt className="text-xs text-muted-foreground leading-snug">{label}</dt>
+              <dd className="text-2xl font-extrabold text-primary">{n}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {m && (
+        <ul aria-label="Milestones" className="flex flex-wrap gap-1.5">
+          {BADGES.map(b => m.reached.includes(b)
+            ? <li key={b} className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold">{b}<span className="sr-only">, reached</span></li>
+            : m.next?.badge === b
+              ? <li key={b} className="px-2.5 py-1 rounded-full border-2 border-primary text-primary text-xs font-bold">{b}<span className="font-semibold">: {m.next.toGo} more to go</span></li>
+              : <li key={b} className="px-2.5 py-1 rounded-full border border-dashed border-border text-muted-foreground text-xs font-bold">{b}</li>)}
+        </ul>
+      )}
+      {read === "none" && <p className="text-sm">Send a product or a map fix to start counting.</p>}
+      <p className="text-xs text-muted-foreground leading-relaxed">Counted from what Open Food Facts took and what EcoGo approved. Kept with this device's anonymous sign-in: clearing site data or a new phone starts from zero.</p>
+    </section>
+  );
+}
+
 function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onClearRecent: () => void }) {
   return (
     <div className="h-full overflow-y-auto bg-background px-5 pt-4 pb-8 space-y-3.5" style={{ scrollbarWidth: "none" }}>
@@ -432,6 +474,8 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
         <h1 className="text-xl font-extrabold leading-tight text-primary">Profile</h1>
         <p className="text-xs text-muted-foreground mt-0.5">No account. Your saved products, lists and history stay in this browser. Privacy, below, lists what's sent.</p>
       </div>
+
+      <ContributionsCard />
 
       <DisplayCard />
 

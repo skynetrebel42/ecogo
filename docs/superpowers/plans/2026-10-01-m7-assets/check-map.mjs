@@ -255,8 +255,11 @@ try {
     __btn("Back to the list")?.click(); await __sleep(400); return { t, back, again }; })()`);
   check("…no answer is 'Not sure it arrived' with EcoGo's line, and only 'Back to the map' (no Try again)",
     unk.t.includes("We didn't hear back from EcoGo. It may have arrived. Wait a few minutes before sending again.") && unk.back && !unk.again, unk.t.slice(0, 200));
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, PHOTON] });
-  onPaused = p => send("Fetch.continueRequest", { requestId: p.requestId });
+  // M15: with the session above, Profile reads the person's counts; failed here, so nothing reaches Supabase.
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, PHOTON,
+    { urlPattern: "*/rest/v1/contributions*" }, { urlPattern: "*/rest/v1/place_reports*" }] });
+  onPaused = p => /\/rest\/v1\/(contributions|place_reports)/.test(p.request.url)
+    ? send("Fetch.failRequest", { requestId: p.requestId, errorReason: "InternetDisconnected" }) : send("Fetch.continueRequest", { requestId: p.requestId });
 
   // 059 Q4: Photon address suggestions in the Suggest form (answered here; nothing reaches photon.komoot.io)
   const PHOTON_LINE = "Address suggestions come from Photon (OpenStreetMap data); it sees what you type here.";
