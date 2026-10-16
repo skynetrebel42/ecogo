@@ -78,6 +78,13 @@ const ZIP_ICON = L.divIcon({
   className: "", iconSize: [26, 34], iconAnchor: [13, 33],
 });
 
+/** 059 Q3 (as 058 L4): OSM's own editor, for people with an OSM account; EcoGo's forms are the main way. */
+const EditOnOsm = ({ href }: { href: string }) => (
+  <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-[44px] text-xs font-bold text-primary underline">
+    Have an OpenStreetMap account? Edit there.<span className="sr-only"> (opens OpenStreetMap in a new tab)</span>
+  </a>
+);
+
 function PlaceCard({ place, miles, headingRef, onReport }:
   { place: ResourceRow; miles: number | undefined; headingRef: React.Ref<HTMLHeadingElement>; onReport: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
   const cat = CAT[place.type];
@@ -122,19 +129,19 @@ function PlaceCard({ place, miles, headingRef, onReport }:
           </a>
         </div>
       )}
-      {/* M8.1 P2: EcoGo's own form, for OSM and County places alike. */}
-      <button onClick={onReport} className="inline-flex items-center text-xs font-bold text-primary" style={{ minHeight: 44 }}>Report a problem</button>
+      {/* M8.1 P2: EcoGo's own form, for OSM and County places alike; 059 Q3: the card's main fix. */}
+      <button onClick={onReport} className={`${btn} w-full bg-primary text-white`} style={{ minHeight: 44 }}>Report a problem</button>
       {county ? (
         <p className="text-micro text-muted-foreground leading-snug border-t border-border pt-2">
           From {COUNTY_CREDIT} · <a href={COUNTY_TERMS} target="_blank" rel="noopener noreferrer" className="underline">Terms</a>
         </p>
       ) : (
-        <div className="flex items-center justify-between gap-3 border-t border-border pt-2">
+        <div className="border-t border-border pt-2">
           <p className="text-micro text-muted-foreground leading-snug">
             From <a href={osmUrl(place)} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">OpenStreetMap</a> (community-edited),
             as of {formatAsOf(place.as_of)} · <a href={COPYRIGHT} target="_blank" rel="noopener noreferrer" className="underline">© OpenStreetMap contributors</a>
           </p>
-          <a href={osmEditUrl(place)} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary whitespace-nowrap">Fix it on OSM</a>
+          <EditOnOsm href={osmEditUrl(place)} />
         </div>
       )}
     </div>
@@ -404,12 +411,9 @@ export default function MapTab({ places, status, onFormOpen }:
               );
             })}
           </ul>
-          {/* D10: or add it on OSM yourself, at the map's centre (Suggest a place is by the heading, 059 Q1). */}
-          <p className="text-xs mt-3">
-            Or <a href={`https://www.openstreetmap.org/edit#map=18/${mapCenter[0].toFixed(5)}/${mapCenter[1].toFixed(5)}`}
-              target="_blank" rel="noopener noreferrer" className="text-primary font-bold">add it on OpenStreetMap yourself</a>
-          </p>
-          <p className="text-micro text-muted-foreground">Add it as Social facility → Food bank. EcoGo shows it after the next update.</p>
+          {/* D10, 059 Q3: OSM's editor at the map's centre, as a small link (Suggest a place is by the heading, Q1). */}
+          <div className="mt-3"><EditOnOsm href={`https://www.openstreetmap.org/edit#map=18/${mapCenter[0].toFixed(5)}/${mapCenter[1].toFixed(5)}`} /></div>
+          <p className="text-micro text-muted-foreground">To add a missing place there: Social facility → Food bank. EcoGo shows it after the next update.</p>
           {countyShown && <p className="text-micro text-muted-foreground leading-snug mt-2">{COUNTY_NOTE}</p>}
           <p className="text-micro text-muted-foreground leading-snug mt-2">
             Places from <a href={COPYRIGHT} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">© OpenStreetMap contributors</a> (community-edited){asOf && `, as of ${asOf}`}. {HOURS_NOTE}

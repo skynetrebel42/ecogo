@@ -10,6 +10,8 @@
 // to the OSM editor at the map's centre (D10); the chip reads "Free food".
 // M8.1 (spec 2026-10-15-m81-suggest-report-design.md): "Suggest a place" and every card's "Report a problem" open EcoGo's own
 // forms (the OSM note and County mailto are gone); required fields gate Send; sends are answered here (CDP Fetch).
+// 059 (spec 2026-10-16-map-feedback-design.md): Suggest by the heading; County "Search for it" + "Call 211"; OSM's editor as a
+// small "Edit there" link ("Fix it on OSM" is gone); Photon address suggestions (stubbed here).
 // Usage: node docs/superpowers/specs/2026-10-07-m13-assets/check-map.mjs <url> [rows.json]
 //   rows.json (dry run only, before a migration is live): served in place of the database's `resources` rows.
 import { spawn } from "node:child_process";
@@ -53,7 +55,8 @@ try {
     }
   });
   const run = async expression => (await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true })).result?.result?.value;
-  const helpers = () => run(`window.__sleep = ms => new Promise(r => setTimeout(r, ms));
+  const OSM_EDIT = "Have an OpenStreetMap account? Edit there.";
+  const helpers = () => run(`window.OSM_EDIT = "${OSM_EDIT}"; window.__sleep = ms => new Promise(r => setTimeout(r, ms));
     window.__until = async (fn, ms = 10000) => { for (let t = 0; t < ms; t += 100) { const v = fn(); if (v) return v; await __sleep(100); } return null; };
     window.__btn = s => [...document.querySelectorAll("button")].find(b => b.innerText.trim() === s || b.getAttribute("aria-label") === s);
     window.__list = () => { const ul = document.querySelector('ul[aria-label="Places"]'); return ul ? [...ul.querySelectorAll("button")].map(b => b.innerText.split("\\n")) : null; };
@@ -103,12 +106,17 @@ try {
   const card = await run(`(async () => { const b = [...document.querySelectorAll('ul[aria-label="Places"] button')].find(b => !/\\*$/.test(b.innerText.split("\\n")[0]));
     const name = b.innerText.split("\\n")[0]; b.click(); await __sleep(900);
     const links = Object.fromEntries([...document.querySelectorAll("a")].map(a => [a.innerText.trim(), a.href]));
-    return { name, h: [...document.querySelectorAll("h3")].map(e => e.innerText), text: document.body.innerText, links, list: !!__list() }; })()`);
+    const edit = [...document.querySelectorAll("a")].find(a => a.innerText.trim().startsWith(OSM_EDIT)); const rp = __btn("Report a problem");
+    return { name, h: [...document.querySelectorAll("h3")].map(e => e.innerText), text: document.body.innerText, links, list: !!__list(),
+      edit: edit ? [edit.innerText.trim(), edit.href, edit.target] : null, reportBg: rp ? getComputedStyle(rp).backgroundColor : "none" }; })()`);
   check("tapping a place opens its card in place of the list", card.h.includes(card.name) && !card.list, card.name);
   check("card: hours (or 'No hours listed') with the check-before-you-go note", card.text.includes("Hours can change — check before you go."));
   check("card: Directions opens Google Maps with only the place's position", /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=-?\d+\.\d+,-?\d+\.\d+$/.test(card.links["Directions"] ?? ""), card.links["Directions"]);
-  check("card: Fix it on OSM + the OSM object link + credit", /^https:\/\/www\.openstreetmap\.org\/edit\?(node|way|relation)=\d+$/.test(card.links["Fix it on OSM"] ?? "")
-    && /^https:\/\/www\.openstreetmap\.org\/(node|way|relation)\/\d+$/.test(card.links["OpenStreetMap"] ?? "") && !!card.links["© OpenStreetMap contributors"]);
+  check("059 Q3: OSM's editor is the small 'Have an OpenStreetMap account? Edit there.' link (new tab, said aloud); no OSM button; + the OSM object link + credit",
+    card.edit?.[0].replace(/\s+/g, " ") === `${OSM_EDIT} (opens OpenStreetMap in a new tab)` && /^https:\/\/www\.openstreetmap\.org\/edit\?(node|way|relation)=\d+$/.test(card.edit[1]) && card.edit[2] === "_blank"
+    && !card.text.includes("Fix it on OSM")
+    && /^https:\/\/www\.openstreetmap\.org\/(node|way|relation)\/\d+$/.test(card.links["OpenStreetMap"] ?? "") && !!card.links["© OpenStreetMap contributors"], JSON.stringify(card.edit));
+  check("059 Q3: 'Report a problem' is the card's main fix (a filled button, not a text link)", !/rgba\(0, 0, 0, 0\)|none/.test(card.reportBg), card.reportBg);
   // M8.1 P2, P3, P3a: "Report a problem" opens EcoGo's own form (the OSM note link is gone).
   const NOTICE = "EcoGo's owner reads this by hand. Don't include personal details. Approved places are added to OpenStreetMap, which is public.";
   const CONSENT = "My note has no personal details, mine or anyone else's.";
@@ -145,7 +153,7 @@ try {
   const ccLinks = Object.fromEntries(cc.links);
   check("County card: the footnote, the credit with the County's terms, Directions; no hours note, no 'Fix it on OSM'",
     cc.text.includes(COUNTY_NOTE) && cc.text.includes(COUNTY_CREDIT) && ccLinks["Terms"] === "https://egis-lacounty.hub.arcgis.com/pages/terms-of-use"
-    && !!ccLinks["Directions"] && !ccLinks["Fix it on OSM"] && !cc.text.includes("Hours can change"), JSON.stringify(cc.links));
+    && !!ccLinks["Directions"] && !cc.links.some(([t]) => t.startsWith(OSM_EDIT) || t === "Fix it on OSM") && !cc.text.includes("Hours can change"), JSON.stringify(cc.links));
   check("059 Q2: a County card offers 'Search for it' (a web search for its name and address, new tab) and 'Call 211'",
     ccLinks["Search for it"] === `https://www.google.com/search?q=${encodeURIComponent(`${cc.name} ${cc.address}`)}` && cc.searchTarget === "_blank"
     && ccLinks["Call 211"] === "tel:211" && cc.address.length > 5, `${ccLinks["Search for it"]} | ${ccLinks["Call 211"]}`);
@@ -158,7 +166,7 @@ try {
 
   // M8.1 P1: Suggest a place (059 Q1: by the list heading)
   const HINT = "Its own site or its own Instagram/Facebook page. Not Yelp, Google Maps or news.";
-  const sug = await run(`(async () => { const a = [...document.querySelectorAll("a")].find(a => a.innerText.includes("add it on OpenStreetMap yourself"));
+  const sug = await run(`(async () => { const a = [...document.querySelectorAll("section a")].find(a => a.innerText.trim().startsWith(OSM_EDIT));
     const foot = document.querySelector('section[aria-labelledby="map-list-title"]').innerText;
     const suggests = [...document.querySelectorAll("button")].filter(b => b.innerText.trim() === "Suggest a place");
     const button = suggests.length === 1 && suggests[0].parentElement.contains(document.getElementById("map-list-title")); // Q1: by the heading, once
@@ -247,7 +255,7 @@ try {
   // M13: ZIP, radius, privacy (D2-D4, D10)
   requests.length = 0;
   // The D10 link follows the map's centre on Leaflet's moveend, after the zoom-to-circle animation: wait for it to change.
-  const z10 = await run(`(async () => { const add = () => [...document.querySelectorAll("a")].find(a => a.innerText.includes("add it on OpenStreetMap yourself"))?.href ?? "";
+  const z10 = await run(`(async () => { const add = () => [...document.querySelectorAll("section a")].find(a => a.innerText.trim().startsWith(OSM_EDIT))?.href ?? "";
     const before = add(); await __zip("90017"); await __until(() => add() !== before, 3000);
     return { header: __header(), rows: __list(), add: add() }; })()`);
   const n10 = Number(z10.header.match(/^(\d+) places? within 10 mi of 90017$/)?.[1]);
@@ -255,7 +263,7 @@ try {
   const d10 = z10.rows.map(miles);
   check("…nearest first, each with its distance, all within 10 mi", d10.every((d, i) => d <= 10 && (i === 0 || d >= d10[i - 1])), JSON.stringify(d10.slice(0, 5)));
   const m = z10.add.match(/^https:\/\/www\.openstreetmap\.org\/edit#map=18\/(-?\d+\.\d+)\/(-?\d+\.\d+)$/);
-  check("'or add it on OpenStreetMap yourself' opens the OSM editor at the map's centre (D10)",
+  check("the footer's 'Have an OpenStreetMap account? Edit there.' opens the OSM editor at the map's centre (D10, 059 Q3)",
     !!m && Math.abs(Number(m[1]) - 34.0531) < 0.01 && Math.abs(Number(m[2]) + 118.2645) < 0.01, z10.add);
   const z5 = await run(`(async () => { await __radius(5); return __header(); })()`);
   const n5 = Number(z5.match(/^(\d+) places? within 5 mi of 90017$/)?.[1]);
