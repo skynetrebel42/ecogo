@@ -139,11 +139,16 @@ try {
     b.click(); await __sleep(900);
     const links = [...document.querySelectorAll("section a")].map(a => [a.innerText.trim(), a.getAttribute("href")]);
     const text = document.querySelector('section[aria-labelledby="map-list-title"]').innerText;
-    __btn("Back to the list").click(); await __sleep(400); return { text, links }; })()`);
+    const h = document.querySelector("section h3"), name = h.innerText.replace(/\\*$/, ""), address = h.nextElementSibling?.innerText ?? "";
+    const search = [...document.querySelectorAll("section a")].find(a => a.innerText.trim() === "Search for it");
+    __btn("Back to the list").click(); await __sleep(400); return { text, links, name, address, searchTarget: search?.target }; })()`);
   const ccLinks = Object.fromEntries(cc.links);
   check("County card: the footnote, the credit with the County's terms, Directions; no hours note, no 'Fix it on OSM'",
     cc.text.includes(COUNTY_NOTE) && cc.text.includes(COUNTY_CREDIT) && ccLinks["Terms"] === "https://egis-lacounty.hub.arcgis.com/pages/terms-of-use"
     && !!ccLinks["Directions"] && !ccLinks["Fix it on OSM"] && !cc.text.includes("Hours can change"), JSON.stringify(cc.links));
+  check("059 Q2: a County card offers 'Search for it' (a web search for its name and address, new tab) and 'Call 211'",
+    ccLinks["Search for it"] === `https://www.google.com/search?q=${encodeURIComponent(`${cc.name} ${cc.address}`)}` && cc.searchTarget === "_blank"
+    && ccLinks["Call 211"] === "tel:211" && cc.address.length > 5, `${ccLinks["Search for it"]} | ${ccLinks["Call 211"]}`);
   const crep = await run(`(async () => { const b = [...document.querySelectorAll('ul[aria-label="Places"] button')].find(b => /\\*$/.test(b.innerText.split("\\n")[0]));
     const name = b.innerText.split("\\n")[0].replace(/\\*$/, ""); b.click(); await __sleep(900); __btn("Report a problem").click(); await __sleep(400);
     const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; document.querySelector('[role="dialog"]').dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await __sleep(300); const gone = !document.querySelector('[role="dialog"]'); __btn("Back to the list").click(); await __sleep(400); return { name, t, gone }; })()`);

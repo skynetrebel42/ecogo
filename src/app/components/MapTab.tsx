@@ -15,7 +15,7 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { useState, useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import "leaflet.markercluster";
-import { ArrowLeft, Navigation, Phone, Globe, MapPin, Utensils, ShoppingBag, Leaf } from "lucide-react";
+import { ArrowLeft, Navigation, Phone, Globe, MapPin, Utensils, ShoppingBag, Leaf, Search } from "lucide-react";
 import type { ResourceRow } from "../../lib/catalog";
 import { zipPoint, withinMiles, RADII, countyPlaces } from "../../lib/nearMe";
 import {
@@ -110,6 +110,18 @@ function PlaceCard({ place, miles, headingRef, onReport }:
           <Navigation size={13} /> Directions
         </a>
       </div>
+      {/* 059 Q2: the County list has no phone or website, so two ways to check it's still there (nothing fetched). */}
+      {county && (
+        <div className="flex gap-2">
+          <a href={`https://www.google.com/search?q=${encodeURIComponent(`${place.name} ${place.address}`)}`} target="_blank" rel="noopener noreferrer"
+            className={`${btn} flex-1 bg-primary/10 text-primary`} style={{ minHeight: 44 }}>
+            <Search size={13} /> Search for it
+          </a>
+          <a href="tel:211" className={`${btn} flex-1 bg-primary/10 text-primary`} style={{ minHeight: 44 }}>
+            <Phone size={13} /> Call 211
+          </a>
+        </div>
+      )}
       {/* M8.1 P2: EcoGo's own form, for OSM and County places alike. */}
       <button onClick={onReport} className="inline-flex items-center text-xs font-bold text-primary" style={{ minHeight: 44 }}>Report a problem</button>
       {county ? (
