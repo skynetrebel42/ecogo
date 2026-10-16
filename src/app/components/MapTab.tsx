@@ -349,7 +349,11 @@ export default function MapTab({ places, status, onFormOpen }:
               <button onClick={backToLa} className="w-full rounded-2xl bg-primary text-white text-sm font-bold" style={{ minHeight: 44 }}>Back to LA</button>
             </div>
           )}
-          <h3 id="map-list-title" ref={listTitleRef} tabIndex={-1} className="font-extrabold text-sm focus:outline-none">{header}</h3>
+          {/* 059 Q1: Suggest a place by the heading, always there (it wraps under the heading on a narrow phone) */}
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <h3 id="map-list-title" ref={listTitleRef} tabIndex={-1} className="flex-1 min-w-[10rem] font-extrabold text-sm focus:outline-none">{header}</h3>
+            <button onClick={e => openForm(e)} className="min-h-[44px] px-3 rounded-xl border border-primary text-primary text-xs font-bold">Suggest a place</button>
+          </div>
           {!center && <p className="text-micro text-muted-foreground">Enter a ZIP or tap My location to see what's near you</p>}
           <div className="flex gap-1.5 flex-wrap mt-2 mb-1">
             {TYPES.map(t => {
@@ -388,10 +392,9 @@ export default function MapTab({ places, status, onFormOpen }:
               );
             })}
           </ul>
-          {/* M8.1 P1: suggest it to EcoGo's owner, or (D10) add it on OSM yourself, at the map's centre. */}
+          {/* D10: or add it on OSM yourself, at the map's centre (Suggest a place is by the heading, 059 Q1). */}
           <p className="text-xs mt-3">
-            <button onClick={e => openForm(e)} className="text-primary font-bold" style={{ minHeight: 44 }}>Suggest a place</button>{" "}
-            or <a href={`https://www.openstreetmap.org/edit#map=18/${mapCenter[0].toFixed(5)}/${mapCenter[1].toFixed(5)}`}
+            Or <a href={`https://www.openstreetmap.org/edit#map=18/${mapCenter[0].toFixed(5)}/${mapCenter[1].toFixed(5)}`}
               target="_blank" rel="noopener noreferrer" className="text-primary font-bold">add it on OpenStreetMap yourself</a>
           </p>
           <p className="text-micro text-muted-foreground">Add it as Social facility → Food bank. EcoGo shows it after the next update.</p>

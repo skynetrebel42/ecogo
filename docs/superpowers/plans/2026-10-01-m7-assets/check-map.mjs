@@ -151,11 +151,13 @@ try {
     crep.t.includes(crep.name) && /From LA County · site \d+/.test(crep.t) && !cc.links.some(([, h]) => h?.startsWith("mailto:")), crep.t.slice(0, 160));
   check("…Escape closes the form", crep.gone);
 
-  // M8.1 P1: Suggest a place, under the list
+  // M8.1 P1: Suggest a place (059 Q1: by the list heading)
   const HINT = "Its own site or its own Instagram/Facebook page. Not Yelp, Google Maps or news.";
   const sug = await run(`(async () => { const a = [...document.querySelectorAll("a")].find(a => a.innerText.includes("add it on OpenStreetMap yourself"));
-    const foot = document.querySelector('section[aria-labelledby="map-list-title"]').innerText; const button = !!__btn("Suggest a place");
-    __btn("Suggest a place").click(); await __sleep(500);
+    const foot = document.querySelector('section[aria-labelledby="map-list-title"]').innerText;
+    const suggests = [...document.querySelectorAll("button")].filter(b => b.innerText.trim() === "Suggest a place");
+    const button = suggests.length === 1 && suggests[0].parentElement.contains(document.getElementById("map-list-title")); // Q1: by the heading, once
+    __btn("Suggest a place").click(); await __sleep(500); const nothingPicked = !document.querySelector('input[name="offers"]:checked, input[name="who"]:checked');
     const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; const send = () => __btn("Send").disabled; const steps = [send()];
     await __type("place-name", "Westside Pantry"); await __type("place-address", "Pico & Bundy"); await __pick("offers", "Food pantry"); await __pick("who", "Anyone");
     document.querySelector('input[type="checkbox"]').click(); await __sleep(50); steps.push(send()); // no link yet
@@ -166,9 +168,9 @@ try {
     await __type("place-who-note", "Seniors 60+"); steps.push(send());
     const tabs = [...document.querySelectorAll("button")].filter(b => ["Home", "Map", "Scan", "Saved", "Profile"].includes(b.innerText.trim()));
     const nav = tabs.length === 5 && tabs.every(b => b.closest("[inert]"));
-    return { link: a?.href ?? "", foot, button, t, steps, whoNote, nav }; })()`);
-  check("M8.1 P1: under the list, 'Suggest a place', then 'or add it on OpenStreetMap yourself' (the OSM editor)",
-    sug.button && /^https:\/\/www\.openstreetmap\.org\/edit#map=18\//.test(sug.link) && !sug.foot.includes("Missing a place?"), sug.link);
+    return { link: a?.href ?? "", foot, button, nothingPicked, t, steps, whoNote, nav }; })()`);
+  check("059 Q1: 'Suggest a place' sits by the list heading (only there), opens with no type picked; the OSM editor link stays in the footer",
+    sug.button && sug.nothingPicked && /^https:\/\/www\.openstreetmap\.org\/edit#map=18\//.test(sug.link) && !sug.foot.includes("Missing a place?"), sug.link);
   check("…its form asks name, address, what it offers, who can use it, the link with its hint, and a note; notice and consent",
     ["Name", "Address or cross streets", "What it offers", "Food pantry", "Free meals", "Community fridge", "Who can use it", "Anyone", "Students only",
       HINT, "Note (optional)", NOTICE, CONSENT].every(s => sug.t.includes(s)), sug.t.slice(0, 300));
