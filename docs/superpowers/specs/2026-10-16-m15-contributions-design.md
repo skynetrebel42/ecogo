@@ -18,6 +18,9 @@
 | C4 | **Reading:** with an existing session only, two `select` calls on the person's own rows (RLS already limits them): `contributions.barcode` where status `sent` (distinct counted in the app) and a head `count` of `place_reports` where status `approved`; no writes. A failed read shows "Couldn't load your contributions." and no badges. CLAUDE.md's browser rule adds: "and reads the person's own `contributions` / `place_reports` counts (M15)" |
 | C5 | **Feedback after a send:** M8's and M8.1's Sent screens add one line when a new milestone was just reached: "You reached <badge>. See Profile." (counted after the send; skipped if the read fails) |
 
+| C6 | (Minh, 2026-10-16; gap G1) **Keep the tally, drop the text:** place-submit's 90-day cleanup deletes only `rejected` rows; an `approved` row reviewed over 90 days ago keeps kind, status, place_ref and dates, and its `fields` become `{}` (name, address, note, link erased). Counts never expire. place-submit redeploy (v2) with Minh's yes; it can go before or after the push (no new answer) |
+| C5a | (planner; gap G2) C5's milestone line is on the **product** Sent screen only: a place send writes a `new` row, which never counts at send time. The place Sent screen is unchanged |
+
 ## 2. Testing
 
 - Node: the count → milestone function (0, 1, 4, 5, 49, 50, 51; "N more to go"); distinct barcodes (two sends of one
