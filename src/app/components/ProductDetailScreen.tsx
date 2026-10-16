@@ -20,7 +20,8 @@ import { escapeRegExp, type Flag } from "../../lib/safety/analyze";
 import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
-import NutritionPanel, { NutritionChip, UpdateInfoButton, UpdateInfoHelp, useNutrition } from "./NutritionPanel";
+import NutritionPanel, { NutritionChip, EditOnOff, useNutrition } from "./NutritionPanel";
+import IngredientCheck from "./IngredientCheck";
 import { topHigh } from "../../lib/nutrition";
 import { snapshotLabel } from "../../lib/foods";
 import { useAlternatives } from "./useAlternatives";
@@ -33,6 +34,7 @@ const languageName = (code: string) => {
 };
 
 const TAP_FINDING = "Tap a finding to see its official sources.";
+const PRIMARY = "w-full min-h-[48px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-sm";
 const SMALL_PRINT: Record<Assessment["verdict"], string> = {
   known:      TAP_FINDING,
   high:       TAP_FINDING,
@@ -119,7 +121,7 @@ interface ProductDetailScreenProps {
   product: Product; onBack: () => void; onSelectProduct: (p: Product) => void;
   store: SavedStore; savedOk: boolean; onChangeSaved: (s: SavedStore, undoText?: string) => void;
   /** M8 follow-up 5: open the add flow for this crowd-sourced OFF product (J1 add the ingredients, J2 new photos). */
-  onAddToOff: (mode: Exclude<AddMode, "new">) => void;
+  onAddToOff: (mode: Exclude<AddMode, "new">, ingredientsPhoto?: Blob) => void;
 }
 
 export default function ProductDetailScreen({ product, onBack, store, savedOk, onChangeSaved, onSelectProduct, onAddToOff }: ProductDetailScreenProps) {
@@ -133,6 +135,10 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
     if (!saved) setSheet(true);
   };
   const closeSheet = () => { setSheet(false); bookmark.current?.focus(); };
+  // 058 L1/L3: "Check the label yourself" opens over the page, which stays as it was (inert) and gets focus back.
+  const [checking, setChecking] = useState(false);
+  const checkButton = useRef<HTMLButtonElement>(null);
+  const behind = checking ? { inert: "" } : {};
   const analysis = useMemo(() => safeAnalyze(product), [product]);
   const look = VERDICT_STYLE[analysis.verdict];
   const nutrition = useNutrition(product);
@@ -147,7 +153,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
     <div className="absolute inset-0 z-50 flex flex-col bg-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
       {/* ── Hero ── */}
-      <div data-hero className="flex-shrink-0 relative" style={{ background: look.gradient, "--hero-solid": look.solid } as CSSProperties}>
+      <div data-hero {...behind} className="flex-shrink-0 relative" style={{ background: look.gradient, "--hero-solid": look.solid } as CSSProperties}>
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4 z-10">
           <button onClick={onBack} aria-label="Back" className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
             <ArrowLeft size={18} color="white" />
@@ -187,7 +193,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
       </div>
 
       {/* ── Scrollable Body ── */}
-      <div className="flex-1 overflow-y-auto bg-gray-50" style={{ scrollbarWidth: "none" }}>
+      <div {...behind} className="flex-1 overflow-y-auto bg-gray-50" style={{ scrollbarWidth: "none" }}>
         <div className="px-4 py-4 space-y-3 pb-10">
 
           {product.source && (
@@ -237,21 +243,23 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
 
           {/* ── Full ingredient list ── */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className={`flex flex-wrap items-center gap-2 ${updateUrl ? "mb-1" : "mb-2"}`}>
+            <div className="flex items-center gap-2 mb-2">
               <FlaskConical size={15} className="text-primary" />
-              <span className="font-bold text-sm flex-auto">Ingredients</span>
-              {updateUrl && <div className="flex gap-2">
-                <button onClick={() => onAddToOff("photos")} className="flex-shrink-0 min-h-[44px] px-3 rounded-xl border border-border text-xs font-bold text-gray-700">Send new photos</button>
-                <UpdateInfoButton url={updateUrl} label="Update ingredients on Open Food Facts" />
-              </div>}
+              <span className="font-bold text-sm">Ingredients</span>
             </div>
-            {updateUrl && <UpdateInfoHelp />}
             {product.ingredients.trim()
               ? <p className="text-xs text-gray-600 leading-relaxed"><HighlightedIngredients text={product.ingredients} flags={analysis.flags} /></p>
-              : <>
-                <p className="text-xs text-gray-500 italic">No ingredient list available.</p>
-                {updateUrl && <button onClick={() => onAddToOff("ingredients")} className="mt-2 w-full min-h-[48px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-sm">Add the ingredients</button>}
-              </>}
+              : <p className="text-xs text-gray-500 italic">No ingredient list available.</p>}
+            {/* Crowd-sourced OFF products only: 058 L1 the self-check; L4 the account-free sends first, OFF's own editor last. */}
+            {updateUrl && <div className="mt-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-gray-600">Doesn't match your package?</p>
+                <button ref={checkButton} onClick={() => setChecking(true)} className="flex-shrink-0 min-h-[44px] px-3 rounded-xl border border-border text-xs font-bold text-gray-700">Check the label yourself</button>
+              </div>
+              {!product.ingredients.trim() && <button onClick={() => onAddToOff("ingredients")} className={PRIMARY}>Add the ingredients</button>}
+              <button onClick={() => onAddToOff("photos")} className={PRIMARY}>Send new photos</button>
+              <EditOnOff url={updateUrl} />
+            </div>}
             <p className="text-micro text-gray-500 mt-3 leading-snug">
               Findings are matched against official sources (IARC, EU, FDA, EFSA, WHO), linked on each finding.
               Classifications describe potential hazards; this is not medical advice.
@@ -290,6 +298,8 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
         </div>
       </div>
       {sheet && <SaveSheet productId={product.id} saved={store} savedOk={savedOk} onChange={onChangeSaved} onClose={closeSheet} />}
+      {checking && <IngredientCheck product={product.name} onClose={() => { setChecking(false); setTimeout(() => checkButton.current?.focus()); }}
+        onSendPhotos={photo => onAddToOff("photos", photo)} />}
     </div>
   );
 }
