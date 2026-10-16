@@ -2,7 +2,7 @@
 // by hand in the Supabase dashboard. The checks live in place.ts; this file wires them to the service-role client.
 // Secrets: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are built in. Deployed with verify_jwt off (as off-submit).
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { placeSubmit, type PlaceDb } from "./place.ts";
+import { placeSubmit, reviewedBefore, type PlaceDb } from "./place.ts";
 
 const env = (name: string) => Deno.env.get(name) ?? "";
 const db = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
@@ -26,12 +26,12 @@ const places: PlaceDb = {
     if (error) throw error;
   },
   async deleteReviewed(status, before) {
-    const { error } = await db.from("place_reports").delete().eq("status", status).lt("reviewed_at", before);
+    const { error } = await db.from("place_reports").delete().eq("status", status).or(reviewedBefore(before));
     if (error) throw error;
   },
   // ponytail: also rewrites rows already cleared, each call; add a fields filter if approved rows grow into thousands.
   async clearReviewed(status, before) {
-    const { error } = await db.from("place_reports").update({ fields: {} }).eq("status", status).lt("reviewed_at", before);
+    const { error } = await db.from("place_reports").update({ fields: {} }).eq("status", status).or(reviewedBefore(before));
     if (error) throw error;
   },
 };

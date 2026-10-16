@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { limitReason, placeRow, placeSubmit, type PlaceDb, type PlaceRow } from "./place.ts";
+import { limitReason, placeRow, placeSubmit, reviewedBefore, type PlaceDb, type PlaceRow } from "./place.ts";
 
 // M8.1 (docs/superpowers/specs/2026-10-15-m81-suggest-report-design.md P1, P2, P4, P4a).
 const SUGGEST = {
@@ -105,6 +105,9 @@ test("each call, for rows reviewed more than 90 days ago: deletes rejected ones,
   const f = fakeDb();
   await placeSubmit(post(SUGGEST), f.db, NOW);
   assert.deepEqual(f.cleaned, ["delete rejected 2026-07-17T18:30:00.000Z", "clear approved 2026-07-17T18:30:00.000Z"]);
+  // a row whose status was set by hand without reviewed_at counts from when it was sent (planner, C6)
+  assert.equal(reviewedBefore("2026-07-17T18:30:00.000Z"),
+    'reviewed_at.lt."2026-07-17T18:30:00.000Z",and(reviewed_at.is.null,created_at.lt."2026-07-17T18:30:00.000Z")');
   const g = fakeDb({ fail: "cleanup" });
   assert.deepEqual(await reply(await placeSubmit(post(SUGGEST), g.db, NOW)), [200, { ok: true }]);
 });

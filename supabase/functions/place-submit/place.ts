@@ -60,6 +60,10 @@ export function limitReason(mine: number, all: number, attempts: number): "limit
   return null;
 }
 
+/** PostgREST `or` filter for the cleanup: reviewed before `t`, or, when the owner set the status without a
+ *  reviewed_at, sent before `t`. The timestamp is quoted (it holds reserved `.` and `:`). */
+export const reviewedBefore = (t: string) => `reviewed_at.lt."${t}",and(reviewed_at.is.null,created_at.lt."${t}")`;
+
 /** The database calls place-submit makes (index.ts: the service-role client). */
 export interface PlaceDb {
   /** The (anonymous) Supabase user the JWT belongs to, or null. */
@@ -67,7 +71,7 @@ export interface PlaceDb {
   /** Since `day`: this person's place rows, everyone's, and this person's `contributions` rows (all statuses). */
   counts(userId: string, day: string): Promise<{ mine: number; all: number; products: number }>;
   insert(userId: string, row: PlaceRow): Promise<void>;
-  /** Deletes the rows with `status` reviewed before `before`. */
+  /** Deletes the rows with `status` reviewed before `before` (`reviewedBefore`). */
   deleteReviewed(status: "rejected", before: string): Promise<void>;
   /** Clears the text (`fields` to {}) of the rows with `status` reviewed before `before`; the row stays. */
   clearReviewed(status: "approved", before: string): Promise<void>;
