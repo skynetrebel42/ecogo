@@ -25,7 +25,7 @@ export function formatAddress(p: Record<string, unknown>): string | null {
  *  `signal`: aborted when a newer request starts, so an older answer is dropped. */
 export async function suggestAddresses(q: string, fetchFn: typeof fetch = fetch, signal?: AbortSignal): Promise<string[]> {
   const text = q.trim();
-  if (text.length < MIN_CHARS) return [];
+  if (text.length < MIN_CHARS || signal?.aborted) return [];
   const ctl = new AbortController();
   const stop = () => ctl.abort();
   signal?.addEventListener("abort", stop);

@@ -52,6 +52,7 @@ function Choices({ name, legend, options, value, onChange, disabled }:
 function AddressField({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled: boolean }) {
   const [list, setList] = useState<string[]>([]);
   const picked = useRef("");
+  const box = useRef<HTMLInputElement>(null);
   useEffect(() => {
     setList([]);
     if (value === picked.current || value.trim().length < MIN_CHARS) return;
@@ -62,13 +63,16 @@ function AddressField({ value, onChange, disabled }: { value: string; onChange: 
   return (
     <div className="space-y-1">
       <label htmlFor="place-address" className="block text-sm font-bold">Address or cross streets</label>
-      <input id="place-address" value={value} onChange={e => onChange(e.target.value)} disabled={disabled} maxLength={200} required autoComplete="off"
+      {/* Escape with the list open closes only the list, not the form (and its answers). */}
+      <input id="place-address" ref={box} value={value} onChange={e => onChange(e.target.value)} disabled={disabled} maxLength={200} required autoComplete="off"
+        onKeyDown={e => { if (e.key === "Escape" && list.length) { e.stopPropagation(); setList([]); } }}
         aria-describedby="place-address-photon" className={input} />
+      <p className="sr-only" aria-live="polite">{list.length ? `${list.length} address suggestion${list.length > 1 ? "s" : ""} below` : ""}</p>
       {list.length > 0 && !disabled && (
         <ul aria-label="Address suggestions" className="rounded-xl border border-border bg-white divide-y divide-border">
           {list.map(a => (
             <li key={a}>
-              <button type="button" onClick={() => { picked.current = a; onChange(a); }} className="w-full min-h-[44px] px-3 text-left text-sm">{a}</button>
+              <button type="button" onClick={() => { picked.current = a; onChange(a); box.current?.focus(); }} className="w-full min-h-[44px] px-3 text-left text-sm">{a}</button>
             </li>
           ))}
         </ul>

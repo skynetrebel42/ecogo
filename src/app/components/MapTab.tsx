@@ -122,7 +122,7 @@ function PlaceCard({ place, miles, headingRef, onReport }:
         <div className="flex gap-2">
           <a href={`https://www.google.com/search?q=${encodeURIComponent(`${place.name} ${place.address}`)}`} target="_blank" rel="noopener noreferrer"
             className={`${btn} flex-1 bg-primary/10 text-primary`} style={{ minHeight: 44 }}>
-            <Search size={13} /> Search for it
+            <Search size={13} /> Search for it<span className="sr-only"> (opens a web search in a new tab)</span>
           </a>
           <a href="tel:211" className={`${btn} flex-1 bg-primary/10 text-primary`} style={{ minHeight: 44 }}>
             <Phone size={13} /> Call 211

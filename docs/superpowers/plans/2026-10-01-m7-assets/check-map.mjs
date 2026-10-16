@@ -159,15 +159,15 @@ try {
     const links = [...document.querySelectorAll("section a")].map(a => [a.innerText.trim(), a.getAttribute("href")]);
     const text = document.querySelector('section[aria-labelledby="map-list-title"]').innerText;
     const h = document.querySelector("section h3"), name = h.innerText.replace(/\\*$/, ""), address = h.nextElementSibling?.innerText ?? "";
-    const search = [...document.querySelectorAll("section a")].find(a => a.innerText.trim() === "Search for it");
-    __btn("Back to the list").click(); await __sleep(400); return { text, links, name, address, searchTarget: search?.target }; })()`);
+    const search = [...document.querySelectorAll("section a")].find(a => a.innerText.trim().startsWith("Search for it"));
+    __btn("Back to the list").click(); await __sleep(400); return { text, links, name, address, searchHref: search?.getAttribute("href"), searchTarget: search?.target }; })()`);
   const ccLinks = Object.fromEntries(cc.links);
   check("County card: the footnote, the credit with the County's terms, Directions; no hours note, no 'Fix it on OSM'",
     cc.text.includes(COUNTY_NOTE) && cc.text.includes(COUNTY_CREDIT) && ccLinks["Terms"] === "https://egis-lacounty.hub.arcgis.com/pages/terms-of-use"
     && !!ccLinks["Directions"] && !cc.links.some(([t]) => t.startsWith(OSM_EDIT) || t === "Fix it on OSM") && !cc.text.includes("Hours can change"), JSON.stringify(cc.links));
   check("059 Q2: a County card offers 'Search for it' (a web search for its name and address, new tab) and 'Call 211'",
-    ccLinks["Search for it"] === `https://www.google.com/search?q=${encodeURIComponent(`${cc.name} ${cc.address}`)}` && cc.searchTarget === "_blank"
-    && ccLinks["Call 211"] === "tel:211" && cc.address.length > 5, `${ccLinks["Search for it"]} | ${ccLinks["Call 211"]}`);
+    cc.searchHref === `https://www.google.com/search?q=${encodeURIComponent(`${cc.name} ${cc.address}`)}` && cc.searchTarget === "_blank"
+    && ccLinks["Call 211"] === "tel:211" && cc.address.length > 5, `${cc.searchHref} | ${ccLinks["Call 211"]}`);
   const crep = await run(`(async () => { const b = [...document.querySelectorAll('ul[aria-label="Places"] button')].find(b => /\\*$/.test(b.innerText.split("\\n")[0]));
     const name = b.innerText.split("\\n")[0].replace(/\\*$/, ""); b.click(); await __sleep(900); __btn("Report a problem").click(); await __sleep(400);
     const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; document.querySelector('[role="dialog"]').dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await __sleep(300); const gone = !document.querySelector('[role="dialog"]'); __btn("Back to the list").click(); await __sleep(400); return { name, t, gone }; })()`);
@@ -269,7 +269,7 @@ try {
     await __type("place-address", "501 s bix"); await __sleep(150); const early = list().length;
     const shown = await __until(() => list().length && list(), 3000);
     document.querySelector('ul[aria-label="Address suggestions"] button').click(); await __sleep(700);
-    return { short, early, shown, filled: document.getElementById("place-address").value, after: list().length,
+    return { short, early, shown, filled: document.getElementById("place-address").value, after: list().length, focus: document.activeElement?.id,
       line: document.querySelector('[role="dialog"]').innerText.includes("${PHOTON_LINE}") }; })()`);
   const asked = photonAsked.map(u => Object.fromEntries(new URL(u).searchParams));
   check("059 Q4: no Photon request under 3 characters or before the pause; then one, for LA County's box, 5 results, English",
@@ -277,17 +277,21 @@ try {
     JSON.stringify(asked));
   check("…suggestions are formatted addresses with no duplicates; picking one fills the box, closes the list and asks nothing more; the Photon line shows",
     JSON.stringify(ph.shown) === '["501 South Bixel Street, Los Angeles 90017","Bixel Street, Los Angeles"]' && ph.filled === "501 South Bixel Street, Los Angeles 90017"
-    && ph.after === 0 && photonAsked.length === 1 && ph.line, JSON.stringify(ph));
-  photonReply = { status: 500, body: {} };
+    && ph.after === 0 && photonAsked.length === 1 && ph.line && ph.focus === "place-address", JSON.stringify(ph));
+  // A list in each failing answer: only the status (500), or arriving after the 2 s, says not to show it.
+  const twoFound = { type: "FeatureCollection", features: [{ properties: bixel }, { properties: { street: "Main Street", city: "Los Angeles" } }] };
+  photonReply = { status: 500, body: twoFound };
   const phFail = await run(`(async () => { await __type("place-address", "Main str"); await __sleep(1200);
     return document.querySelectorAll('ul[aria-label="Address suggestions"] button').length; })()`);
   photonReply = "hold";
-  const phSlow = await run(`(async () => { await __type("place-address", "Main stre"); await __sleep(2900);
+  await run(`(async () => { await __type("place-address", "Main stre"); await __sleep(2900); return true; })()`);
+  for (const r of photonHeld.splice(0)) await send("Fetch.fulfillRequest", { requestId: r, responseCode: 200, body: Buffer.from(JSON.stringify(twoFound)).toString("base64"),
+    responseHeaders: [{ name: "Content-Type", value: "application/json" }, { name: "Access-Control-Allow-Origin", value: "*" }] }); // too late
+  const phSlow = await run(`(async () => { await __sleep(500);
     const n = document.querySelectorAll('ul[aria-label="Address suggestions"] button').length, typed = document.getElementById("place-address").value;
     __btn("Close").click(); await __sleep(300); return { n, typed }; })()`);
-  for (const r of photonHeld) await send("Fetch.failRequest", { requestId: r, errorReason: "Aborted" });
   photonReply = { status: 200, body: { type: "FeatureCollection", features: [] } };
-  check("…a failed or slow (2 s) Photon answer shows no list, and the typed address stays", phFail === 0 && phSlow.n === 0 && phSlow.typed === "Main stre"
+  check("…a failed (500) or slow (answered after 2 s) Photon reply shows no list, and the typed address stays", phFail === 0 && phSlow.n === 0 && phSlow.typed === "Main stre"
     && photonAsked.length === 3, `${phFail} ${JSON.stringify(phSlow)} ${photonAsked.length} asked`);
 
   // Type chips

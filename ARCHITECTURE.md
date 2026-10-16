@@ -342,6 +342,7 @@ static or a no-op; **broken**.
 | LA County ArcGIS (Food_Distribution_chp layer) | `scripts/fetch-county-food-sites.mjs` | build time only (by hand; County open-data terms, decision 041); the app never calls it |
 | openstreetmap.org editor | MapTab's two "Have an OpenStreetMap account? Edit there." links (under the list: `/edit#map=18/<map centre>`; on a card: `/edit?<type>=<id>`) | opened by the user in a new tab; EcoGo sends nothing |
 | Photon (photon.komoot.io, OSM data) | `src/lib/photon.ts`, PlaceForm's address box (059 Q4) | what the person types there, 3+ characters after a 400 ms pause, LA County's box, 5 results, 2 s timeout, one request at a time; the form says so. Photon's terms: "please be fair" |
+| google.com/search | MapTab County cards' "Search for it" (059 Q2) | the site's name and address, only when the person taps it (new tab) |
 | Google Maps | MapTab "Directions" link | opens `google.com/maps/dir/?api=1&destination=<lat>,<lng>`: the place's position only |
 | images.unsplash.com | Home recommendations | hotlinked photo ids |
 | fonts.googleapis.com | `src/styles/index.css` | Plus Jakarta Sans (DM Mono dropped 2026-10-02: it was never wired to `font-mono`) |
