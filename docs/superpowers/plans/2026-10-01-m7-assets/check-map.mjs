@@ -38,6 +38,16 @@ try {
   let id = 0; const pending = new Map();
   let failResources = false;
   let onPaused = p => send("Fetch.continueRequest", { requestId: p.requestId });
+  // 059 Q4: Photon is always answered here (nothing reaches photon.komoot.io): `photonReply`, or held unanswered.
+  const photonAsked = [], photonHeld = [];
+  let photonReply = { status: 200, body: { type: "FeatureCollection", features: [] } };
+  const PHOTON = { urlPattern: "*photon.komoot.io/*" };
+  const answerPhoton = p => {
+    photonAsked.push(p.request.url);
+    if (photonReply === "hold") return void photonHeld.push(p.requestId);
+    send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: photonReply.status, body: Buffer.from(JSON.stringify(photonReply.body)).toString("base64"),
+      responseHeaders: [{ name: "Content-Type", value: "application/json" }, { name: "Access-Control-Allow-Origin", value: "*" }] });
+  };
   const send = (method, params = {}) => new Promise(r => { const n = ++id; pending.set(n, r); ws.send(JSON.stringify({ id: n, method, params })); });
   ws.addEventListener("message", e => {
     const m = JSON.parse(e.data);
@@ -47,7 +57,8 @@ try {
     if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map(a => a.value ?? a.description).join(" ").slice(0, 160));
     if (m.method === "Fetch.requestPaused") {
       const { requestId, request } = m.params;
-      if (!request.url.includes("/rest/v1/resources")) onPaused(m.params); // M8.1: auth and place-submit, answered here
+      if (request.url.includes("photon.komoot.io")) answerPhoton(m.params);
+      else if (!request.url.includes("/rest/v1/resources")) onPaused(m.params); // M8.1: auth and place-submit, answered here
       else if (failResources) send("Fetch.failRequest", { requestId, errorReason: "InternetDisconnected" });
       else if (ROWS && request.method === "GET") send("Fetch.fulfillRequest", { requestId, responseCode: 200, body: Buffer.from(ROWS).toString("base64"),
         responseHeaders: [{ name: "Content-Type", value: "application/json" }, { name: "Access-Control-Allow-Origin", value: "*" }] });
@@ -77,7 +88,7 @@ try {
   await send("Page.bringToFront");
   await send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await send("Network.enable");
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }] });
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, PHOTON] });
   await send("Page.navigate", { url: URL_ });
   await sleep(4000);
   await openMap();
@@ -205,7 +216,7 @@ try {
       user: { id: "00000000-0000-4000-8000-000000000081", aud: "authenticated", role: "authenticated", is_anonymous: true } });
     send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: place && post ? placeReply.status : 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
   };
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }] });
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }, PHOTON] });
   const sent = await run(`(async () => { const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
     t.render = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; }; t.remove = () => {};
     __btn("Send").click(); await __until(() => document.body.innerText.includes("Thanks."), 10000); return document.querySelector('[role="dialog"]')?.innerText ?? "no dialog"; })()`);
@@ -244,8 +255,40 @@ try {
     __btn("Back to the list")?.click(); await __sleep(400); return { t, back, again }; })()`);
   check("…no answer is 'Not sure it arrived' with EcoGo's line, and only 'Back to the map' (no Try again)",
     unk.t.includes("We didn't hear back from EcoGo. It may have arrived. Wait a few minutes before sending again.") && unk.back && !unk.again, unk.t.slice(0, 200));
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }] });
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, PHOTON] });
   onPaused = p => send("Fetch.continueRequest", { requestId: p.requestId });
+
+  // 059 Q4: Photon address suggestions in the Suggest form (answered here; nothing reaches photon.komoot.io)
+  const PHOTON_LINE = "Address suggestions come from Photon (OpenStreetMap data); it sees what you type here.";
+  const bixel = { housenumber: "501", street: "South Bixel Street", city: "Los Angeles", postcode: "90017" };
+  photonAsked.length = 0;
+  photonReply = { status: 200, body: { type: "FeatureCollection", features: [{ properties: bixel }, { properties: bixel }, { properties: { street: "Bixel Street", city: "Los Angeles" } }] } };
+  const ph = await run(`(async () => { __btn("Suggest a place").click(); await __sleep(400);
+    const list = () => [...document.querySelectorAll('ul[aria-label="Address suggestions"] button')].map(b => b.innerText.trim());
+    await __type("place-address", "50"); await __sleep(700); const short = list().length;
+    await __type("place-address", "501 s bix"); await __sleep(150); const early = list().length;
+    const shown = await __until(() => list().length && list(), 3000);
+    document.querySelector('ul[aria-label="Address suggestions"] button').click(); await __sleep(700);
+    return { short, early, shown, filled: document.getElementById("place-address").value, after: list().length,
+      line: document.querySelector('[role="dialog"]').innerText.includes("${PHOTON_LINE}") }; })()`);
+  const asked = photonAsked.map(u => Object.fromEntries(new URL(u).searchParams));
+  check("059 Q4: no Photon request under 3 characters or before the pause; then one, for LA County's box, 5 results, English",
+    ph.short === 0 && ph.early === 0 && asked.length === 1 && JSON.stringify(asked[0]) === JSON.stringify({ q: "501 s bix", limit: "5", lang: "en", bbox: "-118.95,33.28,-117.65,34.82" }),
+    JSON.stringify(asked));
+  check("…suggestions are formatted addresses with no duplicates; picking one fills the box, closes the list and asks nothing more; the Photon line shows",
+    JSON.stringify(ph.shown) === '["501 South Bixel Street, Los Angeles 90017","Bixel Street, Los Angeles"]' && ph.filled === "501 South Bixel Street, Los Angeles 90017"
+    && ph.after === 0 && photonAsked.length === 1 && ph.line, JSON.stringify(ph));
+  photonReply = { status: 500, body: {} };
+  const phFail = await run(`(async () => { await __type("place-address", "Main str"); await __sleep(1200);
+    return document.querySelectorAll('ul[aria-label="Address suggestions"] button').length; })()`);
+  photonReply = "hold";
+  const phSlow = await run(`(async () => { await __type("place-address", "Main stre"); await __sleep(2900);
+    const n = document.querySelectorAll('ul[aria-label="Address suggestions"] button').length, typed = document.getElementById("place-address").value;
+    __btn("Close").click(); await __sleep(300); return { n, typed }; })()`);
+  for (const r of photonHeld) await send("Fetch.failRequest", { requestId: r, errorReason: "Aborted" });
+  photonReply = { status: 200, body: { type: "FeatureCollection", features: [] } };
+  check("…a failed or slow (2 s) Photon answer shows no list, and the typed address stays", phFail === 0 && phSlow.n === 0 && phSlow.typed === "Main stre"
+    && photonAsked.length === 3, `${phFail} ${JSON.stringify(phSlow)} ${photonAsked.length} asked`);
 
   // Type chips
   const counts = await run(`(async () => { const n0 = __list().length; __btn("Gardens").click(); await __sleep(500); const n1 = __list().length;

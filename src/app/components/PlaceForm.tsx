@@ -8,6 +8,7 @@ import type { ResourceRow } from "../../lib/catalog";
 import { submitPlace, type SendStage, type SubmitReason } from "../../lib/contribute";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { placeSubmit, supabase } from "../../lib/supabase";
+import { MIN_CHARS, PAUSE_MS, suggestAddresses } from "../../lib/photon";
 
 const OFFERS = ["Food pantry", "Free meals", "Community fridge", "Other"];
 const WHO = ["Anyone", "Students only", "Other"];
@@ -43,6 +44,37 @@ function Choices({ name, legend, options, value, onChange, disabled }:
         </label>
       ))}
     </fieldset>
+  );
+}
+
+/** 059 Q4: the address box, with Photon's suggestions after a pause (photon.ts). Typing freely always works; picking one
+ *  fills the box. Each new value cancels the request before it, so an older answer is dropped. */
+function AddressField({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled: boolean }) {
+  const [list, setList] = useState<string[]>([]);
+  const picked = useRef("");
+  useEffect(() => {
+    setList([]);
+    if (value === picked.current || value.trim().length < MIN_CHARS) return;
+    const ctl = new AbortController();
+    const wait = setTimeout(() => suggestAddresses(value, (u, i) => fetch(u, i), ctl.signal).then(s => { if (!ctl.signal.aborted) setList(s); }), PAUSE_MS);
+    return () => { clearTimeout(wait); ctl.abort(); };
+  }, [value]);
+  return (
+    <div className="space-y-1">
+      <label htmlFor="place-address" className="block text-sm font-bold">Address or cross streets</label>
+      <input id="place-address" value={value} onChange={e => onChange(e.target.value)} disabled={disabled} maxLength={200} required autoComplete="off"
+        aria-describedby="place-address-photon" className={input} />
+      {list.length > 0 && !disabled && (
+        <ul aria-label="Address suggestions" className="rounded-xl border border-border bg-white divide-y divide-border">
+          {list.map(a => (
+            <li key={a}>
+              <button type="button" onClick={() => { picked.current = a; onChange(a); }} className="w-full min-h-[44px] px-3 text-left text-sm">{a}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p id="place-address-photon" className="text-xs text-gray-600">Address suggestions come from Photon (OpenStreetMap data); it sees what you type here.</p>
+    </div>
   );
 }
 
@@ -125,10 +157,7 @@ export default function PlaceForm({ place, onClose }: { place?: ResourceRow; onC
             <label htmlFor="place-name" className="block text-sm font-bold">Name</label>
             <input id="place-name" value={f.name} onChange={e => set("name")(e.target.value)} disabled={sending} maxLength={200} required className={input} />
           </div>
-          <div className="space-y-1">
-            <label htmlFor="place-address" className="block text-sm font-bold">Address or cross streets</label>
-            <input id="place-address" value={f.address} onChange={e => set("address")(e.target.value)} disabled={sending} maxLength={200} required autoComplete="off" className={input} />
-          </div>
+          <AddressField value={f.address} onChange={set("address")} disabled={sending} />
           <Choices name="offers" legend="What it offers" options={OFFERS} value={f.offers} onChange={set("offers")} disabled={sending} />
           <Choices name="who" legend="Who can use it" options={WHO} value={f.who} onChange={set("who")} disabled={sending} />
           {f.who === "Other" && (
