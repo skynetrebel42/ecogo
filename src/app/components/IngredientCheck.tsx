@@ -219,11 +219,13 @@ export default function IngredientCheck({ onClose, product, onSendPhotos }: { on
   const showEditor = (mode === "type" || status === "read") && !showHard;
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col bg-[#F8F7F2] text-gray-900">
+    <div role="dialog" aria-modal="true" aria-labelledby="check-title" onKeyDown={e => { if (e.key === "Escape") { begin(); onClose(); } }}
+      className="absolute inset-0 z-40 flex flex-col bg-[#F8F7F2] text-gray-900">
       <div className="px-4 pt-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          {product && <p className="text-xs font-bold text-gray-600 truncate">{product}</p>}
-          <h1 ref={title} tabIndex={-1} className="text-xl font-extrabold text-[#1A5C39] focus:outline-none">{product ? "Check the label yourself" : "Check ingredients"}</h1>
+          {product && <p id="check-product" className="text-xs font-bold text-gray-600 truncate">{product}</p>}
+          <h1 id="check-title" ref={title} tabIndex={-1} aria-describedby={product ? "check-product" : undefined}
+            className="text-xl font-extrabold text-[#1A5C39] focus:outline-none">{product ? "Check the label yourself" : "Check ingredients"}</h1>
         </div>
         <button onClick={() => { begin(); onClose(); }} aria-label="Close" className="w-11 h-11 rounded-full border border-border bg-white flex items-center justify-center">
           <X size={16} />
@@ -252,7 +254,7 @@ export default function IngredientCheck({ onClose, product, onSendPhotos }: { on
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
           note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines}
           read={mode === "photo" ? readText : undefined} onShowRead={() => { setText(readText!); setReadText(undefined); }}
-          from={product && (mode === "photo" ? "From your photo, not from Open Food Facts." : "From what you typed, not from Open Food Facts.")} />}
+          from={product && (status === "read" ? "From your photo, not from Open Food Facts." : "From what you typed, not from Open Food Facts.")} />}{/* read text stays "from your photo" after Type it */}
 
         <p className="text-xs text-gray-600 leading-relaxed">
           {product ? "This checks the ingredients only. Nothing is saved or sent."

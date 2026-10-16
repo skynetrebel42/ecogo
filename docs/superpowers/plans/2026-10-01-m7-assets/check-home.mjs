@@ -540,7 +540,7 @@ try {
   const EDIT_THERE = "Have an Open Food Facts account? Edit there.";
   const l1 = await run(`(() => { const bg = s => { const b = __btn(s); return b ? getComputedStyle(b).backgroundColor : "none"; };
     return { text: document.body.innerText, check: !!__btn("Check the label yourself"), sendBg: bg("Send new photos"), addBg: bg("Add the ingredients"),
-      links: [...document.querySelectorAll("a")].filter(a => a.innerText.trim() === "${EDIT_THERE}").map(a => a.href + " " + a.target) }; })()`);
+      links: [...document.querySelectorAll("a")].filter(a => a.innerText.trim().startsWith("${EDIT_THERE}")).map(a => a.href + " " + a.target) }; })()`);
   check("058 L1: an OFF product shows 'Doesn't match your package?' with 'Check the label yourself'; a USDA product doesn't",
     l1.text.includes("Doesn't match your package?") && l1.check && ![tos, dor].some(t => t.includes("Check the label yourself") || t.includes("Doesn't match your package?")));
   check("058 L4: 'Send new photos' and 'Add the ingredients' are the main (green) buttons; no 'Update info'; a small 'Edit there' link to OFF's edit form",
@@ -548,6 +548,7 @@ try {
     && l1.links.every(l => l === `https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=${FAKE_OFF} _blank`)
     && ![tos, dor].some(t => t.includes(EDIT_THERE)), JSON.stringify({ ...l1, text: undefined }));
   const pageBefore = await run(`document.body.innerText`);
+  const askedBefore = offAsked.length; // the self-check sends nothing (L1): no auth, no off-submit
   const typed = await run(`(async () => { __btn("Check the label yourself").click(); await __sleep(400);
     const head = document.body.innerText; const focus = document.activeElement?.tagName;
     __btn("Type it").click(); await __sleep(200);
@@ -575,11 +576,13 @@ try {
     go.click(); await __sleep(500); const front = document.body.innerText;
     __btn("Skip").click(); await __sleep(400); const keep = !!__btn("Keep the photo I took");
     __btn("Keep the photo I took")?.click(); await __sleep(400); __btn("Skip")?.click(); await __sleep(400);
-    const thumb = !!document.querySelector('img[alt="Ingredients photo"]'), sendOn = !!__btn("Send");
+    const img = document.querySelector('img[alt="Ingredients photo"]'); const thumb = img ? (await (await fetch(img.src)).blob()).type : "none";
+    document.querySelector('input[type="checkbox"]').click(); await __sleep(200); const sendOn = __btn("Send")?.disabled === false;
     __btn("Close").click(); await __sleep(500); return { front, keep, thumb, sendOn, back: document.body.innerText }; })()`);
   check("058 L2: 'Also send these photos' opens Send new photos for that barcode with the ingredients photo in place; Close returns to the product",
-    l2.front.includes("Send new photos") && l2.front.includes(`Barcode ${FAKE_OFF}`) && l2.front.includes("Front photo") && l2.keep && l2.thumb && l2.sendOn
+    l2.front.includes("Send new photos") && l2.front.includes(`Barcode ${FAKE_OFF}`) && l2.front.includes("Front photo") && l2.keep && l2.thumb === "image/jpeg" && l2.sendOn
     && l2.back.includes("Test granola bar"), JSON.stringify({ ...l2, front: l2.front.slice(0, 120), back: l2.back.slice(0, 60) }));
+  check("058: the self-checks and the L2 hand-over sent nothing (no auth, no off-submit)", offAsked.length === askedBefore, offAsked.slice(askedBefore).join(", "));
   const j2 = await run(`(async () => { __btn("Send new photos").click(); await __sleep(400); return document.body.innerText; })()`);
   const pickPhoto = async () => {
     const { root } = (await send("DOM.getDocument")).result;
