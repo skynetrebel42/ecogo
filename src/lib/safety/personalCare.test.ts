@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PERSONAL_CARE, CARE_NOTES, CARE_LIMITED, analyzeCare } from "./personalCare.ts";
+import { PERSONAL_CARE, CARE_NOTES, CARE_LIMITED, analyzeCare, isSunscreen } from "./personalCare.ts";
 
 const BODIES = new Set(["IARC", "EU", "FDA"]);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -87,6 +87,18 @@ test("sunscreen actives get FDA's own status, by US or INCI name, without a badg
   assert.match(text("avobenzone") ?? "", /more data are needed/);
   assert.match(text("oxybenzone") ?? "", /more data are needed/);
   assert.match(analyzeCare("Aminobenzoic acid").notes[0]?.note.text ?? "", /Removed by FDA/);
+});
+
+test("N2c item 2 (revised): on a product page sunscreen rows show only for a sunscreen; typed checks keep them", () => {
+  const toothpaste = analyzeCare("Sodium Fluoride, Water, Titanium Dioxide (CI 77891)", { sunscreen: false });
+  assert.deepEqual(toothpaste.notes.filter(n => n.note.kind === "sunscreen"), []);
+  assert.equal(analyzeCare("Titanium Dioxide").notes[0]?.note.kind, "sunscreen", "a photo or typed list has no name: rows stay");
+  assert.equal(isSunscreen("Colgate Total Whitening Toothpaste 4pk"), false);
+  assert.equal(isSunscreen("Dove Beauty Bar Original 6pk"), false);
+  for (const name of ["Neutrogena Ultra Sheer Sunscreen SPF 55 3oz", "Daily Lotion spf30", "Kids Sun Block Stick", "Sunblock Spray"])
+    assert.equal(isSunscreen(name), true, name);
+  assert.equal(isSunscreen("Daily Moisture Lotion", ["en:body-care", "en:sunscreens"]), true, "OBF category");
+  assert.equal(isSunscreen("SPFX Hair Gel"), false, "a word, not part of one");
 });
 
 test("a flag and a note can come from one list; flags sort strongest first", () => {

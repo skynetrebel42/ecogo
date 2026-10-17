@@ -15,7 +15,7 @@ export type LookupResult =
 const OFF = "https://world.openfoodfacts.org/api/v3/product/";
 const OFF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_text,ingredients_text_en,additives_tags,categories_tags,nutriments,serving_size";
 const OBF = "https://world.openbeautyfacts.org/api/v2/product/";
-const OBF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_text,ingredients_text_en";
+const OBF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_text,ingredients_text_en,categories_tags";
 /** All EcoGo tells Open Food Facts and Open Beauty Facts about itself: never the owner's email. */
 const USER_AGENT = { "X-User-Agent": "EcoGo/0.1 (https://github.com/skynetrebel42/ecogo)" };
 
@@ -106,7 +106,15 @@ export function mapOffResponse(json: unknown, httpStatus: number): LookupResult 
 
 async function fetchOff(code: string, f: typeof fetch): Promise<LookupResult> {
   const res = await f(`${OFF}${code}.json?fields=${OFF_FIELDS}`, { headers: USER_AGENT });
-  return mapOffResponse(await res.json().catch(() => null), res.status);
+  return mapOffResponse(await readJson(res), res.status);
+}
+
+/** The body as JSON. A 200 that isn't JSON (a captive portal, a rate-limit page) throws, so it reads as "error" (Try
+ *  again), never "not found"; another status's odd body is left to the mapper. */
+async function readJson(res: Response): Promise<unknown> {
+  const json = await res.json().catch(() => undefined);
+  if (json === undefined && res.ok) throw new Error(`HTTP ${res.status} without JSON`);
+  return json ?? null;
 }
 
 // ── Open Beauty Facts (personal care, M16 N1) ────────────────────────────────
@@ -132,14 +140,14 @@ export function mapObfResponse(json: unknown, httpStatus: number): LookupResult 
   if (!code || (!name && !ingredients)) return { status: "not-found" };
   const product = toProduct(code, name, str(p.brands).split(",")[0].trim(), ingredients, {
     name: "Open Beauty Facts", url: obfProductUrl(code), crowdSourced: true,
-    ingredientsLang: english ? "en" : str(p.lang) || "en", additiveCodes: [],
+    ingredientsLang: english ? "en" : str(p.lang) || "en", additiveCodes: [], categoryTags: strings(p.categories_tags),
   });
   return { status: "found", product: { ...product, category: "Personal Care" } }; // the catalog's own name: 🧴, and shown in the header
 }
 
 async function fetchObf(code: string, f: typeof fetch): Promise<LookupResult> {
   const res = await f(`${OBF}${code}?fields=${OBF_FIELDS}`, { headers: USER_AGENT });
-  return mapObfResponse(await res.json().catch(() => null), res.status);
+  return mapObfResponse(await readJson(res), res.status);
 }
 
 // ── Lookup ───────────────────────────────────────────────────────────────────

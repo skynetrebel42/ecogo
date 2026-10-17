@@ -21,14 +21,16 @@ const check = (name, pass, detail = "") => { total++; if (pass) ok++; console.lo
 
 // Open Beauty Facts answers: the recorded lotion and no-ingredients products, plus two made up for the check.
 const fixture = name => JSON.parse(readFileSync(new URL(`../../../../src/lib/fixtures/obf/${name}.json`, import.meta.url), "utf8"));
-const fake = (code, product_name, ingredients_text) => ({ httpStatus: 200, body: { code, status: 1, status_verbose: "product found",
-  product: { code, product_name, brands: "Check Brand", lang: "en", ingredients_text } } });
+const fake = (code, product_name, ingredients_text, categories_tags = []) => ({ httpStatus: 200, body: { code, status: 1, status_verbose: "product found",
+  product: { code, product_name, brands: "Check Brand", lang: "en", ingredients_text, categories_tags } } });
 const OBF = {
   "0055086009386": fixture("lotion-0055086009386"),
   "0345334300014": fixture("no-ingredients-0345334300014"),
   "0099990000017": fake("0099990000017", "Check Dandruff Shampoo", "Water, Sodium Laureth Sulfate, Zinc Pyrithione, Fragrance, Limonene"),
-  "0099990000024": fake("0099990000024", "Check Mineral Sunscreen SPF 30", "Active ingredients: Zinc Oxide 20%, Octinoxate 7.5%. Inactive ingredients: Water, Glycerin"),
-  "0099990000048": fake("0099990000048", "Check Daily Shampoo", "Water, Cocamide DEA, Salicylic Acid, Sodium Hydroxide, Bemotrizinol"),
+  "0099990000024": fake("0099990000024", "Check Mineral Sunscreen SPF 30", "Active ingredients: Zinc Oxide 20%, Octinoxate 7.5%, Bemotrizinol 4%. Inactive ingredients: Water, Glycerin"),
+  "0099990000048": fake("0099990000048", "Check Daily Shampoo", "Water, Cocamide DEA, Salicylic Acid, Sodium Hydroxide"),
+  "0099990000055": fake("0099990000055", "Check Whitening Toothpaste", "Sodium Fluoride, Water, Hydrated Silica, Titanium Dioxide (CI 77891)"),
+  "0099990000062": fake("0099990000062", "Check Daily Moisture Lotion", "Water, Zinc Oxide, Glycerin", ["en:body-care", "en:sunscreens"]),
 };
 const OBF_404 = fixture("not-found-0049000042566").body;
 const OFF_404 = { status: "failure", result: { id: "product_not_found" } };
@@ -133,12 +135,19 @@ try {
   check("N5: zinc oxide 'proposed as safe and effective', octinoxate 'more data are needed', no finding",
     sun.includes("As a sunscreen active: FDA: proposed as safe and effective.") && sun.includes("As a sunscreen active: FDA says more data are needed.")
     && sun.includes("Nothing flagged by FDA, EU or IARC"));
+  check("N2c: bemotrizinol has FDA's 2026 status", sun.includes("As a sunscreen active: FDA: added as a sunscreen active in 2026."));
+  await back(); await home();
+  // N2c item 2 (revised): a page shows sunscreen rows only for a sunscreen, by name or OBF category.
+  const paste = await scanTyped("0099990000055", "Check Whitening Toothpaste");
+  check("a toothpaste with titanium dioxide (CI 77891) gets no sunscreen row", paste.includes("Check Whitening Toothpaste") && !paste.includes("As a sunscreen active"));
+  await back(); await home();
+  const byTag = await scanTyped("0099990000062", "Check Daily Moisture Lotion");
+  check("a lotion that OBF files under sunscreens gets the zinc oxide row", byTag.includes("As a sunscreen active: FDA: proposed as safe and effective."));
   await back(); await home();
 
   // N2c + N2b: cocamide DEA (IARC 2B) sets the badge; two EU Annex III ingredients sit in one closed grey row.
   const daily = await scanTyped("0099990000048", "Check Daily Shampoo");
   check("N2c: cocamide DEA (IARC 2B) gives Some concern", daily.includes("Some concern · 1 finding") && daily.includes("Cocamide DEA"));
-  check("N2c: bemotrizinol has FDA's 2026 status", daily.includes("As a sunscreen active: FDA: added as a sunscreen active in 2026."));
   const fold = () => run(`(() => { const d = [...document.querySelectorAll("details")].find(e => e.innerText.startsWith("Limited, not banned"));
     return d ? { open: d.open, summary: d.querySelector("summary").innerText, shown: d.querySelector("ul").checkVisibility() } : null; })()`);
   const closed = await fold();

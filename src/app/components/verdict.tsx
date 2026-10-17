@@ -7,7 +7,7 @@ import { HelpCircle } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
 import { VERDICT_RANK, type Verdict } from "../../lib/safety/analyze";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
-import { analyzeCare, type CareAnalysis } from "../../lib/safety/personalCare";
+import { analyzeCare, isSunscreen, type CareAnalysis } from "../../lib/safety/personalCare";
 import { isPersonalCare } from "../../lib/lookup";
 
 type IconProps = { size?: number; style?: CSSProperties; className?: string };
@@ -43,7 +43,7 @@ const NO_DATA: Assessment = { verdict: "no-data", flags: [], checkedCount: 0, co
  *  products (M16) get the personal-care check, never the food one (lists too). */
 export function safeAnalyze(p: Product): Assessment & Partial<Pick<CareAnalysis, "notes" | "limited">> {
   try {
-    if (isPersonalCare(p)) return { ...analyzeCare(p.ingredients), concerns: [] };
+    if (isPersonalCare(p)) return { ...analyzeCare(p.ingredients, { sunscreen: isSunscreen(p.name, p.source?.categoryTags) }), concerns: [] };
     return assessProduct({ ...p, additiveCodes: p.source?.additiveCodes });
   } catch (err) {
     console.error("[safety] assessment failed for product", p.id, err);

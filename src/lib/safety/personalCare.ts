@@ -327,7 +327,14 @@ const bare = (item: string) => item.toLowerCase().replace(AMOUNT, "").replace(/\
 const names = (item: string) => { const b = bare(item); return b.includes("/") ? [b, ...b.split("/").map(s => s.trim())] : [b]; };
 const FRAGRANCE_WORD = /(?<![a-z0-9])(?:fragrance|parfum|aroma)(?![a-z0-9])/;
 
-export function analyzeCare(ingredients: string): CareAnalysis {
+const SUNSCREEN_WORD = /\bsun ?(?:screen|block)s?\b|\bspf\d*\b/i;
+/** N2c item 2 (revised): a product page shows sunscreen rows only when the name or the OBF categories say sunscreen,
+ *  sunblock or SPF (titanium dioxide in a toothpaste is a colour, not a sunscreen). */
+export const isSunscreen = (name: string, categoryTags: string[] = []) => [name, ...categoryTags].some(s => SUNSCREEN_WORD.test(s));
+
+/** `sunscreen: false` (a product page for a product that isn't a sunscreen) leaves the sunscreen rows out; a photo or
+ *  typed list, which has no name, keeps them. */
+export function analyzeCare(ingredients: string, { sunscreen = true }: { sunscreen?: boolean } = {}): CareAnalysis {
   const items = parseIngredients(typeof ingredients === "string" ? ingredients : "");
   const checkedCount = PERSONAL_CARE.length;
   if (items.length === 0) return { verdict: "no-data", flags: [], checkedCount, notes: [], limited: [] };
@@ -340,7 +347,7 @@ export function analyzeCare(ingredients: string): CareAnalysis {
     for (const entry of PERSONAL_CARE)
       if (!flags.some(f => f.entry === entry) && entry.aliases.some(a => n.includes(a))) flags.push({ entry, matchedText: item });
     for (const note of CARE_NOTES) {
-      if (found.some(f => f.note === note)) continue;
+      if ((note.kind === "sunscreen" && !sunscreen) || found.some(f => f.note === note)) continue;
       // "fragrance" is a word anywhere in the item ("Natural Fragrance"); every other note is a whole name.
       const hit = note.kind === "fragrance" ? FRAGRANCE_WORD.test(bare(item)) : note.aliases.some(a => n.includes(a));
       if (hit) found.push({ note, matchedText: item });

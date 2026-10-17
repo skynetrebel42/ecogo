@@ -234,7 +234,7 @@ test("an Open Beauty Facts product maps with its own crowd-sourced source; it ha
   assert.match(r.product.ingredients, /^Water \(Aqua\), Glycerin/);
   assert.deepEqual(r.product.source, {
     name: "Open Beauty Facts", url: "https://world.openbeautyfacts.org/product/0055086009386",
-    crowdSourced: true, ingredientsLang: "en", additiveCodes: [],
+    crowdSourced: true, ingredientsLang: "en", additiveCodes: [], categoryTags: [], // this record has no categories on OBF
   });
   assert.equal(updateInfoUrl(r.product), null);
   assert.equal(obfEditUrl(" 0055086-009386"), "https://world.openbeautyfacts.org/cgi/product.pl?type=edit&code=0055086009386");
@@ -269,6 +269,13 @@ test("a food find never asks OBF; a miss everywhere is not found", async () => {
   assert.equal((await lookupBarcode("5000112548167", { foods: memoryFoods([]), fetchImpl: off.impl })).status, "found");
   assert.equal(off.calls.filter(u => u.includes("openbeautyfacts")).length, 0);
   assert.equal((await lookupBarcode("0071249000017", { foods: memoryFoods([]), fetchImpl: fakeOff().impl })).status, "not-found");
+});
+
+test("a 200 that isn't JSON (a captive portal, a rate-limit page) is an error from OFF or OBF, never 'not found'", async () => {
+  const page = (who: "openfoodfacts" | "openbeautyfacts") => (async (input: RequestInfo | URL, init?: RequestInit) =>
+    String(input).includes(who) ? new Response("<html>Please wait…</html>", { status: 200 }) : fakeOff().impl(input, init)) as typeof fetch;
+  assert.equal((await lookupBarcode("0072140000030", { foods: memoryFoods([]), fetchImpl: page("openfoodfacts") })).status, "error");
+  assert.equal((await lookupBarcode("0072140000047", { foods: memoryFoods([]), fetchImpl: page("openbeautyfacts") })).status, "error");
 });
 
 test("OFF unreachable: an OBF find shows (looked up again next time); an OBF miss is an error, never 'not found'", async () => {
