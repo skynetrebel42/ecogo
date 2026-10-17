@@ -1,10 +1,12 @@
-// Checks every library source and every Learn claim (src/lib/learnSources.ts): fetches its URL and confirms the
+// Checks every library source (food, and personal care in src/lib/safety/personalCare.ts) and every Learn claim
+// (src/lib/learnSources.ts): fetches its URL and confirms the
 // recorded quote appears on the page.
-// Usage: npm run verify:sources   (needs the internet; run whenever library.ts, foodConcerns.ts or learnSources.ts changes)
+// Usage: npm run verify:sources   (needs the internet; run whenever library.ts, foodConcerns.ts, personalCare.ts or learnSources.ts changes)
 // Exits 1 on a missing quote, when nothing passed (offline), or when an "unverifiable" source (blocked, PDF, JS-only
 // page) has no `checkedByHand` date: open that page by hand, confirm the quote, then add the date (rules: src/lib/sourceCheck.ts).
 import { LIBRARY } from "../src/lib/safety/library.ts";
 import { PROCESSED_MEAT, ACRYLAMIDE } from "../src/lib/safety/foodConcerns.ts";
+import { PERSONAL_CARE, CARE_NOTES } from "../src/lib/safety/personalCare.ts";
 import { LEARN_SOURCES } from "../src/lib/learnSources.ts";
 import { checkSource, verdict } from "../src/lib/sourceCheck.ts";
 
@@ -12,7 +14,7 @@ import { checkSource, verdict } from "../src/lib/sourceCheck.ts";
 const learn = Object.entries(LEARN_SOURCES).map(([id, sources]) => ({ id: `learn:${id}`, sources }));
 const seen = new Set();
 const results = [];
-for (const entry of [...LIBRARY, PROCESSED_MEAT, ACRYLAMIDE, ...learn]) {
+for (const entry of [...LIBRARY, PROCESSED_MEAT, ACRYLAMIDE, ...PERSONAL_CARE, ...CARE_NOTES, ...learn]) {
   for (const source of entry.sources) {
     const key = `${source.url} ${source.quote}`;
     if (seen.has(key)) continue;
