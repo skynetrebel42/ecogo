@@ -3,7 +3,7 @@
 //
 //   1. The Scan tab opens the live camera (CameraScanner), which reads a barcode on its own. Typing a barcode or
 //      tapping a demo barcode does the same without a camera (M6 spec §4.3, §4.4).
-//   2. Look up our catalog, then USDA FoodData Central, then Open Food Facts (lib/lookup.ts).
+//   2. Look up our catalog, then USDA FoodData Central, then Open Food Facts, then Open Beauty Facts (lib/lookup.ts).
 //      • Catalog product    → product page opens.
 //      • Found by lookup    → product page opens.
 //      • Found nowhere      → honest "not found" screen.
@@ -17,6 +17,7 @@ import type { Product } from "../../lib/productImporter";
 import { lookupBarcode, normalizeBarcode, isBarcode, sameBarcode, offAddUrl } from "../../lib/lookup";
 import { supabaseFoods } from "../../lib/foodsDb";
 import CameraScanner from "./CameraScanner";
+import type { CheckKind } from "./IngredientCheck";
 
 interface DemoBarcode { barcode: string; label: string; category: string }
 
@@ -44,8 +45,9 @@ interface ScanTabProps {
   /** Called with the product (catalog or looked up) so App.tsx can open the product page. */
   onScanResult: (product: Product) => void;
   products: Product[];
-  /** "No barcode? Check ingredients" (M8 D13): opens the no-barcode check. */
-  onCheckIngredients: () => void;
+  /** "No barcode? Check ingredients" (M8 D13) and the not-found screen's personal-care check (M16 N6): opens the
+   *  photo-or-type check on that "What is it?" answer. */
+  onCheckIngredients: (kind: CheckKind) => void;
   /** "Add this product" on the not-found screen (M8): opens the add flow for that barcode. */
   onAdd: (code: string) => void;
 }
@@ -56,6 +58,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [typed, setTyped]               = useState("");
   const [scannedCode, setScannedCode]   = useState("");
+  const [kind, setKind]                 = useState<CheckKind>("food"); // M16 N6: the not-found screen's "What is it?"
 
   const handleScan = useCallback(async (raw: string) => {
     if (scanState === "scanning" || scanState === "found") return;
@@ -64,6 +67,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
     setScanState("scanning");
     setScannedCode(barcode);
     setSelectorOpen(false);
+    setKind("food");
 
     const catalogProduct = products.find((p) => sameBarcode(p.barcode, barcode)) ?? null;
     let product: Product | null = catalogProduct;
@@ -109,7 +113,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
         <span className="flex items-center gap-2 text-white/70 text-xs font-medium"><QrCode size={14} className="text-white/50" />Demo barcodes</span>
         {selectorOpen ? <ChevronDown size={14} className="text-white/40" /> : <ChevronUp size={14} className="text-white/40" />}
       </button>
-      <button onClick={onCheckIngredients} disabled={busy}
+      <button onClick={() => onCheckIngredients("food")} disabled={busy}
         className="w-full min-h-[44px] flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-white/15 bg-white/5 text-white/70 text-xs font-medium disabled:opacity-40">
         <ScrollText size={14} className="text-white/50" />No barcode? Check ingredients
       </button>
@@ -148,9 +152,22 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
             <Database size={40} className="text-amber-400" />
           </div>
           <h2 className="text-2xl font-extrabold text-white mb-2">We couldn't find this barcode yet</h2>
-          <p className="text-white/60 text-sm mb-2 leading-relaxed max-w-xs">It isn't in our catalog, USDA FoodData Central or Open Food Facts.</p>
+          <p className="text-white/60 text-sm mb-4 leading-relaxed max-w-xs">It isn't in our catalog, USDA FoodData Central, Open Food Facts or Open Beauty Facts.</p>
+          <div role="group" aria-labelledby="what-is-it" className="w-full max-w-xs mb-4">
+            <p id="what-is-it" className="text-white text-sm font-bold mb-1.5">What is it?</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {([["food", "Food"], ["care", "Personal care"]] as const).map(([k, label]) => (
+                <button key={k} onClick={() => setKind(k)} aria-pressed={kind === k}
+                  className={`min-h-[44px] rounded-xl text-sm ${kind === k ? "bg-white text-[#1A1200] font-extrabold" : "border border-white/25 text-white font-bold"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           <p className="text-white/60 text-sm mb-5 leading-relaxed max-w-xs">
-            Add it in about a minute: three photos, and EcoGo reads the ingredients for you. You'll see the safety check right away.
+            {kind === "food"
+              ? "Add it in about a minute: three photos, and EcoGo reads the ingredients for you. You'll see the safety check right away."
+              : "Photograph or type its ingredients and EcoGo checks them against FDA, EU and IARC findings. Nothing is saved or sent."}
           </p>
           <div className="bg-white/8 border border-white/15 rounded-2xl px-5 py-3 w-full max-w-xs">
             <p className="text-micro text-white/40 uppercase tracking-widest mb-1">Scanned Barcode</p>
@@ -159,16 +176,19 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
         </div>
 
         <div className="px-5 pb-8 flex-shrink-0 flex flex-col gap-2.5">
-          <button onClick={() => onAdd(scannedCode)} className="w-full py-4 rounded-2xl font-extrabold text-base shadow-xl" style={{ background: "#F59E0B", color: "#1A1200" }}>
-            Add this product
+          <button onClick={() => (kind === "food" ? onAdd(scannedCode) : onCheckIngredients("care"))}
+            className="w-full py-4 rounded-2xl font-extrabold text-base shadow-xl" style={{ background: "#F59E0B", color: "#1A1200" }}>
+            {kind === "food" ? "Add this product" : "Check the label yourself"}
           </button>
           <button onClick={scanAgain} className="w-full py-3.5 rounded-2xl font-bold text-sm text-white border border-white/25">
             Scan another product
           </button>
-          <a href={offAddUrl(scannedCode)} target="_blank" rel="noreferrer"
-            className="text-amber-300/80 text-xs font-bold inline-flex items-center justify-center gap-1 min-h-[44px]">
-            Or add it on the Open Food Facts website <ExternalLink size={11} />
-          </a>
+          {kind === "food" && (
+            <a href={offAddUrl(scannedCode)} target="_blank" rel="noreferrer"
+              className="text-amber-300/80 text-xs font-bold inline-flex items-center justify-center gap-1 min-h-[44px]">
+              Or add it on the Open Food Facts website <ExternalLink size={11} />
+            </a>
+          )}
         </div>
       </div>
     );
@@ -211,7 +231,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
           {scanState === "error" ? "Try again" : busy ? "Looking up…" : "📷 Open camera"}
         </button>
         <p className="text-center text-white/40 text-micro">
-          {products.length} catalog products · others looked up in USDA FoodData Central, then Open Food Facts
+          {products.length} catalog products · others looked up in USDA FoodData Central, then Open Food Facts and Open Beauty Facts
         </p>
       </div>
     </div>

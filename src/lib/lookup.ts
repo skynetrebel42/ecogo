@@ -129,10 +129,11 @@ export function mapObfResponse(json: unknown, httpStatus: number): LookupResult 
   const english = str(p.ingredients_text_en);
   const ingredients = english || str(p.ingredients_text);
   if (!code || (!name && !ingredients)) return { status: "not-found" };
-  return { status: "found", product: toProduct(code, name, str(p.brands).split(",")[0].trim(), ingredients, {
+  const product = toProduct(code, name, str(p.brands).split(",")[0].trim(), ingredients, {
     name: "Open Beauty Facts", url: obfProductUrl(code), crowdSourced: true,
     ingredientsLang: english ? "en" : str(p.lang) || "en", additiveCodes: [],
-  }) };
+  });
+  return { status: "found", product: { ...product, category: "Personal Care" } }; // the catalog's own name: 🧴, and shown in the header
 }
 
 async function fetchObf(code: string, f: typeof fetch): Promise<LookupResult> {

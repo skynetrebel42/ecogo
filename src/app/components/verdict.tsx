@@ -7,6 +7,8 @@ import { HelpCircle } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
 import { VERDICT_RANK, type Verdict } from "../../lib/safety/analyze";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
+import { analyzeCare } from "../../lib/safety/personalCare";
+import { isPersonalCare } from "../../lib/lookup";
 
 type IconProps = { size?: number; style?: CSSProperties; className?: string };
 
@@ -37,9 +39,11 @@ export const VERDICT_STYLE: Record<Verdict, {
 
 const NO_DATA: Assessment = { verdict: "no-data", flags: [], checkedCount: 0, concerns: [] };
 
-/** Never let the engine blank a screen: an unexpected error shows "Not enough data" and is logged. */
+/** Never let the engine blank a screen: an unexpected error shows "Not enough data" and is logged. Personal-care
+ *  products (M16) get the personal-care check, never the food one (lists too). */
 export function safeAnalyze(p: Product): Assessment {
   try {
+    if (isPersonalCare(p)) return { ...analyzeCare(p.ingredients), concerns: [] };
     return assessProduct({ ...p, additiveCodes: p.source?.additiveCodes });
   } catch (err) {
     console.error("[safety] assessment failed for product", p.id, err);
@@ -54,10 +58,10 @@ export const fewestConcerns = (x: Assessment, y: Assessment) =>
 
 export const formsWhenCooked =(a: Assessment) => a.concerns.some(c => c.kind === "cooking");
 
-/** "Known carcinogen · 2 findings", "Some concern · 1 finding", or the plain label. */
-export function verdictHeadline(a: Assessment): string {
-  const n = a.flags.length + a.concerns.filter(c => c.kind === "food").length;
+/** "Known carcinogen · 2 findings", "Some concern · 1 finding", or the plain label. `care`: a personal-care check. */
+export function verdictHeadline(a: Pick<Assessment, "verdict" | "flags" | "checkedCount"> & { concerns?: Assessment["concerns"] }, care = false): string {
+  const n = a.flags.length + (a.concerns ?? []).filter(c => c.kind === "food").length;
   if (a.verdict === "known" || a.verdict === "high" || a.verdict === "some") return `${VERDICT_STYLE[a.verdict].label} · ${n} finding${n === 1 ? "" : "s"}`;
-  if (a.verdict === "none") return `Nothing flagged among ${a.checkedCount} additives with an official finding`;
+  if (a.verdict === "none") return care ? "Nothing flagged by FDA, EU or IARC" : `Nothing flagged among ${a.checkedCount} additives with an official finding`;
   return VERDICT_STYLE[a.verdict].label;
 }

@@ -12,11 +12,12 @@ import { toggleSave, type SavedStore } from "../../lib/saved";
 import SaveSheet from "./SaveSheet";
 import {
   ArrowLeft, Bookmark,
-  TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame,
+  TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame, Info,
 } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
-import { updateInfoUrl } from "../../lib/lookup";
+import { updateInfoUrl, isPersonalCare, obfEditUrl } from "../../lib/lookup";
 import { escapeRegExp, type Flag } from "../../lib/safety/analyze";
+import { analyzeCare, CARE_LIMITS } from "../../lib/safety/personalCare";
 import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
@@ -48,11 +49,11 @@ const NONE_BUT_COOKED = "No hazard flags from IARC, EU or FDA in the ingredients
 // Point to the Nutrition section only when the page has one (no data, e.g. no verified barcode → no section).
 const nutritionNote = (hasSection: boolean) => ` This badge doesn't rate nutrition${hasSection ? "; see the Nutrition section" : ""}.`;
 
-/** One row on the product page: an additive flag or a food-level concern. */
-interface Finding { id: string; name: string; severity?: Severity; concern: string; detail: string; context?: string; sources: Source[] }
+/** One row on the product page: an additive flag, a food-level concern, or a personal-care info note (M16, `info`). */
+interface Finding { id: string; name: string; severity?: Severity; info?: boolean; concern: string; detail: string; context?: string; sources: Source[] }
 
 /** Findings grouped by where they come from; empty groups are dropped. */
-function findingGroups(a: Assessment): { title: string; findings: Finding[] }[] {
+function findingGroups(a: Assessment, notes: ReturnType<typeof analyzeCare>["notes"] = []): { title: string; findings: Finding[] }[] {
   const fromConcerns = (kind: "food" | "cooking") => a.concerns.filter(c => c.kind === kind).map(c => ({
     id: c.id, name: c.name, severity: c.severity, concern: c.concern, detail: c.reason, context: c.context, sources: c.sources,
   }));
@@ -63,10 +64,15 @@ function findingGroups(a: Assessment): { title: string; findings: Finding[] }[] 
     })) },
     { title: "The food itself", findings: fromConcerns("food") },
     { title: "Formed when cooked", findings: fromConcerns("cooking") },
+    // M16 N3–N5: info rows; they don't change the badge.
+    { title: "Good to know", findings: notes.map(({ note, matchedText }) => ({
+      id: `note-${note.id}`, name: note.name, info: true, concern: note.text, detail: `Listed as “${matchedText}”`, sources: note.sources,
+    })) },
   ].filter(g => g.findings.length > 0);
 }
 
 const COOKING_LOOK = { short: "Forms when cooked", color: "#4B5563", bg: "#F3F4F6", Icon: Flame };
+const INFO_LOOK = { short: "Info", color: "#4B5563", bg: "#F3F4F6", Icon: Info }; // never changes the badge
 
 /** The full ingredient text with the label phrases that triggered flags highlighted. */
 function HighlightedIngredients({ text, flags }: { text: string; flags: Flag[] }) {
@@ -83,7 +89,7 @@ function HighlightedIngredients({ text, flags }: { text: string; flags: Flag[] }
 }
 
 function FindingRow({ finding: entry, open, onToggle }: { finding: Finding; open: boolean; onToggle: () => void }) {
-  const look = entry.severity ? VERDICT_STYLE[entry.severity] : COOKING_LOOK;
+  const look = entry.info ? INFO_LOOK : entry.severity ? VERDICT_STYLE[entry.severity] : COOKING_LOOK;
   return (
     <div className="px-4 py-3">
       <button onClick={onToggle} aria-expanded={open} className="w-full flex items-start gap-3 text-left">
@@ -140,6 +146,11 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
   const checkButton = useRef<HTMLButtonElement>(null);
   const behind = checking ? { inert: "" } : {};
   const analysis = useMemo(() => safeAnalyze(product), [product]);
+  // M16: an Open Beauty Facts product. Its badge comes from safeAnalyze; the info rows from the same check.
+  const care = isPersonalCare(product);
+  const careNotes = useMemo(() => {
+    try { return care ? analyzeCare(product.ingredients).notes : []; } catch { return []; } // never blank the page
+  }, [product, care]);
   const look = VERDICT_STYLE[analysis.verdict];
   const nutrition = useNutrition(product);
   const highNutrient = topHigh(nutrition.status === "ready" ? nutrition.nutrition : null);
@@ -196,7 +207,17 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
       <div {...behind} className="flex-1 overflow-y-auto bg-gray-50" style={{ scrollbarWidth: "none" }}>
         <div className="px-4 py-4 space-y-3 pb-10">
 
-          {product.source && (
+          {product.source && care && (
+            <div className="rounded-2xl p-3 text-mini leading-snug border bg-amber-50 border-amber-100 text-amber-900">
+              <strong>From Open Beauty Facts, crowd-sourced.</strong>{" "}
+              <a href={product.source.url} target="_blank" rel="noreferrer" className="font-bold underline">View on Open Beauty Facts</a>
+              {product.source.ingredientsLang !== "en" && (
+                <span className="block mt-1">Ingredients are listed in {languageName(product.source.ingredientsLang)}; ingredient names may be missed.</span>
+              )}
+              <span className="block mt-1 opacity-70">Data © Open Beauty Facts contributors, ODbL.</span>
+            </div>
+          )}
+          {product.source && !care && (
             <div className={`rounded-2xl p-3 text-mini leading-snug border ${product.source.crowdSourced
               ? "bg-amber-50 border-amber-100 text-amber-900" : "bg-white border-gray-100 text-gray-600 shadow-sm"}`}>
               {product.source.crowdSourced
@@ -219,15 +240,18 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
           <div className="bg-white rounded-2xl p-4 shadow-sm" style={{ borderLeft: `4px solid ${look.color}` }}>
             <div className="flex items-center gap-2">
               <look.Icon size={18} style={{ color: look.color }} />
-              <span className="font-extrabold text-sm" style={{ color: look.color }}>{verdictHeadline(analysis)}</span>
+              <span className="font-extrabold text-sm" style={{ color: look.color }}>{verdictHeadline(analysis, care)}</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{analysis.verdict === "none"
+            <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{care
+              ? (analysis.verdict === "no-data" ? "No ingredient list on Open Beauty Facts."
+                : `${analysis.flags.length + careNotes.length > 0 ? `${TAP_FINDING} ` : ""}${CARE_LIMITS}`)
+              : analysis.verdict === "none"
               ? (formsWhenCooked(analysis) ? NONE_BUT_COOKED : SMALL_PRINT.none) + nutritionNote(nutrition.status !== "none" || !!updateUrl)
               : SMALL_PRINT[analysis.verdict]}</p>
           </div>
 
           {/* ── Findings, grouped by where they come from ── */}
-          {findingGroups(analysis).map(g => (
+          {findingGroups(analysis, careNotes).map(g => (
             <div key={g.title} className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 font-bold text-sm">{g.title}</div>
               <div className="divide-y divide-gray-50">
@@ -249,7 +273,15 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
             </div>
             {product.ingredients.trim()
               ? <p className="text-xs text-gray-600 leading-relaxed"><HighlightedIngredients text={product.ingredients} flags={analysis.flags} /></p>
-              : <p className="text-xs text-gray-500 italic">No ingredient list available.</p>}
+              : <p className="text-xs text-gray-500 italic">{care ? "No ingredient list on Open Beauty Facts." : "No ingredient list available."}</p>}
+            {/* M16 N1: Open Beauty Facts products: the self-check and OBF's own editor; EcoGo sends nothing to OBF. */}
+            {care && <div className="mt-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-gray-600">{product.ingredients.trim() ? "Doesn't match your package?" : "Have the package?"}</p>
+                <button ref={checkButton} onClick={() => setChecking(true)} className="flex-shrink-0 min-h-[44px] px-3 rounded-xl border border-border text-xs font-bold text-gray-700">Check the label yourself</button>
+              </div>
+              <EditOnOff url={obfEditUrl(product.barcode)} site="Open Beauty Facts" />
+            </div>}
             {/* Crowd-sourced OFF products only: 058 L1 the self-check; L4 the account-free sends first, OFF's own editor last. */}
             {updateUrl && <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
@@ -261,7 +293,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
               <EditOnOff url={updateUrl} />
             </div>}
             <p className="text-micro text-gray-500 mt-3 leading-snug">
-              Findings are matched against official sources (IARC, EU, FDA, EFSA, WHO), linked on each finding.
+              Findings are matched against official sources ({care ? "FDA, EU, IARC" : "IARC, EU, FDA, EFSA, WHO"}), linked on each finding.
               Classifications describe potential hazards; this is not medical advice.
             </p>
           </div>
@@ -299,7 +331,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
       </div>
       {sheet && <SaveSheet productId={product.id} saved={store} savedOk={savedOk} onChange={onChangeSaved} onClose={closeSheet} />}
       {checking && <IngredientCheck product={product.name} onClose={() => { setChecking(false); setTimeout(() => checkButton.current?.focus()); }}
-        onSendPhotos={photo => onAddToOff("photos", photo)} />}
+        {...(care ? { kind: "care" as const, source: "Open Beauty Facts" } : { onSendPhotos: (photo: Blob) => onAddToOff("photos", photo) })} />}
     </div>
   );
 }

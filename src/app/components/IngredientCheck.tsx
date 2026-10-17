@@ -1,11 +1,13 @@
 // IngredientCheck.tsx — check an ingredient list without a barcode (M8 spec D2, §3): photograph or type it, see the
 // same safety check as a product page. Nothing is saved or sent. Decision 058: the same check opens from a
 // crowd-sourced OFF product as "Check the label yourself". IngredientEditor (the check box + live badge) is
-// shared with AddProductFlow's "Check the ingredients" step.
+// shared with AddProductFlow's "Check the ingredients" step. M16 N6: "What is it?" Food / Personal care; personal care
+// runs the personal-care check (src/lib/safety/personalCare.ts) on the same photo or typed list.
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
+import { analyzeCare, CARE_LIMITS, type CareAnalysis } from "../../lib/safety/personalCare";
 import { readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
 import { isBlurry, preparePhoto } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
@@ -22,6 +24,18 @@ function check(ingredients: string): Assessment | null {
     return { verdict: "no-data", flags: [], checkedCount: 0, concerns: [] };
   }
 }
+
+function careCheck(ingredients: string): CareAnalysis | null {
+  if (!ingredients.trim()) return null;
+  try {
+    return analyzeCare(ingredients);
+  } catch (err) {
+    console.error("[safety] personal-care check failed for typed ingredients", err);
+    return { verdict: "no-data", flags: [], checkedCount: 0, notes: [] };
+  }
+}
+
+export type CheckKind = "food" | "care";
 
 export const INGREDIENTS_TIP = "Photograph the ingredients list: flat, in good light, with no glare. EcoGo reads the words on your phone.";
 
@@ -66,17 +80,20 @@ function linesNote(a?: string, b?: string): string {
  *  With `lines` (read from a photo), each line can be ticked or unticked and the box follows; the first keystroke in the
  *  box hides the lines for good (onLines(null)), so the box is the final say (follow-up F2, F3).
  *  With `read` (a hard-to-read photo, follow-up 6 K2), the box starts empty and "Show what we read" puts it there. */
-export function IngredientEditor({ value, onChange, unsure, note, lines, onLines, read, onShowRead, from }: {
+export function IngredientEditor({ value, onChange, unsure, note, lines, onLines, read, onShowRead, from, kind = "food" }: {
   value: string; onChange: (text: string) => void; unsure: string[]; note?: string;
   lines?: LabelLine[] | null; onLines?: (lines: LabelLine[] | null) => void; read?: string; onShowRead?: () => void;
   /** 058 L1: where the result comes from, said inside it ("From your photo, not from Open Food Facts."). */
   from?: string;
+  /** M16 N6: which check runs. */
+  kind?: CheckKind;
 }) {
-  const assessment = useMemo(() => check(value), [value]);
+  const assessment = useMemo(() => (kind === "food" ? check(value) : null), [value, kind]);
+  const care = useMemo(() => (kind === "care" ? careCheck(value) : null), [value, kind]);
   const [explainer, setExplainer] = useState(false);
   const unsureSet = new Set(unsure);
   const box = "w-full min-h-[120px] p-3 text-sm leading-relaxed font-[inherit] whitespace-pre-wrap break-words";
-  const look = assessment && VERDICT_STYLE[assessment.verdict];
+  const look = assessment ? VERDICT_STYLE[assessment.verdict] : care && VERDICT_STYLE[care.verdict];
   const [showAll, setShowAll] = useState(false);
   const found = trimToIngredients((lines ?? []).map(l => l.text).join("\n"));
   // G5: with a start or stop word found, lines left out (and not ticked) wait behind a button.
@@ -121,7 +138,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
             : part))}{"\n"}
         </div>
         <textarea id="ingredients" value={value} onChange={e => { if (lines?.length) onLines?.(null); onChange(e.target.value); }}
-          placeholder="e.g. Sugar, corn syrup, Red 40, …" aria-describedby={unsureN ? "unsure-note" : undefined}
+          placeholder={kind === "care" ? "e.g. Water, Glycerin, Fragrance, …" : "e.g. Sugar, corn syrup, Red 40, …"} aria-describedby={unsureN ? "unsure-note" : undefined}
           className={`${box} absolute inset-0 h-full bg-transparent resize-none outline-none rounded-2xl text-foreground overflow-hidden`} />
       </div>
       {unsureN > 0 && <p id="unsure-note" className="text-xs text-muted-foreground">{unsureN === 1 ? "1 word underlined: check it." : `${unsureN} words underlined: check them.`}</p>}
@@ -145,6 +162,23 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
               Why "Nothing flagged" isn't "healthy"
             </button>
           </>}
+        </div>
+      )}
+      {care && look && (
+        <div role="status" className="rounded-2xl p-3.5 space-y-1.5" style={{ background: look.bg }}>
+          <p className="flex items-center gap-1.5 text-[15px] font-extrabold" style={{ color: look.color }}>
+            <look.Icon size={16} />{verdictHeadline(care, true)}
+          </p>
+          {from && <p className="text-xs font-bold text-gray-700">{from}</p>}
+          {care.flags.map(f => (
+            <p key={f.entry.id} className="text-xs leading-snug" style={{ color: look.solid }}>
+              <b>{f.entry.name}:</b> {f.entry.concern}{f.entry.context && ` ${f.entry.context}`}
+            </p>
+          ))}
+          {care.notes.length > 0 && <ul aria-label="Good to know" className="space-y-1 pt-0.5">
+            {care.notes.map(n => <li key={n.note.id} className="text-xs leading-snug text-gray-700"><b>{n.note.name}:</b> {n.note.text}</li>)}
+          </ul>}
+          <p className="text-xs leading-snug text-gray-700">{CARE_LIMITS}</p>
         </div>
       )}
       {explainer && <Explainer id="not-healthy" onBack={() => setExplainer(false)} />}
@@ -180,9 +214,13 @@ export function Reading() {
 }
 
 /** Without `product`: the Scan drawer's no-barcode check. With it (decision 058 L1): "Check the label yourself" for a
- *  crowd-sourced OFF product, named in the header; `onSendPhotos` (L2) hands the label photo to Send new photos. */
-export default function IngredientCheck({ onClose, product, onSendPhotos }: { onClose: () => void; product?: string; onSendPhotos?: (photo: Blob) => void }) {
+ *  crowd-sourced product, named in the header; `onSendPhotos` (L2) hands the label photo to Send new photos (food only).
+ *  `kind` (M16 N6): the "What is it?" answer it starts on; `source`: where the product page's data came from. */
+export default function IngredientCheck({ onClose, product, onSendPhotos, kind: startKind = "food", source = "Open Food Facts" }: {
+  onClose: () => void; product?: string; onSendPhotos?: (photo: Blob) => void; kind?: CheckKind; source?: string;
+}) {
   const [mode, setMode] = useState<"photo" | "type">("photo");
+  const [kind, setKind] = useState<CheckKind>(startKind);
   const [sendable, setSendable] = useState<Blob>(); // L2: the prepared (sendable) photo; not a raw one preparePhoto refused
   const title = useRef<HTMLHeadingElement>(null);
   useEffect(() => { if (product) title.current?.focus(); }, []);
@@ -233,6 +271,17 @@ export default function IngredientCheck({ onClose, product, onSendPhotos }: { on
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
+        <div role="group" aria-labelledby="check-kind" className="space-y-1.5">
+          <p id="check-kind" className="text-sm font-bold">What is it?</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {([["food", "Food"], ["care", "Personal care"]] as const).map(([k, label]) => (
+              <button key={k} onClick={() => setKind(k)} aria-pressed={kind === k}
+                className={`min-h-[44px] rounded-xl text-sm bg-white ${kind === k ? "border-2 border-[#1A5C39] font-extrabold text-[#1A5C39]" : "border border-border font-bold text-gray-700"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div role="group" aria-label="How to enter the ingredients" className="grid grid-cols-2 gap-1.5 bg-gray-200 p-1 rounded-2xl">
           {(["photo", "type"] as const).map(m => (
             <button key={m} onClick={() => { if (m !== mode) begin(); setMode(m); if (m === "type") setLines(l => (l?.length ? null : l)); }} aria-pressed={mode === m} disabled={status === "reading"}
@@ -254,10 +303,10 @@ export default function IngredientCheck({ onClose, product, onSendPhotos }: { on
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
           note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines}
           read={mode === "photo" ? readText : undefined} onShowRead={() => { setText(readText!); setReadText(undefined); }}
-          from={product && (status === "read" ? "From your photo, not from Open Food Facts." : "From what you typed, not from Open Food Facts.")} />}{/* read text stays "from your photo" after Type it */}
+          from={product && (status === "read" ? `From your photo, not from ${source}.` : `From what you typed, not from ${source}.`)} kind={kind} />}{/* read text stays "from your photo" after Type it */}
 
         <p className="text-xs text-gray-600 leading-relaxed">
-          {product ? "This checks the ingredients only. Nothing is saved or sent."
+          {product || kind === "care" ? "This checks the ingredients only. Nothing is saved or sent."
             : "Without a barcode there's no nutrition label to look up, so this checks ingredients only. Nothing is saved or sent."}
         </p>
       </div>
@@ -265,7 +314,7 @@ export default function IngredientCheck({ onClose, product, onSendPhotos }: { on
       {showEditor && (
         <div className="px-4 pt-3 pb-6 space-y-2">
           {/* L2: only after a photo check (typed text is never sent to OFF) */}
-          {onSendPhotos && mode === "photo" && sendable && (
+          {onSendPhotos && kind === "food" && mode === "photo" && sendable && (
             <button onClick={() => { begin(); onSendPhotos(sendable); }}
               className="w-full min-h-[52px] rounded-2xl border-2 border-[#1A5C39] bg-white text-[#1A5C39] font-extrabold text-[15px]">Also send these photos to Open Food Facts</button>
           )}

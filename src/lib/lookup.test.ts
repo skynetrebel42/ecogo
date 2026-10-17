@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { knownNutrition, lookupBarcode, searchFoods, mapOffResponse, normalizeBarcode, barcodeKey, isBarcode, sameBarcode, tidyCase, offEditUrl, offAddUrl, updateInfoUrl, mapObfResponse, obfEditUrl } from "./lookup.ts";
+import { knownNutrition, lookupBarcode, searchFoods, mapOffResponse, normalizeBarcode, barcodeKey, isBarcode, sameBarcode, tidyCase, offEditUrl, offAddUrl, updateInfoUrl, mapObfResponse, obfEditUrl, isPersonalCare } from "./lookup.ts";
 import { analyzeIngredients } from "./safety/analyze.ts";
 import { foodRow, memoryFoods, rowFromUsdaSearch } from "./foodsFake.ts";
 
@@ -229,6 +229,8 @@ test("an Open Beauty Facts product maps with its own crowd-sourced source; it ha
   if (r.status !== "found") return;
   assert.equal(r.product.name, "Cherry Blossom & Tea Rose Hand Lotion");
   assert.equal(r.product.brand, "Beloved");
+  assert.equal(r.product.category, "Personal Care");
+  assert.ok(isPersonalCare(r.product));
   assert.match(r.product.ingredients, /^Water \(Aqua\), Glycerin/);
   assert.deepEqual(r.product.source, {
     name: "Open Beauty Facts", url: "https://world.openbeautyfacts.org/product/0055086009386",

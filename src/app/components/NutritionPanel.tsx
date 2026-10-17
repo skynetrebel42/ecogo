@@ -39,9 +39,9 @@ const SLATE = { text: "#1E293B", bg: "#F1F5F9", border: "#CBD5E1", bar: "#E2E8F0
 
 /** M11 3.2, decision 058 L4: a small link for crowd-sourced products, opening Open Food Facts' edit form in a new tab
  *  (for people with an OFF account; EcoGo's account-free sends are the main buttons). */
-export const EditOnOff = ({ url }: { url: string }) => (
+export const EditOnOff = ({ url, site = "Open Food Facts" }: { url: string; site?: "Open Food Facts" | "Open Beauty Facts" }) => (
   <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 min-h-[44px] text-xs font-bold text-[#1A5C39] underline">
-    Have an Open Food Facts account? Edit there.<span className="sr-only"> (opens Open Food Facts in a new tab)</span> <ExternalLink size={12} aria-hidden="true" />
+    Have an {site} account? Edit there.<span className="sr-only"> (opens {site} in a new tab)</span> <ExternalLink size={12} aria-hidden="true" />
   </a>
 );
 

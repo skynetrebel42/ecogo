@@ -16,7 +16,7 @@ import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
 import { refreshSnapshot, resolveSaved, loadSaved, saveSaved, type SavedStore } from "../lib/saved";
 import Explainer, { EXPLAINERS, type ExplainerId } from "./components/Explainer";
-import IngredientCheck from "./components/IngredientCheck";
+import IngredientCheck, { type CheckKind } from "./components/IngredientCheck";
 import AddProductFlow, { type AddMode } from "./components/AddProductFlow";
 import ListScreen from "./components/ListScreen";
 import { BADGES, milestones, productCount, readContributions } from "../lib/contributions";
@@ -565,6 +565,7 @@ export default function App() {
   const [addCode, setAddCode] = useState(""); // the not-found barcode being added (M8)
   const [addMode, setAddMode] = useState<AddMode>("new"); // follow-up 5: or an OFF product's missing ingredients / new photos
   const [addPhoto, setAddPhoto] = useState<Blob>(); // 058 L2: the label photo from "Check the label yourself"
+  const [checkKind, setCheckKind] = useState<CheckKind>("food"); // M16 N6: the check's starting "What is it?" answer
   const [searchQuery, setSearchQuery] = useState("");
   // Saved products and lists, and Recently scanned: on this device only (M14 part 1, M7 spec §4.1).
   const [saved, setSaved] = useState<SavedStore>(loadSaved);
@@ -670,7 +671,7 @@ export default function App() {
                   )}
                   {activeTab === "map"     && <MapTab places={places} status={dbStatus} onFormOpen={setMapForm} />}
                   {activeTab === "scan"    && (
-                    <ScanTab products={products} onScanResult={openProduct} onCheckIngredients={() => setSubScreen("check-ingredients")}
+                    <ScanTab products={products} onScanResult={openProduct} onCheckIngredients={kind => { setCheckKind(kind); setSubScreen("check-ingredients"); }}
                       onAdd={(code) => { setAddCode(code); setAddMode("new"); setAddPhoto(undefined); setSubScreen("add-product"); }} />
                   )}
                   {activeTab === "saved"   && <SavedTab saved={saved} scanned={recentProducts} tab={savedTab} onTab={setSavedTab} onSelectProduct={openProduct} products={products}
@@ -681,7 +682,7 @@ export default function App() {
 
               {/* Sub-screen overlays — fill content area, slide over tab content */}
               {explainer && !subScreen && <Explainer id={explainer} onBack={() => setExplainer(null)} />}
-              {subScreen === "check-ingredients" && <IngredientCheck onClose={() => setSubScreen(null)} />}
+              {subScreen === "check-ingredients" && <IngredientCheck kind={checkKind} onClose={() => setSubScreen(null)} />}
               {/* Follow-up 5: opened from a product page, Close goes back to it; "Scan another product" goes to Scan. */}
               {subScreen === "add-product" && <AddProductFlow code={addCode} mode={addMode} ingredientsPhoto={addPhoto} onDone={() => { setSubScreen(null); setActiveTab("scan"); }}
                 onClose={() => setSubScreen(addMode === "new" ? null : "product-detail")} />}
