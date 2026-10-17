@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { knownNutrition, lookupBarcode, searchFoods, mapOffResponse, normalizeBarcode, barcodeKey, isBarcode, sameBarcode, tidyCase, offEditUrl, offAddUrl, updateInfoUrl } from "./lookup.ts";
+import { knownNutrition, lookupBarcode, searchFoods, mapOffResponse, normalizeBarcode, barcodeKey, isBarcode, sameBarcode, tidyCase, offEditUrl, offAddUrl, updateInfoUrl, mapObfResponse, obfEditUrl } from "./lookup.ts";
 import { analyzeIngredients } from "./safety/analyze.ts";
 import { foodRow, memoryFoods, rowFromUsdaSearch } from "./foodsFake.ts";
 
@@ -9,16 +9,26 @@ const fixture = (path: string) => JSON.parse(readFileSync(new URL(`./fixtures/${
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const NOT_FOUND = () => json(fixture("off/not-found-3017620429996").body, 404);
 
-/** A fake Open Food Facts: answers from `off` by barcode, 404 otherwise. `calls` lists every web request made. */
-function fakeOff(off: Record<string, { httpStatus: number; body: unknown }> = {}) {
+const OBF_NOT_FOUND = () => json(fixture("obf/not-found-0049000042566").body, 404);
+type Answer = { httpStatus: number; body: unknown };
+
+/** A fake Open Food Facts and Open Beauty Facts: answers from `off` / `obf` by barcode, 404 otherwise. `calls` lists
+ *  every web request made, `headers` their headers. */
+function fakeOff(off: Record<string, Answer> = {}, obf: Record<string, Answer> = {}) {
   const calls: string[] = [];
-  const impl = (async (input: RequestInfo | URL) => {
+  const headers: Record<string, string>[] = [];
+  const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     calls.push(url);
+    headers.push({ ...(init?.headers as Record<string, string>) });
+    if (url.includes("openbeautyfacts")) {
+      const hit = obf[url.match(/product\/(\d+)\?/)?.[1] ?? ""];
+      return hit ? json(hit.body, hit.httpStatus) : OBF_NOT_FOUND();
+    }
     const hit = off[url.match(/product\/(\d+)\.json/)?.[1] ?? ""];
     return hit ? json(hit.body, hit.httpStatus) : NOT_FOUND();
   }) as typeof fetch;
-  return { impl, calls };
+  return { impl, calls, headers };
 }
 /** The lookup cache lives for the session, so every test below uses barcodes no other test uses. */
 const rowFor = (code: string, over = {}) => foodRow({ barcode_key: barcodeKey(code), barcode: code, ...over });
@@ -208,4 +218,76 @@ test("Update info links to the Open Food Facts edit form for crowd-sourced produ
   assert.equal(updateInfoUrl({ barcode: "3017620422003", source: src(true) }), "https://world.openfoodfacts.org/cgi/product.pl?type=edit&code=3017620422003");
   assert.equal(updateInfoUrl({ barcode: "041196910759", source: src(false) }), null, "USDA");
   assert.equal(updateInfoUrl({ barcode: "041196910759" }), null, "catalog");
+});
+
+// ── Open Beauty Facts (M16 N1) ──────────────────────────────────────────────
+
+test("an Open Beauty Facts product maps with its own crowd-sourced source; it has no Open Food Facts edit link", () => {
+  const f = fixture("obf/lotion-0055086009386");
+  const r = mapObfResponse(f.body, f.httpStatus);
+  assert.equal(r.status, "found");
+  if (r.status !== "found") return;
+  assert.equal(r.product.name, "Cherry Blossom & Tea Rose Hand Lotion");
+  assert.equal(r.product.brand, "Beloved");
+  assert.match(r.product.ingredients, /^Water \(Aqua\), Glycerin/);
+  assert.deepEqual(r.product.source, {
+    name: "Open Beauty Facts", url: "https://world.openbeautyfacts.org/product/0055086009386",
+    crowdSourced: true, ingredientsLang: "en", additiveCodes: [],
+  });
+  assert.equal(updateInfoUrl(r.product), null);
+  assert.equal(obfEditUrl(" 0055086-009386"), "https://world.openbeautyfacts.org/cgi/product.pl?type=edit&code=0055086009386");
+});
+
+test("OBF: a hit without ingredients is still found; 404 is not found; 5xx is an error", () => {
+  const bare = fixture("obf/no-ingredients-0345334300014");
+  const r = mapObfResponse(bare.body, bare.httpStatus);
+  assert.equal(r.status === "found" && r.product.name, "Vanicream Moisturizing Cream");
+  assert.equal(r.status === "found" && r.product.ingredients, "");
+  const nf = fixture("obf/not-found-0049000042566");
+  assert.equal(mapObfResponse(nf.body, nf.httpStatus).status, "not-found");
+  assert.equal(mapObfResponse(null, 502).status, "error");
+  assert.equal(mapObfResponse("<html>", 200).status, "not-found");
+});
+
+test("lookup order is foods → OFF → OBF, with OFF's X-User-Agent and nothing else identifying", async () => {
+  const db = memoryFoods([]);
+  const web = fakeOff({}, { "0055086009386": fixture("obf/lotion-0055086009386") });
+  const r = await lookupBarcode("0055086009386", { foods: db, fetchImpl: web.impl });
+  assert.equal(r.status === "found" && r.product.source?.name, "Open Beauty Facts");
+  assert.deepEqual(db.calls, ["byBarcode 55086009386"]);
+  assert.equal(web.calls.length, 2);
+  assert.match(web.calls[0], /openfoodfacts\.org\/api\/v3\/product\/0055086009386\.json/);
+  assert.match(web.calls[1], /^https:\/\/world\.openbeautyfacts\.org\/api\/v2\/product\/0055086009386\?fields=/);
+  assert.deepEqual(web.headers[1], web.headers[0], "the same header as OFF");
+  assert.deepEqual(Object.keys(web.headers[1]), ["X-User-Agent"]);
+});
+
+test("a food find never asks OBF; a miss everywhere is not found", async () => {
+  const off = fakeOff({ "5000112548167": fixture("off/nutella-3017620422003") });
+  assert.equal((await lookupBarcode("5000112548167", { foods: memoryFoods([]), fetchImpl: off.impl })).status, "found");
+  assert.equal(off.calls.filter(u => u.includes("openbeautyfacts")).length, 0);
+  assert.equal((await lookupBarcode("0071249000017", { foods: memoryFoods([]), fetchImpl: fakeOff().impl })).status, "not-found");
+});
+
+test("OFF unreachable: an OBF find shows (looked up again next time); an OBF miss is an error, never 'not found'", async () => {
+  const offDown = (obf: Record<string, Answer> = {}) => {
+    const fake = fakeOff({}, obf);
+    const calls: string[] = [];
+    const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push(String(input));
+      if (String(input).includes("openfoodfacts")) throw new TypeError("Failed to fetch");
+      return fake.impl(input, init);
+    }) as typeof fetch;
+    return { impl, calls };
+  };
+  const web = offDown({ "0345334300014": fixture("obf/no-ingredients-0345334300014") });
+  assert.equal((await lookupBarcode("0345334300014", { foods: memoryFoods([]), fetchImpl: web.impl })).status, "found");
+  assert.equal((await lookupBarcode("0345334300014", { foods: memoryFoods([]), fetchImpl: web.impl })).status, "found");
+  assert.equal(web.calls.length, 4, "not cached while OFF was down");
+  assert.equal((await lookupBarcode("0072140000016", { foods: memoryFoods([]), fetchImpl: offDown().impl })).status, "error");
+  const obfDown = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).includes("openbeautyfacts")) return json(null, 503);
+    return fakeOff().impl(input, init);
+  }) as typeof fetch;
+  assert.equal((await lookupBarcode("0072140000023", { foods: memoryFoods([]), fetchImpl: obfDown })).status, "error");
 });

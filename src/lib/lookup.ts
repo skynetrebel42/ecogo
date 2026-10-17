@@ -1,6 +1,7 @@
 // lookup.ts — find a barcode that isn't in the catalog. EcoGo's own copy of USDA FoodData Central first (the `foods`
-// table: label data supplied by manufacturers), then Open Food Facts (crowd-sourced, live). Spec:
-// docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md. The database is passed in (see foods.ts), and the app's
+// table: label data supplied by manufacturers), then Open Food Facts (crowd-sourced, live), then Open Beauty Facts for
+// personal care (M16 N1, read only). Specs: docs/superpowers/specs/2026-10-02-m10-data-ownership-design.md,
+// 2026-10-16-m16-personal-care-design.md. The database is passed in (see foods.ts), and the app's
 // own modules are imported without the browser, so Node tests can load this module.
 import type { Product, ProductSource } from "./productImporter.ts";
 import { offNutrition, record, type Nutrition } from "./nutrition.ts";
@@ -13,6 +14,10 @@ export type LookupResult =
 
 const OFF = "https://world.openfoodfacts.org/api/v3/product/";
 const OFF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_text,ingredients_text_en,additives_tags,categories_tags,nutriments,serving_size";
+const OBF = "https://world.openbeautyfacts.org/api/v2/product/";
+const OBF_FIELDS = "code,product_name,product_name_en,brands,lang,ingredients_text,ingredients_text_en";
+/** All EcoGo tells Open Food Facts and Open Beauty Facts about itself: never the owner's email. */
+const USER_AGENT = { "X-User-Agent": "EcoGo/0.1 (https://github.com/skynetrebel42/ecogo)" };
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
@@ -77,7 +82,7 @@ export const offAddUrl = (code: string) =>
   `https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code=${normalizeBarcode(code)}`;
 /** "Update info" target (M11 D2): only crowd-sourced products, where a fix shows up after a reload; else null. */
 export const updateInfoUrl = (p: Pick<Product, "barcode" | "source">): string | null =>
-  p.source?.crowdSourced ? offEditUrl(p.barcode) : null;
+  p.source?.name === "Open Food Facts" ? offEditUrl(p.barcode) : null;
 
 /** Pure: an OFF v3 response body plus its HTTP status → our result. */
 export function mapOffResponse(json: unknown, httpStatus: number): LookupResult {
@@ -100,8 +105,39 @@ export function mapOffResponse(json: unknown, httpStatus: number): LookupResult 
 }
 
 async function fetchOff(code: string, f: typeof fetch): Promise<LookupResult> {
-  const res = await f(`${OFF}${code}.json?fields=${OFF_FIELDS}`, { headers: { "X-User-Agent": "EcoGo/0.1 (https://github.com/skynetrebel42/ecogo)" } });
+  const res = await f(`${OFF}${code}.json?fields=${OFF_FIELDS}`, { headers: USER_AGENT });
   return mapOffResponse(await res.json().catch(() => null), res.status);
+}
+
+// ── Open Beauty Facts (personal care, M16 N1) ────────────────────────────────
+
+/** A personal-care product from Open Beauty Facts (M16): it gets the personal-care check, not the food one. */
+export const isPersonalCare = (p: Pick<Product, "source">) => p.source?.name === "Open Beauty Facts";
+export const obfProductUrl = (code: string) => `https://world.openbeautyfacts.org/product/${normalizeBarcode(code)}`;
+/** "Have an Open Beauty Facts account? Edit there." EcoGo never writes to OBF. */
+export const obfEditUrl = (code: string) => `https://world.openbeautyfacts.org/cgi/product.pl?type=edit&code=${normalizeBarcode(code)}`;
+
+/** Pure: an OBF v2 response body plus its HTTP status → our result. A hit without ingredients is still found (N1). */
+export function mapObfResponse(json: unknown, httpStatus: number): LookupResult {
+  if (httpStatus === 404) return { status: "not-found" };
+  if (httpStatus !== 200) return { status: "error", message: `Open Beauty Facts returned HTTP ${httpStatus}` };
+  const body = record(json);
+  if (body.status !== 1) return { status: "not-found" };
+  const p = record(body.product);
+  const code = normalizeBarcode(str(p.code) || str(body.code));
+  const name = str(p.product_name_en) || str(p.product_name);
+  const english = str(p.ingredients_text_en);
+  const ingredients = english || str(p.ingredients_text);
+  if (!code || (!name && !ingredients)) return { status: "not-found" };
+  return { status: "found", product: toProduct(code, name, str(p.brands).split(",")[0].trim(), ingredients, {
+    name: "Open Beauty Facts", url: obfProductUrl(code), crowdSourced: true,
+    ingredientsLang: english ? "en" : str(p.lang) || "en", additiveCodes: [],
+  }) };
+}
+
+async function fetchObf(code: string, f: typeof fetch): Promise<LookupResult> {
+  const res = await f(`${OBF}${code}?fields=${OBF_FIELDS}`, { headers: USER_AGENT });
+  return mapObfResponse(await res.json().catch(() => null), res.status);
 }
 
 // ── Lookup ───────────────────────────────────────────────────────────────────
@@ -117,7 +153,7 @@ const safely = (p: Promise<LookupResult>): Promise<LookupResult> =>
 export interface LookupOptions { foods: FoodsSource; fetchImpl?: typeof fetch }
 
 /**
- * Our `foods` table → Open Food Facts → not found. Cached per barcode for the session; errors aren't cached, so Try
+ * Our `foods` table → Open Food Facts → Open Beauty Facts → not found. Cached per barcode for the session; errors aren't cached, so Try
  * again can succeed. An unreachable source gives "error", never "not found".
  */
 export function lookupBarcode(raw: string, opts: LookupOptions): Promise<LookupResult> {
@@ -127,7 +163,7 @@ export function lookupBarcode(raw: string, opts: LookupOptions): Promise<LookupR
   const hit = cache.get(k);
   if (hit) return hit;
   const f = opts.fetchImpl ?? fetch;
-  let provisional = false; // an OFF find while our database was unreachable: show it, but look again next time
+  let provisional = false; // a find while an earlier source was unreachable: show it, but look again next time
   const pending = (async (): Promise<LookupResult> => {
     const db = await safely(fetchFood(code, opts.foods));
     if (db.status === "found") return db;
@@ -136,7 +172,10 @@ export function lookupBarcode(raw: string, opts: LookupOptions): Promise<LookupR
     if (code.length === 8) return db;
     const off = await safely(fetchOff(code, f));
     if (off.status === "found") { provisional = db.status === "error"; return off; }
-    return db.status === "error" ? db : off;
+    const obf = await safely(fetchObf(code, f));
+    const earlierError = [db, off].find(r => r.status === "error");
+    if (obf.status === "found") { provisional = !!earlierError; return obf; }
+    return earlierError ?? obf;
   })();
   cache.set(k, pending);
   pending.then(r => {

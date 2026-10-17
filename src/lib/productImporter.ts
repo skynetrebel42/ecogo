@@ -7,9 +7,9 @@
 
 /** Where a looked-up product's data came from. Catalog products never set it. */
 export interface ProductSource {
-  name: "USDA FoodData Central" | "Open Food Facts";
+  name: "USDA FoodData Central" | "Open Food Facts" | "Open Beauty Facts";
   url: string;             // the record's public page (credit + "view record" link)
-  crowdSourced: boolean;   // true for Open Food Facts
+  crowdSourced: boolean;   // true for Open Food Facts and Open Beauty Facts
   ingredientsLang: string; // "en", or the label's language when no English text exists
   additiveCodes: string[]; // Open Food Facts additive tags, e.g. "en:e951"; always [] for USDA
   foodCategory?: string;   // USDA only, e.g. "Chips, Pretzels & Snacks" (drives the food-level checks)
