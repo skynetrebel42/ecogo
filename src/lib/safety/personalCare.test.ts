@@ -137,6 +137,7 @@ test("N2b: EU Annex III ingredients are 'limited, not banned': listed apart, no 
   const talc = analyzeCare("Talc, Kojic Acid");
   assert.deepEqual(talc.flags.map(f => f.entry.id), ["talc"]);
   assert.deepEqual(talc.limited.map(l => l.note.id), ["kojic-acid"], "talc is flagged, so not also 'limited'");
+  assert.deepEqual(analyzeCare("Talc, Water, Talc").limited, [], "not even when it's listed twice");
   assert.deepEqual(analyzeCare("Titanium Dioxide").limited, [], "TiO2 powder (Annex III 321) can't be told from sunscreen TiO2");
   assert.deepEqual(analyzeCare("Water, Glycerin").limited, []);
 });

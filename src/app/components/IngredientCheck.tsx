@@ -31,7 +31,7 @@ function careCheck(ingredients: string): CareAnalysis | null {
     return analyzeCare(ingredients);
   } catch (err) {
     console.error("[safety] personal-care check failed for typed ingredients", err);
-    return { verdict: "no-data", flags: [], checkedCount: 0, notes: [] };
+    return { verdict: "no-data", flags: [], checkedCount: 0, notes: [], limited: [] };
   }
 }
 
@@ -42,7 +42,7 @@ export function LimitedRow({ limited, className = "" }: { limited: CareAnalysis[
   if (limited.length === 0) return null;
   return (
     <details className={`rounded-xl bg-gray-100 text-gray-700 ${className}`}>
-      <summary className="min-h-[44px] flex items-center px-3 text-xs font-bold cursor-pointer">
+      <summary className="min-h-[44px] px-3 py-3.5 text-xs font-bold cursor-pointer">{/* list-item display keeps the open/close marker */}
         Limited, not banned: {limited.length} ingredient{limited.length === 1 ? "" : "s"}
       </summary>
       <ul className="px-3 pb-3 space-y-2">

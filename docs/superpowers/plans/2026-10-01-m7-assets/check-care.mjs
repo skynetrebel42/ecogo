@@ -160,7 +160,7 @@ try {
   await shot("care-limited");
   await back(); await home();
   const none = await scanTyped("0055086009386", "Cherry Blossom");
-  check("N2b: no 'Limited, not banned' row when there's nothing limited", !none.includes("Limited, not banned"));
+  check("N2b: no 'Limited, not banned' row when there's nothing limited", none.includes("Cherry Blossom") && !none.includes("Limited, not banned"));
   await back(); await home();
 
   // Q6: a catalog "Personal Care" product gets the personal-care check, not "Food only".

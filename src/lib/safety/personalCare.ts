@@ -288,6 +288,7 @@ export const CARE_NOTES: CareNote[] = [fragranceNote, ...allergenNotes, ...SUNSC
 
 // ── N2b: EU Annex III, "limited, not banned" (one folded row; never changes the badge) ──
 // Titanium dioxide (entry 321, powder with breathable particles) is left out: on a label it can't be told from sunscreen TiO2.
+// Talc (entry 59) too: it is always flagged (IARC 2A), and a flagged ingredient isn't also "limited".
 const LIMITED_TEXT = "The EU allows this in cosmetics up to a set limit. EcoGo can't see how much this product has.";
 const limited = (entry: string, name: string, quote: string, ...aliases: string[]): CareNote => ({
   id: slug(name), kind: "limited", name, aliases: [name.toLowerCase(), ...aliases], text: LIMITED_TEXT,
@@ -306,7 +307,6 @@ export const CARE_LIMITED: CareNote[] = [
   limited("2a", "Thioglycolic acid", "Thioglycolic acid and its salts", "ammonium thioglycolate", "calcium thioglycolate",
     "potassium thioglycolate", "sodium thioglycolate"),
   limited("12", "Hydrogen peroxide", "including carbamide peroxide and zinc peroxide", "carbamide peroxide", "zinc peroxide"),
-  limited("59", "Talc", "Talc: Hydrated magnesium silicate Talc"),
   limited("185", "Toluene", "Benzene, methyl- Toluene"),
   limited("96", "Musk xylene", "5-tert-Butyl-2,4,6-trinitro-m-xylene Musk xylene"),
   limited("97", "Musk ketone", "4'-tert-Butyl-2',6'-dimethyl-3',5'-dinitroacetophenone Musk ketone"),
