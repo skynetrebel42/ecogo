@@ -78,6 +78,14 @@ try {
 
   await send("Runtime.enable");
   await send("Network.enable");
+  // M16: a barcode nobody has is also asked of Open Beauty Facts; it answers "not found" here, never over the network.
+  // The X-User-Agent header makes the browser send a CORS preflight first: that one gets a 200, the GET the 404.
+  const obf404 = p => send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: p.request.method === "OPTIONS" ? 200 : 404,
+    responseHeaders: [{ name: "Access-Control-Allow-Origin", value: "*" }, { name: "Access-Control-Allow-Headers", value: "*" }, { name: "Content-Type", value: "application/json" }],
+    body: Buffer.from(p.request.method === "OPTIONS" ? "" : JSON.stringify({ status: 0, status_verbose: "product not found" })).toString("base64") });
+  const OBF_PATTERN = { urlPattern: "*openbeautyfacts.org/*" };
+  onPaused = obf404;
+  await send("Fetch.enable", { patterns: [OBF_PATTERN] });
   // The bar checks need motion on, whatever this PC's animation setting is (reduced motion is tested on its own below).
   const MOTION = { features: [{ name: "prefers-reduced-motion", value: "no-preference" }] };
   await send("Emulation.setEmulatedMedia", MOTION);
@@ -454,6 +462,7 @@ try {
   await new Promise(r => stub.listen(0, "127.0.0.1", r));
   let countReads = 0; // M15 C5: the reads after an ok send, failed here (no line), so nothing reaches Supabase
   onPaused = p => {
+    if (p.request.url.includes("openbeautyfacts.org")) return obf404(p);
     if (/\/rest\/v1\/(contributions|place_reports)/.test(p.request.url)) { countReads++; return send("Fetch.failRequest", { requestId: p.requestId, errorReason: "InternetDisconnected" }); }
     faked.push(`${p.request.method} ${p.request.url.split("/").slice(-2).join("/")}`);
     if (p.request.method === "POST" && p.request.url.includes("/functions/v1/off-submit")) {
@@ -465,7 +474,7 @@ try {
       user: { id: "00000000-0000-4000-8000-000000000048", aud: "authenticated", role: "authenticated", is_anonymous: true } });
     send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
   };
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }, { urlPattern: "*/rest/v1/contributions*" }, { urlPattern: "*/rest/v1/place_reports*" }] });
+  await send("Fetch.enable", { patterns: [OBF_PATTERN, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }, { urlPattern: "*/rest/v1/contributions*" }, { urlPattern: "*/rest/v1/place_reports*" }] });
   await scanTyped("3017620429996", "We couldn't find this barcode yet");
   await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
     __btn("No ingredients list? Type it").click(); await __sleep(300); return true; })()`);
