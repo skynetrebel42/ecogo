@@ -5,7 +5,7 @@ Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + S
 ## Commands (run before claiming done)
 - `npm test` — safety engine, 51-product check, lookup client (node --test)
 - `npm run build` — must pass
-- `npm run verify:sources` — only after editing `src/lib/safety/library.ts` or `foodConcerns.ts` (needs internet)
+- `npm run verify:sources` — only after editing `src/lib/safety/library.ts`, `foodConcerns.ts` or the Learn citations list (`learnSources.ts`) (needs internet; fails on unverifiable sources without a dated hand check)
 
 ## Where to look (cheapest first)
 1. Structure/relationships question → `graphify-out/GRAPH_REPORT.md`, then `/graphify query "<question>"`. Don't grep the whole tree first.
