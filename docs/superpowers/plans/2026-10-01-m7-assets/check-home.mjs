@@ -187,6 +187,13 @@ try {
     await run(`(async () => { __btn(${JSON.stringify(title)}).click(); await __sleep(500); })()`);
     const e = await run(`document.body.innerText`);
     check(`M7.1 explainer opens with sources: ${title}`, e.includes("Sources") && e.includes("Source checked") && e.includes(title));
+    if (title.startsWith("Seed oils")) {
+      // COPY-01 (decision 061 C1): the fat mix from USDA FoodData Central, with one USDA card; check-only entries add no card.
+      const cards = await run(`[...document.querySelectorAll("li")].filter(l => l.innerText.includes("Read the source")).map(l => l.innerText.split(":")[0])`);
+      check("C1: seed oils' first line is the USDA fat mix, with one USDA FoodData Central card (7 cards in all)",
+        e.includes("Seed oils are mostly unsaturated fat, but the mix varies. In USDA's data, soybean and corn oil are more than half polyunsaturated fat (including omega‑6); canola oil is mostly monounsaturated; sunflower oil can be either, depending on the type.")
+        && !e.includes("are mostly polyunsaturated fat, including omega") && cards.filter(c => c === "USDA").length === 1 && cards.length === 7, JSON.stringify(cards));
+    }
     if (title.startsWith("Pesticides")) {
       // Final review: the court ruling (2022, EPA's review) must not read as if it vacated the dated 2017 assessment.
       check("pesticides: the 2022 court ruling isn't tied to the 2017 assessment",
