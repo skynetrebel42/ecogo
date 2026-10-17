@@ -27,6 +27,7 @@ export interface FoodInput {
 const CHECKED = "2026-09-30";
 const WHO_QA = "https://www.who.int/news-room/questions-and-answers/item/cancer-carcinogenicity-of-the-consumption-of-red-meat-and-processed-meat";
 const IARC_QA = "https://www.iarc.who.int/wp-content/uploads/2018/07/Monographs-QA_Vol114.pdf"; // PDF: hand-checked 2026-09-30
+const PDF_READ = "2026-10-16"; // SOURCE-01: the PDF downloaded (Minh's yes), both quotes read in its text (pp. 2, 3), file deleted
 
 // ── Processed meat (IARC Group 1) ────────────────────────────────────────────
 
@@ -40,9 +41,9 @@ export const PROCESSED_MEAT: Omit<FoodConcern, "reason"> = {
     { body: "WHO", basis: "context", finding: "WHO's definition: meat that is salted, cured, fermented or smoked",
       url: WHO_QA, quote: "Processed meat refers to meat that has been transformed through salting, curing, fermentation, smoking or other processes to enhance flavour or improve preservation.", checkedOn: CHECKED },
     { body: "IARC", basis: "context", finding: "IARC: being in Group 1 with tobacco does not mean equally dangerous",
-      url: IARC_QA, quote: "this does NOT mean that they are all equally dangerous", checkedOn: CHECKED },
+      url: IARC_QA, quote: "this does NOT mean that they are all equally dangerous", checkedOn: CHECKED, checkedByHand: PDF_READ },
     { body: "IARC", basis: "context", finding: "IARC's risk estimate: about 18% higher colorectal cancer risk per 50 g eaten daily",
-      url: IARC_QA, quote: "every 50 gram portion of processed meat eaten daily increases the risk of colorectal cancer by about 18%", checkedOn: CHECKED },
+      url: IARC_QA, quote: "every 50 gram portion of processed meat eaten daily increases the risk of colorectal cancer by about 18%", checkedOn: CHECKED, checkedByHand: PDF_READ },
   ],
 };
 

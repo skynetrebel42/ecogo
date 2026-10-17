@@ -21,6 +21,9 @@ export interface Source {
   url: string;       // official page
   quote: string;     // short verbatim phrase from that page (checked by verify:sources)
   checkedOn: string; // YYYY-MM-DD
+  /** YYYY-MM-DD: the page was opened in a browser and the quote confirmed by hand, because verify:sources can't read it
+   *  (script-rendered, bot-gated or a PDF). Required for every source verify:sources reports unverifiable (SOURCE-01 S1). */
+  checkedByHand?: string;
 }
 
 export interface LibraryEntry {
@@ -48,13 +51,14 @@ export function deriveSeverity(sources: Source[]): Severity | null {
 
 // ── Sources (official pages; quotes are verbatim) ────────────────────────────
 const CHECKED = "2026-09-25";
+const HAND_CHECKED = "2026-10-16"; // IARC's table (filtered by agent) and EUR-Lex, in the built-in browser
 const IARC_LIST = "https://monographs.iarc.who.int/list-of-classifications";
 const EU_ADDITIVES_REG = "https://eur-lex.europa.eu/eli/reg/2008/1333/oj";
 
 const iarcNitrosation: Source = {
   body: "IARC", basis: "iarc-2a",
   finding: "Group 2A (probably carcinogenic to humans): nitrate or nitrite ingested under conditions that result in endogenous nitrosation (IARC Monographs vol. 94)",
-  url: IARC_LIST, quote: "Nitrate or nitrite (ingested) under conditions that result in endogenous nitrosation", checkedOn: CHECKED,
+  url: IARC_LIST, quote: "Nitrate or nitrite (ingested) under conditions that result in endogenous nitrosation", checkedOn: CHECKED, checkedByHand: HAND_CHECKED,
 };
 const efsaNitrites: Source = {
   body: "EFSA", basis: "context",
@@ -69,14 +73,14 @@ const NITRITE_CONTEXT = "EFSA (2017) concluded that existing safe levels for nit
 const euWarningLabel = (colour: string): Source => ({
   body: "EU", basis: "eu-warning-label",
   finding: `EU law (Regulation (EC) No 1333/2008, Annex V) requires foods containing ${colour} to carry a warning label`,
-  url: EU_ADDITIVES_REG, quote: "may have an adverse effect on activity and attention in children", checkedOn: CHECKED,
+  url: EU_ADDITIVES_REG, quote: "may have an adverse effect on activity and attention in children", checkedOn: CHECKED, checkedByHand: HAND_CHECKED,
 });
 const WARNING_LABEL_CONCERN = "EU law requires foods with this colour to warn that it may have an adverse effect on activity and attention in children.";
 
 const iarc2b = (agent: string, quote: string, volumes: string): Source => ({
   body: "IARC", basis: "iarc-2b",
   finding: `Group 2B (possibly carcinogenic to humans): ${agent} (IARC Monographs ${volumes})`,
-  url: IARC_LIST, quote, checkedOn: CHECKED,
+  url: IARC_LIST, quote, checkedOn: CHECKED, checkedByHand: HAND_CHECKED,
 });
 
 const ENTRIES: Omit<LibraryEntry, "severity">[] = [
@@ -106,7 +110,7 @@ const ENTRIES: Omit<LibraryEntry, "severity">[] = [
         body: "EU", basis: "banned-eu",
         finding: "Commission Regulation (EU) 2022/63 removed titanium dioxide (E 171) from the list of authorised food additives",
         url: "https://eur-lex.europa.eu/eli/reg/2022/63/oj",
-        quote: "the entry for the food additive E 171 (Titanium dioxide) is deleted", checkedOn: CHECKED,
+        quote: "the entry for the food additive E 171 (Titanium dioxide) is deleted", checkedOn: CHECKED, checkedByHand: HAND_CHECKED,
       },
       {
         body: "EFSA", basis: "context",

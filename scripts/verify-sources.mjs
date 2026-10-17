@@ -1,51 +1,29 @@
 // Checks every library source: fetches its URL and confirms the recorded quote appears on the page.
 // Usage: npm run verify:sources   (needs the internet; run whenever src/lib/safety/library.ts changes)
-// "unverifiable" (blocked, PDF, JS-only page) means: open the page by hand and confirm the quote before keeping the entry.
+// Exits 1 on a missing quote, when nothing passed (offline), or when an "unverifiable" source (blocked, PDF, JS-only
+// page) has no `checkedByHand` date: open that page by hand, confirm the quote, then add the date (rules: src/lib/sourceCheck.ts).
 import { LIBRARY } from "../src/lib/safety/library.ts";
 import { PROCESSED_MEAT, ACRYLAMIDE } from "../src/lib/safety/foodConcerns.ts";
+import { checkSource, verdict } from "../src/lib/sourceCheck.ts";
 
-const normalize = (s) => s
-  .replace(/<script[\s\S]*?<\/script>/gi, " ")
-  .replace(/<style[\s\S]*?<\/style>/gi, " ")
-  .replace(/<[^>]+>/g, " ")
-  .replace(/&nbsp;|&#160;/gi, " ")
-  .replace(/&amp;/gi, "&")
-  .replace(/&quot;/gi, '"')
-  .replace(/&#39;|&rsquo;|&lsquo;/gi, "'")
-  .replace(/[‘’]/g, "'")
-  .replace(/[“”]/g, '"')
-  .replace(/[‐-―]/g, "-")
-  .replace(/\s+/g, " ")
-  .toLowerCase()
-  .trim();
-
-const totals = { pass: 0, fail: 0, unverifiable: 0 };
+// A URL + quote pair already checked isn't fetched again.
+const seen = new Set();
+const results = [];
 for (const entry of [...LIBRARY, PROCESSED_MEAT, ACRYLAMIDE]) {
   for (const source of entry.sources) {
-    let status;
-    let detail = "";
-    try {
-      const res = await fetch(source.url, {
-        headers: { "User-Agent": "EcoGo source check (personal project)", Accept: "text/html,application/xhtml+xml", "Accept-Language": "en" },
-        signal: AbortSignal.timeout(20_000),
-      });
-      const type = res.headers.get("content-type") ?? "";
-      if (!res.ok) { status = "unverifiable"; detail = `HTTP ${res.status}`; }
-      else if (!/html|text/.test(type)) { status = "unverifiable"; detail = type || "unknown content type"; }
-      else {
-        const page = normalize(await res.text());
-        if (page.includes(normalize(source.quote))) status = "pass";
-        // Script-rendered tables (IARC list) and bot-gated pages (EUR-Lex) return almost no text to a plain fetch.
-        else if (page.length < 5000) { status = "unverifiable"; detail = "page is script-rendered or bot-gated"; }
-        else { status = "fail"; detail = "quote not found on page"; }
-      }
-    } catch (err) {
-      status = "unverifiable";
-      detail = err?.message ?? String(err);
-    }
-    totals[status]++;
-    console.log(`${status.toUpperCase().padEnd(13)} ${entry.id} · ${source.body} · ${source.url}${detail ? ` (${detail})` : ""}`);
+    const key = `${source.url} ${source.quote}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const { status, detail } = await checkSource(source);
+    results.push({ status, source });
+    const hand = status === "unverifiable" && source.checkedByHand ? `, checked by hand ${source.checkedByHand}` : "";
+    console.log(`${status.toUpperCase().padEnd(13)} ${entry.id} · ${source.body} · ${source.url}${detail ? ` (${detail}${hand})` : ""}`);
   }
 }
-console.log(`\n${totals.pass} pass, ${totals.fail} fail, ${totals.unverifiable} unverifiable`);
-if (totals.fail > 0) process.exitCode = 1;
+const count = s => results.filter(r => r.status === s).length;
+const { exit, undated } = verdict(results);
+console.log(`\n${count("pass")} pass, ${count("fail")} fail, ${count("unverifiable")} unverifiable (${count("unverifiable") - undated.length} checked by hand)`);
+if (count("pass") === 0) console.log("Nothing passed: offline, or every page blocked.");
+for (const { status, source: s } of results) if (status === "unverifiable")
+  console.log(`  ${undated.includes(s) ? "NOT CHECKED BY HAND" : `checked by hand ${s.checkedByHand}`}: ${s.url} "${s.quote}"`);
+process.exitCode = exit;
