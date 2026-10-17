@@ -58,7 +58,7 @@ function Body({ id, onOpen }: { id: ExplainerId; onOpen: (id: ExplainerId) => vo
   if (id === "ultra-processed") return (
     <>
       <p>The FDA says researchers have found links between ultra-processed foods and heart disease, obesity and some cancers.</p>
-      <p>There’s no official US definition yet. The FDA and USDA asked for input in July 2025, and in August 2026 HHS sent the first proposed definition for final review; it hasn’t been published.</p>
+      <p>There’s no official US definition yet. The FDA and USDA asked for input in July 2025. In August 2026 HHS sent the first proposed definition for final review.</p>
       <p><strong>What EcoGo can do:</strong> without an official definition, EcoGo doesn’t label foods “ultra-processed”. It does flag what has official backing: processed meat (IARC Group 1), additives with official findings, and high sugar, saturated fat and salt by the FDA’s 5/20 rule.</p>
     </>
   );

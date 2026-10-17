@@ -194,6 +194,12 @@ try {
         e.includes("Seed oils are mostly unsaturated fat, but the mix varies. In USDA's data, soybean and corn oil are more than half polyunsaturated fat (including omega‑6); canola oil is mostly monounsaturated; sunflower oil can be either, depending on the type.")
         && !e.includes("are mostly polyunsaturated fat, including omega") && cards.filter(c => c === "USDA").length === 1 && cards.length === 7, JSON.stringify(cards));
     }
+    if (title.startsWith("Ultra-processed")) {
+      // Decision 061 (Minh): no unquotable "it hasn't been published" in the text or on the HHS card.
+      check("061: ultra-processed says HHS sent the proposed definition for final review, with no 'not published' claim",
+        e.includes("The FDA and USDA asked for input in July 2025. In August 2026 HHS sent the first proposed definition for final review.")
+        && !/hasn’t been published|not yet published/.test(e), e.replace(/\n/g, " / ").slice(0, 300));
+    }
     if (title.startsWith("Pesticides")) {
       // Final review: the court ruling (2022, EPA's review) must not read as if it vacated the dated 2017 assessment.
       check("pesticides: the 2022 court ruling isn't tied to the 2017 assessment",

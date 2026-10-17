@@ -64,7 +64,7 @@ const FDA_UPF_LINKS = card({ body: "FDA", finding: "Research links ultra-process
   quote: "Researchers have found links between the consumption of highly processed foods (commonly called ultra-processed foods, or UPFs) and a range of negative health outcomes, including cardiovascular disease, obesity and certain cancers." });
 const FDA_UPF_RFI = card({ body: "FDA", finding: "July 2025: the FDA and USDA asked for input toward a uniform definition of UPFs", url: FDA_UPF_URL, checkedOn: M71_CHECKED,
   quote: "On July 24, 2025, the FDA and USDA issued a Request for Information" });
-const HHS_UPF = card({ body: "HHS", finding: "August 2026: the first proposed federal definition went for final review; not yet published",
+const HHS_UPF = card({ body: "HHS", finding: "August 2026: the first proposed federal definition went for final review",
   url: "https://www.hhs.gov/press-room/hhs-announces-ultra-processed-foods-gras-reforms.html", checkedOn: M71_CHECKED,
   quote: "HHS and USDA submitted for final review the federal government's first proposed definition of UPFs." });
 
