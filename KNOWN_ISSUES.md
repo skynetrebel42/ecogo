@@ -261,13 +261,13 @@ Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` index
   after the snapshot is sent); RW1-03/04 (a lost reply shows "Not sent" though OFF may have it; a rejected photo is
   described as already present).
 - **Copy / trust:** fixed 2026-10-14 by 053 (7af98f4): TRUST-01 (badge article calls every level cancer evidence; Yellow 5 isn't),
-  TRUST-02 ("No official finding" reads as none anywhere; scope it to EcoGo's list), COPY-01 (seed-oils fat profile;
+  TRUST-02 ("No official finding" reads as none anywhere; scope it to EcoGo's list), COPY-01 (fixed in 061: seed-oils fat profile;
   needs an official quote), R2-01 / PRIVACY-01 (Profile "stays on this device" vs. the OFF log, lookups and map
   tiles), R2-02 ("Live data" next to dated County/USDA records).
 - **Evidence added to existing issues:** K-19 (search → product → Back loses the results, confirmed in the browser);
   K-23 is **reopened**: no visible OSM credit in the Map list and place-detail views (R2, MAP-01).
 - **New, small:** ACCESS-01 (opening a Learn article leaves focus on covered Home buttons; search Back has no name);
-  SOURCE-01 (`verify:sources` can pass with zero verified sources; Learn citations not checked); R2-03 (fixed in 056: near-identical
+  SOURCE-01 (fixed in 061: `verify:sources` could pass with zero verified sources; Learn citations not checked); R2-03 (fixed in 056: near-identical
   search rows; show size/barcode where present); R2-04 ("Recently scanned" also lists viewed products; a skipped photo
   step shows a checkmark; fixed in 056). Left: after "No ingredients list? Type it", the Photos list says "2 Ingredients
   Skipped" (the photo was skipped; wording only, later).
