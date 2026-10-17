@@ -17,12 +17,12 @@ import {
 import type { Product } from "../../lib/productImporter";
 import { updateInfoUrl, isPersonalCare, obfEditUrl } from "../../lib/lookup";
 import { escapeRegExp, type Flag } from "../../lib/safety/analyze";
-import { analyzeCare, CARE_LIMITS } from "../../lib/safety/personalCare";
+import { CARE_LIMITS, type CareAnalysis } from "../../lib/safety/personalCare";
 import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
 import NutritionPanel, { NutritionChip, EditOnOff, useNutrition } from "./NutritionPanel";
-import IngredientCheck from "./IngredientCheck";
+import IngredientCheck, { LimitedRow } from "./IngredientCheck";
 import { topHigh } from "../../lib/nutrition";
 import { snapshotLabel } from "../../lib/foods";
 import { useAlternatives } from "./useAlternatives";
@@ -53,7 +53,7 @@ const nutritionNote = (hasSection: boolean) => ` This badge doesn't rate nutriti
 interface Finding { id: string; name: string; severity?: Severity; info?: boolean; concern: string; detail: string; context?: string; sources: Source[] }
 
 /** Findings grouped by where they come from; empty groups are dropped. */
-function findingGroups(a: Assessment, notes: ReturnType<typeof analyzeCare>["notes"] = []): { title: string; findings: Finding[] }[] {
+function findingGroups(a: Assessment, notes: CareAnalysis["notes"] = []): { title: string; findings: Finding[] }[] {
   const fromConcerns = (kind: "food" | "cooking") => a.concerns.filter(c => c.kind === kind).map(c => ({
     id: c.id, name: c.name, severity: c.severity, concern: c.concern, detail: c.reason, context: c.context, sources: c.sources,
   }));
@@ -146,11 +146,9 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
   const checkButton = useRef<HTMLButtonElement>(null);
   const behind = checking ? { inert: "" } : {};
   const analysis = useMemo(() => safeAnalyze(product), [product]);
-  // M16: an Open Beauty Facts product. Its badge comes from safeAnalyze; the info rows from the same check.
+  // M16: an Open Beauty Facts product. Its badge and info rows come from the same personal-care check.
   const care = isPersonalCare(product);
-  const careNotes = useMemo(() => {
-    try { return care ? analyzeCare(product.ingredients).notes : []; } catch { return []; } // never blank the page
-  }, [product, care]);
+  const careNotes = analysis.notes ?? [];
   const look = VERDICT_STYLE[analysis.verdict];
   const nutrition = useNutrition(product);
   const highNutrient = topHigh(nutrition.status === "ready" ? nutrition.nutrition : null);
@@ -243,7 +241,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
               <span className="font-extrabold text-sm" style={{ color: look.color }}>{verdictHeadline(analysis, care)}</span>
             </div>
             <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{care
-              ? (analysis.verdict === "no-data" ? "No ingredient list on Open Beauty Facts."
+              ? (!product.ingredients.trim() ? (product.source ? "No ingredient list on Open Beauty Facts." : SMALL_PRINT["no-data"])
                 : `${analysis.flags.length + careNotes.length > 0 ? `${TAP_FINDING} ` : ""}${CARE_LIMITS}`)
               : analysis.verdict === "none"
               ? (formsWhenCooked(analysis) ? NONE_BUT_COOKED : SMALL_PRINT.none) + nutritionNote(nutrition.status !== "none" || !!updateUrl)
@@ -263,6 +261,8 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
             </div>
           ))}
 
+          <LimitedRow limited={analysis.limited ?? []} />
+
           <NutritionPanel state={nutrition} updateUrl={updateUrl} />
 
           {/* ── Full ingredient list ── */}
@@ -273,9 +273,9 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
             </div>
             {product.ingredients.trim()
               ? <p className="text-xs text-gray-600 leading-relaxed"><HighlightedIngredients text={product.ingredients} flags={analysis.flags} /></p>
-              : <p className="text-xs text-gray-500 italic">{care ? "No ingredient list on Open Beauty Facts." : "No ingredient list available."}</p>}
+              : <p className="text-xs text-gray-500 italic">{care && product.source ? "No ingredient list on Open Beauty Facts." : "No ingredient list available."}</p>}
             {/* M16 N1: Open Beauty Facts products: the self-check and OBF's own editor; EcoGo sends nothing to OBF. */}
-            {care && <div className="mt-3 space-y-2">
+            {care && product.source && <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs text-gray-600">{product.ingredients.trim() ? "Doesn't match your package?" : "Have the package?"}</p>
                 <button ref={checkButton} onClick={() => setChecking(true)} className="flex-shrink-0 min-h-[44px] px-3 rounded-xl border border-border text-xs font-bold text-gray-700">Check the label yourself</button>

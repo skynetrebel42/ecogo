@@ -10,13 +10,15 @@ import { parseIngredients } from "./parse.ts";
 
 export interface CareNote {
   id: string;
-  kind: "allergen" | "fragrance" | "sunscreen";
+  kind: "allergen" | "fragrance" | "sunscreen" | "limited";
   name: string;
   aliases: string[]; // lowercase INCI / label names
   text: string;      // the info row
   sources: Source[];
 }
-export interface CareAnalysis { verdict: Verdict; flags: Flag[]; checkedCount: number; notes: { note: CareNote; matchedText: string }[] }
+type Found = { note: CareNote; matchedText: string };
+/** `notes`: info rows; `limited`: EU Annex III ingredients for the one folded "Limited, not banned" row (N2b). */
+export interface CareAnalysis { verdict: Verdict; flags: Flag[]; checkedCount: number; notes: Found[]; limited: Found[] }
 
 export const CARE_LIMITS = "EcoGo checks this list against FDA, EU and IARC findings only. Not finding a match doesn't mean a product is safe for you.";
 
@@ -28,6 +30,8 @@ const EU_ALLERGENS = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=C
 const FDA_PROHIBITED = "https://www.fda.gov/cosmetics/cosmetics-laws-regulations/prohibited-restricted-ingredients-cosmetics";
 const FDA_FRAGRANCE = "https://www.fda.gov/cosmetics/cosmetic-ingredients/fragrances-cosmetics";
 const FDA_SUNSCREEN = "https://www.fda.gov/drugs/understanding-over-counter-medicines/questions-and-answers-fdas-regulatory-actions-over-counter-sunscreen";
+const FDA_HAIR_SMOOTHING = "https://www.fda.gov/cosmetics/cosmetic-products/hair-smoothing-products-release-formaldehyde-when-heated";
+const CFR_METHYLENE_CHLORIDE = "https://www.ecfr.gov/api/renderer/v1/content/enhanced/current/title-21?chapter=I&subchapter=G&part=700&subpart=B&section=700.19";
 const CFR_DANDRUFF = "https://www.ecfr.gov/api/renderer/v1/content/enhanced/current/title-21?chapter=I&subchapter=D&part=358&subpart=H&section=358.710";
 const IARC_LIST = "https://monographs.iarc.who.int/list-of-classifications";
 
@@ -53,9 +57,12 @@ const DANDRUFF_CONTEXT = "FDA allows it as a dandruff-shampoo drug ingredient.";
 
 // ── N2: flags (set the badge) ────────────────────────────────────────────────
 const ENTRIES: Omit<LibraryEntry, "severity">[] = [
-  { id: "formaldehyde", name: "Formaldehyde", aliases: ["formaldehyde"], eCodes: [],
+  { id: "formaldehyde", name: "Formaldehyde", aliases: ["formaldehyde", "methylene glycol", "formalin"], eCodes: [],
     concern: "IARC classifies it as carcinogenic to humans (Group 1). Banned in cosmetics in the EU.",
-    sources: [iarc("iarc-1", `1 (${IARC_1})`, "formaldehyde", "Sup 7, 62, 88, 100F", "Formaldehyde 1"), euBan("1577", "Formaldehyde 50-00-0")] },
+    sources: [iarc("iarc-1", `1 (${IARC_1})`, "formaldehyde", "Sup 7, 62, 88, 100F", "Formaldehyde 1"), euBan("1577", "Formaldehyde 50-00-0"),
+      { body: "FDA", basis: "context", url: FDA_HAIR_SMOOTHING, checkedOn: CHECKED,
+        finding: "FDA: formaldehyde is also known as formalin and methylene glycol (hair smoothing products)",
+        quote: "These products often contain formaldehyde, also known as formalin and methylene glycol." }] },
   { id: "paraformaldehyde", name: "Paraformaldehyde", aliases: ["paraformaldehyde"], eCodes: [],
     concern: EU_BANNED, sources: [euBan("1578", "Paraformaldehyde 30525-89-4")] },
   { id: "vinyl-chloride", name: "Vinyl chloride", aliases: ["vinyl chloride"], eCodes: [],
@@ -65,7 +72,9 @@ const ENTRIES: Omit<LibraryEntry, "severity">[] = [
   { id: "methylene-chloride", name: "Methylene chloride", aliases: ["methylene chloride", "dichloromethane"], eCodes: [],
     concern: "Banned in cosmetics in the EU and the US. IARC classifies it as probably carcinogenic to humans (Group 2A).",
     sources: [euBan("1389", "Dichloromethane; methylene chloride"),
-      fda("banned-us", "FDA prohibits methylene chloride in cosmetics (21 CFR 700.19)", "It causes cancer in animals and is likely to be harmful to human health, too (21 CFR 700.19)"),
+      { body: "FDA", basis: "banned-us", url: CFR_METHYLENE_CHLORIDE, checkedOn: CHECKED,
+        finding: "21 CFR 700.19: a cosmetic containing methylene chloride as an ingredient is deemed adulterated",
+        quote: "Any cosmetic product that contains methylene chloride as an ingredient is deemed adulterated" },
       iarc("iarc-2a", `2A (${IARC_2A})`, "dichloromethane (methylene chloride)", "Sup 7, 71, 110", "Dichloromethane (Methylene chloride) 2A")] },
   { id: "chloroform", name: "Chloroform", aliases: ["chloroform"], eCodes: [],
     concern: "Banned in cosmetics in the EU and the US. IARC classifies it as possibly carcinogenic to humans (Group 2B).",
@@ -83,7 +92,9 @@ const ENTRIES: Omit<LibraryEntry, "severity">[] = [
   { id: "hexachlorophene", name: "Hexachlorophene", aliases: ["hexachlorophene"], eCodes: [],
     concern: "Banned in cosmetics in the EU. FDA allows it only as a preservative, up to 0.1%, when no other preservative works as well.",
     sources: [euBan("371", "Hexachlorophene (INN)"),
-      fda("context", "FDA limits hexachlorophene to a preservative at no more than 0.1 percent (21 CFR 250.250)", "The HCP concentration in a cosmetic may not exceed 0.1 percent")] },
+      fda("context", "FDA limits hexachlorophene to a preservative at no more than 0.1 percent (21 CFR 250.250)", "The HCP concentration in a cosmetic may not exceed 0.1 percent"),
+      fda("context", "FDA allows hexachlorophene only when no other preservative has been shown to be as effective (21 CFR 250.250)",
+        "may be used only when no other preservative has been shown to be as effective")] },
   { id: "mercury", name: "Mercury", aliases: ["mercury", "mercuric chloride", "mercurous chloride", "ammoniated mercury", "calomel"], eCodes: [],
     concern: "Banned in cosmetics in the EU. FDA allows it only in eye-area products, up to 65 parts per million.",
     sources: [euBan("221", "Mercury and its compounds, except those special cases included in Annex V"),
@@ -96,7 +107,10 @@ const ENTRIES: Omit<LibraryEntry, "severity">[] = [
     sources: [euBan("420", "Crude and refined coal tars"), dandruffDrug("Coal tar, 0.5 to 5 percent")] },
   { id: "hydroquinone", name: "Hydroquinone", aliases: ["hydroquinone"], eCodes: [],
     concern: "Banned in cosmetics in the EU, except in artificial nail systems.",
-    sources: [euBan("1339", "1,4-Dihydroxybenzene (Hydroquinone), with the exception of entry 14 in Annex III")] },
+    sources: [euBan("1339", "1,4-Dihydroxybenzene (Hydroquinone), with the exception of entry 14 in Annex III"),
+      { body: "EU", basis: "context", url: EU_COSMETICS, checkedOn: CHECKED, checkedByHand: HAND,
+        finding: "Regulation (EC) No 1223/2009, Annex III entry 14: hydroquinone only in artificial nail systems",
+        quote: "Hydroquinone Hydroquinone 123-31-9 204-617-8 Artificial nail systems" }] },
   { id: "butylphenyl-methylpropional", name: "Butylphenyl methylpropional (Lilial)", aliases: ["butylphenyl methylpropional"], eCodes: [],
     concern: EU_BANNED, sources: [euBan("1666", "2-(4-tert-butylbenzyl) propionaldehyde")] },
   { id: "hydroxyisohexyl-3-cyclohexene-carboxaldehyde", name: "Hydroxyisohexyl 3-cyclohexene carboxaldehyde (Lyral)", eCodes: [],
@@ -129,6 +143,32 @@ const ENTRIES: Omit<LibraryEntry, "severity">[] = [
     concern: EU_BANNED, sources: [euBan("1396", "Borates, tetraborates, octaborates and boric acid salts and esters")] },
   { id: "sodium-perborate", name: "Sodium perborate", aliases: ["sodium perborate"], eCodes: [],
     concern: EU_BANNED, sources: [euBan("1397", "Perboric acid (H3BO2(O2)), monosodium salt trihydrate")] },
+  { id: "benzophenone", name: "Benzophenone", aliases: ["benzophenone"], eCodes: [],
+    concern: "Banned in cosmetics in the EU. IARC classifies it as possibly carcinogenic to humans (Group 2B).",
+    sources: [euBan("1703", "Benzophenone 119-61-9"), iarc("iarc-2b", `2B (${IARC_2B})`, "benzophenone", "101", "Benzophenone 2B")] },
+
+  // N2c: IARC names the exact substance (titanium dioxide and carbon black left out: their findings are about breathing in dust).
+  { id: "talc", name: "Talc", aliases: ["talc"], eCodes: [],
+    concern: "IARC classifies it as probably carcinogenic to humans (Group 2A).",
+    sources: [iarc("iarc-2a", `2A (${IARC_2A})`, "talc", "42, Sup 7, 93, 136", "Talc 2A")] },
+  { id: "methyleugenol", name: "Methyleugenol", aliases: ["methyleugenol", "methyl eugenol"], eCodes: [],
+    concern: "IARC classifies it as probably carcinogenic to humans (Group 2A).",
+    sources: [iarc("iarc-2a", `2A (${IARC_2A})`, "methyleugenol", "101, 134", "Methyleugenol 2A")] },
+  { id: "diethanolamine", name: "Diethanolamine (DEA)", aliases: ["diethanolamine"], eCodes: [],
+    concern: "IARC classifies it as possibly carcinogenic to humans (Group 2B).",
+    sources: [iarc("iarc-2b", `2B (${IARC_2B})`, "diethanolamine", "77, 101", "Diethanolamine 2B")] },
+  { id: "cocamide-dea", name: "Cocamide DEA", aliases: ["cocamide dea", "coconut oil diethanolamine condensate"], eCodes: [],
+    concern: "IARC classifies coconut oil diethanolamine condensate (cocamide DEA) as possibly carcinogenic to humans (Group 2B).",
+    sources: [iarc("iarc-2b", `2B (${IARC_2B})`, "coconut oil diethanolamine condensate", "101", "Coconut oil diethanolamine condensate 2B")] },
+  { id: "isoeugenol", name: "Isoeugenol", aliases: ["isoeugenol"], eCodes: [],
+    concern: "IARC classifies it as possibly carcinogenic to humans (Group 2B).",
+    sources: [iarc("iarc-2b", `2B (${IARC_2B})`, "isoeugenol", "134", "Isoeugenol 2B")] },
+  { id: "pulegone", name: "Pulegone", aliases: ["pulegone"], eCodes: [],
+    concern: "IARC classifies it as possibly carcinogenic to humans (Group 2B).",
+    sources: [iarc("iarc-2b", `2B (${IARC_2B})`, "pulegone", "108", "Pulegone 2B")] },
+  { id: "myrcene", name: "Myrcene (β-myrcene)", aliases: ["myrcene", "beta-myrcene", "β-myrcene"], eCodes: [],
+    concern: "IARC classifies β-myrcene as possibly carcinogenic to humans (Group 2B).",
+    sources: [iarc("iarc-2b", `2B (${IARC_2B})`, "β-myrcene", "119", "β-Myrcene 2B")] },
 ];
 
 // null only for an entry with context sources alone — personalCare.test.ts rejects that.
@@ -156,9 +196,9 @@ const ALLERGENS: [string, string, ...string[]][] = [
   ["89", "Methyl 2-Octynoate"], ["90", "Alpha-Isomethyl Ionone"], ["91", "Evernia Prunastri Extract"], ["92", "Evernia Furfuracea Extract"],
   ["109", "Pinus Mugo", "Pinus Mugo Leaf Oil", "Pinus Mugo Twig Leaf Extract", "Pinus Mugo Twig Oil"],
   ["114", "Pinus Pumila", "Pinus Pumila Needle Extract", "Pinus Pumila Twig Leaf Extract", "Pinus Pumila Twig Leaf Oil"],
-  ["122", "Cedrus Atlantica", "Cedrus Atlantica Bark Extract", "Cedrus Atlantica Bark Oil", "Cedrus Atlantica Bark Water", "Cedrus Atlantica Leaf Extract", "Cedrus Atlantica Wood Extract", "Cedrus Atlantica Wood Oil"],
+  ["122", "Cedrus Atlantica Oil/Extract", "Cedrus Atlantica Bark Extract", "Cedrus Atlantica Bark Oil", "Cedrus Atlantica Bark Water", "Cedrus Atlantica Leaf Extract", "Cedrus Atlantica Wood Extract", "Cedrus Atlantica Wood Oil"],
   ["124", "Turpentine"], ["131", "Alpha-Terpinene"], ["133", "Terpinolene"],
-  ["154", "Myroxylon Pereirae (Balsam Peru)", "Myroxylon Balsamum Pereirae Balsam Extract", "Myroxylon Balsamum Pereirae Balsam Oil", "Myroxylon Pereirae Oil", "Myroxylon Pereirae Resin Extract", "Myroxylon Pereirae Resin"],
+  ["154", "Myroxylon Pereirae Oil/Extract", "Myroxylon Balsamum Pereirae Balsam Extract", "Myroxylon Balsamum Pereirae Balsam Oil", "Myroxylon Pereirae Oil", "Myroxylon Pereirae Resin Extract", "Myroxylon Pereirae Resin"],
   ["157", "Rose Ketones", "Alpha-Damascone"], ["175", "3-Propylidenephthalide"], ["196", "Lippia Citriodora Absolute"],
   ["324", "Methyl Salicylate"], ["327", "Acetyl Cedrene"], ["328", "Amyl Salicylate"], ["329", "Anethole"], ["330", "Benzaldehyde"],
   ["331", "Camphor"], ["332", "Beta-Caryophyllene"], ["333", "Carvone"], ["334", "Dimethyl Phenethyl Acetate"], ["335", "Hexadecanolactone"],
@@ -179,9 +219,9 @@ const ALLERGENS: [string, string, ...string[]][] = [
   ["367", "Santalum Album Oil"], ["368", "Eugenyl Acetate"], ["369", "Geranyl Acetate"], ["370", "Isoeugenyl Acetate"], ["371", "Pinene"],
 ];
 const allergenNotes: CareNote[] = ALLERGENS.map(([entry, name, ...others]) => ({
-  id: slug(name.replace(/\(.*\)/, "")), kind: "allergen", name, text: ALLERGEN_TEXT, sources: [allergenRow(entry), allergenWhy],
-  // "Cananga Odorata Oil/Extract" is a label name as written; a slash name is also matched whole.
-  aliases: [...new Set([name.replace(/\s*\(.*\)/, ""), ...others].map(s => s.toLowerCase()))],
+  id: slug(name), kind: "allergen", name, text: ALLERGEN_TEXT, sources: [allergenRow(entry), allergenWhy],
+  // A slash label name ("Cananga Odorata Oil/Extract") is matched whole, as the EU writes it.
+  aliases: [name, ...others].map(s => s.toLowerCase()),
 }));
 
 // ── N4: "fragrance" ──────────────────────────────────────────────────────────
@@ -216,12 +256,18 @@ const MORE_DATA: Source[] = [
 const REMOVED: Source = { body: "FDA", basis: "context", url: FDA_SUNSCREEN, checkedOn: CHECKED,
   finding: "FDA's final order of September 10, 2026 (OTC000008-1) removed PABA and trolamine salicylate as sunscreen actives",
   quote: "issued a final administrative order removing two active ingredients — aminobenzoic acid (PABA) and trolamine salicylate" };
-const sunscreen = (status: "proposed" | "more-data" | "removed", name: string, ...aliases: string[]): CareNote => ({
+const ADDED: Source = { body: "FDA", basis: "context", url: FDA_SUNSCREEN, checkedOn: CHECKED,
+  finding: "FDA's final order of June 10, 2026 (OTC000039) added bemotrizinol as a sunscreen active",
+  quote: "adding bemotrizinol as a new active ingredient in the OTC monograph for sunscreens" };
+const STATUS = {
+  proposed: { text: "FDA: proposed as safe and effective.", sources: [PROPOSED] },
+  "more-data": { text: "FDA says more data are needed.", sources: MORE_DATA },
+  removed: { text: "Removed by FDA (September 10, 2026).", sources: [REMOVED] },
+  added: { text: "FDA: added as a sunscreen active in 2026.", sources: [ADDED] },
+};
+const sunscreen = (status: keyof typeof STATUS, name: string, ...aliases: string[]): CareNote => ({
   id: slug(name), kind: "sunscreen", name, aliases: [name.toLowerCase(), ...aliases],
-  text: status === "proposed" ? "As a sunscreen active: FDA: proposed as safe and effective."
-    : status === "more-data" ? "As a sunscreen active: FDA says more data are needed."
-    : "As a sunscreen active: Removed by FDA (September 10, 2026).",
-  sources: status === "proposed" ? [PROPOSED] : status === "more-data" ? MORE_DATA : [REMOVED],
+  text: `As a sunscreen active: ${STATUS[status].text}`, sources: STATUS[status].sources,
 });
 // FDA's names first, then the INCI names an EU-style label uses.
 const SUNSCREENS: CareNote[] = [
@@ -235,13 +281,48 @@ const SUNSCREENS: CareNote[] = [
   sunscreen("more-data", "Sulisobenzone", "benzophenone-4"),
   sunscreen("removed", "Aminobenzoic acid", "paba", "p-aminobenzoic acid", "4-aminobenzoic acid"),
   sunscreen("removed", "Trolamine salicylate", "tea-salicylate"),
+  sunscreen("added", "Bemotrizinol", "bis-ethylhexyloxyphenol methoxyphenyl triazine"),
 ];
 
 export const CARE_NOTES: CareNote[] = [fragranceNote, ...allergenNotes, ...SUNSCREENS];
 
-// ── Matching ─────────────────────────────────────────────────────────────────
-/** "Pyrithione zinc 1%", "Limonene*", "ZINC OXIDE 20 %" → the bare name, lowercase. */
-const bare = (item: string) => item.toLowerCase().replace(/\s*\d+(?:[.,]\d+)?\s*%.*$/, "").replace(/\s+usp$/, "").trim();
+// ── N2b: EU Annex III, "limited, not banned" (one folded row; never changes the badge) ──
+// Titanium dioxide (entry 321, powder with breathable particles) is left out: on a label it can't be told from sunscreen TiO2.
+const LIMITED_TEXT = "The EU allows this in cosmetics up to a set limit. EcoGo can't see how much this product has.";
+const limited = (entry: string, name: string, quote: string, ...aliases: string[]): CareNote => ({
+  id: slug(name), kind: "limited", name, aliases: [name.toLowerCase(), ...aliases], text: LIMITED_TEXT,
+  sources: [{ body: "EU", basis: "context", url: EU_COSMETICS, quote, checkedOn: CHECKED, checkedByHand: HAND,
+    finding: `Regulation (EC) No 1223/2009, Annex III entry ${entry}: allowed in cosmetics only within set limits` }],
+});
+export const CARE_LIMITED: CareNote[] = [
+  limited("98", "Salicylic acid", "Benzoic acid, 2-hydroxy- (9) Salicylic acid"),
+  limited("100", "Triclocarban", "1-(4-Chlorophenyl)-3-(3,4-dichlorophenyl)urea (12) Triclocarban"),
+  limited("376", "Retinol", "For any cosmetic product containing Retinol, Retinyl Acetate or Retinyl Palmitate", "retinyl acetate", "retinyl palmitate"),
+  limited("375", "Kojic acid", "(44) Kojic Acid"),
+  limited("377", "Alpha-arbutin", "4-Hydroxyphenyl-alpha-D-glucopyranoside (44) Alpha-Arbutin"),
+  limited("378", "Arbutin", "4-Hydroxyphenyl-beta-D-glucopyranoside (44) Arbutin"),
+  limited("8a", "p-Phenylenediamine", "p-Phenylenediamine; p-Phenylenediamine HCl; p-Phenylenediamine Sulphate",
+    "p-phenylenediamine hcl", "p-phenylenediamine sulphate", "p-phenylenediamine sulfate"),
+  limited("2a", "Thioglycolic acid", "Thioglycolic acid and its salts", "ammonium thioglycolate", "calcium thioglycolate",
+    "potassium thioglycolate", "sodium thioglycolate"),
+  limited("12", "Hydrogen peroxide", "including carbamide peroxide and zinc peroxide", "carbamide peroxide", "zinc peroxide"),
+  limited("59", "Talc", "Talc: Hydrated magnesium silicate Talc"),
+  limited("185", "Toluene", "Benzene, methyl- Toluene"),
+  limited("96", "Musk xylene", "5-tert-Butyl-2,4,6-trinitro-m-xylene Musk xylene"),
+  limited("97", "Musk ketone", "4'-tert-Butyl-2',6'-dimethyl-3',5'-dinitroacetophenone Musk ketone"),
+  limited("49", "Selenium sulfide", "Selenium sulfide Selenium disulphide", "selenium disulphide", "selenium disulfide"),
+  limited("310", "Climbazole", "(28) Climbazole"),
+  limited("324", "Methyl salicylate", "Methyl 2-hydroxybenzoate (38) Methyl Salicylate"),
+  limited("15a", "Sodium hydroxide", "Potassium or sodium hydroxide (20) Potassium hydroxide/sodium hydroxide"),
+  limited("15a", "Potassium hydroxide", "Potassium or sodium hydroxide (20) Potassium hydroxide/sodium hydroxide"),
+  limited("4", "Ammonia", "4 Ammonia Ammonia 7664-41-7"),
+  limited("94", "Benzoyl peroxide", "Dibenzoyl peroxide Benzoyl peroxide"),
+];
+
+// ── Matching ────────────────────────────────────────────────────────────────
+/** "Pyrithione zinc 1%", "100% Talc", "Limonene*", "ZINC OXIDE 20 %", "Lavandula Oil/ Extract" → the bare name, lowercase. */
+const AMOUNT = /^\d+(?:[.,]\d+)?\s*%\s*|\s*\d+(?:[.,]\d+)?\s*%.*$/g;
+const bare = (item: string) => item.toLowerCase().replace(AMOUNT, "").replace(/\s+usp$/, "").replace(/\s*\/\s*/g, "/").trim();
 /** An item's names: itself and, for "Aqua/Water/Eau", each part. */
 const names = (item: string) => { const b = bare(item); return b.includes("/") ? [b, ...b.split("/").map(s => s.trim())] : [b]; };
 const FRAGRANCE_WORD = /(?<![a-z0-9])(?:fragrance|parfum|aroma)(?![a-z0-9])/;
@@ -249,11 +330,13 @@ const FRAGRANCE_WORD = /(?<![a-z0-9])(?:fragrance|parfum|aroma)(?![a-z0-9])/;
 export function analyzeCare(ingredients: string): CareAnalysis {
   const items = parseIngredients(typeof ingredients === "string" ? ingredients : "");
   const checkedCount = PERSONAL_CARE.length;
-  if (items.length === 0) return { verdict: "no-data", flags: [], checkedCount, notes: [] };
+  if (items.length === 0) return { verdict: "no-data", flags: [], checkedCount, notes: [], limited: [] };
   const flags: Flag[] = [];
-  const found: CareAnalysis["notes"] = [];
+  const found: Found[] = [];
+  const limited: Found[] = [];
   for (const item of items) {
     const n = names(item);
+    const flagged = flags.length;
     for (const entry of PERSONAL_CARE)
       if (!flags.some(f => f.entry === entry) && entry.aliases.some(a => n.includes(a))) flags.push({ entry, matchedText: item });
     for (const note of CARE_NOTES) {
@@ -262,8 +345,11 @@ export function analyzeCare(ingredients: string): CareAnalysis {
       const hit = note.kind === "fragrance" ? FRAGRANCE_WORD.test(bare(item)) : note.aliases.some(a => n.includes(a));
       if (hit) found.push({ note, matchedText: item });
     }
+    // An ingredient already flagged here (talc) isn't also "limited".
+    if (flags.length === flagged) for (const note of CARE_LIMITED)
+      if (!limited.some(f => f.note === note) && note.aliases.some(a => n.includes(a))) limited.push({ note, matchedText: item });
   }
   flags.sort((a, b) => SEVERITY_RANK[b.entry.severity] - SEVERITY_RANK[a.entry.severity]);
   const top = Math.max(0, ...flags.map(f => SEVERITY_RANK[f.entry.severity]));
-  return { verdict: LEVELS[top], flags, checkedCount, notes: found };
+  return { verdict: LEVELS[top], flags, checkedCount, notes: found, limited };
 }

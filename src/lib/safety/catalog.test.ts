@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { analyzeIngredients } from "./analyze.ts";
 import { parseProductsCSV } from "../productImporter.ts";
-import { sameBarcode } from "../lookup.ts";
+import { sameBarcode, isPersonalCare } from "../lookup.ts";
+import { analyzeCare } from "./personalCare.ts";
 
 const catalog = parseProductsCSV(readFileSync(new URL("../../data/products.csv", import.meta.url), "utf8"));
 const expected: Record<string, { verdict: string; flags: string[] }> =
@@ -29,9 +30,10 @@ test("catalog products with a verified barcode get the same flags as their USDA 
   assert.equal(catalog.find(c => sameBarcode(c.barcode, "00044000042554")), undefined);
 });
 
+// M16 Q6: the catalog's "Personal Care" products get the personal-care check (isPersonalCare), never "Food only".
 for (const p of catalog) {
   test(`#${p.id} ${p.name}: exactly the reviewed flags`, () => {
-    const a = analyzeIngredients({ ingredients: p.ingredients, category: p.category });
+    const a = isPersonalCare(p) ? analyzeCare(p.ingredients) : analyzeIngredients({ ingredients: p.ingredients, category: p.category });
     assert.deepEqual(
       { verdict: a.verdict, flags: a.flags.map(f => f.entry.id).sort() },
       { verdict: expected[p.id].verdict, flags: [...expected[p.id].flags].sort() },

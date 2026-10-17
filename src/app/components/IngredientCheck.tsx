@@ -37,6 +37,28 @@ function careCheck(ingredients: string): CareAnalysis | null {
 
 export type CheckKind = "food" | "care";
 
+/** M16 N2b: EU Annex III ingredients, one grey row closed by default; hidden when there are none. Never a badge. */
+export function LimitedRow({ limited, className = "" }: { limited: CareAnalysis["limited"]; className?: string }) {
+  if (limited.length === 0) return null;
+  return (
+    <details className={`rounded-xl bg-gray-100 text-gray-700 ${className}`}>
+      <summary className="min-h-[44px] flex items-center px-3 text-xs font-bold cursor-pointer">
+        Limited, not banned: {limited.length} ingredient{limited.length === 1 ? "" : "s"}
+      </summary>
+      <ul className="px-3 pb-3 space-y-2">
+        {limited.map(({ note, matchedText }) => (
+          <li key={note.id} className="text-xs leading-snug">
+            <b>{note.name}</b> <span className="text-gray-500">(listed as “{matchedText}”)</span>: {note.text}{" "}
+            {note.sources.map((s, i) => (
+              <a key={i} href={s.url} target="_blank" rel="noreferrer" className="underline">{s.finding}</a>
+            ))}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 export const INGREDIENTS_TIP = "Photograph the ingredients list: flat, in good light, with no glare. EcoGo reads the words on your phone.";
 
 /** Numbered photo tips, one compact row (M8 follow-up 3, H3): above Take photo on the ingredients and nutrition steps,
@@ -179,6 +201,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
             {care.notes.map(n => <li key={n.note.id} className="text-xs leading-snug text-gray-700"><b>{n.note.name}:</b> {n.note.text}</li>)}
           </ul>}
           <p className="text-xs leading-snug text-gray-700">{CARE_LIMITS}</p>
+          <LimitedRow limited={care.limited} />
         </div>
       )}
       {explainer && <Explainer id="not-healthy" onBack={() => setExplainer(false)} />}

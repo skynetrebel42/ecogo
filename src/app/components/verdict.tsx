@@ -7,7 +7,7 @@ import { HelpCircle } from "lucide-react";
 import type { Product } from "../../lib/productImporter";
 import { VERDICT_RANK, type Verdict } from "../../lib/safety/analyze";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
-import { analyzeCare } from "../../lib/safety/personalCare";
+import { analyzeCare, type CareAnalysis } from "../../lib/safety/personalCare";
 import { isPersonalCare } from "../../lib/lookup";
 
 type IconProps = { size?: number; style?: CSSProperties; className?: string };
@@ -41,7 +41,7 @@ const NO_DATA: Assessment = { verdict: "no-data", flags: [], checkedCount: 0, co
 
 /** Never let the engine blank a screen: an unexpected error shows "Not enough data" and is logged. Personal-care
  *  products (M16) get the personal-care check, never the food one (lists too). */
-export function safeAnalyze(p: Product): Assessment {
+export function safeAnalyze(p: Product): Assessment & Partial<Pick<CareAnalysis, "notes" | "limited">> {
   try {
     if (isPersonalCare(p)) return { ...analyzeCare(p.ingredients), concerns: [] };
     return assessProduct({ ...p, additiveCodes: p.source?.additiveCodes });

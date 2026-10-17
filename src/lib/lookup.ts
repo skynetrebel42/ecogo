@@ -111,8 +111,9 @@ async function fetchOff(code: string, f: typeof fetch): Promise<LookupResult> {
 
 // ── Open Beauty Facts (personal care, M16 N1) ────────────────────────────────
 
-/** A personal-care product from Open Beauty Facts (M16): it gets the personal-care check, not the food one. */
-export const isPersonalCare = (p: Pick<Product, "source">) => p.source?.name === "Open Beauty Facts";
+/** A personal-care product (M16): from Open Beauty Facts, or the catalog's "Personal Care" (Q6). It gets the
+ *  personal-care check, not the food one. */
+export const isPersonalCare = (p: Pick<Product, "category">) => p.category === "Personal Care";
 export const obfProductUrl = (code: string) => `https://world.openbeautyfacts.org/product/${normalizeBarcode(code)}`;
 /** "Have an Open Beauty Facts account? Edit there." EcoGo never writes to OBF. */
 export const obfEditUrl = (code: string) => `https://world.openbeautyfacts.org/cgi/product.pl?type=edit&code=${normalizeBarcode(code)}`;
