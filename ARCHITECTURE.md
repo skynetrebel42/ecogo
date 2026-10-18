@@ -300,7 +300,7 @@ static or a no-op; **broken**.
 
 | Feature | Entry | Status | Notes |
 |---|---|---|---|
-| Welcome (first visit) | `WelcomeScreen` | **working** | One screen (M7.3): "Know what's in your food", Start scanning (opens Scan) / Look around first (Home); shown once per device via `localStorage["ecogo.welcomed.v1"]` (blocked storage just shows it again) |
+| Welcome (first visit) | `WelcomeScreen` | **working** | One screen (M7.3; redesigned 2026-10-18 with the mascot `src/assets/welcome-mascot.webp` and `LensLogo` SVG): "Scan. Learn. Decide.", Start scanning (opens Scan) / Look around first (Home); shown once per device via `localStorage["ecogo.welcomed.v1"]` (blocked storage just shows it again) |
 | Bottom-tab navigation | `BottomNav` | working | Home, Scan (raised green circle), Saved, Profile; Map hidden (M7.4) |
 | Home: greeting, Scan card, search, recently scanned | `HomeTab`, `lib/recent.ts` | **working** | Real content only (M7); recently scanned kept on this device, newest first, with Clear |
 | Home: Learn tiles and explainers | `HomeTab` + `Explainer.tsx` | **working** | Six tiles (M12, decision 035), each named by its page's full title: "Nothing flagged" isn't "healthy" (FDA 5/20 rule); what the badge levels mean (WHO/IARC, acrylamide); seed oils (USDA FoodData Central fat mix, AHA, EFSA, EU); pesticides (FDA, IARC, EPA, EFSA; links to badge levels); ultra-processed foods (FDA, HHS); How EcoGo checks a product (the app's three steps, no sources). Verbatim sources with dates; none changes the badge |
