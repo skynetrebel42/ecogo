@@ -11,7 +11,7 @@ Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + S
 1. Structure/relationships question → `graphify-out/GRAPH_REPORT.md`, then `/graphify query "<question>"`. Don't grep the whole tree first.
 2. File map and "safe to edit" levels → `ARCHITECTURE.md`.
 3. Open bugs/roadmap → `KNOWN_ISSUES.md`.
-- Do NOT read `docs/archive/` (finished M1–M9 plans/specs; history is in git). Active work is only `docs/superpowers/` (M10; M8.1 next).
+- Do NOT read `docs/archive/` (finished M1–M9 plans/specs; history is in git). Active work is only `docs/superpowers/` (specs of the milestone being built; finished ones move to `docs/archive/`).
 - Never read `src/lib/fixtures/**`, `*.json` data, or lockfiles unless the task names them.
 
 ## Rules
