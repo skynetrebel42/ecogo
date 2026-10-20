@@ -27,6 +27,12 @@
 | F12 | **Suggest a place fields** get a visible boundary ≥ 3:1 against their card (today ~1.2:1) |
 | F13 | **Personal-care page Back and Save** grow from 40 × 40 to at least 44 × 44 px tap areas (the size every other control already uses) |
 
+**Build calls (planner, 2026-10-20, Headsman I's first-reply gaps):** G1 F3: the builder drafts the sentence from FDA's
+Q9 quote; the planner takes it to Minh before ship; shown once wherever sunscreen rows show. G2 F13: 44 × 44 in the
+shared ProductDetailScreen header (food and care pages alike; one class, no branch). G3 F1: remove the "does not have the
+same legal authority" source with the claim it backs; add the MoCRA quote. G4 F11–F13: computed-colour/size asserts in
+the existing checks (F11 check-home, F12 check-map, F13 check-care), within budget.
+
 ## 2. Testing
 
 - Node: F2's placeholder logic is data, not code; tests cover F7/F8 strings per category and F6's text.
