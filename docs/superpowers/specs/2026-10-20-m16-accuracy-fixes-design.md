@@ -33,6 +33,13 @@ shared ProductDetailScreen header (food and care pages alike; one class, no bran
 same legal authority" source with the claim it backs; add the MoCRA quote. G4 F11–F13: computed-colour/size asserts in
 the existing checks (F11 check-home, F12 check-map, F13 check-care), within budget.
 
+**Wording (Minh, 2026-10-20, from the builder's source reads):** F1: FDA's MoCRA page gives no status for the
+fragrance rule, so no status clause: "…A 2022 US law (MoCRA) requires FDA to make rules for labeling fragrance
+allergens." F2: the Q&A has no effective date, so the fallback "FDA ordered its removal (September 10, 2026)." (order PDF
+not read). F3: "FDA says “more data needed” is not a conclusion that an ingredient is unsafe for use in sunscreens."
+(Q9), only when a "more data" row shows. F5: the builder's hexachlorophene (mucous membranes, 0.1%) and mercury (eye
+area ≤65 ppm, no other preservative, trace <1 ppm) drafts.
+
 ## 2. Testing
 
 - Node: F2's placeholder logic is data, not code; tests cover F7/F8 strings per category and F6's text.
