@@ -22,7 +22,7 @@ import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
 import NutritionPanel, { NutritionChip, EditOnOff, useNutrition } from "./NutritionPanel";
-import IngredientCheck, { LimitedRow } from "./IngredientCheck";
+import IngredientCheck, { LimitedRow, MoreDataLine } from "./IngredientCheck";
 import { topHigh } from "../../lib/nutrition";
 import { snapshotLabel } from "../../lib/foods";
 import { useAlternatives } from "./useAlternatives";
@@ -52,15 +52,16 @@ const nutritionNote = (hasSection: boolean) => ` This badge doesn't rate nutriti
 /** One row on the product page: an additive flag, a food-level concern, or a personal-care info note (M16, `info`). */
 interface Finding { id: string; name: string; severity?: Severity; info?: boolean; concern: string; detail: string; context?: string; sources: Source[] }
 
-/** Findings grouped by where they come from; empty groups are dropped. */
-function findingGroups(a: Assessment, notes: CareAnalysis["notes"] = []): { title: string; findings: Finding[] }[] {
+/** Findings grouped by where they come from; empty groups are dropped. `care`: regulator context (FDA's dandruff-drug
+ *  line, 063 F4) shows in the row next to the EU ban, not behind it. */
+function findingGroups(a: Assessment, notes: CareAnalysis["notes"] = [], care = false): { title: string; findings: Finding[] }[] {
   const fromConcerns = (kind: "food" | "cooking") => a.concerns.filter(c => c.kind === kind).map(c => ({
     id: c.id, name: c.name, severity: c.severity, concern: c.concern, detail: c.reason, context: c.context, sources: c.sources,
   }));
   return [
     { title: "In the ingredients", findings: a.flags.map(({ entry, matchedText }) => ({
-      id: entry.id, name: entry.name, severity: entry.severity, concern: entry.concern,
-      detail: `Listed as “${matchedText}”`, context: entry.context, sources: entry.sources,
+      id: entry.id, name: entry.name, severity: entry.severity, detail: `Listed as “${matchedText}”`, sources: entry.sources,
+      ...(care && entry.context ? { concern: `${entry.concern} ${entry.context}` } : { concern: entry.concern, context: entry.context }),
     })) },
     { title: "The food itself", findings: fromConcerns("food") },
     { title: "Formed when cooked", findings: fromConcerns("cooking") },
@@ -164,10 +165,10 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
       {/* ── Hero ── */}
       <div data-hero {...behind} className="flex-shrink-0 relative" style={{ background: look.gradient, "--hero-solid": look.solid } as CSSProperties}>
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4 z-10">
-          <button onClick={onBack} aria-label="Back" className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
+          <button onClick={onBack} aria-label="Back" className="w-11 h-11 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
             <ArrowLeft size={18} color="white" />
           </button>
-          <button ref={bookmark} onClick={onBookmark} aria-label={saved ? "Remove from saved" : "Save"} aria-pressed={saved} className="w-10 h-10 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
+          <button ref={bookmark} onClick={onBookmark} aria-label={saved ? "Remove from saved" : "Save"} aria-pressed={saved} className="w-11 h-11 bg-white/20 rounded-2xl backdrop-blur-sm flex items-center justify-center">
             <Bookmark size={16} fill={saved ? "white" : "none"} color="white" />
           </button>
         </div>
@@ -249,7 +250,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
           </div>
 
           {/* ── Findings, grouped by where they come from ── */}
-          {findingGroups(analysis, careNotes).map(g => (
+          {findingGroups(analysis, careNotes, care).map(g => (
             <div key={g.title} className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 font-bold text-sm">{g.title}</div>
               <div className="divide-y divide-gray-50">
@@ -258,6 +259,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
                     onToggle={() => setOpenFlag(openFlag === f.id ? null : f.id)} />
                 ))}
               </div>
+              {g.title === "Good to know" && <MoreDataLine notes={careNotes} className="px-4 pb-3" />}
             </div>
           ))}
 

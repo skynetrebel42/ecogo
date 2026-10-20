@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PERSONAL_CARE, CARE_NOTES, CARE_LIMITED, MORE_DATA_MEANING, analyzeCare, isSunscreen } from "./personalCare.ts";
+import { PERSONAL_CARE, CARE_NOTES, CARE_LIMITED, CARE_NONE, MORE_DATA_MEANING, analyzeCare, isSunscreen } from "./personalCare.ts";
 
 const BODIES = new Set(["IARC", "EU", "FDA"]);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -96,6 +96,7 @@ test("063: fragrance names MoCRA, no 'US law doesn't'; FDA's 'more data' meaning
   assert.ok(fragrance.sources.some(s => /MoCRA/.test(s.finding)));
   assert.match(MORE_DATA_MEANING.text, /not a conclusion that an ingredient is unsafe/);
   assert.match(MORE_DATA_MEANING.sources[0].quote, /does not represent a conclusion by the FDA/);
+  assert.equal(CARE_NONE, "No matches in EcoGo's checked list.");
   const concern = (id: string) => PERSONAL_CARE.find(e => e.id === id)!.concern;
   assert.match(concern("hexachlorophene"), /mucous membranes such as the lips/);
   assert.match(concern("mercury"), /only if no other effective and safe preservative is available.*under 1 part per million/);

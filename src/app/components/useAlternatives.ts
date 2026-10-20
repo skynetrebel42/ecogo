@@ -6,7 +6,7 @@ import { VERDICT_RANK, type Verdict } from "../../lib/safety/analyze";
 import type { Assessment } from "../../lib/safety/assess";
 import { foodRowToProduct } from "../../lib/foods";
 import { supabaseFoods } from "../../lib/foodsDb";
-import { barcodeKey } from "../../lib/lookup";
+import { barcodeKey, isPersonalCare } from "../../lib/lookup";
 import { fewestConcerns, safeAnalyze } from "./verdict";
 
 export interface Alternative { p: Product; a: Assessment }
@@ -17,7 +17,8 @@ export function useAlternatives(product: Product, verdict: Verdict): Alternative
     setAlternatives([]);
     // Only offered when this product has a finding; Open Food Facts products have no USDA category to compare within.
     if (verdict !== "known" && verdict !== "high" && verdict !== "some") return;
-    if (!product.barcode || product.source?.crowdSourced) return;
+    // 063 F8: a personal-care page has no USDA category, and no food line.
+    if (!product.barcode || product.source?.crowdSourced || isPersonalCare(product)) return;
     let live = true;
     const mine = VERDICT_RANK[verdict];
     const self = barcodeKey(product.barcode);

@@ -20,7 +20,9 @@ type Found = { note: CareNote; matchedText: string };
 /** `notes`: info rows; `limited`: EU Annex III ingredients for the one folded "Limited, not banned" row (N2b). */
 export interface CareAnalysis { verdict: Verdict; flags: Flag[]; checkedCount: number; notes: Found[]; limited: Found[] }
 
-export const CARE_LIMITS = "EcoGo checks this list against FDA, EU and IARC findings only. Not finding a match doesn't mean a product is safe for you.";
+/** 063 F7: the headline when nothing matched (N7's CARE_LIMITS says what that does and doesn't mean). */
+export const CARE_NONE = "No matches in EcoGo's checked list.";
+export const CARE_LIMITS ="EcoGo checks this list against FDA, EU and IARC findings only. Not finding a match doesn't mean a product is safe for you.";
 
 // ── Sources ──────────────────────────────────────────────────────────────────
 const CHECKED = "2026-10-16";

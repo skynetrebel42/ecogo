@@ -111,6 +111,13 @@ try {
   check("N1: the edit link opens Open Beauty Facts' editor for this barcode", edit === "https://world.openbeautyfacts.org/cgi/product.pl?type=edit&code=0099990000017", edit);
   check("N2: zinc pyrithione (EU Annex II) gives High concern and says it's banned in EU cosmetics",
     shampoo.includes("High concern · 1 finding") && shampoo.includes("Zinc pyrithione") && shampoo.includes("Banned in cosmetics in the EU."));
+  check("063 F4: FDA's dandruff-drug line shows next to the EU ban without opening the row",
+    shampoo.includes("Banned in cosmetics in the EU. FDA allows it as a dandruff-shampoo drug ingredient."));
+  check("063 F1: the fragrance note names MoCRA and no longer says 'US law doesn't'",
+    shampoo.includes("A 2022 US law (MoCRA) requires FDA to make rules for labeling fragrance allergens.") && !shampoo.includes("US law doesn't"));
+  check("063 F8: no USDA or food line on a personal-care page", !/USDA|Nutrition|additives/.test(shampoo), shampoo.match(/.{0,40}(USDA|Nutrition|additives).{0,40}/)?.[0]);
+  const sizes = await run(`["Back", "Save"].map(s => { const r = __btn(s)?.getBoundingClientRect(); return r ? Math.round(r.width) + "x" + Math.round(r.height) : "none"; }).join(",")`);
+  check("063 F13: Back and Save are at least 44 x 44 px", sizes.split(",").every(s => s.split("x").every(n => Number(n) >= 44)), sizes);
   await run(`(async () => { [...document.querySelectorAll("button[aria-expanded]")].find(b => b.innerText.startsWith("Zinc pyrithione"))?.click(); await __sleep(300); })()`);
   const zinc = await text();
   check("N2a: its sources open with FDA's dandruff-drug line", zinc.includes("FDA allows it as a dandruff-shampoo drug ingredient.")
@@ -124,7 +131,7 @@ try {
   // N3 + N4: the real lotion: fragrance and five EU allergens, nothing flagged.
   const lotion = await scanTyped("0055086009386", "Cherry Blossom");
   check("N3/N4: fragrance and named EU allergens are info rows; the badge stays 'Nothing flagged'",
-    lotion.includes("Nothing flagged by FDA, EU or IARC") && ["Fragrance", "Limonene", "Linalool", "Citronellol", "Geraniol", "Citral"].every(n => lotion.includes(`${n}\nInfo`)));
+    lotion.includes("No matches in EcoGo's checked list.") && !lotion.includes("Nothing flagged by FDA") && ["Fragrance", "Limonene", "Linalool", "Citronellol", "Geraniol", "Citral"].every(n => lotion.includes(`${n}\nInfo`)));
   await back(); await home();
   const recent = await run(`(() => { const h = [...document.querySelectorAll("h2")].find(e => e.innerText === "Recently viewed");
     return h ? h.parentElement.nextElementSibling.innerText : ""; })()`);
@@ -134,7 +141,9 @@ try {
   const sun = await scanTyped("0099990000024", "Check Mineral Sunscreen");
   check("N5: zinc oxide 'proposed as safe and effective', octinoxate 'more data are needed', no finding",
     sun.includes("As a sunscreen active: FDA: proposed as safe and effective.") && sun.includes("As a sunscreen active: FDA says more data are needed.")
-    && sun.includes("Nothing flagged by FDA, EU or IARC"));
+    && sun.includes("No matches in EcoGo's checked list."));
+  const MEANING = "FDA says “more data needed” is not a conclusion that an ingredient is unsafe for use in sunscreens.";
+  check("063 F3: FDA's 'more data isn't a finding of unsafe' line shows once under the sunscreen rows", sun.split(MEANING).length === 2);
   check("N2c: bemotrizinol has FDA's 2026 status", sun.includes("As a sunscreen active: FDA: added as a sunscreen active in 2026."));
   await back(); await home();
   // N2c item 2 (revised): a page shows sunscreen rows only for a sunscreen, by name or OBF category.
@@ -143,6 +152,7 @@ try {
   await back(); await home();
   const byTag = await scanTyped("0099990000062", "Check Daily Moisture Lotion");
   check("a lotion that OBF files under sunscreens gets the zinc oxide row", byTag.includes("As a sunscreen active: FDA: proposed as safe and effective."));
+  check("063 F3: no 'more data' line when no row says more data (zinc oxide only)", !byTag.includes(MEANING));
   await back(); await home();
 
   // N2c + N2b: cocamide DEA (IARC 2B) sets the badge; two EU Annex III ingredients sit in one closed grey row.
@@ -154,8 +164,8 @@ try {
   check("N2b: one row 'Limited, not banned: 2 ingredients', closed by default", closed?.summary === "Limited, not banned: 2 ingredients" && !closed.open && !closed.shown, JSON.stringify(closed));
   await run(`(async () => { [...document.querySelectorAll("summary")].find(s => s.innerText.startsWith("Limited, not banned")).click(); await __sleep(300); })()`);
   const opened = await run(`[...document.querySelectorAll("details")].find(e => e.innerText.startsWith("Limited, not banned"))?.innerText ?? ""`);
-  check("N2b: opened, each entry says the EU allows it up to a limit, with its Annex III entry",
-    opened.split("The EU allows this in cosmetics up to a set limit. EcoGo can't see how much this product has.").length === 3
+  check("N2b + 063 F6: opened, each entry says how the EU limits it, with its Annex III entry",
+    opened.split("The EU limits how this can be used (amount, product type or pH). EcoGo can't check that from a label.").length === 3
     && opened.includes("Annex III entry 98") && opened.includes("Annex III entry 15a") && !/\b(?:un)?safe\b/i.test(opened), opened.replace(/\s+/g, " ").slice(0, 160));
   await shot("care-limited");
   await back(); await home();
@@ -183,7 +193,7 @@ try {
   const pressed = await run(`[...document.querySelectorAll('[aria-labelledby="check-kind"] button')].map(b => b.innerText + ":" + b.getAttribute("aria-pressed")).join(",")`);
   check("N6: from an OBF page the check starts on Personal care", pressed === "Food:false,Personal care:true", pressed);
   const own = await typeIngredients("Aqua, Petrolatum, Parfum");
-  check("N6: the typed list is checked as personal care, said to be from what you typed", own.includes("Nothing flagged by FDA, EU or IARC")
+  check("N6: the typed list is checked as personal care, said to be from what you typed", own.includes("No matches in EcoGo's checked list.")
     && own.includes("From what you typed, not from Open Beauty Facts.") && own.includes("Fragrance:"));
   await click("Close");
   await back(); await home();
@@ -198,10 +208,11 @@ try {
     && !careNf.includes("Add this product") && !careNf.includes("Or add it on the Open Food Facts website"));
   await shot("care-not-found");
   await click("Check the label yourself");
-  const formal = await typeIngredients("Water, Formaldehyde, Fragrance (Parfum), Coumarin");
+  const formal = await typeIngredients("Water, Formaldehyde, Fragrance (Parfum), Coumarin, Homosalate, Octocrylene");
   check("N6: a typed personal-care list gets the personal-care result (formaldehyde: Known carcinogen; one fragrance row)",
     formal.includes("Known carcinogen · 1 finding") && formal.includes("Formaldehyde:") && formal.split("Fragrance:").length === 2
     && formal.includes("Coumarin:") && formal.includes("Not finding a match doesn't mean a product is safe for you."));
+  check("063 F3: the typed check shows FDA's 'more data' line once for two 'more data' actives", formal.split(MEANING).length === 2);
   check("N6: no send button after a personal-care check", !(await text()).includes("Also send these photos"));
   await shot("care-typed");
   await click("Food");

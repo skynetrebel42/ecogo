@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
-import { analyzeCare, CARE_LIMITS, type CareAnalysis } from "../../lib/safety/personalCare";
+import { analyzeCare, CARE_LIMITS, MORE_DATA_MEANING, isMoreData, type CareAnalysis } from "../../lib/safety/personalCare";
 import { readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
 import { isBlurry, preparePhoto } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
@@ -56,6 +56,17 @@ export function LimitedRow({ limited, className = "" }: { limited: CareAnalysis[
         ))}
       </ul>
     </details>
+  );
+}
+
+/** 063 F3: FDA's own reading of "more data needed", once, when any sunscreen row says it. */
+export function MoreDataLine({ notes, className = "" }: { notes: CareAnalysis["notes"]; className?: string }) {
+  if (!notes.some(n => isMoreData(n.note))) return null;
+  const [s] = MORE_DATA_MEANING.sources;
+  return (
+    <p className={`text-xs leading-snug text-gray-700 ${className}`}>
+      {MORE_DATA_MEANING.text} <a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.body}, sunscreen Q&amp;A (Q9)</a>
+    </p>
   );
 }
 
@@ -200,6 +211,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
           {care.notes.length > 0 && <ul aria-label="Good to know" className="space-y-1 pt-0.5">
             {care.notes.map(n => <li key={n.note.id} className="text-xs leading-snug text-gray-700"><b>{n.note.name}:</b> {n.note.text}</li>)}
           </ul>}
+          <MoreDataLine notes={care.notes} />
           <p className="text-xs leading-snug text-gray-700">{CARE_LIMITS}</p>
           <LimitedRow limited={care.limited} />
         </div>
