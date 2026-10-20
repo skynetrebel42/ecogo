@@ -30,7 +30,7 @@ const isFailed = (r: SubmitReason): r is Failed => r in FAILED;
 /** An https:// link with a host (place-submit checks the same). */
 const httpsLink = (s: string) => { try { const u = new URL(s.trim()); return u.protocol === "https:" && !!u.hostname; } catch { return false; } };
 
-const input = "w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm disabled:opacity-60";
+const input = "w-full min-h-[44px] px-3 rounded-xl border border-gray-500 bg-white text-sm disabled:opacity-60"; // 063 F12: 3:1 edge
 
 function Choices({ name, legend, options, value, onChange, disabled }:
   { name: string; legend: string; options: string[]; value: string; onChange: (v: string) => void; disabled: boolean }) {

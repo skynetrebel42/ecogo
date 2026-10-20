@@ -10,7 +10,7 @@ import { foodIcon } from "../lib/foodIcon";
 import { TEXT_SIZES, applySettings, loadSettings, saveSettings, type Settings } from "../lib/settings";
 import { NutritionChip } from "./components/NutritionPanel";
 import { topHigh } from "../lib/nutrition";
-import { knownNutrition, searchFoods } from "../lib/lookup";
+import { knownNutrition, searchFoods, isPersonalCare } from "../lib/lookup";
 import { supabaseFoods } from "../lib/foodsDb";
 import { searchCatalog } from "../lib/search";
 import { addRecent, resolveRecent, loadRecent, saveRecent, type RecentEntry } from "../lib/recent";
@@ -192,7 +192,7 @@ function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearR
     <div className="h-full overflow-y-auto bg-background px-5 pt-4 pb-8 space-y-4" style={{ scrollbarWidth: "none" }}>
       <div>
         <p className="text-xs text-muted-foreground font-medium">{greeting()}</p>
-        <h1 className="text-xl font-extrabold leading-tight text-primary">What are you eating?</h1>
+        <h1 className="text-xl font-extrabold leading-tight text-primary">What are you checking?</h1>
       </div>
 
       <button onClick={onGoScan} className="w-full flex items-center gap-3.5 p-4 rounded-3xl bg-primary text-white text-left shadow-md active:scale-98 transition-transform">
@@ -272,6 +272,8 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
     .sort((x, y) => fewestConcerns(x.a, y.a))
     .map(({ p }) => p);
   const isEmpty = results.length === 0 && usda.status !== "loading" && usda.products.length === 0;
+  // 063 F8: a search that found only personal care shows no food (USDA) section unless USDA found something.
+  const showUsda = usda.products.length > 0 || !results.length || !results.every(isPersonalCare);
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-background">
@@ -298,7 +300,8 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
               <Search size={28} className="text-muted-foreground opacity-40" />
             </div>
             <p className="font-bold text-base text-foreground mb-1">No results for "{query}"</p>
-            <p className="text-xs text-muted-foreground leading-relaxed mb-5">Try a product name, brand, or category like "snacks", "cleaning", or "beverages"</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">Try a product name, brand, or category like "snacks", "shampoo", or "sunscreen".</p>
+            <p className="text-xs text-muted-foreground leading-relaxed mb-5">Or scan its barcode.</p>
             <button onClick={onBack} className="px-5 py-2.5 bg-primary text-white rounded-2xl text-sm font-bold">
               Back to Home
             </button>
@@ -306,7 +309,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
         ) : (
           <div className="px-4 py-3 space-y-3">
             {results.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} barcodeLine />)}
-            <div className="pt-2">
+            {showUsda && <div className="pt-2">
               <p className="text-xs font-bold text-foreground">More from USDA FoodData Central</p>
               <p className="text-micro text-muted-foreground mb-2">Label data supplied by manufacturers · not in our catalog</p>
               {usda.status === "loading" && <p className="text-xs text-muted-foreground">Searching USDA…</p>}
@@ -315,7 +318,7 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
               <div className="space-y-3">
                 {usda.products.map(p => <ProductCard key={p.id} product={p} onSelect={onSelectProduct} barcodeLine />)}
               </div>
-            </div>
+            </div>}
           </div>
         )}
       </div>
@@ -469,7 +472,7 @@ function ContributionsCard() {
         <dl className="grid grid-cols-2 gap-2">
           {([["Products sent to Open Food Facts", counts.products], ["Map fixes EcoGo approved", counts.places]] as const).map(([label, n]) => (
             <div key={label} className="rounded-xl bg-muted p-2.5 flex flex-col-reverse justify-end">
-              <dt className="text-xs text-muted-foreground leading-snug">{label}</dt>
+              <dt className="text-xs text-gray-700 leading-snug">{label}</dt>{/* 063 F11: 4.5:1 on the muted tile */}
               <dd className="text-2xl font-extrabold text-primary">{n}</dd>
             </div>
           ))}

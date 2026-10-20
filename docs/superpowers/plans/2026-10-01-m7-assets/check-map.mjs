@@ -182,6 +182,15 @@ try {
     const suggests = [...document.querySelectorAll("button")].filter(b => b.innerText.trim() === "Suggest a place");
     const button = suggests.length === 1 && suggests[0].parentElement.contains(document.getElementById("map-list-title")); // Q1: by the heading, once
     __btn("Suggest a place").click(); await __sleep(500); const nothingPicked = !document.querySelector('input[name="offers"]:checked, input[name="who"]:checked');
+    // 063 F12: the name field's border against the card behind it (colours read back from a canvas, alpha blended).
+    const rgb = (fg, bg) => { const x = Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d");
+      x.fillStyle = bg; x.fillRect(0, 0, 1, 1); x.fillStyle = fg; x.fillRect(0, 0, 1, 1); return [...x.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+    const L = c => c.map(v => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+    let card = document.getElementById("place-name").parentElement;
+    while (card && /rgba\\(0, 0, 0, 0\\)|transparent/.test(getComputedStyle(card).backgroundColor)) card = card.parentElement;
+    const cardBg = rgb(card ? getComputedStyle(card).backgroundColor : "#fff", "#fff");
+    const [la, lb] = [L(rgb(getComputedStyle(document.getElementById("place-name")).borderTopColor, \`rgb(\${cardBg})\`)), L(cardBg)].sort((p, q) => q - p);
+    const edge = Math.round((la + 0.05) / (lb + 0.05) * 100) / 100;
     const t = document.querySelector('[role="dialog"]')?.innerText ?? ""; const send = () => __btn("Send").disabled; const steps = [send()];
     await __type("place-name", "Westside Pantry"); await __type("place-address", "Pico & Bundy"); await __pick("offers", "Food pantry"); await __pick("who", "Anyone");
     document.querySelector('input[type="checkbox"]').click(); await __sleep(50); steps.push(send()); // no link yet
@@ -192,7 +201,8 @@ try {
     await __type("place-who-note", "Seniors 60+"); steps.push(send());
     const tabs = [...document.querySelectorAll("button")].filter(b => ["Home", "Map", "Scan", "Saved", "Profile"].includes(b.innerText.trim()));
     const nav = tabs.length === 5 && tabs.every(b => b.closest("[inert]"));
-    return { link: a?.href ?? "", foot, button, nothingPicked, t, steps, whoNote, nav }; })()`);
+    return { link: a?.href ?? "", foot, button, nothingPicked, t, steps, whoNote, nav, edge }; })()`);
+  check("063 F12: Suggest a place's fields have a visible edge, 3:1 against their card", sug.edge >= 3, String(sug.edge));
   check("059 Q1: 'Suggest a place' sits by the list heading (only there), opens with no type picked; the OSM editor link stays in the footer",
     sug.button && sug.nothingPicked && /^https:\/\/www\.openstreetmap\.org\/edit#map=18\//.test(sug.link) && !sug.foot.includes("Missing a place?"), sug.link);
   check("…its form asks name, address, what it offers, who can use it, the link with its hint, and a note; notice and consent",

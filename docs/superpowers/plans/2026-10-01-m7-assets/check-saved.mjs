@@ -186,6 +186,15 @@ try {
     && none.text.includes("Counted from what Open Food Facts took and what EcoGo approved. Kept with this device's anonymous sign-in: clearing site data or a new phone starts from zero.")
     && none.next === "First help: 1 more to go" && none.filled.length === 0 && none.badges === 5, JSON.stringify(none));
   check("…and makes no Supabase request (no sign-in, no read)", !requests.slice(seen).some(u => SB.test(u)), requests.slice(seen).filter(u => SB.test(u)).join(", "));
+  // 063 F11: each tile label against its tile, colours read back from a canvas (any CSS colour, alpha blended).
+  const ratios = await run(`(() => {
+    const rgb = (fg, bg) => { const x = Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d");
+      x.fillStyle = bg; x.fillRect(0, 0, 1, 1); x.fillStyle = fg; x.fillRect(0, 0, 1, 1); return [...x.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+    const L = c => c.map(v => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+    return [...document.querySelectorAll("dt")].filter(d => /Products sent|Map fixes/.test(d.innerText)).map(d => {
+      const bg = rgb(getComputedStyle(d.parentElement).backgroundColor, "#fff"), [a, b] = [L(rgb(getComputedStyle(d).color, \`rgb(\${bg})\`)), L(bg)].sort((p, q) => q - p);
+      return Math.round((a + 0.05) / (b + 0.05) * 100) / 100; }); })()`);
+  check("063 F11: Profile's contribution labels reach 4.5:1 on their tiles", ratios?.length === 2 && ratios.every(r => r >= 4.5), JSON.stringify(ratios));
 
   const ref = requests.map(u => u.match(/^https:\/\/([a-z0-9]+)\.supabase\.co\//)?.[1]).find(Boolean); // from the Tostitos lookup
   const user = { id: "00000000-0000-4000-8000-000000000060", aud: "authenticated", role: "authenticated", is_anonymous: true };

@@ -93,7 +93,7 @@ try {
   await sleep(4000);
   await helpers();
   const w = await run(`(async () => { await __until(() => __btn("Look around first")); return document.body.innerText; })()`);
-  check("welcome is honest: what EcoGo does, no fake promises", w.includes("Know what's in your food") && w.includes("Start scanning")
+  check("welcome is honest: what EcoGo does, no fake promises", w.includes("Scan. Learn. Decide.") && w.includes("Start scanning")
     && !/Sign In|Save Money|better prices|Best Price|Amazon|Walmart|Get Started/i.test(w));
   await run(`__guest()`); await sleep(800);
 
@@ -101,7 +101,7 @@ try {
   check("Home has no invented content", !/Alex|Chicago|Rating|Why Recommended|Deals|Nearby Resources/i.test(t));
   check("053 W4: no 'Live data' label", !t.includes("Live data"));
   const h = new Date().getHours(), g = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-  check("greeting matches the time", t.includes(g) && t.includes("What are you eating?"), g);
+  check("greeting matches the time", t.includes(g) && t.includes("What are you checking?"), g);
   check("first visit shows Learn and no Recently viewed", JSON.stringify(await learnTiles()) === JSON.stringify(LEARN) && !t.includes("Recently viewed"));
 
   // M7.4 (spec 2026-10-02-m74-trust-cleanup-design.md §4): nothing invented, nothing promised.
@@ -138,8 +138,20 @@ try {
   check("ACCESS-01: the search screen's Back button is named 'Back'", !!(await run(`[...document.querySelectorAll('button[aria-label="Back"]')].some(b => b.checkVisibility({ visibilityProperty: true }))`)));
   const backSearch = await run(`({ text: document.body.innerText, query: [...document.querySelectorAll("span")].some(s => s.innerText === "oreo"), oreo: !!__btn("Oreo Original") })`);
   check("054 K-19: Back from a product opened from search returns to the same query and results",
-    backSearch.query && backSearch.oreo && backSearch.text.includes("Sorted by fewest concerns") && !backSearch.text.includes("What are you eating?"));
+    backSearch.query && backSearch.oreo && backSearch.text.includes("Sorted by fewest concerns") && !backSearch.text.includes("What are you checking?"));
   await back(); // search → home
+  // 063 F8 + F9: a personal-care search has no USDA food section; a search with no hits suggests personal-care words and the scan.
+  const search = async q => { await run(`(() => { const i = document.querySelector('input[placeholder^="Search products"]'); i.focus(); i.select(); return true; })()`); await type(q); };
+  await search("shampoo");
+  const care = await run(`(async () => { await __until(() => __btn("Head & Shoulders")); await __sleep(4000); return document.body.innerText; })()`);
+  check("063 F8: a search that finds only personal care shows no 'More from USDA FoodData Central'",
+    care.includes("Pantene") && !care.includes("USDA"), care.replace(/\s+/g, " ").slice(0, 160));
+  await back();
+  await search("zzqxv");
+  const empty = await run(`(async () => (await __until(() => document.body.innerText.includes("No results for") && document.body.innerText, 20000)) || document.body.innerText)()`);
+  check("063 F9: no results suggests \"shampoo\" and \"sunscreen\" and says 'Or scan its barcode.'",
+    empty.includes('Try a product name, brand, or category like "snacks", "shampoo", or "sunscreen".') && empty.includes("Or scan its barcode."), empty.replace(/\s+/g, " ").slice(0, 200));
+  await back();
   await run(`(async () => { __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
     __btn("Close camera")?.click(); await __sleep(800); const i = await __until(() => document.querySelector('input[aria-label="Barcode number"]'));
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, "049000042566");
