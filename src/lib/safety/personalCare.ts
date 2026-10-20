@@ -29,6 +29,8 @@ const EU_COSMETICS = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=C
 const EU_ALLERGENS = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R1545";
 const FDA_PROHIBITED = "https://www.fda.gov/cosmetics/cosmetics-laws-regulations/prohibited-restricted-ingredients-cosmetics";
 const FDA_FRAGRANCE = "https://www.fda.gov/cosmetics/cosmetic-ingredients/fragrances-cosmetics";
+const FDA_MOCRA = "https://www.fda.gov/cosmetics/cosmetics-laws-regulations/modernization-cosmetics-regulation-act-2022-mocra";
+const CHECKED_063 = "2026-10-20";
 const FDA_SUNSCREEN = "https://www.fda.gov/drugs/understanding-over-counter-medicines/questions-and-answers-fdas-regulatory-actions-over-counter-sunscreen";
 const FDA_HAIR_SMOOTHING = "https://www.fda.gov/cosmetics/cosmetic-products/hair-smoothing-products-release-formaldehyde-when-heated";
 const CFR_METHYLENE_CHLORIDE = "https://www.ecfr.gov/api/renderer/v1/content/enhanced/current/title-21?chapter=I&subchapter=G&part=700&subpart=B&section=700.19";
@@ -90,15 +92,21 @@ const ENTRIES: Omit<LibraryEntry, "severity">[] = [
     sources: [euBan("373", "3,4',5-Tribromosalicylanilide (Tribromsalan (INN))"), euBan("351", "Dibromosalicylanilides"), euBan("348", "Tetrachlorosalicylanilides"),
       fda("banned-us", "FDA prohibits di-, tri- and metabromsalan and tetrachlorosalicylanilide in cosmetics (21 CFR 700.15)", "These are prohibited in cosmetic products because they may cause serious skin disorders")] },
   { id: "hexachlorophene", name: "Hexachlorophene", aliases: ["hexachlorophene"], eCodes: [],
-    concern: "Banned in cosmetics in the EU. FDA allows it only as a preservative, up to 0.1%, when no other preservative works as well.",
+    concern: "Banned in cosmetics in the EU. FDA allows it only as a preservative, up to 0.1%, when no other preservative works as well, and never in products applied to mucous membranes such as the lips.",
     sources: [euBan("371", "Hexachlorophene (INN)"),
       fda("context", "FDA limits hexachlorophene to a preservative at no more than 0.1 percent (21 CFR 250.250)", "The HCP concentration in a cosmetic may not exceed 0.1 percent"),
       fda("context", "FDA allows hexachlorophene only when no other preservative has been shown to be as effective (21 CFR 250.250)",
-        "may be used only when no other preservative has been shown to be as effective")] },
+        "may be used only when no other preservative has been shown to be as effective"),
+      fda("context", "FDA: hexachlorophene may not be used in cosmetics applied to mucous membranes (21 CFR 250.250)",
+        "it may not be used in cosmetics that are applied to mucous membranes, such as the lips")] },
   { id: "mercury", name: "Mercury", aliases: ["mercury", "mercuric chloride", "mercurous chloride", "ammoniated mercury", "calomel"], eCodes: [],
-    concern: "Banned in cosmetics in the EU. FDA allows it only in eye-area products, up to 65 parts per million.",
+    concern: "Banned in cosmetics in the EU. FDA allows it only in eye-area products, up to 65 parts per million, and only if no other effective and safe preservative is available; other cosmetics may hold only an unavoidable trace under 1 part per million.",
     sources: [euBan("221", "Mercury and its compounds, except those special cases included in Annex V"),
-      fda("context", "FDA limits mercury compounds to eye-area products at no more than 65 ppm (21 CFR 700.13)", "The use of mercury compounds in cosmetics is limited to eye area products at no more than 65 parts per million")] },
+      fda("context", "FDA limits mercury compounds to eye-area products at no more than 65 ppm (21 CFR 700.13)", "The use of mercury compounds in cosmetics is limited to eye area products at no more than 65 parts per million"),
+      fda("context", "FDA permits mercury in eye-area products only if no other effective and safe preservative is available (21 CFR 700.13)",
+        "is permitted only if no other effective and safe preservative is available"),
+      fda("context", "FDA: other cosmetics may contain mercury only as an unavoidable trace under 1 ppm (21 CFR 700.13)",
+        "in a trace amount of less than 1 part per million (0.0001 percent) calculated as the metal and its presence is unavoidable")] },
   { id: "zinc-pyrithione", name: "Zinc pyrithione", aliases: ["zinc pyrithione", "pyrithione zinc"], eCodes: [],
     concern: EU_BANNED, context: DANDRUFF_CONTEXT,
     sources: [euBan("1670", "Pyrithione zinc"), dandruffDrug("Pyrithione zinc, 0.3 to 2 percent when formulated to be applied and then washed off after brief exposure")] },
@@ -227,7 +235,7 @@ const allergenNotes: CareNote[] = ALLERGENS.map(([entry, name, ...others]) => ({
 // ── N4: "fragrance" ──────────────────────────────────────────────────────────
 const fragranceNote: CareNote = {
   id: "fragrance", kind: "fragrance", name: "Fragrance", aliases: ["fragrance", "parfum", "aroma"],
-  text: "The label doesn't say what's in 'fragrance'. EU law requires naming listed fragrance allergens above set levels; US law doesn't.",
+  text: "The label doesn't say what's in 'fragrance'. EU law requires naming listed fragrance allergens above set levels. A 2022 US law (MoCRA) requires FDA to make rules for labeling fragrance allergens.",
   sources: [
     { body: "EU", basis: "context", url: EU_ALLERGENS, checkedOn: CHECKED, checkedByHand: HAND,
       finding: "Regulation (EU) 2023/1545: listed fragrance allergens must be named on the label above set levels",
@@ -235,9 +243,11 @@ const fragranceNote: CareNote = {
     { body: "FDA", basis: "context", url: FDA_FRAGRANCE, checkedOn: CHECKED,
       finding: "FDA: under US regulations, fragrance ingredients can be listed simply as \"Fragrance\"",
       quote: "fragrance and flavor ingredients can be listed simply as “Fragrance” or “Flavor.”" },
-    { body: "FDA", basis: "context", url: FDA_FRAGRANCE, checkedOn: CHECKED,
-      finding: "FDA can't require allergen labelling for cosmetics as it can for food",
-      quote: "FDA does not have the same legal authority to require allergen labeling for cosmetics as for food" },
+    // FDA's MoCRA page gives no status for this rule (063 F1): EcoGo says only that the law requires it.
+    { body: "FDA", basis: "context", url: FDA_MOCRA, checkedOn: CHECKED_063,
+      finding: "MoCRA (2022) requires FDA to establish regulations for…", quote: "MoCRA requires FDA to establish regulations for" },
+    { body: "FDA", basis: "context", url: FDA_MOCRA, checkedOn: CHECKED_063,
+      finding: "…fragrance allergen labeling requirements", quote: "Fragrance allergen labeling requirements." },
   ],
 };
 
@@ -262,9 +272,17 @@ const ADDED: Source = { body: "FDA", basis: "context", url: FDA_SUNSCREEN, check
 const STATUS = {
   proposed: { text: "FDA: proposed as safe and effective.", sources: [PROPOSED] },
   "more-data": { text: "FDA says more data are needed.", sources: MORE_DATA },
-  removed: { text: "Removed by FDA (September 10, 2026).", sources: [REMOVED] },
+  // FDA's Q&A gives no effective date for the order (063 F2), so none is shown.
+  removed: { text: "FDA ordered its removal (September 10, 2026).", sources: [REMOVED] },
   added: { text: "FDA: added as a sunscreen active in 2026.", sources: [ADDED] },
 };
+/** 063 F3: shown once under the sunscreen rows when any of them is "more data". */
+export const MORE_DATA_MEANING = { id: "sunscreen-more-data-meaning",
+  text: "FDA says “more data needed” is not a conclusion that an ingredient is unsafe for use in sunscreens.",
+  sources: [{ body: "FDA", basis: "context", url: FDA_SUNSCREEN, checkedOn: CHECKED_063,
+    finding: "FDA (Q9): the 2021 proposed order is not a conclusion that the ingredients needing more data are unsafe",
+    quote: "does not represent a conclusion by the FDA that the sunscreen active ingredients proposed as having insufficient data are unsafe for use in sunscreens" }] as Source[] };
+export const isMoreData = (note: CareNote) => note.sources === MORE_DATA;
 const sunscreen = (status: keyof typeof STATUS, name: string, ...aliases: string[]): CareNote => ({
   id: slug(name), kind: "sunscreen", name, aliases: [name.toLowerCase(), ...aliases],
   text: `As a sunscreen active: ${STATUS[status].text}`, sources: STATUS[status].sources,
@@ -289,7 +307,7 @@ export const CARE_NOTES: CareNote[] = [fragranceNote, ...allergenNotes, ...SUNSC
 // ── N2b: EU Annex III, "limited, not banned" (one folded row; never changes the badge) ──
 // Titanium dioxide (entry 321, powder with breathable particles) is left out: on a label it can't be told from sunscreen TiO2.
 // Talc (entry 59) too: it is always flagged (IARC 2A), and a flagged ingredient isn't also "limited".
-const LIMITED_TEXT = "The EU allows this in cosmetics up to a set limit. EcoGo can't see how much this product has.";
+const LIMITED_TEXT = "The EU limits how this can be used (amount, product type or pH). EcoGo can't check that from a label.";
 const limited = (entry: string, name: string, quote: string, ...aliases: string[]): CareNote => ({
   id: slug(name), kind: "limited", name, aliases: [name.toLowerCase(), ...aliases], text: LIMITED_TEXT,
   sources: [{ body: "EU", basis: "context", url: EU_COSMETICS, quote, checkedOn: CHECKED, checkedByHand: HAND,

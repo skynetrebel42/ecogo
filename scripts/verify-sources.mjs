@@ -6,7 +6,7 @@
 // page) has no `checkedByHand` date: open that page by hand, confirm the quote, then add the date (rules: src/lib/sourceCheck.ts).
 import { LIBRARY } from "../src/lib/safety/library.ts";
 import { PROCESSED_MEAT, ACRYLAMIDE } from "../src/lib/safety/foodConcerns.ts";
-import { PERSONAL_CARE, CARE_NOTES } from "../src/lib/safety/personalCare.ts";
+import { PERSONAL_CARE, CARE_NOTES, CARE_LIMITED, MORE_DATA_MEANING } from "../src/lib/safety/personalCare.ts";
 import { LEARN_SOURCES } from "../src/lib/learnSources.ts";
 import { checkSource, verdict } from "../src/lib/sourceCheck.ts";
 
@@ -14,7 +14,7 @@ import { checkSource, verdict } from "../src/lib/sourceCheck.ts";
 const learn = Object.entries(LEARN_SOURCES).map(([id, sources]) => ({ id: `learn:${id}`, sources }));
 const seen = new Set();
 const results = [];
-for (const entry of [...LIBRARY, PROCESSED_MEAT, ACRYLAMIDE, ...PERSONAL_CARE, ...CARE_NOTES, ...learn]) {
+for (const entry of [...LIBRARY, PROCESSED_MEAT, ACRYLAMIDE, ...PERSONAL_CARE, ...CARE_NOTES, ...CARE_LIMITED, MORE_DATA_MEANING, ...learn]) {
   for (const source of entry.sources) {
     const key = `${source.url} ${source.quote}`;
     if (seen.has(key)) continue;
