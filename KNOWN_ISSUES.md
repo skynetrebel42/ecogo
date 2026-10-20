@@ -271,6 +271,11 @@ Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` index
   search rows; show size/barcode where present); R2-04 ("Recently scanned" also lists viewed products; a skipped photo
   step shows a checkmark; fixed in 056). Left: after "No ingredients list? Type it", the Photos list says "2 Ingredients
   Skipped" (the photo was skipped; wording only, later).
+- **M16 live audit (ChatGPT, 2026-10-19), decided as 063:** fragrance note ignores MoCRA; PABA/trolamine "removed"
+  conflates order and effect dates; "more data needed" lacks FDA's not-unsafe context; dandruff FDA line hidden; HCP/
+  mercury conditions; fold text vs pH limits; "Nothing flagged by FDA, EU or IARC" implies agency review; USDA line and
+  "What are you eating?" on personal care; "lotion" search finds nothing. Still open: the 375 px UI check of the newer
+  screens (Profile contributions, Suggest a place, personal-care page).
 - **Already tracked or accepted:** B1/B2/same-barcode race (R1 above), re-add after Send (above), K-22, background
   photos (049), no cancel (050), limit overshoot.
 - **Research waiting on planner review:** R3 (map suggestions) for M8.1, R4 (recognition) for points and levels, R5
