@@ -23,6 +23,10 @@
 | F9 | **Search fallback:** when search finds nothing, the suggestions include personal-care examples (e.g. "shampoo", "sunscreen") and the line "Or scan its barcode". Search itself still covers the catalog + EcoGo's food copy only (OBF search is out of scope) |
 | F10 | **Glycidyl esters (seed-oils Learn article):** verify whether EU maximum levels now sit in Regulation (EU) 2023/915 as amended (the R5 report names 2026/1825); if verified, cite the current regulation and keep "since 2018" only if still true. Unverifiable → report to the planner, change nothing |
 
+| F11 | (planner, 2026-10-20; ChatGPT UI audit `EcoGo_UI_Audit_Partial_2026-10-20.md`) **Profile contribution labels** reach ≥ 4.5:1 contrast (today 12 px #6B7280 on #F3F4F6 = 4.39:1): darken the label or lighten the tile |
+| F12 | **Suggest a place fields** get a visible boundary ≥ 3:1 against their card (today ~1.2:1) |
+| F13 | **Personal-care page Back and Save** grow from 40 × 40 to at least 44 × 44 px tap areas (the size every other control already uses) |
+
 ## 2. Testing
 
 - Node: F2's placeholder logic is data, not code; tests cover F7/F8 strings per category and F6's text.
