@@ -18,6 +18,9 @@
 | S3 | **California pointer:** on a Safer Choice match whose product falls in California's Cleaning Product Right to Know Act scope (general cleaning, air care, polish/floor care, automotive appearance care), and in the not-found screen's new "What is it?" choice **Cleaning product**: "California requires the maker to list all intentionally added ingredients online." Quote the statute (Health & Safety Code §108954.5) from official text; if it can't be verified verbatim, S3 goes back to the planner, S1–S2 ship |
 | S4 | **Not found → Cleaning product:** shows S3's line, a one-line explainer of Safer Choice, and "Check the maker's website for the full ingredient list." No ingredient library for cleaners in M17 |
 
+| S1a | (planner, 2026-10-20; ChatGPT's updated research) Match only rows whose `company_in_good_standing` is true (null is not true): ~794 product pairs. Report the count |
+| S3a | (planner) California verification was only partial in the research (official pages 403'd). Quote S3 from the official leginfo text: start at `https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=201720180SB258` (or the current Health & Safety Code §108954.5 page), open it by hand in the built-in browser, date it `checkedByHand`. Mirror copies don't count. Can't open it → S3 waits, S1–S2 ship |
+
 ## 2. Testing
 
 - Node: UPC normalization (leading zeros, 11/12/13/14-digit forms, the app's existing barcode variants), exact-match
