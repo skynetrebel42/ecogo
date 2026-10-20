@@ -21,6 +21,13 @@
 | S1a | (planner, 2026-10-20; ChatGPT's updated research) Match only rows whose `company_in_good_standing` is true (null is not true): ~794 product pairs. Report the count |
 | S3a | (planner) California verification was only partial in the research (official pages 403'd). Quote S3 from the official leginfo text: start at `https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=201720180SB258` (or the current Health & Safety Code §108954.5 page), open it by hand in the built-in browser, date it `checkedByHand`. Mirror copies don't count. Can't open it → S3 waits, S1–S2 ship |
 
+**Build calls (planner, 2026-10-20, Headsman II's first reply):** snapshot keyed by the app's `barcodeKey()`, GTIN
+check digit required (invalid UPCs counted and dropped), lazy-loaded. Q1 endorsement line: an EPA HTML page first, else
+the 2024 Standard PDF with Minh's download yes; never dropped. Q2 CA scope: the builder proposes the in-scope EPA
+categories with the Act's words quoted; planner/Minh decide. Q3 CA wording: exact quote + a line saying no more than it,
+to Minh. Q4 EPA-only match reuses the product page (no ingredient list, no Add-to-OFF/Send photos, Save kept). Q5 real
+counts reported against our CSV's 3,228 and the research's 824/1,636/~794.
+
 ## 2. Testing
 
 - Node: UPC normalization (leading zeros, 11/12/13/14-digit forms, the app's existing barcode variants), exact-match
