@@ -22,7 +22,7 @@ export interface CareAnalysis { verdict: Verdict; flags: Flag[]; checkedCount: n
 
 /** 063 F7: the headline when nothing matched (N7's CARE_LIMITS says what that does and doesn't mean). */
 export const CARE_NONE = "No matches in EcoGo's checked list.";
-export const CARE_LIMITS ="EcoGo checks this list against FDA, EU and IARC findings only. Not finding a match doesn't mean a product is safe for you.";
+export const CARE_LIMITS = "EcoGo checks this list against FDA, EU and IARC findings only. Not finding a match doesn't mean a product is safe for you.";
 
 // ── Sources ──────────────────────────────────────────────────────────────────
 const CHECKED = "2026-10-16";
@@ -245,11 +245,14 @@ const fragranceNote: CareNote = {
     { body: "FDA", basis: "context", url: FDA_FRAGRANCE, checkedOn: CHECKED,
       finding: "FDA: under US regulations, fragrance ingredients can be listed simply as \"Fragrance\"",
       quote: "fragrance and flavor ingredients can be listed simply as “Fragrance” or “Flavor.”" },
-    // FDA's MoCRA page gives no status for this rule (063 F1): EcoGo says only that the law requires it.
+    // FDA's MoCRA page gives no status for this rule (063 F1): EcoGo says only that the law requires it. The last two
+    // quotes are a list heading and its item; read together in the built-in browser.
     { body: "FDA", basis: "context", url: FDA_MOCRA, checkedOn: CHECKED_063,
-      finding: "MoCRA (2022) requires FDA to establish regulations for…", quote: "MoCRA requires FDA to establish regulations for" },
-    { body: "FDA", basis: "context", url: FDA_MOCRA, checkedOn: CHECKED_063,
-      finding: "…fragrance allergen labeling requirements", quote: "Fragrance allergen labeling requirements." },
+      finding: "MoCRA is the Modernization of Cosmetics Regulation Act of 2022", quote: "Modernization of Cosmetics Regulation Act of 2022 (MoCRA)" },
+    { body: "FDA", basis: "context", url: FDA_MOCRA, checkedOn: CHECKED_063, checkedByHand: CHECKED_063,
+      finding: "MoCRA requires FDA to establish regulations for fragrance allergen labeling", quote: "MoCRA requires FDA to establish regulations for" },
+    { body: "FDA", basis: "context", url: FDA_MOCRA, checkedOn: CHECKED_063, checkedByHand: CHECKED_063,
+      finding: "FDA's MoCRA page lists \"Fragrance allergen labeling requirements\" among those regulations", quote: "Fragrance allergen labeling requirements." },
   ],
 };
 
@@ -279,11 +282,11 @@ const STATUS = {
   added: { text: "FDA: added as a sunscreen active in 2026.", sources: [ADDED] },
 };
 /** 063 F3: shown once under the sunscreen rows when any of them is "more data". */
+const MEANING: Source = { body: "FDA", basis: "context", url: FDA_SUNSCREEN, checkedOn: CHECKED_063,
+  finding: "FDA (Q9): the 2021 proposed order is not a conclusion that the ingredients needing more data are unsafe",
+  quote: "does not represent a conclusion by the FDA that the sunscreen active ingredients proposed as having insufficient data are unsafe for use in sunscreens" };
 export const MORE_DATA_MEANING = { id: "sunscreen-more-data-meaning",
-  text: "FDA says “more data needed” is not a conclusion that an ingredient is unsafe for use in sunscreens.",
-  sources: [{ body: "FDA", basis: "context", url: FDA_SUNSCREEN, checkedOn: CHECKED_063,
-    finding: "FDA (Q9): the 2021 proposed order is not a conclusion that the ingredients needing more data are unsafe",
-    quote: "does not represent a conclusion by the FDA that the sunscreen active ingredients proposed as having insufficient data are unsafe for use in sunscreens" }] as Source[] };
+  text: "FDA says “more data needed” is not a conclusion that an ingredient is unsafe for use in sunscreens.", sources: [MEANING] };
 export const isMoreData = (note: CareNote) => note.sources === MORE_DATA;
 const sunscreen = (status: keyof typeof STATUS, name: string, ...aliases: string[]): CareNote => ({
   id: slug(name), kind: "sunscreen", name, aliases: [name.toLowerCase(), ...aliases],
@@ -310,10 +313,18 @@ export const CARE_NOTES: CareNote[] = [fragranceNote, ...allergenNotes, ...SUNSC
 // Titanium dioxide (entry 321, powder with breathable particles) is left out: on a label it can't be told from sunscreen TiO2.
 // Talc (entry 59) too: it is always flagged (IARC 2A), and a flagged ingredient isn't also "limited".
 const LIMITED_TEXT = "The EU limits how this can be used (amount, product type or pH). EcoGo can't check that from a label.";
+// 063 F6: what "(amount, product type or pH)" rests on: Annex III's own column heads, and a pH condition (entry 2a).
+const ANNEX_III_HOW: Source[] = [
+  { body: "EU", basis: "context", url: EU_COSMETICS, checkedOn: CHECKED_063, checkedByHand: CHECKED_063,
+    finding: "Annex III sets each entry's product type and body parts, maximum concentration and other conditions",
+    quote: "Product type, body parts Maximum concentration in ready for use preparation Other" },
+  { body: "EU", basis: "context", url: EU_COSMETICS, checkedOn: CHECKED_063, checkedByHand: CHECKED_063,
+    finding: "Some Annex III conditions are a pH range (entry 2a, thioglycolic acid)", quote: "ready for use pH 7 to 9,5" },
+];
 const limited = (entry: string, name: string, quote: string, ...aliases: string[]): CareNote => ({
   id: slug(name), kind: "limited", name, aliases: [name.toLowerCase(), ...aliases], text: LIMITED_TEXT,
   sources: [{ body: "EU", basis: "context", url: EU_COSMETICS, quote, checkedOn: CHECKED, checkedByHand: HAND,
-    finding: `Regulation (EC) No 1223/2009, Annex III entry ${entry}: allowed in cosmetics only within set limits` }],
+    finding: `Regulation (EC) No 1223/2009, Annex III entry ${entry}: allowed in cosmetics only within set limits` }, ...ANNEX_III_HOW],
 });
 export const CARE_LIMITED: CareNote[] = [
   limited("98", "Salicylic acid", "Benzoic acid, 2-hydroxy- (9) Salicylic acid"),

@@ -42,8 +42,9 @@ const EU_GE_URL = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELE
 // 063 F10: the levels now sit in Regulation (EU) 2023/915 (repealed 1881/2006, which 2018/290 amended); consolidated
 // 19.08.2026, last amended by 2026/1825. Section 5.4 read in the built-in browser.
 const EU_CONTAMINANTS_URL = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02023R0915-20260819";
+const F10_CHECKED = "2026-10-20";
 const EU_GE = card({ body: "EU", finding: "Regulation (EU) 2023/915 (as amended, consolidated 19.08.2026) sets today's legal maximum levels for glycidyl esters in oils and fats",
-  url: EU_CONTAMINANTS_URL, checkedOn: "2026-10-20", checkedByHand: "2026-10-20",
+  url: EU_CONTAMINANTS_URL, checkedOn: F10_CHECKED, checkedByHand: F10_CHECKED,
   quote: "Glycidyl fatty acid esters, expressed as glycidol" });
 
 const EPA_GLY_URL = "https://www.epa.gov/ingredients-used-pesticide-products/glyphosate";
@@ -101,6 +102,8 @@ export const LEARN_SOURCES: Record<ExplainerId, Cite[]> = {
     check(usda("sunflower oil, linoleic", 171025, "Fatty acids, total polyunsaturated 65.7 g")),
     check(usda("sunflower oil, high oleic", 172338, "Fatty acids, total monounsaturated 83.7 g")),
     AHA_OMEGA6, AHA_POLY, AHA_INFLAMMATION, EFSA_GLYCIDOL, EFSA_PALM, EU_GE,
+    check({ body: "EU", finding: "Regulation (EU) 2023/915's title: maximum levels for contaminants in food", url: EU_CONTAMINANTS_URL,
+      checkedOn: F10_CHECKED, checkedByHand: F10_CHECKED, quote: "on maximum levels for certain contaminants in food" }),
     // "refining oils at high heat can create contaminants"
     check({ body: "EFSA", finding: "The contaminants form when oils are refined at high temperatures", url: EFSA_2016, checkedOn: TODAY,
       quote: "The substances form during food processing, in particular, when refining vegetable oils at high temperatures" }),

@@ -50,7 +50,7 @@ export function LimitedRow({ limited, className = "" }: { limited: CareAnalysis[
           <li key={note.id} className="text-xs leading-snug">
             <b>{note.name}</b> <span className="text-gray-500">(listed as “{matchedText}”)</span>: {note.text}{" "}
             {note.sources.map((s, i) => (
-              <a key={i} href={s.url} target="_blank" rel="noreferrer" className="underline">{s.finding}</a>
+              <span key={i}>{i > 0 && " · "}<a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.finding}</a></span>
             ))}
           </li>
         ))}
