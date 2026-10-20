@@ -21,6 +21,7 @@ import AddProductFlow, { type AddMode } from "./components/AddProductFlow";
 import ListScreen from "./components/ListScreen";
 import { BADGES, milestones, productCount, readContributions } from "../lib/contributions";
 import { supabase } from "../lib/supabase";
+import mascotUrl from "../assets/welcome-mascot.webp";
 import {
   Home, Map as MapIcon, Camera, Heart, User, Search, ArrowLeft, ChevronDown, ChevronRight,
   Bookmark, Wifi, QrCode
@@ -71,42 +72,64 @@ const WELCOMED_KEY = "ecogo.welcomed.v1";
 const wasWelcomed = () => { try { return localStorage.getItem(WELCOMED_KEY) === "1"; } catch { return false; } };
 const markWelcomed = () => { try { localStorage.setItem(WELCOMED_KEY, "1"); } catch { /* shows again next visit */ } };
 
-function WelcomeScreen({ onScan, onLookAround }: { onScan: () => void; onLookAround: () => void }) {
+// The lens logo, redrawn from the approved brand art: cream ring and handle, golden crescent, cream dot.
+function LensLogo({ className }: { className?: string }) {
   return (
-    <div className="absolute inset-0 flex flex-col" style={{ background: "#1A5C39" }}>
+    <svg viewBox="12 9 155 151" className={className} aria-hidden="true">
+      <circle cx="81" cy="78" r="58" fill="none" stroke="#F8F7F2" strokeWidth="18" />
+      <path d="M122 120 L153 149" stroke="#F8F7F2" strokeWidth="20" strokeLinecap="round" />
+      <path d="M85.4 54.2 A28 28 0 1 0 78.1 109.6" fill="none" stroke="#FDB20E" strokeWidth="22" strokeLinecap="round" />
+      <circle cx="107" cy="85" r="11" fill="#F8F7F2" />
+    </svg>
+  );
+}
+
+function WelcomeScreen({ onScan, onLookAround }: { onScan: () => void; onLookAround: () => void }) {
+  // The page scrolls as one piece: with large text on a short phone the hero stops shrinking at its minimum and the
+  // buttons stay reachable by scrolling.
+  return (
+    <div className="absolute inset-0 flex flex-col overflow-y-auto" style={{ background: "#1A5C39" }}>
       <StatusBar light />
-      <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-56 h-56 rounded-full opacity-10" style={{ background: "white", transform: "translate(30%, -30%)" }} />
-        <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full opacity-10" style={{ background: "white", transform: "translate(-30%, 30%)" }} />
-        <svg viewBox="0 0 280 240" className="w-72" aria-hidden="true">
-          <circle cx="140" cy="115" r="105" fill="rgba(255,255,255,0.08)" />
-          <circle cx="140" cy="115" r="75" fill="rgba(255,255,255,0.06)" />
-          <rect x="90" y="95" width="100" height="90" rx="14" fill="white" opacity="0.95" />
-          <path d="M112 95 Q112 72 140 72 Q168 72 168 95" fill="none" stroke="white" strokeWidth="8" strokeLinecap="round" opacity="0.95" />
-          <rect x="105" y="122" width="70" height="5" rx="2.5" fill="#1A5C39" opacity="0.3" />
-          <rect x="105" y="133" width="50" height="5" rx="2.5" fill="#1A5C39" opacity="0.2" />
-          <rect x="105" y="144" width="60" height="5" rx="2.5" fill="#1A5C39" opacity="0.2" />
-          <ellipse cx="72" cy="88" rx="18" ry="26" fill="#34D399" opacity="0.8" transform="rotate(-28 72 88)" />
-          <ellipse cx="72" cy="78" rx="8" ry="4" fill="#6EE7B7" opacity="0.5" transform="rotate(-28 72 78)" />
-          <ellipse cx="210" cy="100" rx="15" ry="22" fill="#6EE7B7" opacity="0.65" transform="rotate(22 210 100)" />
-          <circle cx="60" cy="145" r="6" fill="#10B981" opacity="0.7" />
-          <circle cx="220" cy="75" r="5" fill="#34D399" opacity="0.6" />
-          <circle cx="205" cy="155" r="4" fill="#6EE7B7" opacity="0.5" />
-        </svg>
-      </div>
-      <div className="bg-background rounded-t-[36px] px-6 pt-7 pb-10 flex-shrink-0">
-        <h1 className="text-[calc(26px*var(--text-scale,1))] font-extrabold text-foreground leading-tight text-center mb-2">
-          Know what's in your food
-        </h1>
-        <p className="text-muted-foreground text-sm text-center mb-7 leading-relaxed">
-          Scan a barcode. See official health findings, with sources.
+      <div className="flex-1 min-h-[200px] flex flex-col relative overflow-hidden">
+        <div aria-hidden="true">
+          <div className="absolute top-0 right-0 w-56 h-56 rounded-full bg-white/[0.06]" style={{ transform: "translate(35%, -40%)" }} />
+          <div className="absolute top-1/3 left-0 w-44 h-44 rounded-full bg-white/[0.05]" style={{ transform: "translate(-55%, 0)" }} />
+          <div className="absolute bottom-0 right-0 w-32 h-32 rounded-full bg-white/[0.05]" style={{ transform: "translate(45%, 10%)" }} />
+          <div className="absolute left-1/2 bottom-0 w-[78%] max-w-[340px] aspect-square rounded-full bg-white/[0.07]" style={{ transform: "translate(-50%, 22%)" }} />
+        </div>
+        <p className="relative flex items-center justify-center gap-2 pt-5 text-white font-extrabold text-[calc(30px*var(--text-scale,1))] leading-none">
+          <LensLogo className="w-10 h-10" />
+          EcoGo
         </p>
-        <button onClick={onScan} className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-base mb-3 shadow-lg active:scale-98 transition-transform">
+        <div className="relative flex-1 min-h-0 mt-3">
+          <div aria-hidden="true" className="absolute left-1/2 bottom-2 w-[72%] max-w-[320px] h-5 rounded-[50%] bg-black/[0.12]" style={{ transform: "translateX(-50%)" }} />
+          <img src={mascotUrl} alt="" className="absolute left-[6%] top-0 w-[88%] h-[calc(100%-12px)] object-contain object-bottom" />
+        </div>
+      </div>
+      <div className="bg-background rounded-t-[36px] -mt-2 relative px-6 pt-7 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex-shrink-0 text-center">
+        <h1 className="text-[calc(34px*var(--text-scale,1))] font-extrabold text-foreground leading-[1.05] tracking-tight mb-3">
+          Scan. Learn. Decide.
+        </h1>
+        <p className="text-foreground text-base mb-6 leading-snug">
+          Explore ingredients in food and personal care, with sources behind each flag.
+        </p>
+        <button onClick={onScan} className="w-full py-4 bg-primary text-white rounded-full font-bold text-lg shadow-lg active:scale-98 transition-transform focus-visible:ring-2 focus-visible:ring-offset-2 ring-primary">
           Start scanning
         </button>
-        <button onClick={onLookAround} className="w-full text-muted-foreground text-sm py-3">
+        <button onClick={onLookAround} className="w-full text-primary font-bold text-base py-3 mt-1 rounded-full focus-visible:ring-2 ring-primary">
           Look around first
         </button>
+        <div className="flex items-start gap-3 text-left border-t border-border mt-3 pt-4">
+          <svg viewBox="0 0 24 24" className="w-7 h-7 flex-shrink-0 text-foreground" aria-hidden="true">
+            <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+            <circle cx="12" cy="10" r="3" fill="#FDB20E" />
+          </svg>
+          <div>
+            <h2 className="text-sm font-bold text-foreground">Help the collection grow.</h2>
+            <p className="text-sm text-muted-foreground leading-snug">Add missing products or suggest local food resources.</p>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-4">Free to explore. No account needed.</p>
       </div>
     </div>
   );
