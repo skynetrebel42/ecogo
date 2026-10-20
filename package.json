@@ -10,7 +10,8 @@
     "dev": "vite",
     "test": "node --test \"src/lib/**/*.test.ts\" \"supabase/functions/**/*.test.ts\"",
     "verify:sources": "node scripts/verify-sources.mjs",
-    "import:usda": "node --max-old-space-size=6000 scripts/import-usda.mjs"
+    "import:usda": "node --max-old-space-size=6000 scripts/import-usda.mjs",
+    "import:saferchoice": "node scripts/import-saferchoice.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
