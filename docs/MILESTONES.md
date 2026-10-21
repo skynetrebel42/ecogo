@@ -40,3 +40,21 @@ context on flagged meats [Facts] · gates ✅ · review 🔨 · ⏳ Minh's wordi
 Tidy-up 📋 · A shared check set-up (~-190 lines) · B trim Figma CSV + unread fields · C split check-home (315 s of 420) ·
 D archive the M10 specs still in `specs/` [Process]
 ⏳ Minh's next-chapter review (demo, 2026-10-22) → picks Chapter 6.
+
+## Future features (saved for later; Minh picks when) · 💡 = Minh's own idea
+**Core: reading labels** [Foundation]
+- 💡 Label reader as strong as the iPhone's Live Text: any label, curved or small, cleaned up and identified (2026-10-21;
+  "almost more important than the barcode" because much food isn't in any database). Candidate for 066's scope.
+**Data coverage** [Foundation]
+- 💡 More foods beyond USDA + Open Food Facts (free databases are limited; paid ones have licence limits).
+- Open Products Facts lookup for other non-food items; an ingredient library for cleaners.
+**Community** [Feature][Server]
+- 💡 Points & levels: points for scans, first scans of new products, ingredient photos, adding or fixing product data,
+  verifying facts; must reward accurate help, not fast help (Oct 5 review; 060 shipped only counts + badges).
+**More facts** [Facts]
+- 💡 Open Food Facts scores (Nutri-Score, NOVA, Green-Score, labelled as OFF's) · 💡 mercury-in-fish marker (FDA/EPA
+  fish advice) · Prop 65 / CSCP wording.
+**More products** [Feature]
+- 💡 Produce by PLU sticker code (origins, tips, footprint from sourced data).
+**Reach & polish** [UI]
+- 💡 Languages (full translation, needs care) · Map layout second look (059 choices) · 375 px phone layout pass.

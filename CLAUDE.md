@@ -32,7 +32,8 @@ top 40 lines, then `grep -n "^| 0NN |"` for the rows you need; never the whole f
 - **Headsman**: builds one spec in its own worktree, test-first; questions go to Daedalus with options; asks Minh only
   right before a push, download, deploy or live DB change. Retired when its milestone ships.
 - Every ask to Minh is tagged 🔒 rule call (A follows the rules) or 🎨 your call (Minh answers first), says what yes
-  does, and ends reports with "In plain terms:". Roster: memory note `feedback_team_meeting.md`.
+  does, and ends reports with "In plain terms:". When Minh mentions an idea, ask "now or later?" with Daedalus's
+pick (foundations first); later ideas go to `docs/MILESTONES.md` Future features. Roster: memory note `feedback_team_meeting.md`.
 
 ## Skills
 graphify (structure) · diagnosing-bugs (bugs) · tdd (spec'd features) · code-review + ponytail-review (before a push) ·
