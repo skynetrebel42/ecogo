@@ -31,8 +31,8 @@ M16 personal care (062) ✅ 10-17 · A sourced library [Facts] · B Open Beauty 
 C care-page fixes + bigger buttons [UI] · D Home/search/contrast [UI] · ⏳ Minh's lotion retest
 M17 cleaners (065) ✅ 10-20 (df2b7c8) · A EPA Safer Choice snapshot [Foundation] · B Safer Choice card [Feature] · C California
 line [Facts] · D "Cleaning product" choice [Feature] · ⏳ Minh's listed + unlisted scan
-064 hidden risks 🔨 Headsman III · A "Risks a label can't show" article [Facts] · B benzene note on drinks [Facts] · C celery
-context on flagged meats [Facts] · gates ✅ · review 🔨 · ⏳ Minh's wording yes · then push [Deploy]
+064 hidden risks ✅ 10-21 (9905870) · A "Risks a label can't show" article [Facts] · B benzene note on drinks [Facts] ·
+C celery context on flagged meats [Facts] · ⏳ Minh's live test (checklist 2F, 4E)
 
 ## Chapter 5 · Hardening (next)
 066 Label reader v2 📋 (Minh's design) · A measured test of free readers on real labels [Test] · B clean-up before

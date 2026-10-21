@@ -25,6 +25,9 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
       Choice certified" card, EPA's "not an endorsement" line, the California line.
 - [ ] **2D** Any cleaner not on EPA's list. See: no Safer Choice text at all.
 - [ ] **2E** A cleaner EcoGo doesn't know. See: not found → "What is it?" → Cleaning product shows the California line.
+- [ ] **2F** A soda or juice drink listing sodium (or potassium) benzoate and ascorbic acid. See: a grey "Benzene can
+      form" note with a small "*FDA"; tap "Read: Risks a label can't show". Bonus: uncured hot dogs or bacon with
+      celery powder show a celery sentence inside the processed-meat warning.
 
 ## 3 · Sending to Open Food Facts (your own real products only)
 - [ ] **3A** A product already on Open Food Facts: add new photos → Send. See: "Sent" and the progress bar.
@@ -35,6 +38,7 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 - [ ] **4B** Search "zzzz". See: suggestions include shampoo and sunscreen, and "Or scan its barcode".
 - [ ] **4C** Profile. See: the contribution labels are easy to read.
 - [ ] **4D** Map → Suggest a place. See: every field has a visible border.
+- [ ] **4E** Home → the 7th Learn tile "Risks a label can't show" (full width). See: five short sections and source cards.
 
 ## 5 · Demo day (planned Thu 2026-10-22)
 - [ ] **5A** Use the app for 15 minutes like a new user. Note what you love, hate and wish it did.

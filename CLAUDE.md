@@ -47,5 +47,5 @@ subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Suba
 - **State** is replaced, never appended to.
 
 ## Current state (replace at each close-out; ≤ 3 lines)
-- Live: origin/main df2b7c8 (M1–M17 + 063; 430,127 USDA foods in `foods`, engine_rev 4; off-submit v11, place-submit v2).
-- Building: 064 hidden risks (Headsman III). Queued: 066 photo-reading fixes (OCR-01/02/03), then Minh's next-chapter review.
+- Live: origin/main 9905870 (M1–M17, 063, 064; 430,127 USDA foods in `foods`, engine_rev 4; off-submit v11, place-submit v2).
+- Next: 066 Label reader v2 (spec draft waits on Minh's Q1–Q3), then tidy-up and Minh's next-chapter review.
