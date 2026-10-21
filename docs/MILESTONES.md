@@ -1,0 +1,42 @@
+# EcoGo milestones
+
+The build as chapters → milestones → lettered steps. Daedalus updates this at every step change and close-out (it is
+also the dashboard's data). Status: ✅ done (date) · 🔨 building · ⏳ waiting on Minh · 📋 queued.
+Work type: [Foundation] data/database · [Server] Edge Functions · [Facts] sourced claims · [Feature] new screens ·
+[UI] polish/accessibility · [Debug] bug fixes · [Test] checks · [Deploy] going live · [Process] docs/workflow.
+
+## Chapter 0 · Week 0 (before 2026-09-23)
+Hack the Hood prototype (Figma Make) turned personal agentic-programming research project.
+
+## Chapter 1 · Foundation (09-23 → 10-04) ✅
+M0 cleanup · M1 sourced safety engine [Facts] · M2 barcode lookup [Foundation] · M3 deploy [Deploy] · M4 concern levels
+[Facts] · M5 nutrition [Feature] · M6 camera [Feature] · M7–M7.5 Home, explainers, trust cleanup [Feature] · M9 LA map [Feature]
+
+## Chapter 2 · Owning the data (10-02 → 10-05) ✅
+M10 own copy of 430,127 USDA foods [Foundation] · A M10.1 processed-meat rules · B M10.2 sausage/cure · C M10.3 roast-beef brine [Facts]
+
+## Chapter 3 · App features (10-06 → 10-16) ✅
+M11 quick wins · M12 Home Learn tiles · M13 Map near me · M14 Collections [Feature]
+M8 add a product to Open Food Facts [Feature][Server] ✅ 10-08
+- A label trim (047) · B photo quality (048) · C blur + speed (049) · D progress bar (050) · E fix existing OFF products
+  (051) · F photo fixes + crop (052) [Debug][Feature] ✅ 10-09 → 10-14
+- 053 trust wording [Facts] · 054 bug batch · 055 Send edge cases · 056 search rows [Debug] ✅ 10-14 → 10-15
+M8.1 Suggest a place + Report a problem (057) [Feature][Server] ✅ 10-15 · 058 Check the label yourself · 059 map batch ✅ 10-16
+M15 Your contributions (060) [Feature] ✅ 10-16 · 061 stricter source checks [Facts][Test] ✅ 10-16
+
+## Chapter 4 · Beyond food (10-16 → now)
+M16 personal care (062) ✅ 10-17 · A sourced library [Facts] · B Open Beauty Facts lookup [Foundation] · C product page +
+"What is it?" [Feature] · D check-care [Test] · ⏳ Minh's soap/lotion test
+063 accuracy fixes ✅ 10-20 (e202a84) · A fragrance/removal/conditions/fold text [Facts] · B seed-oil EU cite [Facts] ·
+C care-page fixes + bigger buttons [UI] · D Home/search/contrast [UI] · ⏳ Minh's lotion retest
+M17 cleaners (065) ✅ 10-20 (df2b7c8) · A EPA Safer Choice snapshot [Foundation] · B Safer Choice card [Feature] · C California
+line [Facts] · D "Cleaning product" choice [Feature] · ⏳ Minh's listed + unlisted scan
+064 hidden risks 🔨 Headsman III · A "Risks a label can't show" article [Facts] · B benzene note on drinks [Facts] · C celery
+context on flagged meats [Facts] · gates ✅ · review 🔨 · ⏳ Minh's wording yes · then push [Deploy]
+
+## Chapter 5 · Hardening (next)
+066 photo-reading fixes 📋 · A glued/misread line ends miss allergens (OCR-01) · B warning text kept as ingredients
+(OCR-02) · C false "not clear" messages (OCR-03) [Debug]
+Tidy-up 📋 · A shared check set-up (~-190 lines) · B trim Figma CSV + unread fields · C split check-home (315 s of 420) ·
+D archive the M10 specs still in `specs/` [Process]
+⏳ Minh's next-chapter review (demo, 2026-10-22) → picks Chapter 6.
