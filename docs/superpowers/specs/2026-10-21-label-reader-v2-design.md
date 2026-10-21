@@ -1,6 +1,6 @@
 # 066: Label reader v2 (Minh's design)
 
-- **Date:** 2026-10-21 · **Status:** Q1 and Q3 answered (§5), Q2 open · Built after 064, by one fresh Headsman.
+- **Date:** 2026-10-21 · **Status:** approved; §5 answered (Q2 after R1) · Built after 064, by one fresh Headsman.
 - **Why:** Minh's perfume test (KNOWN_ISSUES OCR-01/02/03): on a clear, curved, condensed label the reader glued and
   misread line-end words, so EcoGo missed three EU allergens (benzyl salicylate, hydroxycitronellal, limonene), kept
   "CAUTION: FLAMMABLE…" as ingredients, and said "not clear" on sharp photos. Much food and most non-food isn't in any
@@ -46,5 +46,6 @@ Start from `src/lib/ocr.ts` (readLabel, labelLines, trimToIngredients, unsureWor
   committed); plus warn people about privacy wherever a photo can leave the phone, with a choice (R7, R8).
 - **Q2 🎨** A stronger reader is a one-time download the phone then keeps. What's the most you'd accept the first time
   you take a photo? Options: about 10 MB / about 20 MB / whatever R1 shows is needed.
+  **Answer (Minh, 2026-10-21): decide after R1 with real sizes** (today's reader is ~7 MB on first photo).
 - **Q3 🎨** Cloud AI help (photos leave the phone): never / only if free and each person opts in / decide after R1.
   **Answer (Minh, 2026-10-21): only on free credits, and each person opts in** (R7).
