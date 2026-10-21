@@ -28,7 +28,7 @@
 - R1's table in the builder's report (real output). Node tests: suggestion ranking (the perfume misreads "UIHONENE" →
   limonene, "HYDROXYCITRONELLASS" → hydroxycitronellal in the top 3), the split, stop words, R6's threshold.
 - check-ocr: a curved-label fixture (§5 Q1) reads with the allergens found after accepting suggestions; the reader and
-  lists load from EcoGo's own site only; no request leaves the page. All seven gates within budget (split, never raise).
+  lists load from EcoGo's own site only; no request leaves the page. All six browser gates + `npm test` + build within budget (split, never raise).
 - Live: Minh repeats test 1A–1C on his checklist with v2.
 
 ## 3. Out of scope
