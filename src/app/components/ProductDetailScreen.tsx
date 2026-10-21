@@ -21,6 +21,8 @@ import { escapeRegExp, type Flag } from "../../lib/safety/analyze";
 import { CARE_LIMITS, type CareAnalysis } from "../../lib/safety/personalCare";
 import type { Severity, Source } from "../../lib/safety/library";
 import type { Assessment } from "../../lib/safety/assess";
+import { benzeneNote, BENZENE_NOTE } from "../../lib/safety/foodConcerns";
+import Explainer, { EXPLAINERS, type ExplainerId } from "./Explainer";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
 import NutritionPanel, { NutritionChip, EditOnOff, useNutrition } from "./NutritionPanel";
 import IngredientCheck, { LimitedRow, MoreDataLine } from "./IngredientCheck";
@@ -50,14 +52,15 @@ const NONE_BUT_COOKED = "No hazard flags from IARC, EU or FDA in the ingredients
 // Point to the Nutrition section only when the page has one (no data, e.g. no verified barcode → no section).
 const nutritionNote = (hasSection: boolean) => ` This badge doesn't rate nutrition${hasSection ? "; see the Nutrition section" : ""}.`;
 
-/** One row on the product page: an additive flag, a food-level concern, or a personal-care info note (M16, `info`). */
-interface Finding { id: string; name: string; severity?: Severity; info?: boolean; concern: string; detail: string; context?: string; sources: Source[] }
+/** One row on the product page: an additive flag, a food-level concern, or an info note (M16 personal care, 064 H2 benzene;
+ *  `info`). `learn`: a Learn page the open row links to (064). */
+interface Finding { id: string; name: string; severity?: Severity; info?: boolean; concern: string; detail: string; context?: string; sources: Source[]; learn?: ExplainerId }
 
 /** Findings grouped by where they come from; empty groups are dropped. `care`: regulator context (FDA's dandruff-drug
- *  line, 063 F4) shows in the row next to the EU ban, not behind it. */
-function findingGroups(a: Assessment, notes: CareAnalysis["notes"] = [], care = false): { title: string; findings: Finding[] }[] {
+ *  line, 063 F4) shows in the row next to the EU ban, not behind it. `foodNotes`: food info rows (064 H2). */
+function findingGroups(a: Assessment, notes: CareAnalysis["notes"] = [], care = false, foodNotes: Finding[] = []): { title: string; findings: Finding[] }[] {
   const fromConcerns = (kind: "food" | "cooking") => a.concerns.filter(c => c.kind === kind).map(c => ({
-    id: c.id, name: c.name, severity: c.severity, concern: c.concern, detail: c.reason, context: c.context, sources: c.sources,
+    id: c.id, name: c.name, severity: c.severity, concern: c.concern, detail: c.reason, context: c.context, sources: c.sources, learn: c.learn,
   }));
   return [
     { title: "In the ingredients", findings: a.flags.map(({ entry, matchedText }) => ({
@@ -67,9 +70,9 @@ function findingGroups(a: Assessment, notes: CareAnalysis["notes"] = [], care = 
     { title: "The food itself", findings: fromConcerns("food") },
     { title: "Formed when cooked", findings: fromConcerns("cooking") },
     // M16 N3–N5: info rows; they don't change the badge.
-    { title: "Good to know", findings: notes.map(({ note, matchedText }) => ({
+    { title: "Good to know", findings: [...notes.map(({ note, matchedText }) => ({
       id: `note-${note.id}`, name: note.name, info: true, concern: note.text, detail: `Listed as “${matchedText}”`, sources: note.sources,
-    })) },
+    })), ...foodNotes] },
   ].filter(g => g.findings.length > 0);
 }
 
@@ -90,7 +93,7 @@ function HighlightedIngredients({ text, flags }: { text: string; flags: Flag[] }
   );
 }
 
-function FindingRow({ finding: entry, open, onToggle }: { finding: Finding; open: boolean; onToggle: () => void }) {
+function FindingRow({ finding: entry, open, onToggle, onLearn }: { finding: Finding; open: boolean; onToggle: () => void; onLearn: (id: ExplainerId, from: HTMLElement) => void }) {
   const look = entry.info ? INFO_LOOK : entry.severity ? VERDICT_STYLE[entry.severity] : COOKING_LOOK;
   return (
     <div className="px-4 py-3">
@@ -119,6 +122,11 @@ function FindingRow({ finding: entry, open, onToggle }: { finding: Finding; open
               <span className="block text-nano text-gray-500">Source checked {s.checkedOn}</span>
             </a>
           ))}
+          {entry.learn && (
+            <button onClick={e => onLearn(entry.learn!, e.currentTarget)} className="text-mini font-bold text-primary underline text-left">
+              Read: {EXPLAINERS[entry.learn].title}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -179,11 +187,20 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
   // 058 L1/L3: "Check the label yourself" opens over the page, which stays as it was (inert) and gets focus back.
   const [checking, setChecking] = useState(false);
   const checkButton = useRef<HTMLButtonElement>(null);
-  const behind = checking ? { inert: "" } : {};
+  // 064 G5: a row's Learn link opens the page over this one the same way; Back returns focus to the link.
+  const [learn, setLearn] = useState<ExplainerId | null>(null);
+  const learnLink = useRef<HTMLElement | null>(null);
+  const openLearn = (id: ExplainerId, from: HTMLElement) => { learnLink.current = from; setLearn(id); };
+  const behind = checking || learn ? { inert: "" } : {};
   const analysis = useMemo(() => safeAnalyze(product), [product]);
   // M16: an Open Beauty Facts product. Its badge and info rows come from the same personal-care check.
   const care = isPersonalCare(product);
   const careNotes = analysis.notes ?? [];
+  // 064 H2: the benzene info row (drinks only); outside the assessment, so it never touches the badge.
+  const foodNotes = useMemo((): Finding[] => {
+    const m = care ? null : benzeneNote(product);
+    return m ? [{ id: "note-benzene", name: BENZENE_NOTE.name, info: true, concern: BENZENE_NOTE.text, detail: `Listed as “${m[0]}” and “${m[1]}”`, sources: BENZENE_NOTE.sources, learn: "hidden-risks" }] : [];
+  }, [product, care]);
   const look = VERDICT_STYLE[analysis.verdict];
   const nutrition = useNutrition(product);
   const highNutrient = topHigh(nutrition.status === "ready" ? nutrition.nutrition : null);
@@ -286,12 +303,12 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
           </div>
 
           {/* ── Findings, grouped by where they come from ── */}
-          {findingGroups(analysis, careNotes, care).map(g => (
+          {findingGroups(analysis, careNotes, care, foodNotes).map(g => (
             <div key={g.title} className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 font-bold text-sm">{g.title}</div>
               <div className="divide-y divide-gray-50">
                 {g.findings.map(f => (
-                  <FindingRow key={f.id} finding={f} open={openFlag === f.id}
+                  <FindingRow key={f.id} finding={f} open={openFlag === f.id} onLearn={openLearn}
                     onToggle={() => setOpenFlag(openFlag === f.id ? null : f.id)} />
                 ))}
               </div>
@@ -370,6 +387,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
       {sheet && <SaveSheet productId={product.id} saved={store} savedOk={savedOk} onChange={onChangeSaved} onClose={closeSheet} />}
       {checking && <IngredientCheck product={product.name} onClose={() => { setChecking(false); setTimeout(() => checkButton.current?.focus()); }}
         {...(care ? { kind: "care" as const, source: "Open Beauty Facts" } : { onSendPhotos: (photo: Blob) => onAddToOff("photos", photo) })} />}
+      {learn && <Explainer id={learn} onBack={() => { setLearn(null); setTimeout(() => learnLink.current?.focus()); }} />}
     </div>
   );
 }

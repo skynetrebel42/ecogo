@@ -74,7 +74,8 @@ try {
   // A name is the page's full title and contains the tile's visible label (spec D3, WCAG 2.5.3), so the first adds it.
   const HEALTHY = "“Nothing flagged” isn’t “healthy”";
   const LEARN = [`Not a health score: ${HEALTHY}`, "What the badge levels mean", "Seed oils: what the evidence says",
-    "Pesticides: what a label can’t tell you", "Ultra-processed foods: no official line yet", "How EcoGo checks a product"];
+    "Pesticides: what a label can’t tell you", "Ultra-processed foods: no official line yet", "How EcoGo checks a product",
+    "Risks a label can’t show"]; // 064 H1: the 7th tile, full width
 
   await send("Runtime.enable");
   await send("Network.enable");
@@ -200,9 +201,9 @@ try {
     check(`ACCESS-01: Back returns focus to the "${title}" tile`, returned === name, returned);
   }
 
-  // M12 (spec 2026-10-06-m12-home-tiles-design.md §2): six tiles, the two badge explainers first, How EcoGo checks last.
+  // M12 (spec 2026-10-06-m12-home-tiles-design.md §2): the two badge explainers first, How EcoGo checks, then 064's page.
   const tiles = await learnTiles();
-  check("Home lists 6 Learn tiles, in order", JSON.stringify(tiles) === JSON.stringify(LEARN), JSON.stringify(tiles));
+  check("Home lists 7 Learn tiles, in order", JSON.stringify(tiles) === JSON.stringify(LEARN), JSON.stringify(tiles));
   for (const title of [LEARN[2], LEARN[3], LEARN[4]]) {
     await run(`(async () => { __btn(${JSON.stringify(title)}).click(); await __sleep(500); })()`);
     const e = await run(`document.body.innerText`);
@@ -240,6 +241,17 @@ try {
     && how.includes("Shows the strongest finding") && !how.includes("Sources"));
   await back();
 
+  // 064 (spec 2026-10-20-hidden-risks-design.md §2). H1: the 7th tile spans the row and opens the article with its cards.
+  const wide = await run(`(() => { const b = __btn(${JSON.stringify(LEARN[6])}); return b && Math.abs(b.getBoundingClientRect().width - b.parentElement.getBoundingClientRect().width) < 2; })()`);
+  check("064 G4: the 7th Learn tile is full width", wide === true);
+  await run(`(async () => { __btn(${JSON.stringify(LEARN[6])}).click(); await __sleep(500); })()`);
+  const hr = await run(`document.body.innerText`);
+  const hrCards = await run(`[...document.querySelectorAll("li")].filter(l => l.innerText.includes("Read the source")).length`);
+  check("064 H1: 'Risks a label can't show' covers its four risks, with Sources cards, and ends on what EcoGo can't do",
+    ["Glycidyl esters", "Benzene in drinks", "2005 to May 2007", "Aflatoxins", "Celery-powder curing", "EcoGo can’t measure these from a label."].every(s => hr.includes(s))
+    && hr.includes("Source checked") && hrCards >= 8, `${hrCards} cards`);
+  await back();
+
   // M7.2: Profile shows only true things
   await run(`(async () => { __btn("Profile").click(); await __sleep(500); })()`);
   const p = await run(`document.body.innerText`);
@@ -261,6 +273,20 @@ try {
   check("Clear empties the list", JSON.stringify(await learnTiles()) === JSON.stringify(LEARN) && !after.includes("Recently viewed"));
   await run(`(async () => { __btn("Profile").click(); await __sleep(500); })()`);
   check("…and Profile says Nothing viewed yet", (await run(`document.body.innerText`)).includes("Nothing viewed yet"));
+
+  // 064 H3 (after the recent-list checks): the catalog's Oscar Mayer Uncured Franks (celery juice on the label) keeps one
+  // Known processed-meat finding, now with the celery context and a link to H1.
+  await home();
+  await run(`document.querySelector('input[placeholder^="Search products"]').focus(); true`);
+  await type("oscar mayer");
+  await run(`(async () => { (await __until(() => __btn("Oscar Mayer Classic Uncured")))?.click(); await __sleep(800); })()`);
+  const om = await run(`(async () => { const g = [...document.querySelectorAll("div")].find(d => d.innerText === "The food itself")?.parentElement;
+    const rows = g ? [...g.querySelectorAll("button[aria-expanded]")] : []; rows[0]?.click(); await __sleep(300);
+    return { rows: rows.length, text: document.body.innerText }; })()`);
+  check("064 H3: Oscar Mayer Uncured Franks: one Known processed-meat finding, with the celery context and a Learn link",
+    om.rows === 1 && om.text.includes("Known carcinogen · 1 finding") && om.text.includes("USDA calls celery powder a natural source of nitrite")
+    && om.text.includes("Read: Risks a label can’t show"), `${om.rows} rows`);
+  await back(); await back(); // product → search → home
 
   // M7.4 D3: a looked-up product opened from search (not Scan), then bookmarked, is listed in Saved › Favorites.
   await home();
@@ -304,6 +330,21 @@ try {
   const alt = await run(`(async () => { await __until(() => document.body.innerText.includes("Alternatives with fewer concerns"), 15000); return document.body.innerText; })()`);
   check("a flagged product shows alternatives from the same USDA category, with the caption",
     dor.includes("Doritos") && alt.includes("Alternatives with fewer concerns") && alt.includes("Availability near you isn't known"));
+  await back(); await home();
+  // 064 H2: Crush Lime (USDA "Soda": sodium benzoate and ascorbic acid; Yellow 5 sets "Some concern"). The grey row sits
+  // under "Good to know", the badge stays the additive's, and its Learn link opens H1 over the page and returns focus.
+  const crush = await scanTyped("041710394027", "Crush");
+  const row = await run(`(async () => { const g = [...document.querySelectorAll("div")].find(d => d.innerText === "Good to know")?.parentElement;
+    const b = g && [...g.querySelectorAll("button[aria-expanded]")].find(b => b.innerText.includes("Benzene can form")); if (!b) return null;
+    const collapsed = b.innerText; b.click(); await __sleep(300); const link = __btn("Read: Risks a label can’t show"); link?.click(); await __sleep(500);
+    const h1 = document.activeElement?.tagName === "H1" ? document.activeElement.innerText : null;
+    const covered = !!b.closest("[inert]"); [...document.querySelectorAll('button[aria-label="Back"]')].pop()?.click(); await __sleep(500); // the article's Back
+    return { collapsed, h1, covered, back: document.activeElement?.innerText }; })()`);
+  check("064 H2: a drink with sodium benzoate and ascorbic acid shows the grey benzene row; the badge stays the additive's",
+    crush.includes("Some concern") && !!row && row.collapsed.includes("Info") && row.collapsed.includes("Not measured in this product.")
+    && row.collapsed.includes("Listed as “SODIUM BENZOATE” and “ASCORBIC ACID”"), JSON.stringify(row)?.slice(0, 200));
+  check("064 G5: the row's Learn link opens H1 over the product (page inert), Back returns focus to the link",
+    row?.h1 === "Risks a label can’t show" && row.covered && row.back === "Read: Risks a label can’t show", JSON.stringify(row)?.slice(0, 200));
   await back(); await home();
   await run(`document.querySelector('input[placeholder^="Search products"]').focus(); true`);
   await type("granola");

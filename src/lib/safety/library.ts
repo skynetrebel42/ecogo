@@ -15,7 +15,7 @@ export type Basis =
   | "context";
 
 export interface Source {
-  body: "IARC" | "EU" | "FDA" | "EFSA" | "WHO" | "WHO/JECFA";
+  body: "IARC" | "EU" | "FDA" | "EFSA" | "WHO" | "WHO/JECFA" | "USDA";
   basis: Basis;
   finding: string;   // e.g. "Group 2B: possibly carcinogenic to humans"
   url: string;       // official page

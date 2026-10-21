@@ -14,6 +14,7 @@ export interface FoodConcern {
   concern: string;           // one plain-English sentence
   context: string;           // regulator context shown next to the finding
   sources: Source[];
+  learn?: "hidden-risks";    // 064 H3: the Learn page the finding links to
 }
 
 /** What the rules read: a catalog product, or a looked-up one (with its USDA category or OFF tags). */
@@ -287,11 +288,79 @@ export function acrylamideMatch(p: FoodInput): EuCategory | null {
   return null;
 }
 
+// ── Benzene formation (064 H2): an info row on the product page, never a flag ─
+// FDA's Q&A is about beverages and names "benzoate salts" (sodium or potassium benzoate) with ascorbic or erythorbic
+// acid, so only those whole names count, and only in drinks: the catalog's "Beverages", OFF's en:beverages, or one of
+// these USDA categories (read from the `foods` table 2026-10-21; cakes, dips and deli salads have both too).
+
+const FDA_BENZENE = "https://www.fda.gov/food/environmental-contaminants-food/questions-and-answers-occurrence-benzene-soft-drinks-and-other-beverages";
+const H2_CHECKED = "2026-10-21";
+
+export const BENZENE_NOTE: { name: string; text: string; sources: Source[] } = {
+  name: "Benzene can form",
+  text: "These two can form small amounts of benzene under heat or light (FDA). Not measured in this product.",
+  sources: [
+    { body: "FDA", basis: "context", finding: "Benzene can form at very low levels in some drinks with benzoate salts and ascorbic or erythorbic acid",
+      url: FDA_BENZENE, checkedOn: H2_CHECKED,
+      quote: "Benzene can form at very low levels (ppb level) in some beverages that contain both benzoate salts and ascorbic acid (vitamin C) or erythorbic acid" },
+    { body: "FDA", basis: "context", finding: "Heat and light can stimulate its formation",
+      url: FDA_BENZENE, checkedOn: H2_CHECKED,
+      quote: "Exposure to heat and light can stimulate the formation of benzene in some beverages that contain benzoate salts and ascorbic acid (vitamin C)." },
+  ],
+};
+
+const BENZOATE = /\b(?:sodium|potassium) benzoate\b/i;
+const VITAMIN_C_ACID = /\b(?:ascorbic|erythorbic) acid\b/i;
+const USDA_DRINKS = new Set(["Soda", "Fruit & Vegetable Juice, Nectars & Fruit Drinks", "Other Drinks", "Water", "Plant Based Water",
+  "Iced & Bottle Tea", "Sport Drinks", "Energy, Protein & Muscle Recovery Drinks", "Liquid Water Enhancer", "Powdered Drinks",
+  "Breakfast Drinks", "Non Alcoholic Beverages - Ready to Drink", "Non Alcoholic Beverages  Ready to Drink",
+  "Non Alcoholic Beverages - Not Ready to Drink", "Non Alcoholic Beverages  Not Ready to Drink", "Ready To Drink",
+  "Drinks Flavoured - Ready to Drink", "Drinks - Juices, Drinks and Cordials", "Drinks - Soft Drinks", "Drinks - Powdered",
+  "Drinks - Energy Drinks", "Alcohol", "Alcoholic Beverages", "Beer", "Milk", "Milk/Milk Substitutes", "Plant Based Milk", "Coffee"]);
+
+const isDrink = (p: FoodInput) => !p.source ? p.category === "Beverages"
+  : p.source.categoryTags ? p.source.categoryTags.includes("en:beverages") : USDA_DRINKS.has(p.source.foodCategory ?? "");
+
+/** H2: the two label words that call for the benzene row, or null. Not part of the assessment: no badge, no count. */
+export function benzeneNote(p: FoodInput): [string, string] | null {
+  const text = p.ingredients || "";
+  const salt = text.match(BENZOATE), acid = text.match(VITAMIN_C_ACID);
+  return salt && acid && isDrink(p) ? [salt[0], acid[0]] : null;
+}
+
+// ── Celery-powder curing (064 H3, Minh 2026-10-21 option A) ─────────────────
+// Context inside a processed-meat finding the rules above already made, when its label lists a celery cure item: never a
+// row of its own, never on a product they leave unflagged, and the rules (CURE_ITEM included) stay as they are.
+const FSIS_BACON = "https://www.fsis.usda.gov/food-safety/safe-food-handling-and-preparation/meat-catfish/bacon-and-food-safety";
+const FSIS_2021 = "https://www.federalregister.gov/documents/2021/12/14/2021-26993/fsis-guidelines-for-small-and-very-small-meat-and-poultry-establishments-regarding-cooking-and";
+// federalregister.gov bot-gates verify:sources and fsis.usda.gov sometimes does: every quote read on the live page that day.
+const H3_CHECKED = "2026-10-21";
+const CELERY_CURE = /\b(?:cultured celery|celery (?:powder|juice|concentrate))\b/i;
+
+export const CELERY_CURING: { text: string; sources: Source[] } = {
+  text: "This label lists a celery ingredient (powder, juice or concentrate). USDA calls celery powder a natural source of nitrite, and says a product labeled “uncured” that uses such ingredients must say “no nitrates or nitrites added except for those naturally occurring in” ingredients such as celery juice powder.",
+  sources: [
+    { body: "USDA", basis: "context", finding: "FSIS (2021): celery powder is a natural source of nitrite, approved as an antimicrobial and flavoring",
+      url: FSIS_2021, checkedOn: H3_CHECKED, checkedByHand: H3_CHECKED, quote: "Cultured celery powder and other natural sources of nitrite are approved for use as antimicrobials and flavorings." },
+    { body: "USDA", basis: "context", finding: "FSIS (2021): a meat's nitrite can come from a natural source such as celery powder",
+      url: FSIS_2021, checkedOn: H3_CHECKED, checkedByHand: H3_CHECKED, quote: "either from a purified or natural source such as celery powder" },
+    { body: "USDA", basis: "context", finding: "FSIS: a product labeled “uncured” made with these ingredients must carry an explanatory statement",
+      url: FSIS_BACON, checkedOn: H3_CHECKED, checkedByHand: H3_CHECKED,
+      quote: "for products labeled as uncured, certain ingredients added during formulation can naturally produce small amounts of nitrates in bacon and, therefore, must be labeled with the explanatory statement" },
+    { body: "USDA", basis: "context", finding: "FSIS: the statement names celery juice powder among those ingredients",
+      url: FSIS_BACON, checkedOn: H3_CHECKED, checkedByHand: H3_CHECKED,
+      quote: "no nitrates or nitrites added except for those naturally occurring in ingredients such as celery juice powder" },
+  ],
+};
+
+const withCeleryContext = (c: FoodConcern): FoodConcern =>
+  ({ ...c, context: `${c.context} ${CELERY_CURING.text}`, sources: [...c.sources, ...CELERY_CURING.sources], learn: "hidden-risks" });
+
 /** Food-level concerns for a product: processed meat first, then the acrylamide marker. */
 export function foodConcerns(p: FoodInput): FoodConcern[] {
   const out: FoodConcern[] = [];
   const meat = processedMeat(p);
-  if (meat) out.push(meat);
+  if (meat) out.push(CELERY_CURE.test(p.ingredients || "") ? withCeleryContext(meat) : meat);
   if (acrylamideMatch(p)) out.push(ACRYLAMIDE);
   return out;
 }

@@ -4,7 +4,7 @@
 // "How EcoGo checks": docs/superpowers/specs/2026-10-06-m12-home-tiles-design.md.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, ExternalLink, Apple, Gauge, Droplet, Sprout, Factory, ListChecks, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ExternalLink, Apple, Gauge, Droplet, Sprout, Factory, ListChecks, EyeOff, type LucideIcon } from "lucide-react";
 import { LEARN_SOURCES, type ExplainerId } from "../../lib/learnSources";
 import { VERDICT_STYLE } from "./verdict";
 
@@ -20,6 +20,8 @@ export const EXPLAINERS: Record<ExplainerId, { title: string; label: string; til
   "pesticides": { title: "Pesticides: what a label can’t tell you", label: "Pesticides", tile: "#33600F", Icon: Sprout },
   "ultra-processed": { title: "Ultra-processed foods: no official line yet", label: "Ultra-processed", tile: "#4A42A6", Icon: Factory },
   "how-it-works": { title: "How EcoGo checks a product", label: "How EcoGo checks", tile: "#4F4E4A", Icon: ListChecks },
+  // 064 H1 (G4: the 7th tile, full width on Home)
+  "hidden-risks": { title: "Risks a label can’t show", label: "Risks a label can’t show", tile: "#155E75", Icon: EyeOff },
 };
 
 // Moved word for word from Home's old empty-state box (M12 D2).
@@ -60,6 +62,19 @@ function Body({ id, onOpen }: { id: ExplainerId; onOpen: (id: ExplainerId) => vo
       <p>The FDA says researchers have found links between ultra-processed foods and heart disease, obesity and some cancers.</p>
       <p>There’s no official US definition yet. The FDA and USDA asked for input in July 2025. In August 2026 HHS sent the first proposed definition for final review.</p>
       <p><strong>What EcoGo can do:</strong> without an official definition, EcoGo doesn’t label foods “ultra-processed”. It does flag what has official backing: processed meat (IARC Group 1), additives with official findings, and high sugar, saturated fat and salt by the FDA’s 5/20 rule.</p>
+    </>
+  );
+  // 064 H1: wording drafted from the sources' own words, pending Minh's approval (planner batch).
+  if (id === "hidden-risks") return (
+    <>
+      <p>Some risks depend on how a food was processed, stored or grown, so an ingredient list can’t show how much of them a product has.</p>
+      <p><strong>Glycidyl esters (refined oils):</strong> they form when vegetable oils are refined at high temperatures. EFSA (2016) found glycidol genotoxic and carcinogenic, with the highest levels in palm oils and fats. EU law sets maximum levels for oils and fats. See{" "}
+        <button onClick={() => onOpen("seed-oils")} aria-label="Open: Seed oils: what the evidence says" className="text-primary font-semibold underline">Seed oils: what the evidence says</button>.
+      </p>
+      <p><strong>Benzene in drinks:</strong> it can form at very low levels in some drinks that contain both sodium or potassium benzoate and ascorbic acid (vitamin C) or erythorbic acid; heat and light can stimulate it. The FDA says benzene can cause cancer. In its survey of almost 200 drink samples (2005 to May 2007), almost all had no benzene or less than 5 ppb, and makers reformulated the products that had more (if still made). EcoGo adds a grey note to drinks that list both.</p>
+      <p><strong>Aflatoxins:</strong> toxins made by certain molds, which grow while crops are produced and stored. The foods most at risk include peanuts, corn, tree nuts such as Brazil nuts and pistachios, and some small grains such as rice. Eating them regularly can raise the risk of liver cancer. The FDA publishes action levels and tests foods; it says shoppers generally can’t control these toxins.</p>
+      <p><strong>Celery-powder curing:</strong> USDA calls celery powder a natural source of nitrite, and says a product labeled “uncured” that uses such ingredients must say “no nitrates or nitrites added except for those naturally occurring in” ingredients such as celery juice powder. IARC classes ingested nitrate or nitrite as Group 2A only “under conditions that result in endogenous nitrosation”. When EcoGo already flags a product as processed meat, the finding mentions its celery ingredient.</p>
+      <p><strong>EcoGo can’t measure these from a label.</strong></p>
     </>
   );
   if (id === "how-it-works") return (

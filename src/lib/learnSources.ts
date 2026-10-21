@@ -3,10 +3,10 @@
 // Sources cards (components/Explainer.tsx); `card: false` ones back a claim without a card of their own.
 // Plain data with no React, so the Node script and tests load it.
 import { FDA_RULE } from "./nutrition.ts";
-import { PROCESSED_MEAT, ACRYLAMIDE } from "./safety/foodConcerns.ts";
+import { PROCESSED_MEAT, ACRYLAMIDE, BENZENE_NOTE, CELERY_CURING } from "./safety/foodConcerns.ts";
 import { LIBRARY } from "./safety/library.ts";
 
-export type ExplainerId = "not-healthy" | "badge-levels" | "seed-oils" | "pesticides" | "ultra-processed" | "how-it-works";
+export type ExplainerId = "not-healthy" | "badge-levels" | "seed-oils" | "pesticides" | "ultra-processed" | "how-it-works" | "hidden-risks";
 
 export interface Cite { body: string; finding: string; url: string; quote: string; checkedOn: string; checkedByHand?: string; card: boolean }
 
@@ -46,6 +46,12 @@ const F10_CHECKED = "2026-10-20";
 const EU_GE = card({ body: "EU", finding: "Regulation (EU) 2023/915 (as amended, consolidated 19.08.2026) sets today's legal maximum levels for glycidyl esters in oils and fats",
   url: EU_CONTAMINANTS_URL, checkedOn: F10_CHECKED, checkedByHand: F10_CHECKED,
   quote: "Glycidyl fatty acid esters, expressed as glycidol" });
+const EU_TITLE = check({ body: "EU", finding: "Regulation (EU) 2023/915's title: maximum levels for contaminants in food", url: EU_CONTAMINANTS_URL,
+  checkedOn: F10_CHECKED, checkedByHand: F10_CHECKED, quote: "on maximum levels for certain contaminants in food" });
+const EU_2018_TITLE = check({ body: "EU", finding: "Regulation (EU) 2018/290's title", url: EU_GE_URL, checkedOn: TODAY, checkedByHand: TODAY,
+  quote: "as regards maximum levels of glycidyl fatty acid esters in vegetable oils and fats" });
+const EFSA_REFINING = check({ body: "EFSA", finding: "The contaminants form when oils are refined at high temperatures", url: EFSA_2016, checkedOn: TODAY,
+  quote: "The substances form during food processing, in particular, when refining vegetable oils at high temperatures" });
 
 const EPA_GLY_URL = "https://www.epa.gov/ingredients-used-pesticide-products/glyphosate";
 const IARC_GLY_URL = "https://www.iarc.who.int/featured-news/media-centre-iarc-news-glyphosate/";
@@ -80,6 +86,21 @@ const usda = (food: string, id: number, quote: string) =>
 const USDA_OILS = card({ ...usda("soybean oil", 171411, "Fatty acids, total polyunsaturated 57.7 g"),
   finding: "FoodData Central (SR Legacy), per 100 g: soybean oil 57.7 g and corn oil 54.7 g polyunsaturated; canola oil 63.3 g monounsaturated; sunflower oil 65.7 g polyunsaturated (linoleic) or 83.7 g monounsaturated (high oleic)" });
 
+// 064 H1 "Risks a label can't show" (docs/superpowers/specs/2026-10-20-hidden-risks-design.md): every quote read in the
+// built-in browser on H1_CHECKED. The benzene and celery quotes are the product rows' own (foodConcerns.ts).
+const H1_CHECKED = "2026-10-21";
+const FDA_BENZENE_URL = BENZENE_NOTE.sources[0].url;
+const FDA_MYCOTOXINS = "https://www.fda.gov/food/natural-toxins-food/mycotoxins";
+const IARC_LIST = "https://monographs.iarc.who.int/list-of-classifications";
+const FDA_BENZENE_SURVEY = card({ body: "FDA", finding: "Survey of almost 200 drinks, 2005 to May 2007: almost all had no benzene or less than 5 ppb", url: FDA_BENZENE_URL, checkedOn: H1_CHECKED,
+  quote: "Almost all samples analyzed in our survey contained either no benzene or levels below 5 ppb." });
+const FDA_AFLATOXIN_FOODS = card({ body: "FDA", finding: "The foods most susceptible to aflatoxins", url: FDA_MYCOTOXINS, checkedOn: H1_CHECKED,
+  quote: "The foods most susceptible to aflatoxins include peanuts, corn, tree nuts such as Brazil nuts and pistachios, and some small grains such as rice." });
+const FDA_AFLATOXIN_CANCER = card({ body: "FDA", finding: "Eating aflatoxins regularly can raise liver cancer risk", url: FDA_MYCOTOXINS, checkedOn: H1_CHECKED,
+  quote: "Regularly eating foods with aflatoxins can increase your risk of liver cancer" });
+const IARC_NITRITE = card({ body: "IARC", finding: "Group 2A, only under conditions that result in nitrosation in the body (Monographs vol. 94)", url: IARC_LIST,
+  checkedOn: H1_CHECKED, checkedByHand: H1_CHECKED, quote: "Nitrate or nitrite (ingested) under conditions that result in endogenous nitrosation" });
+
 /** Every sourced Learn claim, by page. "how-it-works" describes EcoGo itself, so it has none (M12 spec D2). */
 export const LEARN_SOURCES: Record<ExplainerId, Cite[]> = {
   "not-healthy": [FDA],
@@ -101,15 +122,9 @@ export const LEARN_SOURCES: Record<ExplainerId, Cite[]> = {
     check(usda("canola oil", 172336, "Fatty acids, total monounsaturated 63.3 g")),
     check(usda("sunflower oil, linoleic", 171025, "Fatty acids, total polyunsaturated 65.7 g")),
     check(usda("sunflower oil, high oleic", 172338, "Fatty acids, total monounsaturated 83.7 g")),
-    AHA_OMEGA6, AHA_POLY, AHA_INFLAMMATION, EFSA_GLYCIDOL, EFSA_PALM, EU_GE,
-    check({ body: "EU", finding: "Regulation (EU) 2023/915's title: maximum levels for contaminants in food", url: EU_CONTAMINANTS_URL,
-      checkedOn: F10_CHECKED, checkedByHand: F10_CHECKED, quote: "on maximum levels for certain contaminants in food" }),
-    // "refining oils at high heat can create contaminants"
-    check({ body: "EFSA", finding: "The contaminants form when oils are refined at high temperatures", url: EFSA_2016, checkedOn: TODAY,
-      quote: "The substances form during food processing, in particular, when refining vegetable oils at high temperatures" }),
-    // "the EU has set legal maximum levels since 2018" (2018/290 first set them; 2023/915 carries them today)
-    check({ body: "EU", finding: "Regulation (EU) 2018/290's title", url: EU_GE_URL, checkedOn: TODAY, checkedByHand: TODAY,
-      quote: "as regards maximum levels of glycidyl fatty acid esters in vegetable oils and fats" }),
+    AHA_OMEGA6, AHA_POLY, AHA_INFLAMMATION, EFSA_GLYCIDOL, EFSA_PALM, EU_GE, EU_TITLE,
+    EFSA_REFINING, // "refining oils at high heat can create contaminants"
+    EU_2018_TITLE, // "the EU has set legal maximum levels since 2018" (2018/290 first set them; 2023/915 carries them today)
   ],
   "pesticides": [
     FDA_RESIDUES, IARC_GLYPHOSATE, EPA_GLYPHOSATE, EPA_COURT, EFSA_GLYPHOSATE,
@@ -135,4 +150,30 @@ export const LEARN_SOURCES: Record<ExplainerId, Cite[]> = {
     check(PROCESSED_MEAT.sources[0]), check(FDA),
   ],
   "how-it-works": [],
+  "hidden-risks": [
+    // Glycidyl esters: the seed-oils page's sources ("EU law sets maximum levels for oils and fats": EU_GE, EU_TITLE, EU_2018_TITLE)
+    EFSA_REFINING, EFSA_GLYCIDOL, EFSA_PALM, EU_GE, EU_TITLE, EU_2018_TITLE,
+    // Benzene in drinks (dated: FDA's survey ran 2005 to May 2007)
+    card(BENZENE_NOTE.sources[0]), check(BENZENE_NOTE.sources[1]), FDA_BENZENE_SURVEY,
+    check({ body: "FDA", finding: "The survey's dates and size", url: FDA_BENZENE_URL, checkedOn: H1_CHECKED,
+      quote: "survey of almost 200 samples of soft drinks and other beverages tested for benzene conducted from 2005 through May 2007" }),
+    check({ body: "FDA", finding: "Products over 5 ppb were reformulated", url: FDA_BENZENE_URL, checkedOn: H1_CHECKED,
+      quote: "The manufacturers have reformulated products, if still manufactured, which were identified in the survey as containing greater than 5 ppb benzene." }),
+    check({ body: "FDA", finding: "Benzene can cause cancer", url: FDA_BENZENE_URL, checkedOn: H1_CHECKED,
+      quote: "Benzene is a carcinogen that can cause cancer in humans." }),
+    check({ body: "FDA", finding: "Sodium or potassium benzoate is the preservative", url: FDA_BENZENE_URL, checkedOn: H1_CHECKED,
+      quote: "Sodium or potassium benzoate may be added to beverages to inhibit the growth of bacteria, yeasts, and molds." }),
+    // Aflatoxins
+    check({ body: "FDA", finding: "Aflatoxins come from certain molds", url: FDA_MYCOTOXINS, checkedOn: H1_CHECKED,
+      quote: "Aflatoxins are mycotoxins produced by certain Aspergillus molds." }),
+    check({ body: "FDA", finding: "The molds grow during crop production and storage", url: FDA_MYCOTOXINS, checkedOn: H1_CHECKED,
+      quote: "The fungi that produce mycotoxins generally grow during crop production and storage." }),
+    FDA_AFLATOXIN_FOODS, FDA_AFLATOXIN_CANCER,
+    check({ body: "FDA", finding: "FDA's action levels and testing", url: FDA_MYCOTOXINS, checkedOn: H1_CHECKED,
+      quote: "the FDA has published action levels for aflatoxin and regularly tests foods for the presence of aflatoxins" }),
+    check({ body: "FDA", finding: "Shoppers generally can't control mycotoxins", url: FDA_MYCOTOXINS, checkedOn: H1_CHECKED,
+      quote: "As an individual consumer, you generally cannot control the presence of mycotoxins in your food." }),
+    // Celery-powder curing
+    ...CELERY_CURING.sources.map(card), IARC_NITRITE,
+  ],
 };

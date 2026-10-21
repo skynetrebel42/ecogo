@@ -230,8 +230,9 @@ function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearR
         </div>
       )}
 
-      {/* M12 (decision 035): six Learn tiles, two per row; each opens its page and is named by the page's full title,
-          which must contain the visible label (D3, WCAG 2.5.3 for voice control), so a title without it gets the label first. */}
+      {/* M12 (decision 035): the Learn tiles, two per row (an odd last one spans the row, 064 G4); each opens its page and is
+          named by the page's full title, which must contain the visible label (D3, WCAG 2.5.3 for voice control), so a title
+          without it gets the label first. */}
       <div>
         <h2 className="font-bold text-base mb-2">Learn</h2>
         <div className="grid grid-cols-2 gap-2.5">
@@ -240,7 +241,7 @@ function HomeTab({ onSearch, onSelectProduct, onGoScan, onSeeAllRecent, onClearR
             const name = title.toLowerCase().includes(label.toLowerCase()) ? title : `${label}: ${title}`;
             return (
               <button key={id} onClick={e => onOpenExplainer(id, e.currentTarget)} aria-label={name} style={{ background: tile }}
-                className="min-h-[88px] rounded-2xl p-3.5 text-left text-white flex flex-col justify-between gap-2 shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 ring-primary">
+                className="odd:last:col-span-2 min-h-[88px] rounded-2xl p-3.5 text-left text-white flex flex-col justify-between gap-2 shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 ring-primary">
                 <Icon size={24} aria-hidden="true" />
                 <span className="text-sm font-extrabold leading-tight break-words hyphens-auto">{label}</span>
               </button>
