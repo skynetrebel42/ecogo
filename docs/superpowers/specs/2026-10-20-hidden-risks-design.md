@@ -16,6 +16,16 @@
 | H2 | **Benzene info row** (grey, no badge change) on products whose list has a benzoate (sodium/potassium benzoate, benzoic acid) **and** ascorbic or erythorbic acid: "These two can form small amounts of benzene under heat or light (FDA). Not measured in this product." Links to H1 |
 | H3 | **Celery-powder curing row** on meats whose list has celery powder/juice/concentrate: context only, worded from USDA/FSIS. First reconcile with decision 029 (celery curing already counts as evidence in some processed-meat rules): if 029's rule already flags the product, H3 adds context to that flag instead of a second row. The builder sends the reconciliation to the planner before coding H3 |
 
+**Build calls (2026-10-21, Headsman III's first reply):** rows are computed in the app at view time (`foods` stores
+only verdict/rank/flags/cooked): no engine_rev bump, re-import or DB change. H3 (Minh): context only, inside an
+existing processed-meat row (Known or Contains) whose label lists celery powder/juice/concentrate/cultured celery: one
+sourced sentence + USDA/FSIS sources + link to H1; unflagged products show nothing; rules and CURE_ITEM untouched. H1
+tile (Minh): a 7th Learn tile, full width. Planner: H2 drinks only (catalog Beverages, OFF en:beverages, USDA drink
+categories), benzoic acid only if FDA names it; whole-word sodium/potassium benzoate + ascorbic/erythorbic acid (no
+"vitamin C", sodium ascorbate or E-numbers); no H2 on the no-barcode check; celery quotes from HTML pages first (PDF
+only with Minh's yes); glycidyl esters reuse 063's EU source if its consolidation includes 2026/1825; the article opens
+over the product page (page behind inert).
+
 ## 2. Testing
 
 - Node: H2 needs both ingredients (one alone → no row); H3 never duplicates a 029 flag; no badge level changes

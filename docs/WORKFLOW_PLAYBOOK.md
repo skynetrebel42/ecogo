@@ -190,3 +190,52 @@ Keep these files short, because agents read them every session.
 |---|---|---|---|
 | 001 | YYYY-MM-DD | Owner picked option B: ... | ... |
 ```
+
+---
+
+## 9. Upkeep: checklists, triggers, guardrails
+
+Why these exist: Anthropic's guidance is that the context window is the main constraint and quality drops as it fills
+("context rot"), so always-loaded files stay short, things that must always happen go in hooks rather than prose, and
+long work is split into fresh agents with notes. Multi-agent setups cost ~15× a chat's tokens and suit coding poorly,
+so: two agents plus small read-only helpers. Sources: anthropic.com/engineering/claude-code-best-practices,
+…/effective-context-engineering-for-ai-agents, …/multi-agent-research-system.
+
+### 9.1 Milestone tracker and close-out
+Track every milestone as lettered steps in `docs/MILESTONES.md`, each with a work-type label and a status:
+`M8.1 · A: in-app form [Feature] ✅ · B: server function [Server] ✅ · C: owner's live test ⏳` → `M8.1 complete
+2026-10-15 · next: M8.2 · A … B … C …`. At close-out, in this order:
+1. Live check done (the real site, not the tests); owner's live test added to the owner's test list.
+2. Spec → `docs/archive/`; decision row → Done (hash); MILESTONES step marks + next milestone's steps.
+3. `AGENTS.md`/`CLAUDE.md`: **replace** the ≤ 3 state lines; check the Commands section still lists every file and command.
+4. Code map refresh if the milestone changed more than ~10 source files.
+5. Metrics row (builder context at ship, review rounds, owner decisions, found after push); dashboard data.
+6. Builder's lessons → its handoff note, pruned to the cap; builder worktree removed; builder retired.
+
+### 9.2 Maintenance triggers (the "context gauge")
+| Trigger | Do |
+|---|---|
+| Any chat ≥ 50 % context, or auto-compacted | Rotate at the next clean seam (§6). |
+| The 5-hour limit hit 100 % five times in one week | Cheap-mode check before more building: unused connectors off, always-loaded files under cap, long chats rotated, background jobs shrunk. |
+| Weekly usage ≥ 90 % with more than a day left | Pause building; planner-only work until the reset. |
+| Reset day, ≥ 15 % weekly left (use-it-or-lose-it) | Maintenance run: code-map refresh, memory consolidation, size audit of always-loaded files, connector check. |
+| Any rule file, handoff or memory note over its cap | Prune before adding anything. |
+| An outside report or owner test finds a bug the checks missed | Add a check for it, and a line to §9.4. |
+
+### 9.3 Guardrails for the bottlenecks seen so far
+- **Rubber-stamp approvals:** tag every ask 🔒 rule call (the rules pick A; confirm) or 🎨 owner's call (owner answers
+  first, then sees the recommendation). Say in one line what yes does. Batch asks: one wording batch + one push ask per milestone.
+- **Owner drift:** the owner sets each new chapter from their own use of the app; autopilot decisions get a periodic review.
+- **Untested releases:** each milestone's live test goes on the owner's list at close-out; the next milestone may build,
+  but the list is reviewed at every planner check-in.
+- **Append-only files:** state is replaced; histories live in git and the decision log; caps on everything always loaded.
+- **Vague triggers** ("after big refactors"): every upkeep task names its trigger and its owner (§9.1, §9.2).
+- **Relay noise:** the planner answers a builder's progress note in ≤ 2 lines with no tool calls.
+
+### 9.4 Amendments log (lessons that changed the rules; carry them to the next project)
+| Date | Problem seen | New rule |
+|---|---|---|
+| 2026-10-18 | Long-lived builder chats hit 54 % context, 2 review rounds | Fresh builder per milestone, spawned by the planner (§1) |
+| 2026-10-21 | Owner approved A on autopilot for a week; taste calls drifted to the planner | 🔒/🎨 tags, owner answers 🎨 first (§9.3) |
+| 2026-10-21 | Four releases shipped without the owner's live test; the first test found 3 bugs | Live tests listed at close-out (§9.1, §9.3) |
+| 2026-10-21 | Rulebook state grew append-only; code map 18 days stale; a deprecated connector loaded in every chat | Size caps, replace-not-append, named triggers (§9.1, §9.2) |

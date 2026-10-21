@@ -84,6 +84,13 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - ~~No stable product identity~~ *(resolved in step 2: the DB and the CSV share ids 1–51, and the incompatible 7-row server seed is gone).*
 - ~~No git repo / `.gitignore`~~ *(resolved in step 0).*
 - ~~Product ids are coupled to hardcoded explanations~~ *(resolved in M1: the explanations were deleted; `src/lib/safety/fixtures/expected-flags.json` is keyed by id, so regenerate it if products are renumbered).*
+- **Ponytail audit 2026-10-21 (planner-verified top 3; ~-345 lines possible, no deps):** (1) the six `check-*.mjs`
+  scripts each repeat ~40 lines of headless-Edge/CDP setup + helpers → one shared `cdp.mjs` (~-190); (2)
+  `products.csv` keeps the Figma export's store/price/score columns and one row per store (112 rows, 52 products) →
+  one row per product, drop the parser's de-dup (~-64); (3) `Product.description` / `imageUrl` are written in 6 places,
+  read nowhere (~-12). Smaller: Figma shadcn tokens in `theme.css`, OFF/OBF mappers share ~10 lines, `words()` defined
+  3×, package name `@figma/my-make-file`. Owner's call: the 52-product catalog exists twice (CSV + Supabase
+  `products`) (~-40).
 - About 115 KB of inline data literals plus the raw CSV ship in the single eager chunk. Google Fonts loads via a render-blocking CSS `@import`.
 
 ### Safety engine follow-ups (from the M1 final review, deferred)
@@ -249,6 +256,22 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - **Re-adding right after a Send:** the lookup caches "not found" for the session, so scanning the same barcode again
   offers "Add this product" again. A repeat with nothing new ends as "nothing new to send" and isn't counted.
 - ~~**Still on OFF's test server**~~ **Done 2026-10-09:** the owner switched `OFF_BASE` to `world.openfoodfacts.org`.
+
+### Label reading on personal care (Minh's perfume test, 2026-10-21; planner diagnosis, not yet scheduled)
+- **OCR-01 (High, facts):** a clear perfume label (curved bottle, condensed caps) lost line-end words and commas:
+  "HEXAMETHYLINDANOPYRA BENZYL SALICYLATE" glued into one item, LIMONENE read "UIHONENE", HYDROXYCITRONELLAL read
+  "HYDROXYCITRONELLASS", PINENE and an ACETATE dropped. Whole-item matching (062) then missed three EU fragrance
+  allergens (benzyl salicylate, hydroxycitronellal, limonene). 17 underlined words (~24 %) stayed under the 25 % retake
+  hint (G4). Options to weigh: image preprocessing before Tesseract; matching known multi-word names inside a glued
+  item (changes 062's whole-name rule: owner decision); the retake threshold.
+- **OCR-02 (Medium):** the label trim's stop words are food-only: "CAUTION: FLAMMABLE … AVOID CONTACT WITH EYES" was
+  kept as ingredients. Add personal-care/cleaner stops (caution, warning, directions, avoid contact, keep out of reach,
+  for external use).
+- **OCR-03 (Medium):** across repeated, careful photos of the same clear perfume label, Minh kept getting the
+  "not clear" message (blur check 049 or the hard-to-read hint G4, both tuned on food packs). Retake hints on a sharp
+  photo: find which message fires and why (curved, condensed, small text) before changing a threshold.
+- Not a bug: the same screen showed the pre-063 wording because the phone's tab still ran the old build (no service
+  worker; GitHub Pages caches index.html 10 min). Closing and reopening the tab loads the new one.
 
 ### Outside audits by ChatGPT, 2026-10-11 → 14 (RC1 / RW1 / trust-UI / R2; at 5a08ad6; planner triage 2026-10-14)
 

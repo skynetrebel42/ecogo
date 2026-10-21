@@ -1,49 +1,51 @@
 # EcoGo!
 
-Barcode scan → sourced ingredient concerns. React 18 + Vite 6 + Tailwind 4 + Supabase. Personal project. Start with `PROJECT_HANDOFF.md`.
+Barcode scan → sourced ingredient concerns (food, personal care, cleaners). React 18 + Vite 6 + Tailwind 4 + Supabase.
+Personal project of Minh (non-technical owner). Decisions live only in `PROJECT_HANDOFF.md`'s log (42 KB): read the
+top 40 lines, then `grep -n "^| 0NN |"` for the rows you need; never the whole file.
 
 ## Commands (run before claiming done)
-- `npm test` — safety engine, 51-product check, lookup client (node --test)
-- `npm run build` — must pass
-- `npm run verify:sources` — only after editing `src/lib/safety/library.ts`, `foodConcerns.ts`, `personalCare.ts` or the Learn citations list (`learnSources.ts`) (needs internet; fails on unverifiable sources without a dated hand check)
+- `npm test` (node --test: safety engine, 51-product check, lookup) · `npm run build` (must pass)
+- Browser gates: `docs/superpowers/plans/2026-10-01-m7-assets/check-*.mjs` (how to run: `.claude/handoff-knight.md`)
+- `npm run verify:sources` after editing `src/lib/safety/{library,foodConcerns,personalCare}.ts`, `src/lib/saferChoice.ts`
+  or `src/lib/learnSources.ts` (internet; fails on an unverifiable source without a dated hand check)
+- Owner-run only: `npm run import:usda` (empty `foods` first), `npm run import:saferchoice`
 
 ## Where to look (cheapest first)
-1. Structure/relationships question → `graphify-out/GRAPH_REPORT.md`, then `/graphify query "<question>"`. Don't grep the whole tree first.
-2. File map and "safe to edit" levels → `ARCHITECTURE.md`.
-3. Open bugs/roadmap → `KNOWN_ISSUES.md`.
-- Do NOT read `docs/archive/` (finished M1–M9 plans/specs; history is in git). Active work is only `docs/superpowers/` (specs of the milestone being built; finished ones move to `docs/archive/`).
-- Never read `src/lib/fixtures/**`, `*.json` data, or lockfiles unless the task names them.
+1. Structure → `graphify-out/GRAPH_REPORT.md` / `/graphify query "…"` if it's newer than the last `src/` commit, else
+`ARCHITECTURE.md` (grep it). 2. File map + "safe to edit" → `ARCHITECTURE.md`.
+3. Bugs/backlog → `KNOWN_ISSUES.md`. 4. Milestone steps → `docs/MILESTONES.md`.
+- Active specs: `docs/superpowers/specs/` only. Never read `docs/archive/`, `src/lib/fixtures/**`, `*.json` data or
+  lockfiles unless the task names them.
 
 ## Rules
-- Nothing the app shows may be invented. Every safety flag needs a verbatim source (`verify:sources`).
-- The browser writes no Supabase table rows: beyond reading `foods`, its only Supabase calls are the anonymous sign-in at the first Send and invoking `off-submit` (which alone writes `contributions`) and `place-submit` (M8.1; which alone writes `place_reports`), and reads the person's own `contributions` / `place_reports` counts (M15). No API key in client code (the Turnstile site key is public): lookups read EcoGo's own `foods` table (M10); only the owner's `.env.local` holds the service-role key for `npm run import:usda`.
-- Every push to `main` deploys to GitHub Pages.
+- Nothing the app shows may be invented: every claim has a verbatim official quote (`verify:sources`). No match = no claim.
+- The browser writes no Supabase rows. Its only Supabase calls: read `foods`; anonymous sign-in at the first Send;
+  invoke `off-submit` (sole writer of `contributions`) and `place-submit` (sole writer of `place_reports`); read the
+  person's own counts. No secret keys in client code (the Turnstile site key is public). Every push to `main` deploys.
+- Git: commit by exact path; never `add -A`, `commit -a`, amend, reset, rebase, stash or force-push on `main` (hook
+  enforces). Before any push show `git log --oneline origin/main..HEAD` (own vs others); the owner approves that list.
 
-## Current state (update when a milestone ships)
-- M1–M14 and M8 live on `origin/main` (M11 quick wins; M12 Home "Learn" tiles; M13 Map near me: ZIP/radius, 183 OSM places + 191 LA County sites, report a problem; M14 Collections: save sheet + lists on this device; M8 add a product to Open Food Facts via the `off-submit` Edge Function (real OFF since 2026-10-09, owner swapped the secrets), + no-barcode ingredient check). M8 follow-ups 1–4 and 6 live (047–050, 052; progress bar, blur check, label trim, crop, no junk prefill). RW1-01 (latest photo wins) and trust wording (053) live 2026-10-14. Bug batch 054 live (a57df5b). Follow-up 5 (051, add missing ingredients / send new photos for existing OFF products) live 2026-10-14 (219fe37). Send edge cases (055: lock while sending, "Not sure it arrived", photo-rejected) live 2026-10-15 (ba60f47, off-submit v11). R2-03/04 batch (056) live 01c4075. M8.1 (057, in-app Suggest a place + Report a problem, place-submit + place_reports) live 2026-10-15 (772814c). "Check the label yourself" + account-free sends first (058) live 33f1737. Map feedback batch (059: Suggest up top, County search + 211, OSM links demoted, Photon address suggestions) live b6e52cd. M15 "Your contributions" (060: private counts + milestones on Profile; place-submit v2) live 2026-10-16 (3e5ee30). SOURCE-01 + COPY-01 (061: stricter verify:sources, Learn citations checked, seed-oil fat mix) live 66d58bc. M16 personal care (062: Open Beauty Facts lookup, sourced FDA/EU/IARC library, fragrance + allergen notes, FDA sunscreen status, "Limited, not banned" fold) live 2026-10-17 (ac0ada8). 063 M16 accuracy fixes live 2026-10-20 (e202a84). M17 cleaners (065: EPA Safer Choice snapshot match via `npm run import:saferchoice` (owner reruns), California ingredients line, not-found "Cleaning product") live 2026-10-20 (df2b7c8). Next (owner, 2026-10-20): 064 hidden-risk explainers. **M10**: own USDA copy, 430,127 products in Supabase `foods` (engine_rev 4, after the M10.1–M10.3 processed-meat rules); the app never calls USDA. Re-import: empty the table first (a reload over a full one doubles its size).
-- Order after M10 (owner, 2026-10-05): `docs/superpowers/ideas/2026-10-05-owner-app-review.md` (quick wins → Home redesign → Map near me → Collections → M8 add-a-product → …).
-- Active specs: `docs/superpowers/specs/` (m10, m101–m103, hidden-risks). Decisions live ONLY in the `PROJECT_HANDOFF.md` decision log; don't re-open them.
+## Roles
+- **Daedalus** (planner): talks to Minh, writes specs and the decision log, spawns one fresh **Headsman** (builder) per
+  milestone with a full brief (`docs/WORKFLOW_PLAYBOOK.md` §2.4), verifies live, closes out. Writes docs, never `src/`.
+- **Headsman**: builds one spec in its own worktree, test-first; questions go to Daedalus with options; asks Minh only
+  right before a push, download, deploy or live DB change. Retired when its milestone ships.
+- Every ask to Minh is tagged 🔒 rule call (A follows the rules) or 🎨 your call (Minh answers first), says what yes
+  does, and ends reports with "In plain terms:". When Minh mentions an idea, ask "now or later?" with Daedalus's
+pick (foundations first); later ideas go to `docs/MILESTONES.md` Future features. Roster: memory note `feedback_team_meeting.md`.
 
-## Multi-chat rules
-- Commit by exact path. Never `add -A`, `commit -a`, amend, reset, rebase, stash, or force-push on `main` (hook enforces). Builds happen on worktree branches.
-- Before any push show `git log --oneline origin/main..HEAD` (mark own vs others' commits); owner approves that exact list.
-- Planners write only in `docs/`; one builder at a time works in `src/`.
-- Two chats: the planner (specs, plans, order, the owner's decisions) and the builder (one at a time in `src/`). The builder sends decision questions to the planner with options, then stops; it asks the owner directly only right before a push, deploy, or live DB change.
-- Detailed versions: memory notes `feedback_team_meeting.md`, `feedback_parallel_chats_git.md`.
+## Skills
+graphify (structure) · diagnosing-bugs (bugs) · tdd (spec'd features) · code-review + ponytail-review (before a push) ·
+verification-before-completion (before a report) · pr (PR text). Skip brainstorming / writing-plans /
+subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Subagents only for big read-only searches
+(≤15-line summary).
 
-## Working agreement (agents)
-- One task per chat. Start from this file + the named spec; don't load other plans.
-- Default: do the task directly. Use a subagent only for big independent searches or parallel work; it returns a ≤15-line summary with `file:line`.
-- Skills: use the one that matches the task, don't chain several.
-  | Task | Skill |
-  |---|---|
-  | architecture / "where is X" | graphify (query graph first) |
-  | bug | diagnosing-bugs |
-  | new feature with a spec | tdd, against the spec in `docs/superpowers/specs/` |
-  | review changes | code-review |
-  | over-engineering check, builder, before asking for a push | ponytail-review |
-- Superpowers (loads every session): CLAUDE.md wins. The builder uses `verification-before-completion` before a report; skip `brainstorming`, `writing-plans` and `subagent-driven-development` (the planner's mockups + spec + one builder replace them).
-  | PR text | pr |
-  Tiny edits (copy, styling, one-file fixes): no skill, no plan.
-- Keep graph current: after big refactors run `/graphify --update`.
-- When a milestone ships: move its plan/spec to `docs/archive/`, add one line to `PROJECT_HANDOFF.md`, update this file only if a command or rule changed.
+## Upkeep (checklists: `docs/WORKFLOW_PLAYBOOK.md` §9)
+- Milestone done → the close-out checklist (§9.1). Maintenance triggers (usage, weekly) → §9.2.
+- Size caps: this file ≤ 4 KB; handoff notes ≤ 6 KB; memory notes ≤ 3 KB each. Over a cap: prune before adding.
+- **State** is replaced, never appended to.
+
+## Current state (replace at each close-out; ≤ 3 lines)
+- Live: origin/main df2b7c8 (M1–M17 + 063; 430,127 USDA foods in `foods`, engine_rev 4; off-submit v11, place-submit v2).
+- Building: 064 hidden risks (Headsman III). Queued: 066 photo-reading fixes (OCR-01/02/03), then Minh's next-chapter review.
