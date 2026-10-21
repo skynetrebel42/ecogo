@@ -250,6 +250,19 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
   offers "Add this product" again. A repeat with nothing new ends as "nothing new to send" and isn't counted.
 - ~~**Still on OFF's test server**~~ **Done 2026-10-09:** the owner switched `OFF_BASE` to `world.openfoodfacts.org`.
 
+### Label reading on personal care (Minh's perfume test, 2026-10-21; planner diagnosis, not yet scheduled)
+- **OCR-01 (High, facts):** a clear perfume label (curved bottle, condensed caps) lost line-end words and commas:
+  "HEXAMETHYLINDANOPYRA BENZYL SALICYLATE" glued into one item, LIMONENE read "UIHONENE", HYDROXYCITRONELLAL read
+  "HYDROXYCITRONELLASS", PINENE and an ACETATE dropped. Whole-item matching (062) then missed three EU fragrance
+  allergens (benzyl salicylate, hydroxycitronellal, limonene). 17 underlined words (~24 %) stayed under the 25 % retake
+  hint (G4). Options to weigh: image preprocessing before Tesseract; matching known multi-word names inside a glued
+  item (changes 062's whole-name rule: owner decision); the retake threshold.
+- **OCR-02 (Medium):** the label trim's stop words are food-only: "CAUTION: FLAMMABLE … AVOID CONTACT WITH EYES" was
+  kept as ingredients. Add personal-care/cleaner stops (caution, warning, directions, avoid contact, keep out of reach,
+  for external use).
+- Not a bug: the same screen showed the pre-063 wording because the phone's tab still ran the old build (no service
+  worker; GitHub Pages caches index.html 10 min). Closing and reopening the tab loads the new one.
+
 ### Outside audits by ChatGPT, 2026-10-11 → 14 (RC1 / RW1 / trust-UI / R2; at 5a08ad6; planner triage 2026-10-14)
 
 Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` indexes them). Advice, not decisions.
