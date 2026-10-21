@@ -6,7 +6,7 @@ that looked wrong (a screenshot helps). A reminder comes every evening at 8 pm w
 Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fresh tab** (an old tab keeps the old version).
 
 ## Questions waiting on you (answer in chat; not tests)
-- [ ] ❓ 064 wording: ship it with the FDA-closest drinks note and the rest as drafted? Reply "yes" or name the line to change.
+- [x] ❓ 064 wording (2026-10-21): FDA's own words with a small "*FDA" note; the rest as drafted.
 - [ ] ❓ Does the EcoGo Build Board show what you need? Leave a comment on it.
 
 ## 1 · Camera: reading ingredient labels (Scan → "Check ingredients")

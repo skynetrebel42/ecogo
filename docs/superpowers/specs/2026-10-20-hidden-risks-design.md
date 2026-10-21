@@ -25,6 +25,10 @@ categories), benzoic acid only if FDA names it; whole-word sodium/potassium benz
 "vitamin C", sodium ascorbate or E-numbers); no H2 on the no-barcode check; celery quotes from HTML pages first (PDF
 only with Minh's yes); glycidyl esters reuse 063's EU source if its consolidation includes 2026/1825; the article opens
 over the product page (page behind inert).
+**Wording (Minh, 2026-10-21, in Headsman III's chat):** H2 = FDA's own words with a small star citation: "In some
+drinks, these two can form benzene at very low levels; heat and light can speed this up.* Not measured in this
+product." + "*FDA" under it ("fda words n habe a snall citation like 1-2 woeds * style"). H3 sentence ("a celery
+ingredient (powder, juice or concentrate)…"), the "Read: Risks a label can't show" link and the article approved as drafted.
 
 ## 2. Testing
 
