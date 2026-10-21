@@ -48,4 +48,6 @@ Start from `src/lib/ocr.ts` (readLabel, labelLines, trimToIngredients, unsureWor
   you take a photo? Options: about 10 MB / about 20 MB / whatever R1 shows is needed.
   **Answer (Minh, 2026-10-21): decide after R1 with real sizes** (today's reader is ~7 MB on first photo).
 - **Q3 🎨** Cloud AI help (photos leave the phone): never / only if free and each person opts in / decide after R1.
-  **Answer (Minh, 2026-10-21): only on free credits, and each person opts in** (R7).
+  **Answer (Minh, 2026-10-21): only on free credits, and each person opts in** (R7). Provider (Minh, 2026-10-21):
+  **OCR.space** free API (over Gemini free tier, which may use free-tier data to improve Google's products, and Azure
+  Vision F0, which asks for a card). R1 downloads: yes (Minh, 2026-10-21).
