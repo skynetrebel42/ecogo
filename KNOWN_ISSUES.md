@@ -260,6 +260,9 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - **OCR-02 (Medium):** the label trim's stop words are food-only: "CAUTION: FLAMMABLE … AVOID CONTACT WITH EYES" was
   kept as ingredients. Add personal-care/cleaner stops (caution, warning, directions, avoid contact, keep out of reach,
   for external use).
+- **OCR-03 (Medium):** across repeated, careful photos of the same clear perfume label, Minh kept getting the
+  "not clear" message (blur check 049 or the hard-to-read hint G4, both tuned on food packs). Retake hints on a sharp
+  photo: find which message fires and why (curved, condensed, small text) before changing a threshold.
 - Not a bug: the same screen showed the pre-063 wording because the phone's tab still ran the old build (no service
   worker; GitHub Pages caches index.html 10 min). Closing and reopening the tab loads the new one.
 
