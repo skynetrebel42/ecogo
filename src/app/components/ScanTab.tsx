@@ -6,6 +6,7 @@
 //   2. Look up our catalog, then USDA FoodData Central, then Open Food Facts, then Open Beauty Facts (lib/lookup.ts).
 //      • Catalog product    → product page opens.
 //      • Found by lookup    → product page opens.
+//      • Only on EPA's Safer Choice list (M17) → a page with EPA's name and company.
 //      • Found nowhere      → honest "not found" screen.
 //      • Lookup unreachable → "Couldn't reach…" with Try again.
 //   Scans are not saved (owner decision M3-4, 2026-09-29).
@@ -16,6 +17,7 @@ import { CheckCircle, QrCode, ChevronUp, ChevronDown, Database, X, WifiOff, Exte
 import type { Product } from "../../lib/productImporter";
 import { lookupBarcode, normalizeBarcode, isBarcode, sameBarcode, offAddUrl } from "../../lib/lookup";
 import { supabaseFoods } from "../../lib/foodsDb";
+import { loadSaferChoice, saferChoiceMatch, saferChoiceProduct } from "../../lib/saferChoice";
 import CameraScanner from "./CameraScanner";
 import type { CheckKind } from "./IngredientCheck";
 
@@ -75,6 +77,11 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
       const found = await lookupBarcode(barcode, { foods: supabaseFoods });
       if (found.status === "error") { setScanState("error"); return; }
       if (found.status === "found") product = found.product;
+    }
+    // M17 S2: found nowhere, but on EPA's Safer Choice list → a page with EPA's name and company.
+    if (!product) {
+      const listed = await loadSaferChoice().then(s => saferChoiceMatch(barcode, s), () => null);
+      if (listed) product = saferChoiceProduct(barcode, listed);
     }
 
     if (product) {

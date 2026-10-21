@@ -3,12 +3,38 @@
 // the list gets EPA's own product name and company; a barcode not on it gets nothing (no match is no claim). The app
 // never calls EPA. No React, so the Node script and tests load it.
 import { barcodeKey } from "./lookup.ts";
+import type { Product } from "./productImporter.ts";
 
 export interface SaferChoiceProduct { name: string; company: string; sectors: string[]; codes: string[] }
 export interface SaferChoiceSnapshot { retrieved: string; source: string; products: SaferChoiceProduct[] }
 
 export const ENVIROFACTS = "https://data.epa.gov/efservice/t_safer_choice_and_design_for_the_environment/JSON";
 export const PRODUCT_SEARCH = "https://www.epa.gov/saferchoice/products";
+const STANDARD = "https://www.epa.gov/system/files/documents/2024-08/epas-safer-choice-and-design-for-the-environment-dfe-standard.pdf";
+
+/** EPA's own line, required wherever a partner presents a certified product (2024 Standard §6.1.2). */
+export const NOT_ENDORSEMENT = {
+  id: "safer-choice-not-endorsement", text: "EPA certification does not constitute endorsement of this product.",
+  sources: [{ body: "EPA", url: STANDARD, quote: "EPA certification does not constitute endorsement of this product.",
+    checkedOn: "2026-10-20", checkedByHand: "2026-10-20" }], // a PDF: read in full, §6.1.2 (p. 36)
+};
+/** Every Safer Choice claim the app shows, for `npm run verify:sources`. */
+export const SAFER_CHOICE_SOURCES = [NOT_ENDORSEMENT];
+
+let snapshot: Promise<SaferChoiceSnapshot> | null = null;
+/** The committed snapshot, fetched from EcoGo's own site the first time a scan needs it (a separate chunk). */
+export function loadSaferChoice(): Promise<SaferChoiceSnapshot> {
+  snapshot ??= import("../data/safer-choice.json", { with: { type: "json" } }).then(m => m.default as SaferChoiceSnapshot);
+  snapshot.catch(() => { snapshot = null; }); // offline: try again next scan
+  return snapshot;
+}
+
+/** A barcode found nowhere but on EPA's list: a page with EPA's name and company and no ingredients (spec S2). The
+ *  catalog's "Cleaning" category gives it the cleaning icon and keeps the food check and nutrition lookup off. */
+export const saferChoiceProduct = (barcode: string, p: SaferChoiceProduct): Product => ({
+  id: -Number(barcodeKey(barcode)), barcode, name: p.name, brand: p.company, category: "Cleaning",
+  description: "", ingredients: "", imageUrl: "", keywords: [],
+});
 
 /** GS1 check digit, counted from the right, so leading zeros (lost when EPA stores a UPC as a number) don't change it. */
 export function gtinValid(digits: string): boolean {

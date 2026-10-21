@@ -31,6 +31,8 @@ const OBF = {
   "0099990000048": fake("0099990000048", "Check Daily Shampoo", "Water, Cocamide DEA, Salicylic Acid, Sodium Hydroxide"),
   "0099990000055": fake("0099990000055", "Check Whitening Toothpaste", "Sodium Fluoride, Water, Hydrated Silica, Titanium Dioxide (CI 77891)"),
   "0099990000062": fake("0099990000062", "Check Daily Moisture Lotion", "Water, Zinc Oxide, Glycerin", ["en:body-care", "en:sunscreens"]),
+  // M17: a hand soap on EPA's Safer Choice list (src/data/safer-choice.json), here also found on Open Beauty Facts.
+  "041260380570": fake("041260380570", "Check Coconut Milk Hand Soap", "Water, Sodium Laureth Sulfate, Glycerin"),
 };
 const OBF_404 = fixture("not-found-0049000042566").body;
 const OFF_404 = { status: "failure", result: { id: "product_not_found" } };
@@ -197,6 +199,29 @@ try {
     && own.includes("From what you typed, not from Open Beauty Facts.") && own.includes("Fragrance:"));
   await click("Close");
   await back(); await home();
+
+  // M17 S2 (spec docs/superpowers/specs/2026-10-20-m17-cleaners-design.md): EPA's Safer Choice list, from the snapshot.
+  const ENDORSE = "“EPA certification does not constitute endorsement of this product.” (EPA)";
+  const epaOnly = await scanTyped("033200230021", "EPA Safer Choice certified");
+  check("S2: a barcode only on EPA's list opens a page with EPA's name, company, endorsement line and list date",
+    epaOnly.includes("EPA Safer Choice certified") && epaOnly.includes("As listed by EPA: Arm & Hammer Baby Liquid Laundry Detergent, Church & Dwight Co., Inc.")
+    && epaOnly.includes(ENDORSE) && /From EPA's Safer Choice list, [A-Z][a-z]{2} \d{4}\./.test(epaOnly), epaOnly.replace(/\s+/g, " ").slice(0, 200));
+  check("S2/Q4: that page has no ingredients and no Open Food Facts sends; Save stays",
+    epaOnly.includes("No ingredient list available.") && !/Add the ingredients|Send new photos|Open Food Facts|USDA/.test(epaOnly)
+    && await run(`!!__btn("Save")`), epaOnly.match(/.{0,40}(Add the ingredients|Send new photos|Open Food Facts|USDA).{0,40}/)?.[0]);
+  const epaLink = await run(`[...document.querySelectorAll("a")].find(a => a.innerText.includes("Search EPA's Safer Choice products"))?.href`);
+  check("S2: the card links to EPA's product search", epaLink === "https://www.epa.gov/saferchoice/products", epaLink);
+  await back(); await home();
+  const both = await scanTyped("041260380570", "EPA Safer Choice certified");
+  check("S2: a listed barcode found on Open Beauty Facts keeps its page and adds the card",
+    both.includes("Check Coconut Milk Hand Soap") && both.includes("From Open Beauty Facts, crowd-sourced.") && both.includes("As listed by EPA: Coconut Milk Hand Soap, Kroger.") && both.includes(ENDORSE));
+  await back(); await home();
+  const unlisted = await scanTyped("0099990000017", "Check Dandruff Shampoo");
+  await sleep(1500); // the list is loaded by now: a card would have shown
+  check("S2: a barcode not on the list shows nothing about Safer Choice", unlisted.includes("Check Dandruff Shampoo") && !(await text()).includes("Safer Choice"));
+  await back(); await home();
+  check("S2: the app never calls EPA", !requests.some(u => /epa\.gov/.test(u)), requests.find(u => /epa\.gov/.test(u)));
+
 
   // N6: not found anywhere → What is it? → Personal care → photo-or-type check.
   const nf = await scanTyped("0099990000031", "We couldn't find this barcode yet");

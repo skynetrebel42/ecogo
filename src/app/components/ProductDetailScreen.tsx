@@ -7,13 +7,14 @@
 // sources. Also: same-category alternatives with fewer concerns.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { toggleSave, type SavedStore } from "../../lib/saved";
 import SaveSheet from "./SaveSheet";
 import {
   ArrowLeft, Bookmark,
-  TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame, Info,
+  TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame, Info, CheckCircle2,
 } from "lucide-react";
+import { loadSaferChoice, saferChoiceMatch, NOT_ENDORSEMENT, PRODUCT_SEARCH, type SaferChoiceProduct } from "../../lib/saferChoice";
 import type { Product } from "../../lib/productImporter";
 import { updateInfoUrl, isPersonalCare, obfEditUrl } from "../../lib/lookup";
 import { escapeRegExp, type Flag } from "../../lib/safety/analyze";
@@ -131,6 +132,35 @@ interface ProductDetailScreenProps {
   onAddToOff: (mode: Exclude<AddMode, "new">, ingredientsPhoto?: Blob) => void;
 }
 
+/** M17 S2: the barcode is on EPA's Safer Choice list (exact match in the committed snapshot; EPA is never called).
+ *  No match shows nothing: not being listed is not a finding. */
+function SaferChoiceCard({ barcode }: { barcode: string }) {
+  const [hit, setHit] = useState<{ p: SaferChoiceProduct; retrieved: string } | null>(null);
+  useEffect(() => {
+    setHit(null);
+    let live = true;
+    loadSaferChoice().then(s => { const p = saferChoiceMatch(barcode, s); if (live && p) setHit({ p, retrieved: s.retrieved }); }, () => {});
+    return () => { live = false; };
+  }, [barcode]);
+  if (!hit) return null;
+  return (
+    <div className="bg-white rounded-2xl p-4 shadow-sm" data-safer-choice>
+      <div className="flex items-center gap-2">
+        <CheckCircle2 size={18} className="text-[#1A5C39]" aria-hidden="true" />
+        <span className="font-extrabold text-sm text-[#1A5C39]">EPA Safer Choice certified</span>
+      </div>
+      <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">As listed by EPA: <strong>{hit.p.name}</strong>, {hit.p.company}.</p>
+      <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">“{NOT_ENDORSEMENT.text}” (EPA)</p>
+      <p className="text-micro text-gray-500 mt-1.5 leading-snug">
+        From EPA's Safer Choice list, {snapshotLabel(hit.retrieved)}.{" "}
+        <a href={PRODUCT_SEARCH} target="_blank" rel="noreferrer" className="font-bold underline text-gray-700">
+          Search EPA's Safer Choice products<span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      </p>
+    </div>
+  );
+}
+
 export default function ProductDetailScreen({ product, onBack, store, savedOk, onChangeSaved, onSelectProduct, onAddToOff }: ProductDetailScreenProps) {
   const [openFlag, setOpenFlag] = useState<string | null>(null);
   const saved = store.items.some(i => i.id === product.id);
@@ -234,6 +264,8 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
               {product.source.crowdSourced && <span className="block mt-1 opacity-70">Data © Open Food Facts contributors, ODbL.</span>}
             </div>
           )}
+
+          <SaferChoiceCard barcode={product.barcode} />
 
           {/* ── Verdict ── */}
           <div className="bg-white rounded-2xl p-4 shadow-sm" style={{ borderLeft: `4px solid ${look.color}` }}>
