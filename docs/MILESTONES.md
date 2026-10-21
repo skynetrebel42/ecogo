@@ -35,16 +35,17 @@ line [Facts] · D "Cleaning product" choice [Feature] · ⏳ Minh's listed + unl
 context on flagged meats [Facts] · gates ✅ · review 🔨 · ⏳ Minh's wording yes · then push [Deploy]
 
 ## Chapter 5 · Hardening (next)
-066 photo-reading fixes 📋 · A glued/misread line ends miss allergens (OCR-01) · B warning text kept as ingredients
-(OCR-02) · C false "not clear" messages (OCR-03) [Debug]
+066 Label reader v2 📋 (Minh's design) · A measured test of free readers on real labels [Test] · B clean-up before
+reading [Feature] · C stronger reader on the phone [Foundation] · D unsure words: tap 1 of 3 suggestions, type it, or
+retake [Feature] · E warning text kept as ingredients (OCR-02) · F false "not clear" (OCR-03) [Debug]
 Tidy-up 📋 · A shared check set-up (~-190 lines) · B trim Figma CSV + unread fields · C split check-home (315 s of 420) ·
 D archive the M10 specs still in `specs/` [Process]
 ⏳ Minh's next-chapter review (demo, 2026-10-22) → picks Chapter 6.
 
 ## Future features (saved for later; Minh picks when) · 💡 = Minh's own idea
 **Core: reading labels** [Foundation]
-- 💡 Label reader as strong as the iPhone's Live Text: any label, curved or small, cleaned up and identified (2026-10-21;
-  "almost more important than the barcode" because much food isn't in any database). Candidate for 066's scope.
+- 💡 Label reader as strong as the iPhone's Live Text (2026-10-21; "almost more important than the barcode"): moved
+  into 066 (Label reader v2).
 **Data coverage** [Foundation]
 - 💡 More foods beyond USDA + Open Food Facts (free databases are limited; paid ones have licence limits).
 - Open Products Facts lookup for other non-food items; an ingredient library for cleaners.
