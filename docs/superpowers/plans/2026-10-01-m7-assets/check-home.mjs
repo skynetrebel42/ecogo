@@ -341,7 +341,9 @@ try {
     const covered = !!b.closest("[inert]"); [...document.querySelectorAll('button[aria-label="Back"]')].pop()?.click(); await __sleep(500); // the article's Back
     return { collapsed, h1, covered, back: document.activeElement?.innerText }; })()`);
   check("064 H2: a drink with sodium benzoate and ascorbic acid shows the grey benzene row; the badge stays the additive's",
-    crush.includes("Some concern") && !!row && row.collapsed.includes("Info") && row.collapsed.includes("Not measured in this product.")
+    crush.includes("Some concern") && !!row && row.collapsed.includes("Info")
+    && row.collapsed.includes("In some drinks, these two can form benzene at very low levels; heat and light can speed this up.* Not measured in this product.")
+    && row.collapsed.includes("\n*FDA\n")
     && row.collapsed.includes("Listed as “SODIUM BENZOATE” and “ASCORBIC ACID”"), JSON.stringify(row)?.slice(0, 200));
   check("064 G5: the row's Learn link opens H1 over the product (page inert), Back returns focus to the link",
     row?.h1 === "Risks a label can’t show" && row.covered && row.back === "Read: Risks a label can’t show", JSON.stringify(row)?.slice(0, 200));

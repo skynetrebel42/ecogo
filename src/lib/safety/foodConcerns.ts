@@ -296,9 +296,11 @@ export function acrylamideMatch(p: FoodInput): EuCategory | null {
 const FDA_BENZENE = "https://www.fda.gov/food/environmental-contaminants-food/questions-and-answers-occurrence-benzene-soft-drinks-and-other-beverages";
 const H2_CHECKED = "2026-10-21";
 
-export const BENZENE_NOTE: { name: string; text: string; sources: Source[] } = {
+// Wording: Minh 2026-10-21 ("fda words" with a small * citation).
+export const BENZENE_NOTE: { name: string; text: string; cite: string; sources: Source[] } = {
   name: "Benzene can form",
-  text: "These two can form small amounts of benzene under heat or light (FDA). Not measured in this product.",
+  text: "In some drinks, these two can form benzene at very low levels; heat and light can speed this up.* Not measured in this product.",
+  cite: "*FDA",
   sources: [
     { body: "FDA", basis: "context", finding: "Benzene can form at very low levels in some drinks with benzoate salts and ascorbic or erythorbic acid",
       url: FDA_BENZENE, checkedOn: H2_CHECKED,

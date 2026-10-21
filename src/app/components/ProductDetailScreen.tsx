@@ -54,7 +54,7 @@ const nutritionNote = (hasSection: boolean) => ` This badge doesn't rate nutriti
 
 /** One row on the product page: an additive flag, a food-level concern, or an info note (M16 personal care, 064 H2 benzene;
  *  `info`). `learn`: a Learn page the open row links to (064). */
-interface Finding { id: string; name: string; severity?: Severity; info?: boolean; concern: string; detail: string; context?: string; sources: Source[]; learn?: ExplainerId }
+interface Finding { id: string; name: string; severity?: Severity; info?: boolean; concern: string; cite?: string; detail: string; context?: string; sources: Source[]; learn?: ExplainerId }
 
 /** Findings grouped by where they come from; empty groups are dropped. `care`: regulator context (FDA's dandruff-drug
  *  line, 063 F4) shows in the row next to the EU ban, not behind it. `foodNotes`: food info rows (064 H2). */
@@ -105,6 +105,7 @@ function FindingRow({ finding: entry, open, onToggle, onLearn }: { finding: Find
             <span className="text-nano font-bold px-1.5 py-0.5 rounded-full" style={{ background: look.bg, color: look.color }}>{look.short}</span>
           </div>
           <p className="text-xs text-gray-600 mt-0.5 leading-snug">{entry.concern}</p>
+          {entry.cite && <p className="text-nano text-gray-500">{entry.cite}</p>}
           <p className="text-micro text-gray-500 mt-0.5">{entry.detail}</p>
         </div>
         <ChevronDown size={14} className={`flex-shrink-0 mt-1 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -199,7 +200,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
   // 064 H2: the benzene info row (drinks only); outside the assessment, so it never touches the badge.
   const foodNotes = useMemo((): Finding[] => {
     const m = care ? null : benzeneNote(product);
-    return m ? [{ id: "note-benzene", name: BENZENE_NOTE.name, info: true, concern: BENZENE_NOTE.text, detail: `Listed as “${m[0]}” and “${m[1]}”`, sources: BENZENE_NOTE.sources, learn: "hidden-risks" }] : [];
+    return m ? [{ id: "note-benzene", name: BENZENE_NOTE.name, info: true, concern: BENZENE_NOTE.text, cite: BENZENE_NOTE.cite, detail: `Listed as “${m[0]}” and “${m[1]}”`, sources: BENZENE_NOTE.sources, learn: "hidden-risks" }] : [];
   }, [product, care]);
   const look = VERDICT_STYLE[analysis.verdict];
   const nutrition = useNutrition(product);
