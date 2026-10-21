@@ -3,6 +3,10 @@
 Open https://skynetrebel42.github.io/ecogo/ in a **fresh tab** first (an old tab keeps the old version).
 Tick a box when done; tell the planner anything that looks wrong (a screenshot helps).
 
+## Demo / next-chapter review (Thu 2026-10-22)
+- [ ] Use the live app for 15 minutes like a new user. Write down what you love, hate and wish it did; tell Daedalus.
+      This picks the next chapter of the build.
+
 ## Photo tests (no barcode: Scan → "Check ingredients", or a barcode that isn't found)
 - [x] Perfume label (2026-10-21): found OCR-01/02/03, queued as decision 066.
 - [ ] **Soap or shampoo label:** "What is it?" → Personal care → Take a photo of the ingredients. Check the words read
