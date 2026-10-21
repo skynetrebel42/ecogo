@@ -28,6 +28,17 @@ categories with the Act's words quoted; planner/Minh decide. Q3 CA wording: exac
 to Minh. Q4 EPA-only match reuses the product page (no ingredient list, no Add-to-OFF/Send photos, Save kept). Q5 real
 counts reported against our CSV's 3,228 and the research's 824/1,636/~794.
 
+**Wording + scope (2026-10-20):** S1 snapshot = 781 products / 1,813 barcodes (good standing; 128 bad check digits
+dropped); endorsement line verbatim in the 2024 Standard §6.1.2 (PDF, hand-checked). S3 line (Minh): "California law
+requires the maker of a cleaning product sold in the state to post its intentionally added ingredients online, with some
+exceptions such as confidential business information." (§108954.5 excepts fragrance under (b) and confidential business
+information). S4 explainer (Minh): "Products with EPA's Safer Choice label have had every chemical ingredient reviewed by
+EPA against criteria for human health and the environment." Q6 (Minh): a barcode under several EPA products lists every
+EPA name + company. Q2 (planner): CA scope = the builder's IN set of EPA sectors from §108952's four product types; hand
+soap, pet care, biological, medical, deicers, fire, field paint, dust, HVAC, parts washers, other, and the borderline
+Marine/RV, Aircraft, Air Conditioner Coil are OUT (unsure = no claim). Q4 (planner): EPA-only pages keep the catalog's
+existing "Cleaning" hero.
+
 ## 2. Testing
 
 - Node: UPC normalization (leading zeros, 11/12/13/14-digit forms, the app's existing barcode variants), exact-match
