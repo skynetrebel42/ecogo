@@ -37,7 +37,8 @@ C celery context on flagged meats [Facts] · ⏳ Minh's live test (checklist 2F,
 ## Chapter 5 · Hardening (next)
 066 Label reader v2 📋 (Minh's design) · A measured test of free readers on real labels [Test] · B clean-up before
 reading [Feature] · C stronger reader on the phone [Foundation] · D unsure words: tap 1 of 3 suggestions, type it, or
-retake [Feature] · E warning text kept as ingredients (OCR-02) · F false "not clear" (OCR-03) [Debug]
+retake [Feature] · E warning text kept as ingredients (OCR-02) · F false "not clear" (OCR-03) [Debug] · G cloud help,
+opt-in, free tier [Feature][Server] · H "never photograph anything private" on photo sends [UI]
 Tidy-up 📋 · A shared check set-up (~-190 lines) · B trim Figma CSV + unread fields · C split check-home (315 s of 420) ·
 D archive the M10 specs still in `specs/` [Process]
 ⏳ Minh's next-chapter review (demo, 2026-10-22) → picks Chapter 6.
@@ -57,5 +58,10 @@ D archive the M10 specs still in `specs/` [Process]
   fish advice) · Prop 65 / CSCP wording.
 **More products** [Feature]
 - 💡 Produce by PLU sticker code (origins, tips, footprint from sourced data).
+**Privacy & control** [Feature]
+- 💡 Privacy settings page: every sensitive choice (cloud help, photo sharing, location, sign-in) in one easy-to-find
+  place, each with an on/off switch (2026-10-21).
+- 💡 "Help build the database" opt-in: people choose to share their label photos to improve EcoGo (needs storage,
+  consent text and review; 2026-10-21).
 **Reach & polish** [UI]
 - 💡 Languages (full translation, needs care) · Map layout second look (059 choices) · 375 px phone layout pass.

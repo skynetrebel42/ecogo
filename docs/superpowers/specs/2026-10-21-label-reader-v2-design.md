@@ -1,6 +1,6 @@
 # 066: Label reader v2 (Minh's design)
 
-- **Date:** 2026-10-21 · **Status:** draft, waiting on Minh's answers to §5 · Built after 064, by one fresh Headsman.
+- **Date:** 2026-10-21 · **Status:** Q1 and Q3 answered (§5), Q2 open · Built after 064, by one fresh Headsman.
 - **Why:** Minh's perfume test (KNOWN_ISSUES OCR-01/02/03): on a clear, curved, condensed label the reader glued and
   misread line-end words, so EcoGo missed three EU allergens (benzyl salicylate, hydroxycitronellal, limonene), kept
   "CAUTION: FLAMMABLE…" as ingredients, and said "not clear" on sharp photos. Much food and most non-food isn't in any
@@ -21,6 +21,8 @@
 | R4 | **Help for unsure words:** each underlined word opens a small sheet: up to 3 suggested names (closest by spelling from the ingredient list), a "Type it" field, and "Retake photo". Also offer a split where an item is two known names run together ("…INDANOPYRA BENZYL SALICYLATE" → add a comma). Lists: EcoGo's own library names (always), plus free lists whose licence allows it (Open Food Facts ingredients taxonomy, ODbL with attribution; EU CosIng INCI names, licence to confirm). Lazy-loaded; size reported | Feature |
 | R5 | **Warning text isn't ingredients** (OCR-02): add personal-care/cleaner stop words to the label trim (caution, warning, directions, avoid contact, keep out of reach, for external use, flammable) | Debug |
 | R6 | **No false "not clear"** (OCR-03): find which check fired on the sharp perfume photos (blur check 049 or the hard-to-read hint G4) and why (curved, condensed, small text); fix the cause; the hint never blocks | Debug |
+| R7 | **Cloud help, opt-in** (Q3): only on a free tier; off until the person turns it on, with a plain warning (where the photo goes, what that service's own terms say it may keep or use, "only photograph the label, never anything private") and a way to turn it off any time; the Privacy section says it too. Its key lives in a new Edge Function, never in the browser (CLAUDE.md); a deploy needs Minh's yes. Suggestions it returns follow R4's rules (real names, nothing counts until accepted). R1 also measures one free cloud option. Built last | Feature, Server |
+| R8 | **Privacy warning on photos that leave the phone** (Q1): the Open Food Facts send's photo step adds "never photograph anything private" next to its existing "public there" line; wording to the planner | UI |
 
 ## 2. Testing
 - R1's table in the builder's report (real output). Node tests: suggestion ranking (the perfume misreads "UIHONENE" →
@@ -30,7 +32,8 @@
 - Live: Minh repeats test 1A–1C on his checklist with v2.
 
 ## 3. Out of scope
-A native app; paid or keyed services; loosening whole-name matching; auto-accepting suggestions; reading nutrition panels.
+A native app; paid services (a keyed free tier only for R7, behind its own Edge Function); loosening whole-name
+matching; auto-accepting suggestions; reading nutrition panels; a Privacy settings page (Future features).
 
 ## 4. Builder notes
 Start from `src/lib/ocr.ts` (readLabel, labelLines, trimToIngredients, unsureWords, hardToRead) and `src/lib/photo.ts`
@@ -39,6 +42,9 @@ Start from `src/lib/ocr.ts` (readLabel, labelLines, trimToIngredients, unsureWor
 ## 5. Questions for Minh
 - **Q1 🎨** May your perfume label photo (and soap/lotion photos you send) become test pictures in the public repo?
   They show only the label. If no, the builder uses the existing fixtures plus a typed answer key.
+  **Answer (Minh, 2026-10-21): yes** (each photo cropped to the label and checked for anything personal before it's
+  committed); plus warn people about privacy wherever a photo can leave the phone, with a choice (R7, R8).
 - **Q2 🎨** A stronger reader is a one-time download the phone then keeps. What's the most you'd accept the first time
   you take a photo? Options: about 10 MB / about 20 MB / whatever R1 shows is needed.
 - **Q3 🎨** Cloud AI help (photos leave the phone): never / only if free and each person opts in / decide after R1.
+  **Answer (Minh, 2026-10-21): only on free credits, and each person opts in** (R7).
