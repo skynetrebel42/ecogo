@@ -17,7 +17,7 @@ import { CheckCircle, QrCode, ChevronUp, ChevronDown, Database, X, WifiOff, Exte
 import type { Product } from "../../lib/productImporter";
 import { lookupBarcode, normalizeBarcode, isBarcode, sameBarcode, offAddUrl } from "../../lib/lookup";
 import { supabaseFoods } from "../../lib/foodsDb";
-import { loadSaferChoice, saferChoiceMatch, saferChoiceProduct } from "../../lib/saferChoice";
+import { loadSaferChoice, saferChoiceMatch, saferChoiceProduct, SAFER_CHOICE_MEANING, CALIFORNIA_LINE } from "../../lib/saferChoice";
 import CameraScanner from "./CameraScanner";
 import type { CheckKind } from "./IngredientCheck";
 
@@ -60,7 +60,8 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [typed, setTyped]               = useState("");
   const [scannedCode, setScannedCode]   = useState("");
-  const [kind, setKind]                 = useState<CheckKind>("food"); // M16 N6: the not-found screen's "What is it?"
+  // M16 N6 + M17 S4: the not-found screen's "What is it?"
+  const [kind, setKind]                 = useState<CheckKind | "cleaning">("food");
 
   const handleScan = useCallback(async (raw: string) => {
     if (scanState === "scanning" || scanState === "found") return;
@@ -78,10 +79,12 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
       if (found.status === "error") { setScanState("error"); return; }
       if (found.status === "found") product = found.product;
     }
-    // M17 S2: found nowhere, but on EPA's Safer Choice list → a page with EPA's name and company.
+    // M17 S2: found nowhere, but on EPA's Safer Choice list → a page with EPA's name and company. The list failing to
+    // load is an error (Try again), not "not found".
     if (!product) {
-      const listed = await loadSaferChoice().then(s => saferChoiceMatch(barcode, s), () => null);
-      if (listed) product = saferChoiceProduct(barcode, listed);
+      const listed = await loadSaferChoice().then(s => saferChoiceMatch(barcode, s), () => undefined);
+      if (listed === undefined) { setScanState("error"); return; }
+      if (listed.length) product = saferChoiceProduct(barcode, listed[0]);
     }
 
     if (product) {
@@ -162,20 +165,28 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
           <p className="text-white/60 text-sm mb-4 leading-relaxed max-w-xs">It isn't in our catalog, USDA FoodData Central, Open Food Facts or Open Beauty Facts.</p>
           <div role="group" aria-labelledby="what-is-it" className="w-full max-w-xs mb-4">
             <p id="what-is-it" className="text-white text-sm font-bold mb-1.5">What is it?</p>
-            <div className="grid grid-cols-2 gap-1.5">
-              {([["food", "Food"], ["care", "Personal care"]] as const).map(([k, label]) => (
+            <div className="grid grid-cols-3 gap-1.5">
+              {([["food", "Food"], ["care", "Personal care"], ["cleaning", "Cleaning product"]] as const).map(([k, label]) => (
                 <button key={k} onClick={() => setKind(k)} aria-pressed={kind === k}
-                  className={`min-h-[44px] rounded-xl text-sm ${kind === k ? "bg-white text-[#1A1200] font-extrabold" : "border border-white/25 text-white font-bold"}`}>
+                  className={`min-h-[44px] px-1 rounded-xl text-sm leading-tight ${kind === k ? "bg-white text-[#1A1200] font-extrabold" : "border border-white/25 text-white font-bold"}`}>
                   {label}
                 </button>
               ))}
             </div>
           </div>
-          <p className="text-white/60 text-sm mb-5 leading-relaxed max-w-xs">
-            {kind === "food"
-              ? "Add it in about a minute: three photos, and EcoGo reads the ingredients for you. You'll see the safety check right away."
-              : "Photograph or type its ingredients and EcoGo checks them against FDA, EU and IARC findings. Nothing is saved or sent."}
-          </p>
+          {kind === "cleaning" ? (
+            <div className="text-white/60 text-sm mb-5 leading-relaxed max-w-xs space-y-2">
+              <p>{SAFER_CHOICE_MEANING.text}</p>
+              <p>{CALIFORNIA_LINE.text}</p>
+              <p className="text-white font-bold">Check the maker's website for the full ingredient list.</p>
+            </div>
+          ) : (
+            <p className="text-white/60 text-sm mb-5 leading-relaxed max-w-xs">
+              {kind === "food"
+                ? "Add it in about a minute: three photos, and EcoGo reads the ingredients for you. You'll see the safety check right away."
+                : "Photograph or type its ingredients and EcoGo checks them against FDA, EU and IARC findings. Nothing is saved or sent."}
+            </p>
+          )}
           <div className="bg-white/8 border border-white/15 rounded-2xl px-5 py-3 w-full max-w-xs">
             <p className="text-micro text-white/40 uppercase tracking-widest mb-1">Scanned Barcode</p>
             <p className="text-white font-mono font-bold text-sm tracking-wider">{scannedCode}</p>
@@ -183,10 +194,12 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
         </div>
 
         <div className="px-5 pb-8 flex-shrink-0 flex flex-col gap-2.5">
-          <button onClick={() => (kind === "food" ? onAdd(scannedCode) : onCheckIngredients("care"))}
-            className="w-full py-4 rounded-2xl font-extrabold text-base shadow-xl" style={{ background: "#F59E0B", color: "#1A1200" }}>
-            {kind === "food" ? "Add this product" : "Check the label yourself"}
-          </button>
+          {kind !== "cleaning" && (
+            <button onClick={() => (kind === "food" ? onAdd(scannedCode) : onCheckIngredients("care"))}
+              className="w-full py-4 rounded-2xl font-extrabold text-base shadow-xl" style={{ background: "#F59E0B", color: "#1A1200" }}>
+              {kind === "food" ? "Add this product" : "Check the label yourself"}
+            </button>
+          )}
           <button onClick={scanAgain} className="w-full py-3.5 rounded-2xl font-bold text-sm text-white border border-white/25">
             Scan another product
           </button>

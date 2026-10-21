@@ -204,24 +204,29 @@ try {
   const ENDORSE = "“EPA certification does not constitute endorsement of this product.” (EPA)";
   const epaOnly = await scanTyped("033200230021", "EPA Safer Choice certified");
   check("S2: a barcode only on EPA's list opens a page with EPA's name, company, endorsement line and list date",
-    epaOnly.includes("EPA Safer Choice certified") && epaOnly.includes("As listed by EPA: Arm & Hammer Baby Liquid Laundry Detergent, Church & Dwight Co., Inc.")
+    epaOnly.includes("EPA Safer Choice certified") && epaOnly.includes("As listed by EPA: Arm & Hammer Baby Liquid Laundry Detergent, Church & Dwight Co., Inc.\n")
     && epaOnly.includes(ENDORSE) && /From EPA's Safer Choice list, [A-Z][a-z]{2} \d{4}\./.test(epaOnly), epaOnly.replace(/\s+/g, " ").slice(0, 200));
   check("S2/Q4: that page has no ingredients and no Open Food Facts sends; Save stays",
     epaOnly.includes("No ingredient list available.") && !/Add the ingredients|Send new photos|Open Food Facts|USDA/.test(epaOnly)
     && await run(`!!__btn("Save")`), epaOnly.match(/.{0,40}(Add the ingredients|Send new photos|Open Food Facts|USDA).{0,40}/)?.[0]);
   const epaLink = await run(`[...document.querySelectorAll("a")].find(a => a.innerText.includes("Search EPA's Safer Choice products"))?.href`);
   check("S2: the card links to EPA's product search", epaLink === "https://www.epa.gov/saferchoice/products", epaLink);
+  const CALIFORNIA = "California law requires the maker of a cleaning product sold in the state to post its intentionally added ingredients online, with some exceptions such as confidential business information.";
+  check("S3: a listed laundry detergent gets the California line", epaOnly.includes(CALIFORNIA));
+  await back(); await home();
+  const twice = await scanTyped("732913451302", "EPA Safer Choice certified");
+  check("S2/Q6: a barcode EPA lists under two products names both", twice.includes("EPA lists this barcode for:")
+    && twice.includes("Dish Liquid, Free & Clear, Seventh Generation.") && twice.includes("Dish Liquid, Lavender Flower & Mint, Seventh Generation."));
   await back(); await home();
   const both = await scanTyped("041260380570", "EPA Safer Choice certified");
   check("S2: a listed barcode found on Open Beauty Facts keeps its page and adds the card",
     both.includes("Check Coconut Milk Hand Soap") && both.includes("From Open Beauty Facts, crowd-sourced.") && both.includes("As listed by EPA: Coconut Milk Hand Soap, Kroger.") && both.includes(ENDORSE));
+  check("S3: a listed hand soap (outside California's cleaning-product law) gets no California line", !both.includes("California"));
   await back(); await home();
   const unlisted = await scanTyped("0099990000017", "Check Dandruff Shampoo");
   await sleep(1500); // the list is loaded by now: a card would have shown
   check("S2: a barcode not on the list shows nothing about Safer Choice", unlisted.includes("Check Dandruff Shampoo") && !(await text()).includes("Safer Choice"));
   await back(); await home();
-  check("S2: the app never calls EPA", !requests.some(u => /epa\.gov/.test(u)), requests.find(u => /epa\.gov/.test(u)));
-
 
   // N6: not found anywhere → What is it? → Personal care → photo-or-type check.
   const nf = await scanTyped("0099990000031", "We couldn't find this barcode yet");
@@ -243,6 +248,23 @@ try {
   await click("Food");
   check("N6: switching to Food runs the food check on the same text", (await run(`document.querySelector('[role="status"]')?.innerText ?? ""`)).includes("Nothing flagged among"));
   await click("Close");
+  // M17 S4: not found → Cleaning product: EPA's label explained, the California line, the maker's website; no buttons to add or check.
+  await home();
+  const nfAgain = await scanTyped("0099990000031", "We couldn't find this barcode yet");
+  check("S2: the not-found screen says nothing about Safer Choice until Cleaning product is picked", nfAgain.includes("What is it?") && !nfAgain.includes("Safer Choice"));
+  await click("Cleaning product");
+  const cleanNf = await text();
+  check("S4: Cleaning product shows what EPA's label means, the California line and 'Check the maker's website'",
+    cleanNf.includes("Products with EPA's Safer Choice label have had every chemical ingredient reviewed by EPA against criteria for human health and the environment.")
+    && cleanNf.includes(CALIFORNIA) && cleanNf.includes("Check the maker's website for the full ingredient list."));
+  check("S4: and no Add, Check the label or Open Food Facts buttons (nothing is sent; no cleaner library yet)",
+    !/Add this product|Check the label yourself|Open Food Facts website|Safer Choice certified/.test(cleanNf) && cleanNf.includes("Scan another product"));
+  const kinds = await run(`[...document.querySelectorAll('[aria-labelledby="what-is-it"] button')].map(b => b.innerText.replace(/\\s+/g, " ") + ":" + b.getAttribute("aria-pressed")).join(",")`);
+  const heights = await run(`[...document.querySelectorAll('[aria-labelledby="what-is-it"] button')].map(b => Math.round(b.getBoundingClientRect().height))`);
+  check("S4: three 'What is it?' choices, Cleaning product pressed, each at least 44 px tall",
+    kinds === "Food:false,Personal care:false,Cleaning product:true" && heights.every(h => h >= 44), `${kinds} ${heights}`);
+  await shot("care-not-found-cleaning");
+  check("S2: the app never calls EPA (the list is EcoGo's own file)", !requests.some(u => /epa\.gov/.test(u)), requests.find(u => /epa\.gov/.test(u)));
 
   check("every OBF request is a GET to the v2 product API with EcoGo's X-User-Agent",
     obfAsked.length >= 5 && obfAsked.every(r => /^GET https:\/\/world\.openbeautyfacts\.org\/api\/v2\/product\/\d+\?fields=\S+ EcoGo\/0\.1 \(/.test(r)), `${obfAsked.length} requests`);
