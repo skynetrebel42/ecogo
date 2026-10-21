@@ -84,6 +84,13 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - ~~No stable product identity~~ *(resolved in step 2: the DB and the CSV share ids 1–51, and the incompatible 7-row server seed is gone).*
 - ~~No git repo / `.gitignore`~~ *(resolved in step 0).*
 - ~~Product ids are coupled to hardcoded explanations~~ *(resolved in M1: the explanations were deleted; `src/lib/safety/fixtures/expected-flags.json` is keyed by id, so regenerate it if products are renumbered).*
+- **Ponytail audit 2026-10-21 (planner-verified top 3; ~-345 lines possible, no deps):** (1) the six `check-*.mjs`
+  scripts each repeat ~40 lines of headless-Edge/CDP setup + helpers → one shared `cdp.mjs` (~-190); (2)
+  `products.csv` keeps the Figma export's store/price/score columns and one row per store (112 rows, 52 products) →
+  one row per product, drop the parser's de-dup (~-64); (3) `Product.description` / `imageUrl` are written in 6 places,
+  read nowhere (~-12). Smaller: Figma shadcn tokens in `theme.css`, OFF/OBF mappers share ~10 lines, `words()` defined
+  3×, package name `@figma/my-make-file`. Owner's call: the 52-product catalog exists twice (CSV + Supabase
+  `products`) (~-40).
 - About 115 KB of inline data literals plus the raw CSV ship in the single eager chunk. Google Fonts loads via a render-blocking CSS `@import`.
 
 ### Safety engine follow-ups (from the M1 final review, deferred)
