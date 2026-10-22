@@ -43,6 +43,10 @@ R1 results (2026-10-22, report in the planner's notes folder): (planner) R2 clea
 2x slower) and skipped for a Paddle reader; `ppu-paddle-ocr` out (fails curved and angled photos); R6's cause is the
 hard-to-read hint G4, not the blur check; the cloud column moves to R7 (no key needed before then). R5/R6 start now;
 R3's reader waits on Minh's Q2.
+R5 done (6c53e65). R6 (planner, 2026-10-22): the hard-to-read hint (G4) stops counting unsure words that are close
+to a known ingredient name (they get R4's sheet instead), so a sharp curved label keeps its text in the box; blurry,
+glare and cut-off photos still get the hint. Built as R4's matcher's first slice (EcoGo's library names); no new
+wording; the hint never blocks (048) and the box stays the final say (047).
 
 ## 5. Questions for Minh
 - **Q1 🎨** May your perfume label photo (and soap/lotion photos you send) become test pictures in the public repo?
