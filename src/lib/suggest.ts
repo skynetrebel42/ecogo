@@ -65,6 +65,10 @@ function nameLike(text: string): boolean {
  *  SALICYLATE"), as the index just after the first name; null when it isn't. Only offered: 062's whole-name matching
  *  stays, so nothing inside an item counts until the person accepts the comma. */
 export function splitAt(item: string): number | null {
+  // A CAS number ("WATER (7732-18-5)") ends an ingredient on labels that print them: a comma right after one that has
+  // more text behind it (a misread bracket can swallow the comma: "BETAINE C61789-40-0) SODIUM LAURYL SULFATE").
+  const cas = /\S*\d{2,7}-\d{2}-\d\S*(?=\s+[\p{L}\p{N}])/u.exec(item);
+  if (cas) return cas.index + cas[0].length;
   const words = [...item.matchAll(/\S+/g)];
   for (let k = 1; k < words.length; k++) {
     const end = words[k - 1].index! + words[k - 1][0].length;

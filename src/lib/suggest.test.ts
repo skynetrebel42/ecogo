@@ -42,6 +42,13 @@ test("two known names run together are split where the second one starts", () =>
   assert.equal(splitAt("HYDROXYCITRONELLAL LIMONENE"), "HYDROXYCITRONELLAL".length);
 });
 
+test("a CAS number in the middle of an item ends an ingredient: the comma goes right after it", () => {
+  const glued = "COCAMIPAOPROBY BETAINE C61789-40-0) SODIUM LAURYL SULFATE";
+  assert.equal(splitAt(glued), glued.indexOf("SODIUM") - 1);
+  assert.equal(splitAt("WATER (7732-18-5) SODIUM LAURETH SULFATE"), "WATER (7732-18-5)".length);
+  for (const item of ["SODIUM CHLORIDE (7647-14-5)", "BENZYL SALICYLATE (118-58-1).", "RED 33 (3567-66-6)"]) assert.equal(splitAt(item), null, item);
+});
+
 test("one name, or words that aren't two names, aren't split", () => {
   for (const item of ["BENZYL SALICYLATE", "CITRUS LIMON PEEL OIL", "PINENE EXT. VIOLET 2 (CI 60730)", "SUGAR", ""]) assert.equal(splitAt(item), null, item);
 });
