@@ -21,9 +21,9 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 ## 2 · Camera: scanning barcodes
 - [ ] **2A** Lotion, soap or shampoo barcode. See: no "More from USDA" section; bigger Back and Save buttons.
 - [ ] **2B** Sunscreen barcode (when you have one). See: FDA status rows and FDA's "more data needed…" line once.
-- [ ] **2C** Seventh Generation dish liquid (732913451302) or another Safer Choice cleaner. See: a green "EPA Safer
+- [ ] **2C** (2026-10-22: Equate hand soap isn't on EPA's barcode list, so no card, which is correct; try Seventh Generation) Seventh Generation dish liquid (732913451302) or another Safer Choice cleaner. See: a green "EPA Safer
       Choice certified" card, EPA's "not an endorsement" line, the California line.
-- [ ] **2D** Any cleaner not on EPA's list. See: no Safer Choice text at all.
+- [x] **2D** (2026-10-22: disinfectant spray, no Safer Choice text; the "Cleaning product" dead end goes to 068) Any cleaner not on EPA's list. See: no Safer Choice text at all.
 - [ ] **2E** A cleaner EcoGo doesn't know. See: not found → "What is it?" → Cleaning product shows the California line.
 - [ ] **2F** (when you find one) A soda or juice drink listing sodium (or potassium) benzoate and ascorbic acid. See: a grey "Benzene can
       form" note with a small "*FDA"; tap "Read: Risks a label can't show". Bonus: uncured hot dogs or bacon with

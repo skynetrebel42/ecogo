@@ -42,7 +42,13 @@ opt-in, free tier [Feature][Server] · H "never photograph anything private" on 
 photo, text joined at the overlap [Feature]
 Tidy-up 📋 · A shared check set-up (~-190 lines) · B trim Figma CSV + unread fields · C split check-home (315 s of 420) ·
 D archive the M10 specs still in `specs/` [Process]
-⏳ Minh's next-chapter review (demo, 2026-10-22) → picks Chapter 6.
+Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
+
+## Chapter 6 · Clarity (after 066)
+068 Scan screen 📋 · A Barcode / Ingredients switch on the camera [Feature] · B "Check ingredients" wording [UI] · C no dead
+end after "Cleaning product" [UI]
+069 Learn + Privacy redesign 📋 · A one frame per card, bubbles + More, Source buttons, badge links [UI] · B How EcoGo checks:
+logos + bold steps [UI] · C new sourced facts: seed-oil contaminants, pesticide foods, cleaning produce, organic [Facts]
 
 ## Future features (saved for later; Minh picks when) · 💡 = Minh's own idea
 **Core: reading labels** [Foundation]
@@ -64,6 +70,12 @@ D archive the M10 specs still in `specs/` [Process]
   place, each with an on/off switch (2026-10-21).
 - 💡 "Help build the database" opt-in: people choose to share their label photos to improve EcoGo (needs storage,
   consent text and review; 2026-10-21).
+**From the 2026-10-22 playtest** (later, decision 067)
+- 💡 Home inventory ("Pokédex"): save what you own; scanning a store product compares it with yours.
+- 💡 Profile and community: photo, banner, bio, scan count, points, friends, map visits.
+- 💡 Colour themes beyond high contrast (also the intro page).
+- 💡 Add personal care to Open Beauty Facts (today only food can be sent, to Open Food Facts).
+- 💡 Map rethink: finding clean places is "an easter egg hunt"; keep, shrink or change.
 **Reach & polish** [UI]
 - 💡 "Slow but sharper" reader option: the bigger PaddleOCR model (~33 MB, ~47 s a photo; best on tiny curved print),
   off by default (066 R1, 2026-10-22).
