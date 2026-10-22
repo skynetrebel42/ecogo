@@ -42,7 +42,7 @@ Start from `src/lib/ocr.ts` (readLabel, labelLines, trimToIngredients, unsureWor
 R1 results (2026-10-22, report in the planner's notes folder): (planner) R2 clean-up dropped for Tesseract (no gain,
 2x slower) and skipped for a Paddle reader; `ppu-paddle-ocr` out (fails curved and angled photos); R6's cause is the
 hard-to-read hint G4, not the blur check; the cloud column moves to R7 (no key needed before then). R5/R6 start now;
-R3's reader waits on Minh's Q2.
+R3's reader: PP-OCRv6 tiny (Minh, Q2, 2026-10-22).
 R5 done (6c53e65). R6 (planner, 2026-10-22): the hard-to-read hint (G4) stops counting unsure words that are close
 to a known ingredient name (they get R4's sheet instead), so a sharp curved label keeps its text in the box; blurry,
 glare and cut-off photos still get the hint. Built as R4's matcher's first slice (EcoGo's library names); no new
@@ -56,6 +56,8 @@ wording; the hint never blocks (048) and the box stays the final say (047).
 - **Q2 🎨** A stronger reader is a one-time download the phone then keeps. What's the most you'd accept the first time
   you take a photo? Options: about 10 MB / about 20 MB / whatever R1 shows is needed.
   **Answer (Minh, 2026-10-21): decide after R1 with real sizes** (today's reader is ~7 MB on first photo).
+  **Then (Minh, 2026-10-22): option A, PaddleOCR PP-OCRv6 tiny, ~13 MB once, today's speed** (over v6 small, ~33 MB,
+  ~47 s a photo: "making users wait so long would annoy people", suggestions are the buffer). v6 small → Future features.
 - **Q3 🎨** Cloud AI help (photos leave the phone): never / only if free and each person opts in / decide after R1.
   **Answer (Minh, 2026-10-21): only on free credits, and each person opts in** (R7). Provider (Minh, 2026-10-21):
   **OCR.space** free API (over Gemini free tier, which may use free-tier data to improve Google's products, and Azure
