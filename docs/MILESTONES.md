@@ -37,10 +37,10 @@ C celery context on flagged meats [Facts] · ⏳ Minh's live test (checklist 2F,
 ## Chapter 5 · Hardening (next)
 066 Label reader v2 🔨 (Minh's design; Headsman IV) · A measured test of free readers on real labels [Test] · B clean-up before
 reading [Feature] · C stronger reader on the phone [Foundation] · D unsure words: tap 1 of 3 suggestions, type it, or
-retake [Feature] · E warning text kept as ingredients (OCR-02) · F false "not clear" (OCR-03) [Debug] · G cloud help,
-opt-in, free tier [Feature][Server] · H "never photograph anything private" on photo sends [UI] · I take another
+retake [Feature] · E warning text kept as ingredients (OCR-02) · F false "not clear" (OCR-03) [Debug] · (G cloud help → 070) · H "never photograph anything private" on photo sends [UI] · I take another
 photo, text joined at the overlap [Feature]
-Tidy-up 📋 · A shared check set-up (~-190 lines) · B trim Figma CSV + unread fields · C split check-home (315 s of 420) ·
+070 Cloud help, opt-in (OCR.space) 📋, right after 066 [Feature][Server] (decision 070)
+Tidy-up 📋 (C, the check-home split, before 068) · A shared check set-up (~-190 lines) · B trim Figma CSV + unread fields · C split check-home (315 s of 420) ·
 D archive the M10 specs still in `specs/` [Process]
 Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 
