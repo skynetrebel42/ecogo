@@ -65,4 +65,6 @@ D archive the M10 specs still in `specs/` [Process]
 - 💡 "Help build the database" opt-in: people choose to share their label photos to improve EcoGo (needs storage,
   consent text and review; 2026-10-21).
 **Reach & polish** [UI]
+- 💡 "Slow but sharper" reader option: the bigger PaddleOCR model (~33 MB, ~47 s a photo; best on tiny curved print),
+  off by default (066 R1, 2026-10-22).
 - 💡 Languages (full translation, needs care) · Map layout second look (059 choices) · 375 px phone layout pass.
