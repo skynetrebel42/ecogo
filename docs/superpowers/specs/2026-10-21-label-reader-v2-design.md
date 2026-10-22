@@ -46,7 +46,11 @@ R3's reader: PP-OCRv6 tiny (Minh, Q2, 2026-10-22). R3 (planner, 2026-10-22): mod
 check (deploys never depend on Baidu's server), Apache-2.0 notices shipped beside them; ONNX Runtime's wasm shipped
 pre-gzipped and unpacked in the browser (Tesseract's pattern), so the ~13 MB holds whether or not Pages compresses
 .wasm; word-level "unsure" from per-letter confidences (own decode of the recognizer output if the SDK exposes it,
-else a pinned-version patch guarded by a test), not from known-word lists.
+else a pinned-version patch guarded by a test), not from known-word lists. R3 done (7b13caa).
+R4 lists (planner, 2026-10-22): EcoGo's own names + USDA FoodData Central words (CC0; "list FoodData Central as the
+source"), generated once by a script from `foods` and committed, lazy-loaded. Open Food Facts / Open Beauty Facts
+taxonomies skipped (no licence on the files themselves), EU CosIng skipped (no download; third-party content).
+Tap target and the sheet's words: Minh (wording batch).
 R5 done (6c53e65). R6 (planner, 2026-10-22): the hard-to-read hint (G4) stops counting unsure words that are close
 to a known ingredient name (they get R4's sheet instead), so a sharp curved label keeps its text in the box; blurry,
 glare and cut-off photos still get the hint. Built as R4's matcher's first slice (EcoGo's library names); no new
