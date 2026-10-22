@@ -1,6 +1,28 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadMoreNames, nearKnownName, splitAt, suggestWords } from "./suggest.ts";
+import { addComma, fixList, loadMoreNames, nearKnownName, replaceWord, splitAt, suggestWords } from "./suggest.ts";
+
+// 066 R4 (Minh: "row under the box"): what the row offers for the text in the box, and the two edits it can make.
+test("the row lists the unsure words still in the box, in reading order, and the items to split", () => {
+  const text = "HEXAMETHYLINDANOPYRA BENZYL SALICYLATE, VANILLIN, HYDROXYCITRONELLASS UIHONENE, GERANYL ACETATE";
+  assert.deepEqual(fixList(text, ["UIHONENE", "HYDROXYCITRONELLASS", "GERANYL", "PNENE"]), {
+    words: ["HEXAMETHYLINDANOPYRA", "HYDROXYCITRONELLASS", "UIHONENE", "GERANYL"], // the first: a letter off a known name
+    splits: [{ at: 20, before: "HEXAMETHYLINDANOPYRA", after: "BENZYL SALICYLATE" },
+      { at: text.indexOf(" UIHONENE"), before: "HYDROXYCITRONELLASS", after: "UIHONENE" }],
+  });
+  assert.deepEqual(fixList("", ["X"]), { words: [], splits: [] });
+  // A word read with confidence but one letter off a known name is offered too (the perfume's "LMONENE").
+  assert.deepEqual(fixList("VANILLIN, LMONENE, SALT", []).words, ["LMONENE"]);
+});
+
+test("a chosen name replaces the word wherever it stands alone, never inside another word", () => {
+  assert.equal(replaceWord("UIHONENE, XUIHONENE, (UIHONENE)", "UIHONENE", "LIMONENE"), "LIMONENE, XUIHONENE, (LIMONENE)");
+});
+
+test("an accepted split adds a comma where the second name starts", () => {
+  const text = "VANILLIN, HEXAMETHYLINDANOPYRA BENZYL SALICYLATE";
+  assert.equal(addComma(text, fixList(text, []).splits[0].at), "VANILLIN, HEXAMETHYLINDANOPYRA, BENZYL SALICYLATE");
+});
 
 // Runs before loadMoreNames() below: until the USDA words load, only EcoGo's own names are offered.
 test("food words come only after the USDA list loads; it adds them, accents folded", async () => {
@@ -50,7 +72,8 @@ test("a CAS number in the middle of an item ends an ingredient: the comma goes r
 });
 
 test("one name, or words that aren't two names, aren't split", () => {
-  for (const item of ["BENZYL SALICYLATE", "CITRUS LIMON PEEL OIL", "PINENE EXT. VIOLET 2 (CI 60730)", "SUGAR", ""]) assert.equal(splitAt(item), null, item);
+  for (const item of ["BENZYL SALICYLATE", "CITRUS LIMON PEEL OIL", "PINENE EXT. VIOLET 2 (CI 60730)", "SUGAR", "",
+    "FRAGRANCE (PARFUM)", "WATER (AQUA)", "LIMONENE (ORANGE) PEEL"]) assert.equal(splitAt(item), null, item);
 });
 
 // 066 R6 (planner, Option A): the first slice of R4's matcher. Misreads from Minh's perfume label (OCR-01).

@@ -237,7 +237,7 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
           <p className="text-sm text-gray-700 leading-relaxed">EcoGo read this from your photo. Fix anything it got wrong.</p>
         )}
         <IngredientEditor value={text} onChange={setText} unsure={unsure} note={readError} lines={lines} onLines={setLines}
-          read={readText} onShowRead={() => { setText(readText!); setReadText(undefined); }} />
+          read={readText} onShowRead={() => { setText(readText!); setReadText(undefined); }} onRetake={() => goTo("ingredients")} />
       </>}
     </div>
     {!hard && <div className="px-4 pt-3 pb-6 flex gap-2.5">

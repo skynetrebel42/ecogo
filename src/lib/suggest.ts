@@ -55,6 +55,29 @@ export function suggestWords(word: string): string[] {
     .slice(0, 3).map(c => cased(c.n));
 }
 
+/** The text split as the underlines split it: words at odd places (no lookbehind: older iOS Safari can't parse it). */
+const parts = (text: string) => text.split(/([\p{L}\p{N}]+)/u);
+
+/** R4's row under the box: the words still in `text` that the reader wasn't sure of, or that are a letter or two off a
+ *  known name (the perfume's confidently read "LMONENE"), first appearance first; and the items to offer a comma in
+ *  (`at`: where it goes in `text`). */
+export function fixList(text: string, unsure: string[]) {
+  const set = new Set(unsure), near = new Map<string, boolean>();
+  const offer = (w: string) => set.has(w) || (near.has(w) ? near.get(w)! : near.set(w, suggestWords(w).length > 0).get(w)!);
+  const words = [...new Set(parts(text).filter((p, i) => i % 2 && offer(p)))];
+  const splits = [...text.matchAll(/[^,;]+/g)].flatMap(m => {
+    const at = splitAt(m[0]);
+    return at === null ? [] : [{ at: m.index! + at, before: m[0].slice(0, at).trim(), after: m[0].slice(at).trim() }];
+  });
+  return { words, splits };
+}
+
+/** `word` replaced by `by` wherever it stands as a whole word. */
+export const replaceWord = (text: string, word: string, by: string) => parts(text).map((p, i) => (i % 2 && p === word ? by : p)).join("");
+
+/** A comma at `at` (from fixList). */
+export const addComma = (text: string, at: number) => `${text.slice(0, at)},${text.slice(at)}`;
+
 /** Whether `text` is a known name, or close to one (5+ letters, one changed letter per 4). */
 function nameLike(text: string): boolean {
   const t = fold(text).replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
@@ -72,6 +95,8 @@ export function splitAt(item: string): number | null {
   const words = [...item.matchAll(/\S+/g)];
   for (let k = 1; k < words.length; k++) {
     const end = words[k - 1].index! + words[k - 1][0].length;
+    // A bracket names the same ingredient ("FRAGRANCE (PARFUM)"): never a comma at or inside one.
+    if (words[k][0].startsWith("(") || /\([^)]*$/.test(item.slice(0, end))) continue;
     if (nameLike(item.slice(0, end)) && nameLike(item.slice(words[k].index!))) return end;
   }
   return null;

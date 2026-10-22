@@ -14,6 +14,7 @@ const URL_ = process.argv[2];
 const PHOTO = fileURLToPath(new URL("./ingredients-label.jpg", import.meta.url));
 const FULL = fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url));
 const CUT = fileURLToPath(new URL("./ingredients-cut-edge.jpg", import.meta.url));
+const PERFUME = fileURLToPath(new URL("./ingredients-perfume-curved.jpg", import.meta.url)); // Minh's, cropped to the label
 const BLURRED = fileURLToPath(new URL("./ingredients-label-blurred.png", import.meta.url));
 const PORT = 9600 + Math.floor(Math.random() * 90);
 const PROFILE = `${process.env.TEMP}\\ecogo-ocr-${PORT}`;
@@ -37,7 +38,8 @@ try {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
     // The reader runs in a Web Worker: its downloads are reported on the worker's own (auto-attached) session.
-    if (m.method === "Target.attachedToTarget") send("Network.enable", {}, m.params.sessionId);
+    // Each worker waits until its downloads are being listened to (else the first fetches can be missed).
+    if (m.method === "Target.attachedToTarget") send("Network.enable", {}, m.params.sessionId).then(() => send("Runtime.runIfWaitingForDebugger", {}, m.params.sessionId));
     if (m.method === "Fetch.requestPaused") send("Fetch.failRequest", { requestId: m.params.requestId, errorReason: "Failed" }); // 066: only /paddle/ is paused
     if (m.method === "Network.requestWillBeSent") { requests.push(m.params.request.url); urls.set(m.params.requestId, m.params.request.url); }
     if (m.method === "Network.loadingFinished") bytes.set(urls.get(m.params.requestId), m.params.encodedDataLength);
@@ -63,7 +65,7 @@ try {
   await send("Runtime.enable");
   await send("Network.enable");
   await send("DOM.enable");
-  await send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: true });
+  await send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
   await send("Page.navigate", { url: URL_ });
   await sleep(4000);
   await helpers();
@@ -196,7 +198,41 @@ try {
   const all = await run(`[...document.querySelectorAll('ul[aria-label="Lines read from the photo"] li')].map(li => li.innerText.toUpperCase()).join(" | ")`);
   check("RW1-01 (b): two photos picked back to back: the second one's lines are shown", second.length > 0 && /DISTRIBUTED/.test(all), all.slice(0, 160));
 
-  await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Type it").click(); await __sleep(300); return true; })()`);
+  // 066 R4: Minh's curved perfume label (ingredients-perfume-curved.jpg). Under the box, a row offers each unsure word
+  // and each pair of names run together; the sheet opens on its title and Escape returns to the chip. Taking the first
+  // suggested name for every word and every comma finds the three EU allergens the old reader missed (OCR-01).
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Personal care").click(); await __sleep(200); ${pickJs(PERFUME, "image/jpeg")} return true; })()`);
+  await run(`__until(() => document.querySelector("#ingredients")?.value, 90000)`);
+  const CHIPS = `[...document.querySelectorAll("button")].filter(b => b.innerText.endsWith("›"))`;
+  const offered = await run(`${CHIPS}.map(b => b.innerText.replace(" ›", ""))`) ?? [];
+  const pageText = await run(`document.body.innerText`);
+  check("066 R4: the row under the box offers the unsure words ('Check N words:') and the pairs ('Add a comma?')",
+    offered.length > 0 && /Check \d+ words?:/.test(pageText) && pageText.includes("Add a comma?"), offered.join(" | "));
+  await run(`(async () => { window.__chip = ${CHIPS}[0]; __chip.click(); await __sleep(300); return true; })()`);
+  const sheetOpen = await run(`({ title: document.activeElement?.tagName === "H2" && document.activeElement.closest('[role="dialog"]') !== document.querySelector('[role="dialog"]'),
+    text: document.activeElement?.closest('[role="dialog"]')?.innerText ?? "" })`);
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await sleep(300);
+  const back = await run(`document.activeElement === __chip && !document.querySelector('h2[tabindex="-1"]')`);
+  check("…a chip opens a sheet with its focus on the title, its choices, Keep as read and Retake photo; Escape returns to the chip",
+    sheetOpen.title && ((sheetOpen.text.includes("Or type it") && sheetOpen.text.includes("Keep as read") && sheetOpen.text.includes("Retake photo"))
+      || sheetOpen.text.includes("Add comma")) && back, `${sheetOpen.text.replace(/\n/g, " / ").slice(0, 200)} | back: ${back}`);
+  const accepted = await run(`(async () => { const took = []; try {
+    for (let n = 0; n < 60; n++) {
+      const chip = ${CHIPS}[0]; if (!chip) break; chip.click(); await __sleep(150);
+      const sheet = document.querySelector('h2[tabindex="-1"]').closest('[role="dialog"]');
+      const b = [...sheet.querySelectorAll("button")];
+      const pick = b.find(x => x.innerText === "Add comma") ?? b.find(x => !["Use", "Retake photo", "Keep as read", "No"].includes(x.innerText)) ?? b.find(x => x.innerText === "Keep as read");
+      took.push(chip.innerText.replace(" ›", "") + " → " + pick.innerText); pick.click(); await __sleep(150);
+    } } catch (e) { took.push("ERROR " + e.message); } return took; })()`) ?? [];
+  const careText = await badge();
+  const boxText = ((await run(`document.querySelector("#ingredients")?.value`)) ?? "").toUpperCase();
+  check("…taking the suggestions finds Benzyl Salicylate, Hydroxycitronellal and Limonene; the check reads the box",
+    ["Benzyl Salicylate", "Hydroxycitronellal", "Limonene"].every(n => careText.includes(n)) && boxText.includes("LIMONENE") && boxText.includes("HYDROXYCITRONELLAL"),
+    `${accepted.join("; ").slice(0, 400)} | box: ${boxText.slice(0, 600)} | ${careText.split("\n").slice(0, 3).join(" / ")}`);
+
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Food").click(); await __sleep(200); __btn("Type it").click(); await __sleep(300); return true; })()`);
   await typeInto("Enriched flour, water, Red 40");
   check("typing a list with Red 40 shows Some concern", (await badge()).includes("Some concern"));
   await typeInto("Enriched flour, water, sugar, yeast, salt");
@@ -210,6 +246,8 @@ try {
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
   check("Close returns to Scan", !!(await run(`!!(__btn("No barcode? Check ingredients") || __btn("Close camera"))`)));
   check("no console errors", errors.length === 0, errors.join(" | "));
+} catch (e) {
+  check("the check script ran to the end", false, String(e?.stack ?? e).slice(0, 400));
 } finally {
   console.log(`${ok}/${total} checks passed`);
   edge.kill();
