@@ -42,5 +42,5 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 
 ## 5 · Demo day (planned Thu 2026-10-22)
 - [x] **5A** (2026-10-22, notes sent) Use the app for 15 minutes like a new user. Note what you love, hate and wish it did.
-- [ ] **5B** Tell Daedalus your notes; they pick Chapter 6.
+- [x] **5B** (2026-10-22: playtest notes → Chapter 6, decision 067) Tell Daedalus your notes; they pick Chapter 6.
 - [ ] **5C** Look again at the decisions made on autopilot (points & levels first): keep or change each.
