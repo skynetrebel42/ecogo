@@ -50,7 +50,9 @@ else a pinned-version patch guarded by a test), not from known-word lists. R3 do
 R4 lists (planner, 2026-10-22): EcoGo's own names + USDA FoodData Central words (CC0; "list FoodData Central as the
 source"), generated once by a script from `foods` and committed, lazy-loaded. Open Food Facts / Open Beauty Facts
 taxonomies skipped (no licence on the files themselves), EU CosIng skipped (no download; third-party content).
-Tap target and the sheet's words: Minh (wording batch).
+Tap target and the sheet's words (Minh, 2026-10-22): **a row under the box** ("Check N words:" chips, "Add a comma?"
+chips, up to 8 then "+N more"), sheet words as drafted: "Did you mean", "Or type it", "Use", "Retake photo", "Keep as
+read"; source line "Suggested names come from EcoGo's lists and USDA FoodData Central."
 R5 done (6c53e65). R6 (planner, 2026-10-22): the hard-to-read hint (G4) stops counting unsure words that are close
 to a known ingredient name (they get R4's sheet instead), so a sharp curved label keeps its text in the box; blurry,
 glare and cut-off photos still get the hint. Built as R4's matcher's first slice (EcoGo's library names); no new
