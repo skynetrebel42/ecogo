@@ -40,6 +40,14 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 - [x] **4D** (2026-10-22) Map → Suggest a place. See: every field has a visible border.
 - [x] **4E** (2026-10-22: info good; wants bubbles, bullets and source buttons, see playtest notes) Home → the 7th Learn tile "Risks a label can't show" (full width). See: five short sections and source cards.
 
+## 6 · New label reader (066, live 2026-10-22)
+- [ ] **6A** A curved or shiny label (your mousse, a perfume box): Check ingredients → Personal care → Take a photo.
+      See: unsure words as buttons under the box ("Check N words"); tap one → "Did you mean" with real names; pick one.
+- [ ] **6B** A label cut off at the edge: after the first photo, tap "Add another photo" and photograph the rest.
+      See: "Joined 2 photos. Check where they meet." (or the text added at the end) and nothing you typed lost.
+- [ ] **6C** Add a product → the photo step. See: "Photograph only the label, never anything private."
+- [ ] **6D** Profile → Privacy. See: Open Beauty Facts named in the lookup line and a new Photon (address search) paragraph.
+
 ## 5 · Demo day (planned Thu 2026-10-22)
 - [x] **5A** (2026-10-22, notes sent) Use the app for 15 minutes like a new user. Note what you love, hate and wish it did.
 - [x] **5B** (2026-10-22: playtest notes → Chapter 6, decision 067) Tell Daedalus your notes; they pick Chapter 6.

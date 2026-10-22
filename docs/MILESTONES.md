@@ -35,7 +35,7 @@ line [Facts] · D "Cleaning product" choice [Feature] · ⏳ Minh's listed + unl
 C celery context on flagged meats [Facts] · ⏳ Minh's live test (checklist 2F, 4E)
 
 ## Chapter 5 · Hardening (next)
-066 Label reader v2 🔨 (Minh's design; Headsman IV) · A measured test of free readers on real labels [Test] · B clean-up before
+066 Label reader v2 ✅ 10-22 (f23f876; Headsman IV + V) · A measured test of free readers on real labels [Test] · B clean-up before
 reading [Feature] · C stronger reader on the phone [Foundation] · D unsure words: tap 1 of 3 suggestions, type it, or
 retake [Feature] · E warning text kept as ingredients (OCR-02) · F false "not clear" (OCR-03) [Debug] · (G cloud help → 070) · H "never photograph anything private" on photo sends [UI] · I take another
 photo, text joined at the overlap [Feature]
@@ -45,7 +45,7 @@ D archive the M10 specs still in `specs/` [Process]
 Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 
 ## Priority build list (Daedalus keeps it current; top = next)
-1. **066 Label reader v2 live** 🔨 final checks → Minh's push yes → live check
+1. ~~066 Label reader v2 live~~ ✅ 10-22 (f23f876, live check passed) · ⏳ Minh's live test (checklist section 6)
 2. **070 Cloud help, opt-in** 📋 small; needs Minh's OCR.space key as a server secret
 3. **Check-home split** 📋 (tidy-up C) keeps the 7-minute checks from hitting their limit
 4. **068 Scan screen** 📋 Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
