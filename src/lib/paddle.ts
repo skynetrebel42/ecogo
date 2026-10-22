@@ -48,9 +48,14 @@ export function unsureByLetters(words: Word[], cut: number): string[] {
  *  (5 %) while the blurry, cut-off and angled chip photos (3, 5, 7, 8) still get it. 0.7: 79 / 47; 0.9: 99 / 98. */
 export const UNSURE_LETTER = 0.8;
 
+/** Text-line detection: keep a line box whose mean score is at least 0.3 (the model's own setting is 0.4). Slanted lines
+ *  on curved bottles score lower: on Minh's hand soap 0.4 dropped 11 lines including "INGREDIENTS: WATER…" (0 of 3 flags
+ *  found → 3 of 3), and the glare chip photo 0 → 3 of 3; no other R1 photo lost words. */
+const DETECT = { textDetBoxThresh: 0.3 };
+
 type Tensor = { dims: readonly number[]; data: ArrayLike<number> };
 type Session = { run: (...a: unknown[]) => Promise<Record<string, Tensor>> };
-type Ocr = { predict: (img: Blob) => Promise<{ items: { text: string }[] }[]>; recModel?: { config?: { charDict?: string[] } } };
+type Ocr = { predict: (img: Blob, params?: object) => Promise<{ items: { text: string }[] }[]>; recModel?: { config?: { charDict?: string[] } } };
 
 let ready: Promise<Ocr> | undefined;
 let captured: Tensor[] | null = null; // the recognizer's outputs during one read
@@ -88,7 +93,7 @@ export async function readPaddle(image: Blob): Promise<{ lines: string[]; words:
   const ocr = await ready;
   const outs: Tensor[] = captured = [];
   let items: { text: string }[];
-  try { items = (await ocr.predict(image))[0]?.items ?? []; } finally { captured = null; }
+  try { items = (await ocr.predict(image, DETECT))[0]?.items ?? []; } finally { captured = null; }
   // Match decoded samples to lines by their text (the SDK reorders samples by width before recognising them).
   const dict = ocr.recModel?.config?.charDict ?? [];
   const byText = new Map<string, Word[][]>();
