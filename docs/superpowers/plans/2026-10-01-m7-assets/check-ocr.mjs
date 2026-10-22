@@ -27,6 +27,18 @@ const errors = [];
 const requests = []; // every URL the page (and its workers' fetches) asked for
 const urls = new Map(), bytes = new Map(); // requestId → URL, URL → bytes on the wire
 let ok = 0, total = 0;
+// 070: EcoGo's ocr-cloud is answered here (it never reaches Supabase or OCR.space): its lines, or "busy". Paused /paddle/
+// requests (066) fail.
+const CLOUD = "/functions/v1/ocr-cloud", cloudCalls = [];
+let cloudAnswer = "text";
+// A whole chip-bag list (50 known name words), as a better read of the cut-off chip photo would give.
+const CLOUD_LINES = ["INGREDIENTS: WHOLE CORN, VEGETABLE OIL (CORN, CANOLA, AND/OR SUNFLOWER OIL), SALT, MALTODEXTRIN (MADE FROM CORN), WHEY,",
+  "CHEDDAR CHEESE (MILK, CHEESE CULTURES, SALT, ENZYMES), BUTTERMILK, ROMANO CHEESE (PART-SKIM COW'S MILK, CHEESE CULTURES, SALT,",
+  "ENZYMES), WHEY PROTEIN CONCENTRATE, ONION POWDER, CORN FLOUR, NATURAL AND ARTIFICIAL FLAVOR, DEXTROSE, TOMATO POWDER, LACTOSE,",
+  "SPICES, ARTIFICIAL COLOR (INCLUDING YELLOW 6 LAKE, YELLOW 5 LAKE, RED 40 LAKE, YELLOW 6, YELLOW 5, RED 40), LACTIC ACID, CITRIC ACID,",
+  "SUGAR, GARLIC POWDER, SKIM MILK, RED AND GREEN BELL PEPPER POWDER, DISODIUM INOSINATE, DISODIUM GUANYLATE, MONOSODIUM GLUTAMATE."];
+const CLOUD_BOX = CLOUD_LINES.join(" ").replace(/^INGREDIENTS: /, "");
+let onPaused;
 const check = (name, pass, detail = "") => { total++; if (pass) ok++; console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? "  — " + detail : ""}`); };
 try {
   let target;
@@ -40,13 +52,26 @@ try {
     // The reader runs in a Web Worker: its downloads are reported on the worker's own (auto-attached) session.
     // Each worker waits until its downloads are being listened to (else the first fetches can be missed).
     if (m.method === "Target.attachedToTarget") send("Network.enable", {}, m.params.sessionId).then(() => send("Runtime.runIfWaitingForDebugger", {}, m.params.sessionId));
-    if (m.method === "Fetch.requestPaused") send("Fetch.failRequest", { requestId: m.params.requestId, errorReason: "Failed" }); // 066: only /paddle/ is paused
+    if (m.method === "Fetch.requestPaused") onPaused(m.params);
     if (m.method === "Network.requestWillBeSent") { requests.push(m.params.request.url); urls.set(m.params.requestId, m.params.request.url); }
     if (m.method === "Network.loadingFinished") bytes.set(urls.get(m.params.requestId), m.params.encodedDataLength);
     if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.exception?.description?.slice(0, 160));
     if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map(a => a.value ?? a.description).join(" ").slice(0, 160));
   });
   const send = (method, params = {}, sessionId) => new Promise(r => { const n = ++id; pending.set(n, r); ws.send(JSON.stringify({ id: n, method, params, sessionId })); });
+  onPaused = ({ requestId, request: r }) => {
+    if (!r.url.includes(CLOUD)) return send("Fetch.failRequest", { requestId, errorReason: "Failed" });
+    const headers = [{ name: "Access-Control-Allow-Origin", value: "*" }, { name: "Access-Control-Allow-Headers", value: "apikey, content-type" },
+      { name: "Access-Control-Allow-Methods", value: "POST, OPTIONS" }, { name: "Content-Type", value: "application/json" }];
+    if (r.method === "OPTIONS") return send("Fetch.fulfillRequest", { requestId, responseCode: 200, responseHeaders: headers });
+    const body = Buffer.concat((r.postDataEntries ?? []).map(e => Buffer.from(e.bytes ?? "", "base64")));
+    const type = Object.entries(r.headers).find(([k]) => k.toLowerCase() === "content-type")?.[1];
+    cloudCalls.push({ type, size: body.length, jpeg: body[0] === 0xff && body[1] === 0xd8 && body[2] === 0xff });
+    const busy = cloudAnswer === "busy";
+    send("Fetch.fulfillRequest", { requestId, responseCode: busy ? 503 : 200, responseHeaders: headers,
+      body: Buffer.from(JSON.stringify(busy ? { busy: true } : { lines: CLOUD_LINES })).toString("base64") });
+  };
+  const ONLY_CLOUD = [{ urlPattern: `*${CLOUD}*` }];
   const run = async expression => (await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true })).result?.result?.value;
   const helpers = () => run(`window.__sleep = ms => new Promise(r => setTimeout(r, ms));
     window.__until = async (fn, ms = 10000) => { for (let t = 0; t < ms; t += 100) { const v = fn(); if (v) return v; await __sleep(100); } return null; };
@@ -66,6 +91,7 @@ try {
   await send("Network.enable");
   await send("DOM.enable");
   await send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
+  await send("Fetch.enable", { patterns: ONLY_CLOUD });
   await send("Page.navigate", { url: URL_ });
   await sleep(4000);
   await helpers();
@@ -82,10 +108,10 @@ try {
 
   const { root } = (await send("DOM.getDocument")).result;
   const { nodeId } = (await send("DOM.querySelector", { nodeId: root.nodeId, selector: 'input[data-photo="library"]' })).result;
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/paddle/*" }] }); // the stronger reader can't load
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/paddle/*" }, ...ONLY_CLOUD] }); // the stronger reader can't load
   await send("DOM.setFileInputFiles", { nodeId, files: [PHOTO] });
   const read = await run(`__until(() => document.querySelector("#ingredients")?.value, 90000)`);
-  await send("Fetch.disable");
+  await send("Fetch.enable", { patterns: ONLY_CLOUD });
   check("066 R3: when the stronger reader can't load, Tesseract reads the label on the phone into its words", !!read
     && ["SUGAR", "CORN SYRUP", "CITRIC ACID", "RED 40", "YELLOW 5", "CARNAUBA"].every(w => read.toUpperCase().includes(w))
     && requests.some(u => u.includes("/tesseract/")), read ?? "nothing read");
@@ -142,11 +168,23 @@ try {
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); return true; })()`);
   const { root: root3 } = (await send("DOM.getDocument")).result;
   const lib3 = (await send("DOM.querySelector", { nodeId: root3.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
+  const SWITCH = `document.querySelector('input[role="switch"]')`;
+  const offByDefault = await run(`({ sw: ${SWITCH} ? ${SWITCH}.checked : "none", label: ${SWITCH}?.closest("label")?.innerText.trim(),
+    about: document.getElementById(${SWITCH}?.getAttribute("aria-describedby"))?.innerText ?? "" })`);
+  const hardFrom = requests.length;
   await send("DOM.setFileInputFiles", { nodeId: lib3, files: [CUT] });
   const hard = await run(`__until(() => document.querySelector("#ingredients") || [...document.querySelectorAll('[role="alert"]')].find(e => e.innerText.includes("hard to read")), 60000)
     .then(e => e?.innerText ?? "")`);
   check("M8 G4: a label cut off at the edge opens with 'This photo is hard to read.', the tips, Retake photo and Use it anyway",
     hard.includes("This photo is hard to read.") && hard.includes("Lay it flat") && hard.includes("Retake photo") && hard.includes("Use it anyway"), hard.slice(0, 80));
+  const hardReads = requests.slice(hardFrom), origin3 = new URL(URL_).origin;
+  check("070 C2: 'Cloud help for hard labels' is on the photo step, off by default, with the approved explanation",
+    offByDefault.sw === false && offByDefault.label === "Cloud help for hard labels" && offByDefault.about.replace(/\s+/g, " ").trim() === "When this is on, a photo we "
+      + `can't read well is sent to OCR.space, a free reading service, through EcoGo's server. OCR.space says: "All uploaded documents are deleted after processing." `
+      + "It logs the address the request comes from (EcoGo's server, not your phone) for a month. Only photograph the label, never anything private.",
+    JSON.stringify(offByDefault).slice(0, 200));
+  check("070: with it off, a hard photo sends nothing: no request leaves the page, none to ocr-cloud",
+    hardReads.every(u => u.startsWith(origin3) || /^(data|blob):/.test(u)) && cloudCalls.length === 0, hardReads.filter(u => !u.startsWith(origin3)).join(" ") || "none");
   await run(`(async () => { __btn("Use it anyway")?.click(); await __sleep(400); return true; })()`);
   // M8 follow-up 6, K2: the junk never goes into the box; "Show what we read" puts it there.
   const NOTICE = "We couldn't read this label well. Type the ingredients below.";
@@ -258,6 +296,45 @@ try {
   await run(`(async () => { __btn("Retake photo").click(); await __sleep(300); return true; })()`);
   check("…a blurred extra photo waits on 'This photo looks blurry.'; Retake photo goes back to the box as it was",
     blurMore.includes("This photo looks blurry.") && (await box()) === appended, `first: ${first.slice(0, 60)}`);
+
+  // 070 C2/C3 (docs/superpowers/specs/2026-10-23-cloud-help-070-design.md): cloud help switched on. The cut-off chip photo
+  // (hard to read) goes once, only to EcoGo's own ocr-cloud (answered here); its read, with more known names, fills the
+  // box. "Busy" keeps the phone's result and says so. A clear photo sends nothing. The switch is remembered.
+  const BUSY = "Cloud help is busy today. We read the photo on your phone instead.";
+  const outside = from => requests.slice(from).filter(u => !u.startsWith(origin3) && !/^(data|blob):/.test(u));
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); ${SWITCH}?.click(); await __sleep(200); return true; })()`);
+  const onText = await run(`document.body.innerText`);
+  check("070 (Minh's option A): switched on, the tip says hard photos go to cloud help and the note says they go to OCR.space",
+    onText.includes("EcoGo reads the words on your phone, and hard ones with cloud help.")
+    && onText.includes("Nothing is saved. With cloud help on, a hard-to-read photo is sent to OCR.space."), onText.replace(/\n/g, " / ").slice(0, 300));
+  const cloudFrom = requests.length;
+  await run(`(async () => { ${pickJs(CUT, "image/jpeg")} return true; })()`);
+  const readingOn = await run(`__until(() => document.body.innerText.includes("Reading the label") && document.body.innerText, 15000)`) ?? "";
+  const cloudBox = await run(`__until(() => document.querySelector("#ingredients")?.value || (document.body.innerText.includes("hard to read") && "HARD TO READ"), 90000)`) ?? "";
+  const onRead = await run(`document.body.innerText`);
+  check("070 C3: switched on, a hard photo goes once, as a JPEG of 1 MB or less, only to EcoGo's ocr-cloud; nothing to ocr.space from the browser",
+    cloudCalls.length === 1 && cloudCalls[0].type === "image/jpeg" && cloudCalls[0].jpeg && cloudCalls[0].size > 0 && cloudCalls[0].size <= 1024 * 1024
+    && outside(cloudFrom).length > 0 && outside(cloudFrom).every(u => u.includes(CLOUD)) && !requests.some(u => u.includes("ocr.space")),
+    `${JSON.stringify(cloudCalls)} | outside: ${outside(cloudFrom).join(" ")}`);
+  check("…its read has more known names, so it fills the box (no hard-to-read notice) and the check reads it; the reading note drops 'stays on your phone'",
+    cloudBox === CLOUD_BOX
+    && !onRead.includes("This photo is hard to read.") && !onRead.includes(BUSY) && (await badge()).includes("Some concern")
+    && readingOn.includes("Reading the label") && !readingOn.includes("The photo stays on your phone."), `${cloudBox.slice(0, 80)} | ${(await badge()).split("\n")[0]}`);
+  cloudAnswer = "busy";
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); ${pickJs(CUT, "image/jpeg")} return true; })()`);
+  const busyText = await run(`__until(() => document.body.innerText.includes(${JSON.stringify(BUSY)}) && document.body.innerText, 90000)`) ?? "";
+  check("070 C3: cloud help busy → 'Cloud help is busy today. We read the photo on your phone instead.' over the phone's hard-to-read result",
+    cloudCalls.length === 2 && busyText.includes("This photo is hard to read.") && !!(await run(`[...document.querySelectorAll('[role="alert"]')].some(e => e.innerText === ${JSON.stringify(BUSY)})`)),
+    busyText.replace(/\n/g, " / ").slice(0, 200));
+  await run(`(async () => { __btn("Retake photo").click(); await __sleep(300); ${pickJs(PHOTO, "image/jpeg")} return true; })()`);
+  await run(`__until(() => document.querySelector("#ingredients")?.value, 90000)`);
+  check("…a clear photo, switched on, sends nothing", cloudCalls.length === 2 && !(await run(`document.body.innerText`)).includes(BUSY), `${cloudCalls.length} calls`);
+  await run(`(async () => { __btn("Close").click(); await __sleep(600); __btn("No barcode? Check ingredients").click(); await __sleep(500); return true; })()`);
+  const remembered = await run(`${SWITCH}?.checked`);
+  await run(`(async () => { ${SWITCH}.click(); await __sleep(200); __btn("Type it").click(); await __sleep(300); return true; })()`);
+  check("070 C2: the switch is remembered on this device; turned off, the note says 'Nothing is saved or sent.' again",
+    remembered === true && (await run(`${SWITCH}?.checked ?? "gone"`)) !== true && (await run(`document.body.innerText`)).includes("Nothing is saved or sent.")
+    && (await run(`localStorage.getItem("ecogo.cloudHelp.v1")`)) === null, String(remembered));
 
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Food").click(); await __sleep(200); __btn("Type it").click(); await __sleep(300); return true; })()`);
   await typeInto("Enriched flour, water, Red 40");

@@ -19,7 +19,8 @@ import { lookupBarcode, normalizeBarcode, isBarcode, sameBarcode, offAddUrl } fr
 import { supabaseFoods } from "../../lib/foodsDb";
 import { loadSaferChoice, saferChoiceMatch, saferChoiceProduct, SAFER_CHOICE_MEANING, CALIFORNIA_LINE } from "../../lib/saferChoice";
 import CameraScanner from "./CameraScanner";
-import type { CheckKind } from "./IngredientCheck";
+import { nothingSent, type CheckKind } from "./IngredientCheck";
+import { cloudHelpOn } from "../../lib/ocr";
 
 interface DemoBarcode { barcode: string; label: string; category: string }
 
@@ -184,7 +185,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
             <p className="text-white/60 text-sm mb-5 leading-relaxed max-w-xs">
               {kind === "food"
                 ? "Add it in about a minute: three photos, and EcoGo reads the ingredients for you. You'll see the safety check right away."
-                : "Photograph or type its ingredients and EcoGo checks them against FDA, EU and IARC findings. Nothing is saved or sent."}
+                : `Photograph or type its ingredients and EcoGo checks them against FDA, EU and IARC findings. ${nothingSent(cloudHelpOn())}`}
             </p>
           )}
           <div className="bg-white/8 border border-white/15 rounded-2xl px-5 py-3 w-full max-w-xs">

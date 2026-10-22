@@ -6,13 +6,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X, Check, ArrowLeft } from "lucide-react";
 import { isBlurry, preparePhoto, TOO_SMALL } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
-import { readPhoto, type LabelLine } from "../../lib/ocr";
+import { cloudHelpOn, readPhoto, type LabelLine } from "../../lib/ocr";
 import { submitProduct, type PhotoKind, type SendStage, type SubmitReason } from "../../lib/contribute";
 import { offEditUrl, offProductUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { offSubmit, supabase } from "../../lib/supabase";
 import { justReached, readContributions } from "../../lib/contributions";
-import { AnotherPhoto, IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoNotice, PhotoTips, Reading } from "./IngredientCheck";
+import { AnotherPhoto, CLOUD_BUSY, CloudHelpSwitch, IngredientEditor, ingredientsTip, PhotoButtons, PhotoNotice, PhotoTips, Reading } from "./IngredientCheck";
 import CropPhoto from "./CropPhoto";
 
 type Kind = PhotoKind;
@@ -34,9 +34,8 @@ const PHOTOS_FAILED: Partial<Record<Failed, string>> = {
   invalid: "Open Food Facts couldn't take these photos. Try other photos.",
   "nothing-new": "Open Food Facts already has these photos, so there was nothing new to send.",
 };
-const PHOTO_TIPS: Record<Kind, string> = {
+const PHOTO_TIPS: Record<Exclude<Kind, "ingredients">, string> = { // ingredients: ingredientsTip, which follows the switch
   front: "Photograph the front of the package, with its name showing.",
-  ingredients: INGREDIENTS_TIP,
   nutrition: "Photograph the Nutrition Facts panel. Open Food Facts reads the numbers from it.",
 };
 const LABEL: Record<Kind, string> = { front: "Front", ingredients: "Ingredients", nutrition: "Nutrition" };
@@ -90,6 +89,8 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
   const [hard, setHard] = useState(false); // M8 follow-up 2, G4: the photo read looks hard to read
   const [blurry, setBlurry] = useState<{ kind: Kind; blob: Blob }>(); // 049 H2: waiting on "Retake photo" / "Use it anyway"
   const [readText, setReadText] = useState<string>(); // K2: a hard-to-read photo's text, behind "Show what we read"
+  const [cloud, setCloud] = useState(cloudHelpOn); // 070 C2: only for the ingredients photo, which is read
+  const [cloudBusy, setCloudBusy] = useState(false);
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
   const [failed, setFailed] = useState<Failed>("off-down");
@@ -114,11 +115,11 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
     setPhotos(p => ({ ...p, [kind]: blob }));
     if (kind !== "ingredients" || photosOnly) { setStep(next[kind]); return; }
     setStep("reading");
-    const r = await readPhoto(blob);
+    const r = await readPhoto(blob, cloud);
     if (!live()) return;
     // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (049 H2); the box starts
     // empty either way (K2).
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStep("check"); setJoined(false);
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setCloudBusy(!!r.busy); setStep("check"); setJoined(false);
   };
   // 066 R9: more photos of the ingredients join the box's text and stay on the phone: only the first is sent (planner).
   const [joined, setJoined] = useState(false);
@@ -138,7 +139,7 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
   const skip = (kind: Kind) => {
     begin(); setPhotoError(undefined); setBlurry(undefined);
     setPhotos(p => ({ ...p, [kind]: undefined }));
-    if (kind === "ingredients") { setUnsure([]); setLines(undefined); setReadError(undefined); setReadText(undefined); setHard(false); }
+    if (kind === "ingredients") { setUnsure([]); setLines(undefined); setReadError(undefined); setReadText(undefined); setHard(false); setCloudBusy(false); }
     setStep(next[kind]);
   };
   const send = async () => {
@@ -206,13 +207,13 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
         })}
       </ol>
       <div className="flex-1 flex flex-col justify-center px-6 gap-4 text-center">
-        {step === "reading" ? <div className="bg-white rounded-3xl text-gray-900"><Reading /></div>
+        {step === "reading" ? <div className="bg-white rounded-3xl text-gray-900"><Reading cloud={cloud} /></div>
           : blur ? <PhotoNotice title="This photo looks blurry." kind={kind}
               onRetake={() => { begin(); setBlurry(undefined); }} onUseAnyway={() => acceptPhoto(kind, blur, true)} />
           : <>
           {photosOnly && kind === "front" && <p className="text-sm text-[#D1DAD4] leading-relaxed">Photos of the current label help Open Food Facts fix wrong or missing details. EcoGo never changes the text itself.</p>}
           <p className="text-base font-extrabold">{LABEL[kind]} photo</p>
-          <p className="text-sm text-[#D1DAD4] leading-relaxed">{PHOTO_TIPS[kind]}</p>
+          <p className="text-sm text-[#D1DAD4] leading-relaxed">{kind === "ingredients" ? ingredientsTip(cloud && !photosOnly) : PHOTO_TIPS[kind]}</p>
           {kind !== "front" && <PhotoTips kind={kind} className="text-[#D1DAD4] justify-center" />}
           {photoError && <p role="alert" className="text-sm text-amber-300">{photoError}</p>}
         </>}
@@ -225,6 +226,7 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
             : kind === "ingredients" && !photosOnly // K3: a visible way past a bag with no ingredients panel
               ? <button onClick={() => skip(kind)} className="w-full min-h-[52px] rounded-2xl border border-white/30 bg-white/10 text-white font-bold text-sm">No ingredients list? Type it</button>
               : <button onClick={() => skip(kind)} className="w-full min-h-[44px] text-sm font-bold text-[#A7B8AE]">Skip</button>}
+          {kind === "ingredients" && !photosOnly && <CloudHelpSwitch on={cloud} onChange={setCloud} className="text-[#D1DAD4]" />}
         </div>
       )}
     </>);
@@ -233,6 +235,7 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
   if (step === "check") return screen(false, <>
     {header("Check the ingredients", "Step 2 of 3", false)}
     <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
+      {cloudBusy && <p role="alert" className="text-sm font-bold text-gray-700">{CLOUD_BUSY}</p>}
       {hard ? <PhotoNotice title="This photo is hard to read." onRetake={() => goTo("ingredients")} onUseAnyway={() => setHard(false)} /> : <>
         {/* R9 (planner): no Crop after a join: cropping reads the first photo again and would drop the joined text */}
         {photos.ingredients && <div className="w-24"><Thumb blob={photos.ingredients} label={LABEL.ingredients} />{!joined && cropButton("ingredients")}</div>}

@@ -4,11 +4,11 @@
 // shared with AddProductFlow's "Check the ingredients" step. M16 N6: "What is it?" Food / Personal care; personal care
 // runs the personal-care check (src/lib/safety/personalCare.ts) on the same photo or typed list.
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
 import { analyzeCare, CARE_LIMITS, MORE_DATA_MEANING, isMoreData, type CareAnalysis } from "../../lib/safety/personalCare";
-import { joinReads, readAnother, readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
+import { cloudHelpOn, joinReads, readAnother, readPhoto, setCloudHelp, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
 import { isBlurry, preparePhoto } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
@@ -71,7 +71,32 @@ export function MoreDataLine({ notes, className = "" }: { notes: CareAnalysis["n
   );
 }
 
-export const INGREDIENTS_TIP = "Photograph the ingredients list: flat, in good light, with no glare. EcoGo reads the words on your phone.";
+/** The photo tip; 070 (Minh's option A): with cloud help on, it says hard photos go there. */
+export const ingredientsTip = (cloud: boolean) =>
+  `Photograph the ingredients list: flat, in good light, with no glare. EcoGo reads the words on your phone${cloud ? ", and hard ones with cloud help" : ""}.`;
+/** 070 (option A): what the check sends, said wherever it promised "Nothing is saved or sent." */
+export const nothingSent = (cloud: boolean) => cloud ? "Nothing is saved. With cloud help on, a hard-to-read photo is sent to OCR.space." : "Nothing is saved or sent.";
+export const CLOUD_BUSY = "Cloud help is busy today. We read the photo on your phone instead.";
+
+/** 070 C2: "Cloud help for hard labels", off until turned on, remembered on this device (ocr.ts). Words as approved
+ *  (planner's wording note §5, Minh: "as drafted"); OCR.space's own words checked on ocr.space/privacypolicy 2026-10-22. */
+export function CloudHelpSwitch({ on, onChange, className = "" }: { on: boolean; onChange: (on: boolean) => void; className?: string }) {
+  const about = useId();
+  return (
+    <div className={`space-y-1 text-left ${className}`}>
+      <label className="flex items-center gap-3 min-h-[44px] text-sm font-bold">
+        <input type="checkbox" role="switch" checked={on} aria-describedby={about} className="w-[22px] h-[22px] m-0 flex-shrink-0"
+          onChange={e => { setCloudHelp(e.target.checked); onChange(e.target.checked); }} />
+        Cloud help for hard labels
+      </label>
+      <p id={about} className="text-xs leading-relaxed">
+        When this is on, a photo we can't read well is sent to OCR.space, a free reading service, through EcoGo's server.
+        OCR.space says: "All uploaded documents are deleted after processing." It logs the address the request comes from
+        (EcoGo's server, not your phone) for a month. Only photograph the label, never anything private.
+      </p>
+    </div>
+  );
+}
 
 /** Numbered photo tips, one compact row (M8 follow-up 3, H3): above Take photo on the ingredients and nutrition steps,
  *  and inside the photo notices. */
@@ -258,16 +283,16 @@ export function AnotherPhoto({ text, unsure, begin, onRead, onError }: {
   now.current = { text, unsure };
   const [busy, setBusy] = useState(false);
   const [blurry, setBlurry] = useState<Blob>();
-  const [added, setAdded] = useState<{ n: number; joined: boolean }>();
+  const [added, setAdded] = useState<{ n: number; joined: boolean; cloudBusy?: boolean }>();
   const read = async (photo: Blob, live = begin()) => {
     setBlurry(undefined); setBusy(true);
-    const r = await readAnother(photo);
+    const r = await readAnother(photo, cloudHelpOn()); // 070: a hard one goes to cloud help too, with the switch on
     if (!live()) return;
     setBusy(false);
     if ("error" in r) return onError(r.error);
     const j = joinReads(now.current.text, r.text);
     onRead({ text: j.text, unsure: [...new Set([...now.current.unsure, ...r.unsure])] });
-    setAdded(a => ({ n: (a?.n ?? 1) + 1, joined: j.joined }));
+    setAdded(a => ({ n: (a?.n ?? 1) + 1, joined: j.joined, cloudBusy: r.busy }));
   };
   const pick = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; e.target.value = "";
@@ -282,7 +307,7 @@ export function AnotherPhoto({ text, unsure, begin, onRead, onError }: {
   return (
     <div className="space-y-1.5">
       <p aria-live="polite" className="text-xs font-bold text-gray-700">{/* not role="status": that's the verdict below */}
-        {busy ? "Reading the label…" : added && (added.joined ? `Joined ${added.n} photos. Check where they meet.` : "Added the new photo's text at the end. Check it.")}
+        {busy ? "Reading the label…" : added && `${added.cloudBusy ? `${CLOUD_BUSY} ` : ""}${added.joined ? `Joined ${added.n} photos. Check where they meet.` : "Added the new photo's text at the end. Check it."}`}
       </p>
       <p className="text-sm text-gray-700">Curvy label? Cut off? Add more pics.</p>
       <input ref={input} type="file" accept="image/*" hidden onChange={pick} data-photo="another" />
@@ -292,12 +317,12 @@ export function AnotherPhoto({ text, unsure, begin, onRead, onError }: {
   );
 }
 
-export function Reading() {
+export function Reading({ cloud }: { cloud: boolean }) {
   return (
     <div role="status" className="flex flex-col items-center gap-3 py-10 text-center">
       <div className="w-10 h-10 rounded-full border-4 border-gray-200 border-t-[#1A5C39] animate-spin" aria-hidden="true" />
       <p className="text-sm font-bold">Reading the label…</p>
-      <p className="text-xs text-muted-foreground max-w-[260px]">The first time, your phone downloads the reader once (about 13 MB). The photo stays on your phone.</p>
+      <p className="text-xs text-muted-foreground max-w-[260px]">The first time, your phone downloads the reader once (about 13 MB).{!cloud && " The photo stays on your phone."}</p>
     </div>
   );
 }
@@ -321,16 +346,18 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
   const [hard, setHard] = useState(false);
   const [blurry, setBlurry] = useState<Blob>(); // 049 H2: a photo waiting on "Retake photo" / "Use it anyway"
   const [readText, setReadText] = useState<string>(); // K2: a hard-to-read photo's text, behind "Show what we read"
+  const [cloud, setCloud] = useState(cloudHelpOn); // 070 C2
+  const [cloudBusy, setCloudBusy] = useState(false);
 
   // RW1-01: latest photo wins. A photo, Type it, Check another, Retake or Close begins anew; a slow preparation, blur
   // check or read whose own check (`live`) went false since then is dropped.
   const [begin] = useState(latestWins);
   const read = async (photo: Blob, blurOk: boolean, live = begin()) => {
     setBlurry(undefined); setStatus("reading");
-    const r = await readPhoto(photo);
+    const r = await readPhoto(photo, cloud);
     if (!live()) return;
     // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (H2); the box starts empty either way (K2).
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStatus("read");
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setCloudBusy(!!r.busy); setStatus("read");
   };
   const onPhoto = async (file: File) => {
     const live = begin();
@@ -341,7 +368,7 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
     setSendable(prepared);
     if (blurred) setBlurry(photo); else await read(photo, false, live);
   };
-  const reset = () => { begin(); setSendable(undefined); setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setStatus("idle"); };
+  const reset = () => { begin(); setSendable(undefined); setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setCloudBusy(false); setStatus("idle"); };
   const showHard = mode === "photo" && status === "read" && hard;
   const showEditor = (mode === "type" || status === "read") && !showHard;
 
@@ -383,11 +410,13 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
         {mode === "photo" && status === "idle" && (blurry
           ? <PhotoNotice title="This photo looks blurry." onRetake={() => setBlurry(undefined)} onUseAnyway={() => read(blurry, true)} />
           : <>
-            <p className="text-sm text-gray-700 leading-relaxed">{INGREDIENTS_TIP}</p>
+            <p className="text-sm text-gray-700 leading-relaxed">{ingredientsTip(cloud)}</p>
             <PhotoTips className="text-gray-700" />
             <PhotoButtons onPhoto={onPhoto} />
+            <CloudHelpSwitch on={cloud} onChange={setCloud} className="text-gray-700" />
           </>)}
-        {mode === "photo" && status === "reading" && <Reading />}
+        {mode === "photo" && status === "reading" && <Reading cloud={cloud} />}
+        {mode === "photo" && status === "read" && cloudBusy && <p role="alert" className="text-sm font-bold text-gray-700">{CLOUD_BUSY}</p>}
         {showHard && <PhotoNotice title="This photo is hard to read." onRetake={reset} onUseAnyway={() => setHard(false)} />}
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
           note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines}
@@ -399,8 +428,8 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
         </IngredientEditor>}
 
         <p className="text-xs text-gray-600 leading-relaxed">
-          {product || kind === "care" ? "This checks the ingredients only. Nothing is saved or sent."
-            : "Without a barcode there's no nutrition label to look up, so this checks ingredients only. Nothing is saved or sent."}
+          {product || kind === "care" ? "This checks the ingredients only. " : "Without a barcode there's no nutrition label to look up, so this checks ingredients only. "}
+          {nothingSent(cloud)}
         </p>
       </div>
 
