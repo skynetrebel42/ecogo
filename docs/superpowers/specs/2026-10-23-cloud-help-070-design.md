@@ -9,7 +9,7 @@
 ## 1. Parts
 | # | Part | Type |
 |---|---|---|
-| C1 | **Edge Function `ocr-cloud`**: receives one label photo (JPEG ≤ 1 MB) and returns text only. Forwards to OCR.space's free API with the key from the secret `OCRSPACE_API_KEY` (set by Minh in Supabase; never in code, git or chat). Stores nothing, logs no image or text. Rejects anything over 1 MB, non-images, and calls without an anonymous-session JWT (verify_jwt on, same sign-in the app already uses at the first Send). OCR.space limit or error → a "busy" answer the app understands | Server |
+| C1 | **Edge Function `ocr-cloud`**: receives one label photo (JPEG ≤ 1 MB) and returns text only. Forwards to OCR.space's free API with the key from the secret `OCRSPACE_API_KEY` (set by Minh in Supabase; never in code, git or chat). Stores nothing, logs no image or text. Rejects anything over 1 MB, non-JPEGs, other Origins and calls without the app's public key (checked in the function, §4). OCR.space limit or error → a "busy" answer the app understands | Server |
 | C2 | **The switch** "Cloud help for hard labels" on the photo step of Check ingredients and the Open Food Facts send, off by default, remembered on this device only; the explanation under it as approved | Feature |
 | C3 | **When it's used:** only with the switch on, only for a photo the phone reader found hard to read (the existing hard-to-read result). The phone reads first; the cloud text replaces the box only if it reads better (more words that match known names); either way R4's chips and "Keep as read" work on it; nothing counts until the person accepts it, as today. Busy → "Cloud help is busy today. We read the photo on your phone instead." | Feature |
 | C4 | **Privacy paragraph** for cloud help, as approved, added to Profile → Privacy | UI |
@@ -30,8 +30,9 @@ Paid tiers; other providers; sending photos that read fine; storing photos or re
 - CLAUDE.md "browser's only Supabase calls" gains "invoke `ocr-cloud` (opt-in)" at close-out (planner).
 - Deploy order: the function and its secret first (each live step with Minh's yes), then the app.
 - C1 access (planner, 2026-10-23, Headsman VI's option B): Check ingredients has no sign-in, so `ocr-cloud` accepts the
-  app's public key (verify_jwt on) and a session JWT when one exists; no human check, no new wording. Cheap guards: only
+  app's public key (checked in the function; deployed verify_jwt off like off-submit, since the platform check can't read the sb_publishable_ key); no human check, no new wording. Cheap guards: only
   EcoGo's site Origin, image types only, ≤ 1 MB. Abuse worst case = "busy today" until OCR.space's daily reset.
 - Builder's calls (accepted): any failure → the busy line; "reads better" = more words matching EcoGo/USDA names, ties
   keep the phone's text; cloud text goes through trim, checkboxes, chips, "Keep as read"; "Add another photo" uses it
   for hard photos too; canvas re-encode to JPEG < 1 MB.
+- Wording while cloud help is on (Minh, 2026-10-23, Option A: "recalling best practices for user transparency… we can edit later"): photo tip "…EcoGo reads the words on your phone, and hard ones with cloud help."; the reading message drops "The photo stays on your phone."; footer "Nothing is saved. With cloud help on, a hard-to-read photo is sent to OCR.space."; Privacy (always) "…checking a list without a barcode sends nothing unless you turn on cloud help."
