@@ -29,3 +29,9 @@ Paid tiers; other providers; sending photos that read fine; storing photos or re
 ## 4. Notes
 - CLAUDE.md "browser's only Supabase calls" gains "invoke `ocr-cloud` (opt-in)" at close-out (planner).
 - Deploy order: the function and its secret first (each live step with Minh's yes), then the app.
+- C1 access (planner, 2026-10-23, Headsman VI's option B): Check ingredients has no sign-in, so `ocr-cloud` accepts the
+  app's public key (verify_jwt on) and a session JWT when one exists; no human check, no new wording. Cheap guards: only
+  EcoGo's site Origin, image types only, ≤ 1 MB. Abuse worst case = "busy today" until OCR.space's daily reset.
+- Builder's calls (accepted): any failure → the busy line; "reads better" = more words matching EcoGo/USDA names, ties
+  keep the phone's text; cloud text goes through trim, checkboxes, chips, "Keep as read"; "Add another photo" uses it
+  for hard photos too; canvas re-encode to JPEG < 1 MB.
