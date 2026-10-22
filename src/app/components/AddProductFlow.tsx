@@ -343,7 +343,7 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
       <div className="bg-white border border-border rounded-2xl p-3.5 space-y-2">
         <h2 className="text-[15px] font-extrabold">This will be public</h2>
         <p className="text-xs text-gray-700 leading-relaxed">Open Food Facts is a free, open database. Your photos and text will be public there, for anyone to see and reuse, under its open licenses (photos CC BY-SA, data ODbL).</p>
-        <p className="text-xs text-gray-700 leading-relaxed">Make sure no faces, receipts or anything personal show in the photos.</p>
+        <p className="text-xs text-gray-700 leading-relaxed">Photograph only the label, never anything private.</p>
         <label className="flex gap-2.5 items-start text-sm font-semibold leading-snug pt-1">
           <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} disabled={sending} className="w-[22px] h-[22px] m-0 flex-shrink-0" />
           <span>I took these photos, and they show only the product.</span>
