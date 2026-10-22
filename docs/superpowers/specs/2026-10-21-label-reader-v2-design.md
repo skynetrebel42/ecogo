@@ -58,6 +58,9 @@ only the label, never anything private."; Privacy updates (Open Beauty Facts, Ph
 (@fontsource-variable/plus-jakarta-sans@5.3.0, OFL-1.1, Minh's yes); R9 button "Add another photo", hint in Minh's
 words "Curvy label? Cut off? Add more pics.", join notes as drafted, more than one extra photo allowed ("Joined N
 photos…"); R7 switch, explanation, busy line and Privacy paragraph as drafted.
+R4 screen done (dd2d5d5). R9 in the Open Food Facts send (planner, 2026-10-22): the first ingredients photo is the one
+sent; extra photos only help read the text and stay on the phone. Headsman IV handed over at 670k tokens after R4;
+Headsman V finishes R9 → R8 → review → push from a worktree cut from IV's branch.
 R5 done (6c53e65). R6 (planner, 2026-10-22): the hard-to-read hint (G4) stops counting unsure words that are close
 to a known ingredient name (they get R4's sheet instead), so a sharp curved label keeps its text in the box; blurry,
 glare and cut-off photos still get the hint. Built as R4's matcher's first slice (EcoGo's library names); no new
