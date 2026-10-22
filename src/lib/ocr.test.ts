@@ -208,7 +208,7 @@ test("misread words still meet; a half-cut last line, what came before the overl
 });
 
 test("photos each cut off on one side (Minh's chip photos 7 and 8) don't line up: the new text goes at the end", () => {
-  assert.deepEqual(joinReads(CHIPS7, CHIPS8), { text: `${CHIPS7} ${CHIPS8}`, joined: false });
+  assert.deepEqual(joinReads(CHIPS7, CHIPS8), { text: `${CHIPS7}, ${CHIPS8}`, joined: false });
 });
 
 test("the box's own words win where both photos have one (a fix the person made stays)", () => {
@@ -216,6 +216,9 @@ test("the box's own words win where both photos have one (a fix the person made 
 });
 
 test("no overlap of 3 words in a row: the new text goes at the end; one shared word isn't an overlap", () => {
-  assert.deepEqual(joinReads("sugar, salt", "salt, pepper, paprika"), { text: "sugar, salt salt, pepper, paprika", joined: false });
+  assert.deepEqual(joinReads("sugar, salt", "salt, pepper, paprika"), { text: "sugar, salt, salt, pepper, paprika", joined: false });
   assert.deepEqual(joinReads("", "water, salt"), { text: "water, salt", joined: false });
+  // A comma between them: else the box's last item and the new first one become one item, and whole-name matching misses both.
+  assert.equal(joinReads("Water, Glycerin", "formaldehyde, fragrance").text, "Water, Glycerin, formaldehyde, fragrance");
+  assert.equal(joinReads("Water, Glycerin,", "formaldehyde").text, "Water, Glycerin, formaldehyde");
 });

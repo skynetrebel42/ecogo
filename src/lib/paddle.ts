@@ -88,7 +88,15 @@ async function load(): Promise<Ocr> {
 
 /** Reads a label photo: its lines in reading order, and each word with its weakest letter's probability. The first call
  *  downloads the reader (about 13 MB), which the browser then keeps. */
-export async function readPaddle(image: Blob): Promise<{ lines: string[]; words: Word[] }> {
+export function readPaddle(image: Blob): Promise<{ lines: string[]; words: Word[] }> {
+  // One read at a time: `captured` belongs to the read in progress (a dropped read can still be running).
+  const r = queue.then(() => readOne(image));
+  queue = r.catch(() => {});
+  return r;
+}
+let queue: Promise<unknown> = Promise.resolve();
+
+async function readOne(image: Blob): Promise<{ lines: string[]; words: Word[] }> {
   if (!ready) { ready = load(); ready.catch(() => { ready = undefined; }); }
   const ocr = await ready;
   const outs: Tensor[] = captured = [];

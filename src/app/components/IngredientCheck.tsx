@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode 
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
 import { analyzeCare, CARE_LIMITS, MORE_DATA_MEANING, isMoreData, type CareAnalysis } from "../../lib/safety/personalCare";
-import { readAnother, readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
+import { joinReads, readAnother, readPhoto, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
 import { isBlurry, preparePhoto } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
@@ -245,20 +245,49 @@ export function PhotoButtons({ onPhoto }: { onPhoto: (file: File) => void }) {
   );
 }
 
-/** 066 R9 (Minh's words): a curved or cut-off label gets more photos, each joined to the box's text (ocr.ts joinReads).
- *  One button: without `capture` the phone offers its camera or its library. */
-export function AnotherPhoto({ onPhoto, added }: { onPhoto: (file: File) => void; added?: { n: number; joined: boolean } }) {
+/** 066 R9 (Minh's words): more photos of a curved or cut-off label, each read and joined (ocr.ts joinReads) to the box's
+ *  text as it is when the read ends, so the box stays editable and in place meanwhile. A blurry photo gets the usual
+ *  notice here ("Retake photo" leaves the box as it was). `begin` is the screen's latest-wins: Type it, Check another,
+ *  Retake or Close drop a read. One button: without `capture` the phone offers its camera or its library. */
+export function AnotherPhoto({ text, unsure, begin, onRead, onError }: {
+  text: string; unsure: string[]; begin: () => () => boolean;
+  onRead: (r: { text: string; unsure: string[] }) => void; onError: (message: string) => void;
+}) {
   const input = useRef<HTMLInputElement>(null);
-  const pick = (e: ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onPhoto(f); };
+  const now = useRef({ text, unsure });
+  now.current = { text, unsure };
+  const [busy, setBusy] = useState(false);
+  const [blurry, setBlurry] = useState<Blob>();
+  const [added, setAdded] = useState<{ n: number; joined: boolean }>();
+  const read = async (photo: Blob, live = begin()) => {
+    setBlurry(undefined); setBusy(true);
+    const r = await readAnother(photo);
+    if (!live()) return;
+    setBusy(false);
+    if ("error" in r) return onError(r.error);
+    const j = joinReads(now.current.text, r.text);
+    onRead({ text: j.text, unsure: [...new Set([...now.current.unsure, ...r.unsure])] });
+    setAdded(a => ({ n: (a?.n ?? 1) + 1, joined: j.joined }));
+  };
+  const pick = async (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = "";
+    if (!f) return;
+    const live = begin(); setBusy(true);
+    const photo = (await preparePhoto(f).catch(() => undefined)) ?? f;
+    const blurred = live() && await isBlurry(photo);
+    if (!live()) return;
+    if (blurred) { setBusy(false); setBlurry(photo); } else await read(photo, live);
+  };
+  if (blurry) return <PhotoNotice title="This photo looks blurry." onRetake={() => setBlurry(undefined)} onUseAnyway={() => read(blurry)} />;
   return (
     <div className="space-y-1.5">
       <p aria-live="polite" className="text-xs font-bold text-gray-700">{/* not role="status": that's the verdict below */}
-        {added && (added.joined ? `Joined ${added.n} photos. Check where they meet.` : "Added the new photo's text at the end. Check it.")}
+        {busy ? "Reading the label…" : added && (added.joined ? `Joined ${added.n} photos. Check where they meet.` : "Added the new photo's text at the end. Check it.")}
       </p>
       <p className="text-sm text-gray-700">Curvy label? Cut off? Add more pics.</p>
       <input ref={input} type="file" accept="image/*" hidden onChange={pick} data-photo="another" />
-      <button onClick={() => input.current?.click()}
-        className="w-full min-h-[44px] rounded-2xl border-2 border-[#1A5C39] bg-white text-[#1A5C39] font-bold text-sm">Add another photo</button>
+      <button onClick={() => input.current?.click()} disabled={busy}
+        className="w-full min-h-[44px] rounded-2xl border-2 border-[#1A5C39] bg-white text-[#1A5C39] font-bold text-sm disabled:opacity-50">Add another photo</button>
     </div>
   );
 }
@@ -301,26 +330,7 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
     const r = await readPhoto(photo);
     if (!live()) return;
     // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (H2); the box starts empty either way (K2).
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStatus("read"); setAdded(undefined);
-  };
-  // 066 R9: another photo joins the box's text; a blurry one waits on the same notice ("Retake photo" = the box as it was).
-  const [added, setAdded] = useState<{ n: number; joined: boolean }>();
-  const [blurryMore, setBlurryMore] = useState<Blob>();
-  const readMore = async (photo: Blob, live = begin()) => {
-    setBlurryMore(undefined); setStatus("reading");
-    const r = await readAnother(text, unsure, photo);
-    if (!live()) return;
-    setStatus("read");
-    if ("error" in r) { setError(r.error); return; }
-    setText(r.text); setUnsure(r.unsure); setLines(null); setError(undefined); setReadText(undefined);
-    setAdded(a => ({ n: (a?.n ?? 1) + 1, joined: r.joined }));
-  };
-  const onMore = async (file: File) => {
-    const live = begin();
-    const photo = (await preparePhoto(file).catch(() => undefined)) ?? file;
-    const blurred = live() && await isBlurry(photo);
-    if (!live()) return;
-    if (blurred) setBlurryMore(photo); else await readMore(photo, live);
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStatus("read");
   };
   const onPhoto = async (file: File) => {
     const live = begin();
@@ -331,9 +341,9 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
     setSendable(prepared);
     if (blurred) setBlurry(photo); else await read(photo, false, live);
   };
-  const reset = () => { begin(); setSendable(undefined); setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setStatus("idle"); setAdded(undefined); setBlurryMore(undefined); };
+  const reset = () => { begin(); setSendable(undefined); setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setStatus("idle"); };
   const showHard = mode === "photo" && status === "read" && hard;
-  const showEditor = (mode === "type" || status === "read") && !showHard && !blurryMore;
+  const showEditor = (mode === "type" || status === "read") && !showHard;
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="check-title" onKeyDown={e => { if (e.key === "Escape") { begin(); onClose(); } }}
@@ -379,13 +389,13 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
           </>)}
         {mode === "photo" && status === "reading" && <Reading />}
         {showHard && <PhotoNotice title="This photo is hard to read." onRetake={reset} onUseAnyway={() => setHard(false)} />}
-        {mode === "photo" && blurryMore && <PhotoNotice title="This photo looks blurry." onRetake={() => setBlurryMore(undefined)} onUseAnyway={() => readMore(blurryMore)} />}
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
           note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines}
           read={mode === "photo" ? readText : undefined} onShowRead={() => { setText(readText!); setReadText(undefined); }}
           from={product && (status === "read" ? `From your photo, not from ${source}.` : `From what you typed, not from ${source}.`)} kind={kind}
           onRetake={mode === "photo" ? reset : undefined}>{/* read text stays "from your photo" after Type it */}
-          {mode === "photo" && <AnotherPhoto onPhoto={onMore} added={added} />}
+          {mode === "photo" && <AnotherPhoto text={text} unsure={unsure} begin={begin} onError={setError}
+            onRead={r => { setText(r.text); setUnsure(r.unsure); setLines(null); setError(undefined); setReadText(undefined); }} />}
         </IngredientEditor>}
 
         <p className="text-xs text-gray-600 leading-relaxed">

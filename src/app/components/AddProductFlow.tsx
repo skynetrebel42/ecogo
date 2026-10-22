@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X, Check, ArrowLeft } from "lucide-react";
 import { isBlurry, preparePhoto, TOO_SMALL } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
-import { readAnother, readPhoto, type LabelLine } from "../../lib/ocr";
+import { readPhoto, type LabelLine } from "../../lib/ocr";
 import { submitProduct, type PhotoKind, type SendStage, type SubmitReason } from "../../lib/contribute";
 import { offEditUrl, offProductUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
@@ -118,27 +118,10 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
     if (!live()) return;
     // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (049 H2); the box starts
     // empty either way (K2).
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStep("check"); setAdded(undefined);
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStep("check"); setJoined(false);
   };
   // 066 R9: more photos of the ingredients join the box's text and stay on the phone: only the first is sent (planner).
-  const [added, setAdded] = useState<{ n: number; joined: boolean }>();
-  const [blurryMore, setBlurryMore] = useState<Blob>();
-  const readMore = async (photo: Blob, live = begin()) => {
-    setBlurryMore(undefined); setStep("reading");
-    const r = await readAnother(text, unsure, photo);
-    if (!live()) return;
-    setStep("check");
-    if ("error" in r) { setReadError(r.error); return; }
-    setText(r.text); setUnsure(r.unsure); setLines(null); setReadError(undefined); setReadText(undefined);
-    setAdded(a => ({ n: (a?.n ?? 1) + 1, joined: r.joined }));
-  };
-  const onMore = async (file: File) => {
-    const live = begin();
-    const photo = (await preparePhoto(file).catch(() => undefined)) ?? file;
-    const blurred = live() && await isBlurry(photo);
-    if (!live()) return;
-    if (blurred) setBlurryMore(photo); else await readMore(photo, live);
-  };
+  const [joined, setJoined] = useState(false);
   const onPhoto = (kind: Kind) => async (file: File) => {
     setPhotoError(undefined);
     const live = begin();
@@ -250,22 +233,23 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
   if (step === "check") return screen(false, <>
     {header("Check the ingredients", "Step 2 of 3", false)}
     <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
-      {hard ? <PhotoNotice title="This photo is hard to read." onRetake={() => goTo("ingredients")} onUseAnyway={() => setHard(false)} />
-        : blurryMore ? <PhotoNotice title="This photo looks blurry." onRetake={() => setBlurryMore(undefined)} onUseAnyway={() => readMore(blurryMore)} /> : <>
+      {hard ? <PhotoNotice title="This photo is hard to read." onRetake={() => goTo("ingredients")} onUseAnyway={() => setHard(false)} /> : <>
         {/* R9 (planner): no Crop after a join: cropping reads the first photo again and would drop the joined text */}
-        {photos.ingredients && <div className="w-24"><Thumb blob={photos.ingredients} label={LABEL.ingredients} />{!added && cropButton("ingredients")}</div>}
+        {photos.ingredients && <div className="w-24"><Thumb blob={photos.ingredients} label={LABEL.ingredients} />{!joined && cropButton("ingredients")}</div>}
         {photos.ingredients && !readError && readText === undefined && (
           <p className="text-sm text-gray-700 leading-relaxed">EcoGo read this from your photo. Fix anything it got wrong.</p>
         )}
         <IngredientEditor value={text} onChange={setText} unsure={unsure} note={readError} lines={lines} onLines={setLines}
           read={readText} onShowRead={() => { setText(readText!); setReadText(undefined); }} onRetake={() => goTo("ingredients")}>
-          {photos.ingredients && <AnotherPhoto onPhoto={onMore} added={added} />}
+          {photos.ingredients && <AnotherPhoto text={text} unsure={unsure} begin={begin} onError={setReadError}
+            onRead={r => { setText(r.text); setUnsure(r.unsure); setLines(null); setReadError(undefined); setReadText(undefined); setJoined(true); }} />}
         </IngredientEditor>
       </>}
     </div>
-    {!hard && !blurryMore && <div className="px-4 pt-3 pb-6 flex gap-2.5">
+    {!hard && <div className="px-4 pt-3 pb-6 flex gap-2.5">
       <button onClick={() => goTo("ingredients")} className="min-h-[52px] px-4 rounded-2xl border border-border bg-white font-bold text-sm">Retake</button>
-      <button onClick={() => setStep("nutrition")} disabled={!text.trim()}
+      {/* goTo, not setStep: an extra photo still being read is dropped */}
+      <button onClick={() => goTo("nutrition")} disabled={!text.trim()}
         className="flex-1 min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] disabled:opacity-50">Next: nutrition photo</button>
     </div>}
   </>);
