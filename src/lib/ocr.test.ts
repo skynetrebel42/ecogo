@@ -102,6 +102,19 @@ test("other warning phrases end the list too, in any case, across a line break",
   assert.equal(kept("Ingredients: butane, propane. Extremely flammable."), "butane, propane. Extremely");
 });
 
+// 066 R5 add (planner, Minh's live tests 2026-10-22): his Equate lotion kept its service line; Burberry's box says "DIST. FOR/POUR".
+test("service and distributor lines end the list; ingredients that look like them don't", () => {
+  assert.equal(kept("Ingredients: water, glycerin, dimethicone. Satisfaction guaranteed – For questions or comments please call 1-888-287-1915."),
+    "water, glycerin, dimethicone.");
+  assert.equal(kept("Ingredients: water, glycerin.\nQuestions or comments? 1-800-000-0000"), "water, glycerin.");
+  assert.equal(kept("Ingredients: water, glycerin. Please call 1-800-000-0000"), "water, glycerin.");
+  assert.equal(kept("Ingredients: alcohol, parfum (fragrance), aqua (water), coumarin\nDIST. FOR/POUR COTY INC."), "alcohol, parfum (fragrance), aqua (water), coumarin");
+  assert.equal(kept("Ingredients: alcohol, coumarin, citral NY10118 DIST,FOR/POUR COTYINC."), "alcohol, coumarin, citral NY10118", "as the new reader read the box");
+  for (const list of ["water, hamamelis virginiana (witch hazel) distillate, glycerin", "rose flower water dist., glycerin, calendula",
+    "water, guaranteed fresh salt, callus remover", "lavender water distilled for skin, glycerin"])
+    assert.equal(kept(`Ingredients: ${list}`), list, list);
+});
+
 // 066 (planner): a curve or a cut edge can lose the start of "INGREDIENTS:" (Minh's mousse read "CREDIENTS:").
 test("a start word cut at the left edge counts at the start of a line: a word ending in DIENTS(S) and a colon", () => {
   const label = "Salon foam.\nDIRECTIONS: Apply evenly.\nCREDIENTS: WATER (AQUA), GLYCERIN,\nPHENOXYETHANOL\nCAUTION: KEEP OUT OF REACH";
