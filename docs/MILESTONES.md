@@ -58,7 +58,8 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 068 Scan screen 📋 · A Barcode / Ingredients switch at the bottom of the camera (Minh, 10-22) [Feature] · B "Check ingredients" wording [UI] · C no dead
 end after "Cleaning product" [UI] · D paste-from-Photos path: tip + Paste button; tip (Minh, 10-22): "On iPhone: open the photo, press and hold the words, tap Copy, then tap Paste here." [Feature]
 071 Label reader v3 📋 · A brand / product name / net weight lines aren't ingredients [Debug] · B Add a product: name + brand at the end [Feature] ·
-C line-by-line join for cut-off photos [Feature] · D stop phrases from Minh's photos [Debug]
+C line-by-line join for cut-off photos [Feature] · D stop phrases from Minh's photos [Debug] · E split glued words on condensed print
+("BENZYLSALICYLATE", "INGREDIENTSALCOHOL…": Burberry) [Debug] · F turn sideways text (Coppertone Drug Facts) [Feature]
 072 Ingredient knowledge 📋 · A research: official, licence-checked cleaner + personal-care lists [Facts] · B cleaner ingredient library [Facts] ·
 C wider personal-care coverage [Facts]
 069 Learn + Privacy redesign 📋 · A one frame per card, bubbles + More, Source buttons, badge links [UI] · B How EcoGo checks:
