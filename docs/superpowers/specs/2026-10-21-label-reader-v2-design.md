@@ -53,6 +53,11 @@ taxonomies skipped (no licence on the files themselves), EU CosIng skipped (no d
 Tap target and the sheet's words (Minh, 2026-10-22): **a row under the box** ("Check N words:" chips, "Add a comma?"
 chips, up to 8 then "+N more"), sheet words as drafted: "Did you mean", "Or type it", "Use", "Retake photo", "Keep as
 read"; source line "Suggested names come from EcoGo's lists and USDA FoodData Central."
+Wording batch (Minh, 2026-10-22; drafts in the builder's `headsman-iv-r8-wording.md`): R8 send-box line "Photograph
+only the label, never anything private."; Privacy updates (Open Beauty Facts, Photon) as drafted; fonts self-hosted
+(@fontsource-variable/plus-jakarta-sans@5.3.0, OFL-1.1, Minh's yes); R9 button "Add another photo", hint in Minh's
+words "Curvy label? Cut off? Add more pics.", join notes as drafted, more than one extra photo allowed ("Joined N
+photos…"); R7 switch, explanation, busy line and Privacy paragraph as drafted.
 R5 done (6c53e65). R6 (planner, 2026-10-22): the hard-to-read hint (G4) stops counting unsure words that are close
 to a known ingredient name (they get R4's sheet instead), so a sharp curved label keeps its text in the box; blurry,
 glare and cut-off photos still get the hint. Built as R4's matcher's first slice (EcoGo's library names); no new
