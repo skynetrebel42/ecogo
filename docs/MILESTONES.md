@@ -56,7 +56,7 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 
 ## Chapter 6 · Label first (after 066; decision 071: "lets go mad brutal on ingredient scanner")
 068 Scan screen 📋 · A Barcode / Ingredients switch at the bottom of the camera (Minh, 10-22) [Feature] · B "Check ingredients" wording [UI] · C no dead
-end after "Cleaning product" [UI] · D paste-from-Photos path: tip + Paste button (iPhone copies label text well) [Feature]
+end after "Cleaning product" [UI] · D paste-from-Photos path: tip + Paste button; tip (Minh, 10-22): "On iPhone: open the photo, press and hold the words, tap Copy, then tap Paste here." [Feature]
 071 Label reader v3 📋 · A brand / product name / net weight lines aren't ingredients [Debug] · B Add a product: name + brand at the end [Feature] ·
 C line-by-line join for cut-off photos [Feature] · D stop phrases from Minh's photos [Debug]
 072 Ingredient knowledge 📋 · A research: official, licence-checked cleaner + personal-care lists [Facts] · B cleaner ingredient library [Facts] ·
