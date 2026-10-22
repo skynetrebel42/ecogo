@@ -9,7 +9,7 @@ const MIN = 5;
 
 /** EcoGo's own ingredient names (library, personal care, notes, limited), upper case, and their words of 5+ letters. */
 /** Upper case without accents: a reader's "MONÓSODIUM" is MONOSODIUM with no letter used up. */
-const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toUpperCase();
+export const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toUpperCase();
 const NAMES = new Set([...LIBRARY, ...PERSONAL_CARE, ...CARE_NOTES, ...CARE_LIMITED].flatMap(e => e.aliases.map(fold)));
 const NAME_WORDS = [...new Set([...NAMES].flatMap(a => a.match(/\p{L}+/gu) ?? []).filter(w => w.length >= MIN))];
 const OURS = new Set(NAME_WORDS);
@@ -22,7 +22,7 @@ export const loadMoreNames = () => (more ??= import("./data/usda-words.ts").then
 const within = (w: string, n: string) => distance(w, n, Math.floor(n.length / 4)) <= Math.floor(n.length / 4);
 
 /** Edit distance (insert, delete, change one letter), giving up once it must exceed `max`. */
-function distance(a: string, b: string, max: number): number {
+export function distance(a: string, b: string, max: number): number {
   if (Math.abs(a.length - b.length) > max) return max + 1;
   let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
   for (let i = 1; i <= a.length; i++) {

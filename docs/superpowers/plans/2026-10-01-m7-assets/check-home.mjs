@@ -438,6 +438,14 @@ try {
   const croppedSize = await natural("Ingredients photo");
   check("…Done gives a smaller ingredients photo and reads it again", fullSize === "1000×400" && croppedSize === "800×400" && await run(`window.__sawReading`),
     `${fullSize} → ${croppedSize}, read again: ${await run(`window.__sawReading`)}`);
+  // 066 R9: the check step offers "Add another photo"; the full label joins the cropped one's text, and Crop goes
+  // (cropping reads the first photo again and would drop the joined text). Only the first photo is sent (planner).
+  const r9 = await run(`(async () => { const t = document.body.innerText; ${pickJs(LABEL_PNG).replace(`'input[data-photo="library"]'`, `'input[data-photo="another"]'`)}
+    await __until(() => /Joined 2 photos|Added the new photo/.test(document.body.innerText), 60000);
+    return { hint: t.includes("Curvy label? Cut off? Add more pics."), button: !!__btn("Add another photo"),
+      note: document.body.innerText.includes("Joined 2 photos. Check where they meet."), crop: !!__btn("Crop") }; })()`);
+  check("066 R9: the check step offers 'Add another photo'; a second photo of the label joins the text, and Crop goes",
+    r9.hint && r9.button && r9.note && !r9.crop, JSON.stringify(r9));
   await typeIngredients("Water, sugar, Red 40");
   await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); return true; })()`);
   await upload();

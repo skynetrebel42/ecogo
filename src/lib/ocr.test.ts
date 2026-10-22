@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { afterRead, cleanIngredients, hardToRead, labelLines, linesText, trimToIngredients, unsureCount, unsureWords } from "./ocr.ts";
+import { afterRead, cleanIngredients, hardToRead, joinReads, labelLines, linesText, trimToIngredients, unsureCount, unsureWords } from "./ocr.ts";
 
 const word = (text: string, confidence: number) => ({ text, confidence });
 const page = (...lines: { text: string; confidence: number }[][]) => [{ paragraphs: [{ lines: lines.map(words => ({ words })) }] }];
@@ -188,4 +188,34 @@ test("lines with nothing kept are hard to read, with nothing to show; no lines a
   assert.deepEqual(afterRead({ text: "", unsure: [], lines: labelLines(["Nutrition Facts"]).map(l => ({ ...l, kept: "", on: false })) }),
     { text: "", unsure: [], lines: [], hard: true, read: "" });
   assert.equal(afterRead({ text: "", unsure: [], lines: [] }).error, "Couldn't read it. Type the ingredients or retake the photo.");
+});
+
+// 066 R9: Minh's chip bag read by the stronger reader (R3), as the box gets it: photo 7 cut off on the right, photo 8 on
+// the left (with the nutrition panel above it). Reader output, copied from the R3 run.
+const CHIPS7 = "CORN, VEGETABLE OIL (CORM, CAOLA SOYBEAN, AND/0R SUNFLOWER OIL), CORN MALTODETRIN, AND LESS THAN 2%OF CHEDDAR CHEESE (MILK, HESE CULTURES, SALT, ENZYMES), SALT, WHEY, MONOSODIU GLUTAMATE, BUTTERMILK, ROMANO CHEESE (MILK, CHE CULTURES, SALT, ENZYMES), WHEY PROTEIN CONCETAE ONION POWDER, POTASSIUM SALT, CORN FLOUR, NATUR ARTIFICIAL FLAVORS, DEXTROSE, TOMATO POWDER, LAT SPICES, ARTIFICIAL COLOR (YELLOW 6, ELLOW 5 RE LACTIC ACID, CITRIC ACID, SUGAR, GARLIC POWDER.S RED AND GREEN BELL PEPPERS, DISODIUM INOSMI DISODIUM GUANYLATE.";
+const CHIPS8 = "0.3mg 10.7mg 2% 250mg 100mg 4% e nificant surceofadded sugars. yValue (DV) tels ou how much a nutrient in a serving of utes toa daiy diet ,000 calories a day is used for ition advice. TS: CORN, VEGETABLE OIL (CORN, CANOLA, ND/OR SUNFLOWER OIL), CORN MALTODEXTRIN, HAN 2% OF CHEDDAR CHEESE (MILK, CHEESE SALT, ENZYMES), SALT, WHEY, MONOSODIUM BUTTERMILK, ROMANO CHEESE (MILK, CHEESE SALT, ENZYMES), WHEY PROTEIN CONCENTRATE, DER, POTASSIUM SALT, CORN FLOUR, NATURAL & LAVORS, DEXTROSE, TOMATO POWDER, LACTOSE, TIFCIAL COLOR (YELLOW 6, YELLOW 5, RED 40), CTICACID, SUGAR, GARLIC POWDER, SKIM MILK, REEN BLL EPPERS, DISODIUM INOSINATE, AND ANYLATE. ILKINGREDIENTS. AY,INC";
+
+test("a second photo of a label cut off at the bottom joins where the two overlap", () => {
+  assert.deepEqual(joinReads("Sugar, corn syrup, modified corn starch, citric acid", "modified corn starch, citric acid, natural flavors, Red 40"),
+    { text: "Sugar, corn syrup, modified corn starch, citric acid, natural flavors, Red 40", joined: true });
+});
+
+test("misread words still meet; a half-cut last line, what came before the overlap, and the box's own fixes are handled", () => {
+  assert.deepEqual(joinReads("SUGAR, CORN SYRUP, MODIFIED CORN STARCH, CITRIC ACID, NATURAL AND ARTIFLCLAL FLAV0RS, R",
+    "Nutrition Facts 2% MODIFIED CORN STARCH, CITRIC ACID, NATURAL AND ARTIFICIAL FLAVORS, RED 40, YELLOW 5, CARNAUBA WAX."),
+  { text: "SUGAR, CORN SYRUP, MODIFIED CORN STARCH, CITRIC ACID, NATURAL AND ARTIFLCLAL FLAV0RS, RED 40, YELLOW 5, CARNAUBA WAX.", joined: true });
+  assert.equal(joinReads("CORN, SALT, WHEY, MONOSODIU", "SALT, WHEY, MONOSODIUM GLUTAMATE").text, "CORN, SALT, WHEY, MONOSODIUM GLUTAMATE", "a cut-off word is completed");
+});
+
+test("photos each cut off on one side (Minh's chip photos 7 and 8) don't line up: the new text goes at the end", () => {
+  assert.deepEqual(joinReads(CHIPS7, CHIPS8), { text: `${CHIPS7} ${CHIPS8}`, joined: false });
+});
+
+test("the box's own words win where both photos have one (a fix the person made stays)", () => {
+  assert.equal(joinReads("water, glycerin, Limonene, linalool", "glycerin, LMONENE, linalool, citral").text, "water, glycerin, Limonene, linalool, citral");
+});
+
+test("no overlap of 3 words in a row: the new text goes at the end; one shared word isn't an overlap", () => {
+  assert.deepEqual(joinReads("sugar, salt", "salt, pepper, paprika"), { text: "sugar, salt salt, pepper, paprika", joined: false });
+  assert.deepEqual(joinReads("", "water, salt"), { text: "water, salt", joined: false });
 });

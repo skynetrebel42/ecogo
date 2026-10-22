@@ -3,7 +3,7 @@
 // fills public/tesseract/ and public/paddle/ before every dev/build), so no CDN is called. They load only when a photo is read.
 
 import type { Block, Worker } from "tesseract.js";
-import { loadMoreNames, nearKnownName } from "./suggest.ts";
+import { distance, fold, loadMoreNames, nearKnownName } from "./suggest.ts";
 
 /** Words read with less confidence than this (0–100) are underlined for the person to check. */
 const UNSURE_BELOW = 70;
@@ -127,6 +127,34 @@ async function readTesseract(image: Blob): Promise<Read> {
   return { text: linesText(lines), unsure: unsureWords(blocks), lines };
 }
 
+/** R9: the same word in two reads of one label: equal; one a cut-off end of the other ("MONOSODIU", "HAN" ← "THAN"); or
+ *  5+ letters with one changed letter per 4. Keys are folded, without punctuation. */
+const piece = (p: string, w: string) => p.length >= 3 && (w.startsWith(p) || w.endsWith(p));
+const sameWord = (x: string, y: string) => x === y || piece(x, y) || piece(y, x)
+  || (Math.min(x.length, y.length) >= 5 && distance(x, y, Math.floor(Math.max(x.length, y.length) / 4)) <= Math.floor(Math.max(x.length, y.length) / 4));
+
+/** 066 R9 "Add another photo": the box's text and a new photo's text as one, joined at the longest run of 3+ words
+ *  that ends the box (or ends 1–2 words before its end: a half-cut last line) and stands anywhere in the new text. The
+ *  box keeps its words (its fixes) up to there, the new text follows; what the new photo read before the run (another
+ *  panel) and the box's 1–2 words past it are left out. No such run → the new text goes at the end.
+ *  ponytail: one overlap, so photos each cut off on one side (every line cut: Minh's chip photos 7 and 8) don't line
+ *  up and are added at the end; joining line by line would need the reads' lines, not the box's text. */
+export function joinReads(box: string, read: string): { text: string; joined: boolean } {
+  const a = box.split(/\s+/).filter(Boolean), b = read.split(/\s+/).filter(Boolean);
+  const key = (w: string) => fold(w).replace(/[^\p{L}\p{N}]/gu, "") || w;
+  const ka = a.map(key), kb = b.map(key);
+  let best = { k: 0, p: 0, q: 0 }, run = kb.map(() => 0); // run[q]: words alike in a row, ending at a[p] and b[q]
+  for (let p = 0; p < a.length; p++) {
+    run = kb.map((w, q) => (sameWord(ka[p], w) ? (q ? run[q - 1] : 0) + 1 : 0));
+    if (p >= a.length - 3) run.forEach((k, q) => { if (k && k >= best.k) best = { k, p, q }; });
+  }
+  if (best.k < 3) return { text: [box.trim(), read.trim()].filter(Boolean).join(" "), joined: false };
+  const { p, q } = best, ends = (w: string) => w.match(/[^\p{L}\p{N}]*$/u)![0];
+  // Where they meet: the new word if the box's is a cut-off piece of it, else the box's with the new one's punctuation.
+  const meet = ka[p] !== kb[q] && piece(ka[p], kb[q]) ? b[q] : a[p].slice(0, a[p].length - ends(a[p]).length) + ends(b[q]);
+  return { text: [...a.slice(0, p), meet, ...b.slice(q + 1)].join(" "), joined: true };
+}
+
 const COULDNT_READ = "Couldn't read it. Type the ingredients or retake the photo.";
 
 type Read = { text: string; unsure: string[]; lines: LabelLine[] };
@@ -149,4 +177,12 @@ export async function readPhoto(photo: Blob): Promise<PhotoRead> {
     console.warn("[ocr] couldn't read the photo", err);
     return { text: "", unsure: [], lines: [], hard: false, error: COULDNT_READ };
   }
+}
+
+/** R9: another photo of the same label, joined to the box's text (planner: the hard-to-read hint never empties the box
+ *  for it), its unsure words added; or the "couldn't read" message, the box left as it was. */
+export async function readAnother(box: string, unsure: string[], photo: Blob) {
+  const r = await readPhoto(photo);
+  if (r.error) return { error: r.error };
+  return { ...joinReads(box, r.read ?? r.text), unsure: [...new Set([...unsure, ...r.unsure])] };
 }

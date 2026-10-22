@@ -232,6 +232,33 @@ try {
     ["Benzyl Salicylate", "Hydroxycitronellal", "Limonene"].every(n => careText.includes(n)) && boxText.includes("LIMONENE") && boxText.includes("HYDROXYCITRONELLAL"),
     `${accepted.join("; ").slice(0, 400)} | box: ${boxText.slice(0, 600)} | ${careText.split("\n").slice(0, 3).join(" / ")}`);
 
+  // 066 R9: "Add another photo" (Minh's words). The label photo, then the full label (the same list between a brand line
+  // and "Distributed by") joins where they overlap; the cut-off chip photo (hard to read on its own) doesn't overlap, so
+  // its text goes at the end and nothing is emptied; a blurred one waits on the notice and "Retake photo" keeps the box.
+  const another = (file, type) => pickJs(file, type).replace(`'input[data-photo="library"]'`, `'input[data-photo="another"]'`);
+  const status = s => run(`__until(() => document.body.innerText.includes(${JSON.stringify(s)}) || document.body.innerText.includes("This photo is hard to read."), 90000).then(() => document.body.innerText)`);
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Food").click(); await __sleep(200); ${pickJs(PHOTO, "image/jpeg")} return true; })()`);
+  const first = await run(`__until(() => document.querySelector("#ingredients")?.value, 90000)`) ?? "";
+  check("066 R9: under the box, the hint 'Curvy label? Cut off? Add more pics.' and 'Add another photo'",
+    (await run(`document.body.innerText`)).includes("Curvy label? Cut off? Add more pics.") && !!(await run(`!!__btn("Add another photo")`)));
+  await run(`(async () => { ${another(FULL, "image/png")} return true; })()`);
+  const joinedText = await status("Joined 2 photos. Check where they meet.");
+  const joined = ((await box()) ?? "").toUpperCase();
+  check("…the same list photographed again joins at the overlap: 'Joined 2 photos. Check where they meet.', nothing twice",
+    joinedText.includes("Joined 2 photos. Check where they meet.") && joined.split("SUGAR").length === 2 && joined.includes("CARNAUBA")
+    && !/FRUITY|DISTRIBUTED/.test(joined) && joinedText.includes("You're editing the text directly"), joined);
+  await run(`(async () => { ${another(CUT, "image/jpeg")} return true; })()`);
+  const addedText = await status("Added the new photo's text at the end. Check it.");
+  const appended = (await box()) ?? "";
+  check("…a photo that doesn't overlap goes at the end; hard to read on its own, it still empties nothing",
+    addedText.includes("Added the new photo's text at the end. Check it.") && !addedText.includes("This photo is hard to read.")
+    && appended.toUpperCase().startsWith(joined.slice(0, 40)) && appended.length > joined.length + 40, appended.slice(0, 300));
+  await run(`(async () => { ${another(BLURRED, "image/png")} return true; })()`);
+  const blurMore = await run(`__until(() => [...document.querySelectorAll('[role="alert"]')].find(e => e.innerText.includes("blurry")), 15000).then(e => e?.innerText ?? "")`);
+  await run(`(async () => { __btn("Retake photo").click(); await __sleep(300); return true; })()`);
+  check("…a blurred extra photo waits on 'This photo looks blurry.'; Retake photo goes back to the box as it was",
+    blurMore.includes("This photo looks blurry.") && (await box()) === appended, `first: ${first.slice(0, 60)}`);
+
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Food").click(); await __sleep(200); __btn("Type it").click(); await __sleep(300); return true; })()`);
   await typeInto("Enriched flour, water, Red 40");
   check("typing a list with Red 40 shows Some concern", (await badge()).includes("Some concern"));
