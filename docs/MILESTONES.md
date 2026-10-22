@@ -39,7 +39,7 @@ C celery context on flagged meats [Facts] · ⏳ Minh's live test (checklist 2F,
 reading [Feature] · C stronger reader on the phone [Foundation] · D unsure words: tap 1 of 3 suggestions, type it, or
 retake [Feature] · E warning text kept as ingredients (OCR-02) · F false "not clear" (OCR-03) [Debug] · (G cloud help → 070) · H "never photograph anything private" on photo sends [UI] · I take another
 photo, text joined at the overlap [Feature]
-070 Cloud help, opt-in (OCR.space) 📋, right after 066 [Feature][Server] (decision 070)
+070 Cloud help, opt-in (OCR.space) 🔨 right after 066 [Feature][Server] (decision 070; spec docs/superpowers/specs/2026-10-23-cloud-help-070-design.md)
 Tidy-up 📋 (C, the check-home split, before 068) · A shared check set-up (~-190 lines) · B trim Figma CSV + unread fields · C split check-home (315 s of 420) ·
 D archive the M10 specs still in `specs/` [Process]
 Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
