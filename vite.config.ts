@@ -7,4 +7,6 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss()],
+  // 066 R3: the label reader runs on ONNX Runtime's plain wasm build (~3.7 MB gzipped), not the WebGPU one (~6.7 MB).
+  resolve: { alias: [{ find: /^onnxruntime-web$/, replacement: 'onnxruntime-web/wasm' }] },
 })

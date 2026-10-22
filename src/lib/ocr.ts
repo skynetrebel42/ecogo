@@ -1,6 +1,6 @@
 // ocr.ts — read an ingredients label on the phone (M8, spec docs/superpowers/specs/2026-10-02-m8-add-product-design.md D4).
-// Tesseract.js is self-hosted: scripts/copy-ocr.mjs copies its worker, its LSTM core builds and the English data into
-// public/tesseract/ before every dev/build, so no CDN is called. It loads only when a photo is read.
+// 066 R3: PaddleOCR (paddle.ts) reads first; Tesseract.js is the fallback. Both are self-hosted (scripts/copy-ocr.mjs
+// fills public/tesseract/ and public/paddle/ before every dev/build), so no CDN is called. They load only when a photo is read.
 
 import type { Block, Worker } from "tesseract.js";
 import { nearKnownName } from "./suggest.ts";
@@ -89,10 +89,24 @@ export function hardToRead(text: string, unsure: string[]): boolean {
   return !c.words || c.unsure / c.words >= HARD_TO_READ;
 }
 
+/** Reads the text of a label photo with the stronger reader (066 R3, paddle.ts); if it can't load or read, with
+ *  Tesseract. The first call downloads the reader, which the browser then keeps. */
+export async function readLabel(image: Blob): Promise<Read> {
+  try {
+    const { readPaddle, unsureByLetters, UNSURE_LETTER } = await import("./paddle.ts");
+    const { lines: read, words } = await readPaddle(image);
+    const lines = labelLines(read.map(t => t.trim()).filter(Boolean));
+    return { text: linesText(lines), unsure: unsureByLetters(words, UNSURE_LETTER), lines };
+  } catch (err) {
+    console.warn("[ocr] the stronger reader failed; reading with Tesseract", err);
+    return readTesseract(image);
+  }
+}
+
 let worker: Promise<Worker> | undefined;
 
-/** Reads the text of a label photo. The first call downloads the reader (about 7 MB), which the browser then keeps. */
-export async function readLabel(image: Blob): Promise<Read> {
+/** Reads the text of a label photo with Tesseract (about 7 MB on first use). */
+async function readTesseract(image: Blob): Promise<Read> {
   if (!worker) {
     worker = import("tesseract.js").then(({ createWorker }) => {
       // The site lives under a sub-path (Vite base './'): build absolute URLs, never "/…".

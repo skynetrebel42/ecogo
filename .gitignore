@@ -5,3 +5,4 @@ dist/
 *.log
 .claude/launch.json
 public/tesseract/
+public/paddle/ort-*
