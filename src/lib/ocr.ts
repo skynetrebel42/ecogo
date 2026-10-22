@@ -1,8 +1,9 @@
 // ocr.ts — read an ingredients label on the phone (M8, spec docs/superpowers/specs/2026-10-02-m8-add-product-design.md D4).
-// Tesseract.js is self-hosted: scripts/copy-ocr.mjs copies its worker, its LSTM core builds and the English data into
-// public/tesseract/ before every dev/build, so no CDN is called. It loads only when a photo is read.
+// 066 R3: PaddleOCR (paddle.ts) reads first; Tesseract.js is the fallback. Both are self-hosted (scripts/copy-ocr.mjs
+// fills public/tesseract/ and public/paddle/ before every dev/build), so no CDN is called. They load only when a photo is read.
 
 import type { Block, Worker } from "tesseract.js";
+import { loadMoreNames, nearKnownName } from "./suggest.ts";
 
 /** Words read with less confidence than this (0–100) are underlined for the person to check. */
 const UNSURE_BELOW = 70;
@@ -19,19 +20,26 @@ export function cleanIngredients(raw: string): string {
 // M8 follow-up F1 (docs/superpowers/specs/2026-10-08-m8-followup-label-trim-design.md): whole words, any case, no
 // lookbehind (older iOS Safari can't parse it). "Contains 2% or less of", "Contains: less than 2% of" and "Contains one
 // or more of" are part of the list, so "Contains" followed by a number, "less" or "one or more" isn't a stop; nor is a
-// stop phrase right after "(" ("cheese (contains milk)") or followed by "-" ("Allergen-free").
+// stop phrase right after "(" ("cheese (contains milk)") or followed by "-" ("Allergen-free"). 066 R5 (OCR-02) adds the
+// personal-care and cleaner warnings ("CAUTION: FLAMMABLE… AVOID CONTACT WITH EYES" on Minh's perfume).
 const START = /(^|[^\p{L}\p{N}])(ingredients?)(?![\p{L}\p{N}])\s*:?/iu;
 const STOP = new RegExp(`(^|[^\\p{L}\\p{N}(])(${["contains(?!\\s*:?\\s*(?:\\d|less|one or more))", "may contain", "allergens?", "allergy",
   "distributed by", "manufactured (?:by|for)", "produced by", "packed by", "nutrition facts", "best before", "best by",
-  "keep refrigerated", "store in", "net wt"].map(s => s.replace(/ /g, "\\s+")).join("|")})(?![\\p{L}\\p{N}-])`, "iu");
+  "keep refrigerated", "store in", "net wt", "caution", "warnings?", "directions", "avoid contact", "keep out of reach",
+  "for external use", "flammable"].map(s => s.replace(/ /g, "\\s+")).join("|")})(?![\\p{L}\\p{N}-])`, "iu");
+// 066 (planner): "INGREDIENTS:" with its left end cut off by a curve or the photo's edge ("CREDIENTS:"): a word ending in
+// DIENTS (or EDIENT) and a colon, at the start of a line. NUTRIENTS:, CONTENTS: and DIRECTIONS: don't end that way.
+const CUT_START = /(^|\n)[ \t]*(\p{L}*(?:dients|edient))[ \t]*:/iu;
 const asWord = (s: string) => s.replace(/\s+/g, " ").toLowerCase().replace(/^./, c => c.toUpperCase());
 
-/** Where the ingredient list is in text read from a label: just after the first "Ingredients", up to the first stop
- *  phrase after it. No start word → from the beginning; no stop phrase → to the end. */
+/** Where the ingredient list is in text read from a label: just after the first "Ingredients" (or one cut at the left
+ *  edge), up to the first stop phrase after it. No start word → from the beginning; no stop phrase → to the end. With no
+ *  start word, a stop phrase before any text ("DIRECTIONS: …" first) cuts nothing: the line checkboxes decide. */
 export function trimToIngredients(text: string): { start: number; end: number; startWord?: string; stopWord?: string } {
-  const s = START.exec(text);
+  const s = START.exec(text) ?? CUT_START.exec(text);
   const start = s ? s.index + s[0].length : 0;
   const e = STOP.exec(text.slice(start));
+  if (!s && e && !/[\p{L}\p{N}]/u.test(text.slice(0, e.index + e[1].length))) return { start: 0, end: text.length };
   return {
     start, end: e ? start + e.index + e[1].length : text.length,
     ...(s && { startWord: asWord(s[2]) }), ...(e && { stopWord: asWord(e[2]) }),
@@ -77,17 +85,33 @@ export function unsureCount(text: string, unsure: string[]): { words: number; un
 }
 
 /** G4: suggest a retake (never block) when at least this share of the kept words is unsure, or nothing was kept.
- *  25 % (planner, 2026-10-08): clear labels measure 0 %, the curved-bag fixture 29 %, Minh's real Takis read ~50 %. */
+ *  25 % (planner, 2026-10-08): clear labels measure 0 %, the curved-bag fixture 29 %, Minh's real Takis read ~50 %.
+ *  066 R6 (OCR-03): unsure words near a known ingredient name don't count: on a sharp, narrow, curved label they are the
+ *  reader's misreads (a retake won't fix them; R4 offers the name), so Minh's perfume went 30 % → 13 %. */
 export const HARD_TO_READ = 0.25;
 export function hardToRead(text: string, unsure: string[]): boolean {
-  const c = unsureCount(text, unsure);
+  const c = unsureCount(text, unsure.filter(w => !nearKnownName(w)));
   return !c.words || c.unsure / c.words >= HARD_TO_READ;
+}
+
+/** Reads the text of a label photo with the stronger reader (066 R3, paddle.ts); if it can't load or read, with
+ *  Tesseract. The first call downloads the reader, which the browser then keeps. */
+export async function readLabel(image: Blob): Promise<Read> {
+  try {
+    const { readPaddle, unsureByLetters, UNSURE_LETTER } = await import("./paddle.ts");
+    const { lines: read, words } = await readPaddle(image);
+    const lines = labelLines(read.map(t => t.trim()).filter(Boolean));
+    return { text: linesText(lines), unsure: unsureByLetters(words, UNSURE_LETTER), lines };
+  } catch (err) {
+    console.warn("[ocr] the stronger reader failed; reading with Tesseract", err);
+    return readTesseract(image);
+  }
 }
 
 let worker: Promise<Worker> | undefined;
 
-/** Reads the text of a label photo. The first call downloads the reader (about 7 MB), which the browser then keeps. */
-export async function readLabel(image: Blob): Promise<Read> {
+/** Reads the text of a label photo with Tesseract (about 7 MB on first use). */
+async function readTesseract(image: Blob): Promise<Read> {
   if (!worker) {
     worker = import("tesseract.js").then(({ createWorker }) => {
       // The site lives under a sub-path (Vite base './'): build absolute URLs, never "/…".
@@ -119,6 +143,7 @@ export function afterRead(r: Read): PhotoRead {
  *  that failed (offline, say) isn't the photo's fault. */
 export async function readPhoto(photo: Blob): Promise<PhotoRead> {
   try {
+    loadMoreNames().catch(() => {}); // 066 R4: the USDA words for suggestions, fetched while the photo is read
     return afterRead(await readLabel(photo));
   } catch (err) {
     console.warn("[ocr] couldn't read the photo", err);

@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { afterRead, cleanIngredients, hardToRead, labelLines, linesText, trimToIngredients, unsureCount, unsureWords } from "./ocr.ts";
 
 const word = (text: string, confidence: number) => ({ text, confidence });
@@ -82,6 +83,45 @@ test("'CONTAINS: MILK, SOY' still ends the list", () => {
   assert.equal(kept("INGREDIENTS: SUGAR, COCOA BUTTER. CONTAINS: MILK, SOY."), "SUGAR, COCOA BUTTER.");
 });
 
+// 066 R5 (OCR-02): personal-care and cleaner warnings end the list. Lines as read from Minh's perfume label.
+test("a warning after a personal-care list ends it, so 'CAUTION: FLAMMABLE…' never joins the last item", () => {
+  const lines = labelLines(["INGREDIENTS: ALCOHOL DENAT., WATER (AQUA, EAU),", "CITRUS LIMON PEEL OIL, TERPINEOL, PINENE",
+    "EXT. VIOLET 2 (CI 60730).", "CAUTION: FLAMMABLE.", "KEEP AWAY FROM FLAME OR HIGH HEAT.", "NOT FOR UNDERARM USE.", "AVOID CONTACT WITH EYES."]);
+  assert.equal(linesText(lines), "ALCOHOL DENAT., WATER (AQUA, EAU), CITRUS LIMON PEEL OIL, TERPINEOL, PINENE EXT. VIOLET 2 (CI 60730).");
+  assert.deepEqual(lines.map(l => l.on), [true, true, true, false, false, false, false]);
+  assert.equal(trimToIngredients(lines.map(l => l.text).join("\n")).stopWord, "Caution");
+});
+
+test("other warning phrases end the list too, in any case, across a line break", () => {
+  assert.equal(kept("Ingredients: water, sodium laureth sulfate. Warning: for external use only."), "water, sodium laureth sulfate.");
+  assert.equal(kept("Ingredients: water, glycerin. Warnings: avoid contact with eyes."), "water, glycerin.");
+  assert.equal(kept("Ingredients: water, glycerin. Directions: apply daily."), "water, glycerin.");
+  assert.equal(kept("Ingredients: water, surfactants. Keep out of\nreach of children."), "water, surfactants.");
+  assert.equal(kept("Ingredients: water, glycerin. For external use only."), "water, glycerin.");
+  assert.equal(kept("Ingredients: water, glycerin. Avoid contact with eyes."), "water, glycerin.");
+  assert.equal(kept("Ingredients: butane, propane. Extremely flammable."), "butane, propane. Extremely");
+});
+
+// 066 (planner): a curve or a cut edge can lose the start of "INGREDIENTS:" (Minh's mousse read "CREDIENTS:").
+test("a start word cut at the left edge counts at the start of a line: a word ending in DIENTS(S) and a colon", () => {
+  const label = "Salon foam.\nDIRECTIONS: Apply evenly.\nCREDIENTS: WATER (AQUA), GLYCERIN,\nPHENOXYETHANOL\nCAUTION: KEEP OUT OF REACH";
+  assert.equal(kept(label), "WATER (AQUA), GLYCERIN,\nPHENOXYETHANOL");
+  assert.equal(trimToIngredients(label).startWord, "Credients");
+  assert.equal(trimToIngredients("Hair care\nDIENTS: WATER, SALT").startWord, "Dients");
+});
+
+test("NUTRIENTS:, CONTENTS: and DIRECTIONS: never start the list, nor a cut start word mid-line or without a colon", () => {
+  for (const t of ["NUTRIENTS: iron\nwater, salt", "CONTENTS: 200 ml\nwater, salt", "DIRECTIONS: rinse\nwater, salt",
+    "Made with CREDIENTS: water, salt", "CREDIENTS water, salt"]) assert.equal(trimToIngredients(t).startWord, undefined, t);
+});
+
+test("with no start word, a stop phrase before any text doesn't empty the list: nothing is cut", () => {
+  const label = "DIRECTIONS: Use to wash hands.\nWATER, GLYCERIN, SODIUM CHLORIDE.\nDISTRIBUTED BY: Acme";
+  assert.deepEqual(trimToIngredients(label), { start: 0, end: label.length });
+  assert.ok(labelLines(label.split("\n")).every(l => l.on), "every line ticked: the checkboxes are the person's way to leave lines out");
+  assert.deepEqual(trimToIngredients("sugar, salt. Contains: soy"), { start: 0, end: 13, stopWord: "Contains" }, "text before the stop: unchanged");
+});
+
 test("each line read keeps its part of the ingredients; lines outside start unticked", () => {
   const lines = labelLines(["Fruity Chews", "INGREDIENTS: SUGAR, CORN", "SYRUP, RED 40. CONTAINS: NO", "ALLERGENS.", "Distributed by Acme"]);
   assert.deepEqual(lines.map(l => [l.kept, l.on]), [["", false], ["SUGAR, CORN", true], ["SYRUP, RED 40.", true], ["", false], ["", false]]);
@@ -107,6 +147,25 @@ test("a photo is hard to read at 25% unsure kept words, or when nothing was kept
   assert.equal(hardToRead("a b c d e f g h i j k l m n o p q r s t", ["a", "b", "c", "d"]), false, "20%");
   assert.equal(hardToRead("a b c d e f g h i j k l m n o p q r s t", ["a", "b", "c", "d", "e"]), true, "25%");
   assert.equal(hardToRead("  ", []), true, "nothing kept");
+});
+
+// 066 R6 (OCR-03): recorded Tesseract reads. Unsure words near a known ingredient name (R4 offers a fix) don't count
+// toward the retake hint; a sharp but narrow, curved label isn't the photo's fault. Glare, angle, cut-off and blur still are.
+const recorded: Record<string, { lines: string[]; unsure: string[] }> =
+  JSON.parse(readFileSync(new URL("./fixtures/ocr/tesseract-reads.json", import.meta.url), "utf8")).reads;
+const hardRead = (name: string) => { const r = recorded[name]; return hardToRead(linesText(labelLines(r.lines)), r.unsure); };
+
+test("a sharp perfume label whose unsure words are near-misses of known names isn't hard to read", () => {
+  assert.equal(hardRead("perfume-screen"), false);
+});
+
+test("glare, an angle, a cut-off edge or blur still make a photo hard to read", () => {
+  for (const name of ["chips3", "chips4", "chips5", "chips7", "chips8"]) assert.equal(hardRead(name), true, name);
+});
+
+test("unsure words that are near a known name are left out of the share; others still count", () => {
+  assert.equal(hardToRead("LNONENE VANILLI SALT SUGAR", ["LNONENE", "VANILLI"]), false, "both near names: 0 %");
+  assert.equal(hardToRead("FLAMMABIE AGE SALT SUGAR", ["FLAMMABIE"]), true, "not near a name: 25 %");
 });
 
 test("a line with only punctuation left in the range isn't ticked", () => {

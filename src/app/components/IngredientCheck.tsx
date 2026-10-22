@@ -13,6 +13,7 @@ import { isBlurry, preparePhoto } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
 import Explainer from "./Explainer";
+import WordFix from "./WordFix";
 
 /** The check for typed or read text. No category: it is a food's ingredient list, like a looked-up product's. */
 function check(ingredients: string): Assessment | null {
@@ -113,9 +114,11 @@ function linesNote(a?: string, b?: string): string {
  *  With `lines` (read from a photo), each line can be ticked or unticked and the box follows; the first keystroke in the
  *  box hides the lines for good (onLines(null)), so the box is the final say (follow-up F2, F3).
  *  With `read` (a hard-to-read photo, follow-up 6 K2), the box starts empty and "Show what we read" puts it there. */
-export function IngredientEditor({ value, onChange, unsure, note, lines, onLines, read, onShowRead, from, kind = "food" }: {
+export function IngredientEditor({ value, onChange, unsure, note, lines, onLines, read, onShowRead, from, kind = "food", onRetake }: {
   value: string; onChange: (text: string) => void; unsure: string[]; note?: string;
   lines?: LabelLine[] | null; onLines?: (lines: LabelLine[] | null) => void; read?: string; onShowRead?: () => void;
+  /** 066 R4: "Retake photo" in the sheet for an unsure word. */
+  onRetake?: () => void;
   /** 058 L1: where the result comes from, said inside it ("From your photo, not from Open Food Facts."). */
   from?: string;
   /** M16 N6: which check runs. */
@@ -133,6 +136,8 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
   const listed = (l: LabelLine) => showAll || !(found.startWord || found.stopWord) || l.kept !== "" || l.on;
   const hidden = lines?.filter(l => !listed(l)).length ?? 0;
   const unsureN = unsureCount(value, unsure).unsure; // G6: the box's own words
+  // Typing in the box, or a fix chosen under it, hides the lines for good: the box is the final say (F3).
+  const edit = (text: string) => { if (lines?.length) onLines?.(null); onChange(text); };
   const tick = (i: number) => {
     const next = lines!.map((l, j) => (j === i ? { ...l, on: !l.on } : l));
     onLines?.(next); onChange(linesText(next));
@@ -170,11 +175,12 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
             ? <span key={i} style={{ textDecoration: "underline wavy #D97706", textDecorationSkipInk: "none" }}>{part}</span>
             : part))}{"\n"}
         </div>
-        <textarea id="ingredients" value={value} onChange={e => { if (lines?.length) onLines?.(null); onChange(e.target.value); }}
+        <textarea id="ingredients" value={value} onChange={e => edit(e.target.value)}
           placeholder={kind === "care" ? "e.g. Water, Glycerin, Fragrance, …" : "e.g. Sugar, corn syrup, Red 40, …"} aria-describedby={unsureN ? "unsure-note" : undefined}
           className={`${box} absolute inset-0 h-full bg-transparent resize-none outline-none rounded-2xl text-foreground overflow-hidden`} />
       </div>
       {unsureN > 0 && <p id="unsure-note" className="text-xs text-muted-foreground">{unsureN === 1 ? "1 word underlined: check it." : `${unsureN} words underlined: check them.`}</p>}
+      {lines !== undefined && <WordFix text={value} unsure={unsure} onChange={edit} onRetake={onRetake} />}{/* text from a photo only */}
       {note && <p className="text-xs text-muted-foreground">{note}</p>}
 
       {assessment && look && (
@@ -243,7 +249,7 @@ export function Reading() {
     <div role="status" className="flex flex-col items-center gap-3 py-10 text-center">
       <div className="w-10 h-10 rounded-full border-4 border-gray-200 border-t-[#1A5C39] animate-spin" aria-hidden="true" />
       <p className="text-sm font-bold">Reading the label…</p>
-      <p className="text-xs text-muted-foreground max-w-[260px]">The first time, your phone downloads the reader once (about 7 MB). The photo stays on your phone.</p>
+      <p className="text-xs text-muted-foreground max-w-[260px]">The first time, your phone downloads the reader once (about 13 MB). The photo stays on your phone.</p>
     </div>
   );
 }
@@ -338,7 +344,8 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
         {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
           note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines}
           read={mode === "photo" ? readText : undefined} onShowRead={() => { setText(readText!); setReadText(undefined); }}
-          from={product && (status === "read" ? `From your photo, not from ${source}.` : `From what you typed, not from ${source}.`)} kind={kind} />}{/* read text stays "from your photo" after Type it */}
+          from={product && (status === "read" ? `From your photo, not from ${source}.` : `From what you typed, not from ${source}.`)} kind={kind}
+          onRetake={mode === "photo" ? reset : undefined} />}{/* read text stays "from your photo" after Type it */}
 
         <p className="text-xs text-gray-600 leading-relaxed">
           {product || kind === "care" ? "This checks the ingredients only. Nothing is saved or sent."

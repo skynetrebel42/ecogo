@@ -2,7 +2,9 @@
 // Home has no entry (D13); the Scan drawer's "No barcode? Check ingredients" opens it; the recorded label photo
 // (ingredients-label.jpg, beside this file) is read on the phone with the self-hosted reader (no CDN) into text with its
 // known words and a "Some concern" badge; typed text gets the same live badge, and "Nothing flagged" links its explainer.
-// Prints the reader's first-use download size.
+// 066 R3: the first photo is read with the stronger reader's files blocked, so Tesseract (the fallback) reads it; later
+// photos load PaddleOCR from EcoGo's own site, and no request leaves the page while they are read. Prints both readers'
+// first-use download sizes. ingredients-cut-edge.jpg is Minh's chip-bag photo with its left edge cut off (Q1: may be public).
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-ocr.mjs <url>
 import { spawn } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
@@ -11,7 +13,8 @@ const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
 const URL_ = process.argv[2];
 const PHOTO = fileURLToPath(new URL("./ingredients-label.jpg", import.meta.url));
 const FULL = fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url));
-const BAG = fileURLToPath(new URL("./ingredients-bag-curved.png", import.meta.url));
+const CUT = fileURLToPath(new URL("./ingredients-cut-edge.jpg", import.meta.url));
+const PERFUME = fileURLToPath(new URL("./ingredients-perfume-curved.jpg", import.meta.url)); // Minh's, cropped to the label
 const BLURRED = fileURLToPath(new URL("./ingredients-label-blurred.png", import.meta.url));
 const PORT = 9600 + Math.floor(Math.random() * 90);
 const PROFILE = `${process.env.TEMP}\\ecogo-ocr-${PORT}`;
@@ -35,7 +38,9 @@ try {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
     // The reader runs in a Web Worker: its downloads are reported on the worker's own (auto-attached) session.
-    if (m.method === "Target.attachedToTarget") send("Network.enable", {}, m.params.sessionId);
+    // Each worker waits until its downloads are being listened to (else the first fetches can be missed).
+    if (m.method === "Target.attachedToTarget") send("Network.enable", {}, m.params.sessionId).then(() => send("Runtime.runIfWaitingForDebugger", {}, m.params.sessionId));
+    if (m.method === "Fetch.requestPaused") send("Fetch.failRequest", { requestId: m.params.requestId, errorReason: "Failed" }); // 066: only /paddle/ is paused
     if (m.method === "Network.requestWillBeSent") { requests.push(m.params.request.url); urls.set(m.params.requestId, m.params.request.url); }
     if (m.method === "Network.loadingFinished") bytes.set(urls.get(m.params.requestId), m.params.encodedDataLength);
     if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.exception?.description?.slice(0, 160));
@@ -60,7 +65,7 @@ try {
   await send("Runtime.enable");
   await send("Network.enable");
   await send("DOM.enable");
-  await send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: true });
+  await send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
   await send("Page.navigate", { url: URL_ });
   await sleep(4000);
   await helpers();
@@ -77,10 +82,13 @@ try {
 
   const { root } = (await send("DOM.getDocument")).result;
   const { nodeId } = (await send("DOM.querySelector", { nodeId: root.nodeId, selector: 'input[data-photo="library"]' })).result;
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/paddle/*" }] }); // the stronger reader can't load
   await send("DOM.setFileInputFiles", { nodeId, files: [PHOTO] });
   const read = await run(`__until(() => document.querySelector("#ingredients")?.value, 90000)`);
-  check("the label photo is read on the phone into its words", !!read && ["SUGAR", "CORN SYRUP", "CITRIC ACID", "RED 40", "YELLOW 5", "CARNAUBA"]
-    .every(w => read.toUpperCase().includes(w)), read ?? "nothing read");
+  await send("Fetch.disable");
+  check("066 R3: when the stronger reader can't load, Tesseract reads the label on the phone into its words", !!read
+    && ["SUGAR", "CORN SYRUP", "CITRIC ACID", "RED 40", "YELLOW 5", "CARNAUBA"].every(w => read.toUpperCase().includes(w))
+    && requests.some(u => u.includes("/tesseract/")), read ?? "nothing read");
   check("…without the 'Ingredients:' label", !!read && !/^ingredients/i.test(read));
   check("…and the badge says Some concern", (await badge()).includes("Some concern"), (await badge()).split("\n")[0]);
   // M8 follow-up 2, G4/G6: the share of kept words read unsure (underlined) — the retake hint shows at 25 %.
@@ -88,19 +96,25 @@ try {
     const u = document.querySelectorAll('div[aria-hidden="true"] span[style*="wavy"]').length;
     return \`\${u}/\${words} = \${words ? Math.round(100 * u / words) : 0}%\`; })()`;
   check("…a clear label gets no retake or blurry hint", !/This photo is hard to read\.|This photo looks blurry\./.test(await run(`document.body.innerText`)), `unsure share ${await run(SHARE)}`);
-  const ocr = [...bytes].filter(([u]) => u?.includes("/tesseract/"));
-  const kb = Math.round(ocr.reduce((s, [, n]) => s + n, 0) / 1024);
-  check("the reader comes from EcoGo's own site, never a CDN", ocr.length >= 3 && !requests.some(u => /jsdelivr|unpkg|cdnjs/.test(u)),
-    `first use: ${kb} KB over ${ocr.length} files (${ocr.map(([u, n]) => `${u.split("/").pop()} ${Math.round(n / 1024)} KB`).join(", ")})`);
+  const size = files => `${Math.round(files.reduce((s, [, n]) => s + n, 0) / 1024)} KB over ${files.length} files (${files.map(([u, n]) => `${u.split("/").pop()} ${Math.round(n / 1024)} KB`).join(", ")})`;
+  const tess = [...bytes].filter(([u]) => u?.includes("/tesseract/"));
+  check("the fallback reader comes from EcoGo's own site, never a CDN", tess.length >= 3 && !requests.some(u => /jsdelivr|unpkg|cdnjs/.test(u)), `first use: ${size(tess)}`);
 
   // M8 follow-up F1–F3 (docs/superpowers/specs/2026-10-08-m8-followup-label-trim-design.md §3): a label with a brand line
   // above and "Distributed by …" below (ingredients-label-full.png, rendered from HTML in headless Edge).
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); return true; })()`);
   const { root: root2 } = (await send("DOM.getDocument")).result;
   const lib2 = (await send("DOM.querySelector", { nodeId: root2.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
+  const before = requests.length;
   await send("DOM.setFileInputFiles", { nodeId: lib2, files: [FULL] });
   const LIST = `[...document.querySelectorAll('ul[aria-label="Lines read from the photo"] li')].map(li => ({ text: li.innerText, on: li.querySelector("input").checked }))`;
   const kept = await run(`__until(() => { const l = ${LIST}; return l.length ? l : null; }, 60000)`) ?? [];
+  const reading = requests.slice(before), origin = new URL(URL_).origin;
+  const paddle = [...bytes].filter(([u]) => u?.includes("/paddle/"));
+  check("066 R3: the stronger reader and its models load from EcoGo's own site; no request leaves the page while reading",
+    ["ort-wasm-simd-threaded.wasm.gz", "PP-OCRv6_tiny_det_onnx_infer.tar", "PP-OCRv6_tiny_rec_onnx_infer.tar"].every(f => paddle.some(([u]) => u.endsWith(f)))
+    && reading.every(u => u.startsWith(origin) || /^(data|blob):/.test(u)) && !reading.some(u => u.includes("/tesseract/")),
+    `first use: ${size(paddle)}; outside: ${reading.filter(u => !u.startsWith(origin) && !/^(data|blob):/.test(u)).join(" ") || "none"}`);
   const more = await run(`__btn("more line")?.innerText ?? "no button"`);
   check("M8 G5: only the kept lines are listed; the rest wait behind 'Show 3 more lines we left out'",
     kept.length === 2 && kept.every(l => l.on) && more === "Show 3 more lines we left out", `${JSON.stringify(kept)} | ${more}`);
@@ -123,14 +137,15 @@ try {
   check("typing in the box hides the lines", (await run(`${LIST}.length`)) === 0
     && (await run(`document.body.innerText`)).includes("You're editing the text directly"));
 
-  // M8 follow-up 2, G4: a curved, shiny bag (ingredients-bag-curved.png, rendered from HTML) gets the retake hint.
+  // M8 follow-up 2, G4: a label photo with its left edge cut off (ingredients-cut-edge.jpg) gets the retake hint. (Until
+  // 066 this was the curved, shiny bag, which the stronger reader now reads.)
   await run(`(async () => { __btn("Check another").click(); await __sleep(300); return true; })()`);
   const { root: root3 } = (await send("DOM.getDocument")).result;
   const lib3 = (await send("DOM.querySelector", { nodeId: root3.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
-  await send("DOM.setFileInputFiles", { nodeId: lib3, files: [BAG] });
+  await send("DOM.setFileInputFiles", { nodeId: lib3, files: [CUT] });
   const hard = await run(`__until(() => document.querySelector("#ingredients") || [...document.querySelectorAll('[role="alert"]')].find(e => e.innerText.includes("hard to read")), 60000)
     .then(e => e?.innerText ?? "")`);
-  check("M8 G4: a curved, shiny bag opens with 'This photo is hard to read.', the tips, Retake photo and Use it anyway",
+  check("M8 G4: a label cut off at the edge opens with 'This photo is hard to read.', the tips, Retake photo and Use it anyway",
     hard.includes("This photo is hard to read.") && hard.includes("Lay it flat") && hard.includes("Retake photo") && hard.includes("Use it anyway"), hard.slice(0, 80));
   await run(`(async () => { __btn("Use it anyway")?.click(); await __sleep(400); return true; })()`);
   // M8 follow-up 6, K2: the junk never goes into the box; "Show what we read" puts it there.
@@ -142,7 +157,7 @@ try {
   await run(`(async () => { __btn("Show what we read").click(); await __sleep(300); return true; })()`);
   const shown = await run(`document.querySelector("#ingredients").value`);
   check("…'Show what we read' puts the read text in the box", shown.length > 0 && !(await run(`!!__btn("Show what we read")`)),
-    `bag: unsure share ${await run(SHARE)}; read: ${shown.slice(0, 400)}`);
+    `cut edge: unsure share ${await run(SHARE)}; read: ${shown.slice(0, 400)}`);
   const note = await run(`document.querySelector("#unsure-note")?.innerText ?? ""`);
   check("M8 G6: the note counts the underlined words instead of listing them", /^\d+ words? underlined: check (them|it)\.$/.test(note), note);
 
@@ -183,7 +198,41 @@ try {
   const all = await run(`[...document.querySelectorAll('ul[aria-label="Lines read from the photo"] li')].map(li => li.innerText.toUpperCase()).join(" | ")`);
   check("RW1-01 (b): two photos picked back to back: the second one's lines are shown", second.length > 0 && /DISTRIBUTED/.test(all), all.slice(0, 160));
 
-  await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Type it").click(); await __sleep(300); return true; })()`);
+  // 066 R4: Minh's curved perfume label (ingredients-perfume-curved.jpg). Under the box, a row offers each unsure word
+  // and each pair of names run together; the sheet opens on its title and Escape returns to the chip. Taking the first
+  // suggested name for every word and every comma finds the three EU allergens the old reader missed (OCR-01).
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Personal care").click(); await __sleep(200); ${pickJs(PERFUME, "image/jpeg")} return true; })()`);
+  await run(`__until(() => document.querySelector("#ingredients")?.value, 90000)`);
+  const CHIPS = `[...document.querySelectorAll("button")].filter(b => b.innerText.endsWith("›"))`;
+  const offered = await run(`${CHIPS}.map(b => b.innerText.replace(" ›", ""))`) ?? [];
+  const pageText = await run(`document.body.innerText`);
+  check("066 R4: the row under the box offers the unsure words ('Check N words:') and the pairs ('Add a comma?')",
+    offered.length > 0 && /Check \d+ words?:/.test(pageText) && pageText.includes("Add a comma?"), offered.join(" | "));
+  await run(`(async () => { window.__chip = ${CHIPS}[0]; __chip.click(); await __sleep(300); return true; })()`);
+  const sheetOpen = await run(`({ title: document.activeElement?.tagName === "H2" && document.activeElement.closest('[role="dialog"]') !== document.querySelector('[role="dialog"]'),
+    text: document.activeElement?.closest('[role="dialog"]')?.innerText ?? "" })`);
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await sleep(300);
+  const back = await run(`document.activeElement === __chip && !document.querySelector('h2[tabindex="-1"]')`);
+  check("…a chip opens a sheet with its focus on the title, its choices, Keep as read and Retake photo; Escape returns to the chip",
+    sheetOpen.title && ((sheetOpen.text.includes("Or type it") && sheetOpen.text.includes("Keep as read") && sheetOpen.text.includes("Retake photo"))
+      || sheetOpen.text.includes("Add comma")) && back, `${sheetOpen.text.replace(/\n/g, " / ").slice(0, 200)} | back: ${back}`);
+  const accepted = await run(`(async () => { const took = []; try {
+    for (let n = 0; n < 60; n++) {
+      const chip = ${CHIPS}[0]; if (!chip) break; chip.click(); await __sleep(150);
+      const sheet = document.querySelector('h2[tabindex="-1"]').closest('[role="dialog"]');
+      const b = [...sheet.querySelectorAll("button")];
+      const pick = b.find(x => x.innerText === "Add comma") ?? b.find(x => !["Use", "Retake photo", "Keep as read", "No"].includes(x.innerText)) ?? b.find(x => x.innerText === "Keep as read");
+      took.push(chip.innerText.replace(" ›", "") + " → " + pick.innerText); pick.click(); await __sleep(150);
+    } } catch (e) { took.push("ERROR " + e.message); } return took; })()`) ?? [];
+  const careText = await badge();
+  const boxText = ((await run(`document.querySelector("#ingredients")?.value`)) ?? "").toUpperCase();
+  check("…taking the suggestions finds Benzyl Salicylate, Hydroxycitronellal and Limonene; the check reads the box",
+    ["Benzyl Salicylate", "Hydroxycitronellal", "Limonene"].every(n => careText.includes(n)) && boxText.includes("LIMONENE") && boxText.includes("HYDROXYCITRONELLAL"),
+    `${accepted.join("; ").slice(0, 400)} | box: ${boxText.slice(0, 600)} | ${careText.split("\n").slice(0, 3).join(" / ")}`);
+
+  await run(`(async () => { __btn("Check another").click(); await __sleep(300); __btn("Food").click(); await __sleep(200); __btn("Type it").click(); await __sleep(300); return true; })()`);
   await typeInto("Enriched flour, water, Red 40");
   check("typing a list with Red 40 shows Some concern", (await badge()).includes("Some concern"));
   await typeInto("Enriched flour, water, sugar, yeast, salt");
@@ -197,6 +246,8 @@ try {
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
   check("Close returns to Scan", !!(await run(`!!(__btn("No barcode? Check ingredients") || __btn("Close camera"))`)));
   check("no console errors", errors.length === 0, errors.join(" | "));
+} catch (e) {
+  check("the check script ran to the end", false, String(e?.stack ?? e).slice(0, 400));
 } finally {
   console.log(`${ok}/${total} checks passed`);
   edge.kill();
