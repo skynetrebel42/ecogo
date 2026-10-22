@@ -82,6 +82,25 @@ test("'CONTAINS: MILK, SOY' still ends the list", () => {
   assert.equal(kept("INGREDIENTS: SUGAR, COCOA BUTTER. CONTAINS: MILK, SOY."), "SUGAR, COCOA BUTTER.");
 });
 
+// 066 R5 (OCR-02): personal-care and cleaner warnings end the list. Lines as read from Minh's perfume label.
+test("a warning after a personal-care list ends it, so 'CAUTION: FLAMMABLE…' never joins the last item", () => {
+  const lines = labelLines(["INGREDIENTS: ALCOHOL DENAT., WATER (AQUA, EAU),", "CITRUS LIMON PEEL OIL, TERPINEOL, PINENE",
+    "EXT. VIOLET 2 (CI 60730).", "CAUTION: FLAMMABLE.", "KEEP AWAY FROM FLAME OR HIGH HEAT.", "NOT FOR UNDERARM USE.", "AVOID CONTACT WITH EYES."]);
+  assert.equal(linesText(lines), "ALCOHOL DENAT., WATER (AQUA, EAU), CITRUS LIMON PEEL OIL, TERPINEOL, PINENE EXT. VIOLET 2 (CI 60730).");
+  assert.deepEqual(lines.map(l => l.on), [true, true, true, false, false, false, false]);
+  assert.equal(trimToIngredients(lines.map(l => l.text).join("\n")).stopWord, "Caution");
+});
+
+test("other warning phrases end the list too, in any case, across a line break", () => {
+  assert.equal(kept("Ingredients: water, sodium laureth sulfate. Warning: for external use only."), "water, sodium laureth sulfate.");
+  assert.equal(kept("Ingredients: water, glycerin. Warnings: avoid contact with eyes."), "water, glycerin.");
+  assert.equal(kept("Ingredients: water, glycerin. Directions: apply daily."), "water, glycerin.");
+  assert.equal(kept("Ingredients: water, surfactants. Keep out of\nreach of children."), "water, surfactants.");
+  assert.equal(kept("Ingredients: water, glycerin. For external use only."), "water, glycerin.");
+  assert.equal(kept("Ingredients: water, glycerin. Avoid contact with eyes."), "water, glycerin.");
+  assert.equal(kept("Ingredients: butane, propane. Extremely flammable."), "butane, propane. Extremely");
+});
+
 test("each line read keeps its part of the ingredients; lines outside start unticked", () => {
   const lines = labelLines(["Fruity Chews", "INGREDIENTS: SUGAR, CORN", "SYRUP, RED 40. CONTAINS: NO", "ALLERGENS.", "Distributed by Acme"]);
   assert.deepEqual(lines.map(l => [l.kept, l.on]), [["", false], ["SUGAR, CORN", true], ["SYRUP, RED 40.", true], ["", false], ["", false]]);
