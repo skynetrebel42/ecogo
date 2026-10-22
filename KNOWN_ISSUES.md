@@ -273,6 +273,16 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - Not a bug: the same screen showed the pre-063 wording because the phone's tab still ran the old build (no service
   worker; GitHub Pages caches index.html 10 min). Closing and reopening the tab loads the new one.
 
+### Minh's tests, 2026-10-22 (planner check, read-only)
+- **2C, no claim (correct, data gap):** Equate Clear hand soap (UPC 194346586486) carries the Safer Choice logo but isn't
+  in the snapshot (no "Equate" product has a barcode in EPA's Envirofacts rows we import; spec S1 needs a UPC/GTIN).
+  No match = no claim holds; matching by name is a separate decision.
+- **Dead end after "Cleaning product" (2C/2D/2E):** the not-found screen swaps its text to Safer Choice meaning + the
+  California line + "Check the maker's website" and hides the main button; Minh read it as "nothing changed" and
+  expected a label check. EcoGo has no cleaner ingredient library, so it must say so plainly → 068 C.
+- **Privacy section out of date (App.tsx ~535):** lookups also go to Open Beauty Facts (since M16) and Suggest a place
+  address search goes to Photon (photon.komoot.io); neither is named → fixed with 066 R8.
+
 ### Outside audits by ChatGPT, 2026-10-11 → 14 (RC1 / RW1 / trust-UI / R2; at 5a08ad6; planner triage 2026-10-14)
 
 Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` indexes them). Advice, not decisions.

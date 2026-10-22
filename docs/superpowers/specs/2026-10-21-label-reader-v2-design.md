@@ -23,7 +23,7 @@
 | R6 | **No false "not clear"** (OCR-03): find which check fired on the sharp perfume photos (blur check 049 or the hard-to-read hint G4) and why (curved, condensed, small text); fix the cause; the hint never blocks | Debug |
 | R7 | **Cloud help, opt-in** (Q3): only on a free tier; off until the person turns it on, with a plain warning (where the photo goes, what that service's own terms say it may keep or use, "only photograph the label, never anything private") and a way to turn it off any time; the Privacy section says it too. Its key lives in a new Edge Function, never in the browser (CLAUDE.md); a deploy needs Minh's yes. Suggestions it returns follow R4's rules (real names, nothing counts until accepted). R1 also measures one free cloud option. Built last | Feature, Server |
 | R9 | **Take another photo** (Minh, 2026-10-21, after planner research: no ingredient app does it; `research-curved-labels` note): for a curved or cut-off label, "Add another photo" reads each photo with the same reader and joins the text at the longest overlap of words; no overlap → the new text is added after and the person edits. Reuses R4's sheet for unsure words; the text box stays the final say. Plain JS, no image stitching, no new library. Built after R1's results, after R4 | Feature |
-| R8 | **Privacy warning on photos that leave the phone** (Q1): the Open Food Facts send's photo step adds "never photograph anything private" next to its existing "public there" line; wording to the planner | UI |
+| R8 | **Privacy warning on photos that leave the phone** (Q1): the Open Food Facts send's photo step adds "never photograph anything private" next to its existing "public there" line; and the Privacy section (App.tsx ~535) brought up to date: it also names Open Beauty Facts (barcode lookups since M16) and Photon (Suggest a place address search) (planner, 2026-10-22); wording to the planner | UI |
 
 ## 2. Testing
 - R1's table in the builder's report (real output). Node tests: suggestion ranking (the perfume misreads "UIHONENE" →
@@ -46,7 +46,11 @@ R3's reader: PP-OCRv6 tiny (Minh, Q2, 2026-10-22). R3 (planner, 2026-10-22): mod
 check (deploys never depend on Baidu's server), Apache-2.0 notices shipped beside them; ONNX Runtime's wasm shipped
 pre-gzipped and unpacked in the browser (Tesseract's pattern), so the ~13 MB holds whether or not Pages compresses
 .wasm; word-level "unsure" from per-letter confidences (own decode of the recognizer output if the SDK exposes it,
-else a pinned-version patch guarded by a test), not from known-word lists.
+else a pinned-version patch guarded by a test), not from known-word lists. R3 done (7b13caa).
+R4 lists (planner, 2026-10-22): EcoGo's own names + USDA FoodData Central words (CC0; "list FoodData Central as the
+source"), generated once by a script from `foods` and committed, lazy-loaded. Open Food Facts / Open Beauty Facts
+taxonomies skipped (no licence on the files themselves), EU CosIng skipped (no download; third-party content).
+Tap target and the sheet's words: Minh (wording batch).
 R5 done (6c53e65). R6 (planner, 2026-10-22): the hard-to-read hint (G4) stops counting unsure words that are close
 to a known ingredient name (they get R4's sheet instead), so a sharp curved label keeps its text in the box; blurry,
 glare and cut-off photos still get the hint. Built as R4's matcher's first slice (EcoGo's library names); no new
