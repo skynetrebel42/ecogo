@@ -101,3 +101,19 @@ export async function preparePhoto(file: Blob, crop?: Crop): Promise<Blob> {
   bitmap.close();
   return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error("Couldn't prepare the photo."))), "image/jpeg", 0.85));
 }
+
+/** 070: the photo as a JPEG of `max` bytes or less (OCR.space's free limit is 1 MB), smaller until it fits. Always
+ *  re-encoded, so nothing but the pixels (no place or time it was taken) goes to cloud help. */
+export async function jpegUnder(photo: Blob, max: number): Promise<Blob> {
+  const bitmap = await createImageBitmap(photo, { imageOrientation: "from-image" });
+  try {
+    for (const side of [2000, 1600, 1200, 900]) {
+      const canvas = document.createElement("canvas");
+      ({ width: canvas.width, height: canvas.height } = fitWithin(bitmap.width, bitmap.height, side));
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const jpeg = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.8));
+      if (jpeg && jpeg.size <= max) return jpeg;
+    }
+    throw new Error("The photo didn't fit under the size limit.");
+  } finally { bitmap.close(); }
+}

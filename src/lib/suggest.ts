@@ -13,13 +13,16 @@ export const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toU
 const NAMES = new Set([...LIBRARY, ...PERSONAL_CARE, ...CARE_NOTES, ...CARE_LIMITED].flatMap(e => e.aliases.map(fold)));
 const NAME_WORDS = [...new Set([...NAMES].flatMap(a => a.match(/\p{L}+/gu) ?? []).filter(w => w.length >= MIN))];
 const OURS = new Set(NAME_WORDS);
+const KNOWN = new Set(NAME_WORDS);
 
 let more: Promise<void> | undefined;
 /** Adds the words of USDA FoodData Central's ingredient lists (planner, 066 §4; ~11 kB gzipped, loaded with the reader). */
 export const loadMoreNames = () => (more ??= import("./data/usda-words.ts").then(m => {
-  for (const w of m.default.split(" ")) if (!OURS.has(w)) NAME_WORDS.push(w);
+  for (const w of m.default.split(" ")) if (!OURS.has(w)) { NAME_WORDS.push(w); KNOWN.add(w); }
   suggested.clear();
 }));
+/** 070 C3: whether `word` is a known name's word as it stands (5+ letters, EcoGo's or, once loaded, USDA's). */
+export const knownWord = (word: string) => KNOWN.has(fold(word));
 export const within = (w: string, n: string) => distance(w, n, Math.floor(n.length / 4)) <= Math.floor(n.length / 4);
 
 /** Edit distance (insert, delete, change one letter), giving up once it must exceed `max`. */

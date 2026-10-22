@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { afterRead, cleanIngredients, hardToRead, joinReads, labelLines, linesText, trimToIngredients, unsureCount, unsureWords } from "./ocr.ts";
+import { afterRead, cleanIngredients, cloudHelpOn, hardToRead, joinReads, knownCount, labelLines, linesText, setCloudHelp, trimToIngredients, unsureCount, unsureWords, withCloud } from "./ocr.ts";
 
 const word = (text: string, confidence: number) => ({ text, confidence });
 const page = (...lines: { text: string; confidence: number }[][]) => [{ paragraphs: [{ lines: lines.map(words => ({ words })) }] }];
@@ -234,4 +234,48 @@ test("no overlap of 3 words in a row: the new text goes at the end; one shared w
   // A comma between them: else the box's last item and the new first one become one item, and whole-name matching misses both.
   assert.equal(joinReads("Water, Glycerin", "formaldehyde, fragrance").text, "Water, Glycerin, formaldehyde, fragrance");
   assert.equal(joinReads("Water, Glycerin,", "formaldehyde").text, "Water, Glycerin, formaldehyde");
+});
+
+// 070 C3 (docs/superpowers/specs/2026-10-23-cloud-help-070-design.md): cloud help's read replaces a hard photo's only
+// when it reads better (more words of known names); a tie or no answer keeps the phone's.
+const hardPhone = afterRead({ text: "LIMONENE Xq LNALOOL vb", unsure: ["Xq", "LNALOOL", "vb"], lines: labelLines(["LIMONENE Xq LNALOOL vb"]) });
+
+test("words of known names are counted whole, in any case; near misses and short words aren't", () => {
+  assert.equal(knownCount("Water, LIMONENE, linalool, LMONENE, salt"), 3);
+});
+
+test("a cloud read with more known name words fills the box, with its lines and no unsure words", () => {
+  assert.equal(hardPhone.hard, true);
+  const r = withCloud(hardPhone, ["INGREDIENTS: ALCOHOL DENAT, LIMONENE,", "LINALOOL", "CAUTION: FLAMMABLE"]);
+  assert.equal(r.hard, false);
+  assert.equal(r.text, "ALCOHOL DENAT, LIMONENE, LINALOOL");
+  assert.deepEqual(r.unsure, []);
+  assert.deepEqual(r.lines.map(l => l.on), [true, true, false]);
+  assert.equal(r.busy, undefined);
+});
+
+test("a cloud read no better than the phone's (a tie) keeps the phone's hard-to-read result", () => {
+  assert.deepEqual(withCloud(hardPhone, ["Zz LIMONENE"]), hardPhone);
+  assert.deepEqual(withCloud(hardPhone, []), hardPhone);
+});
+
+test("no answer from cloud help keeps the phone's result and says busy", () => {
+  assert.deepEqual(withCloud(hardPhone, null), { ...hardPhone, busy: true });
+});
+
+test("the cloud help switch is off until turned on, and remembered on this device", () => {
+  const store = new Map<string, string>();
+  const g = globalThis as { localStorage?: unknown };
+  const before = Object.getOwnPropertyDescriptor(g, "localStorage");
+  Object.defineProperty(g, "localStorage", { configurable: true, value: {
+    getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) } });
+  try {
+    assert.equal(cloudHelpOn(), false);
+    setCloudHelp(true);
+    assert.equal(cloudHelpOn(), true);
+    setCloudHelp(false);
+    assert.equal(cloudHelpOn(), false);
+  } finally {
+    if (before) Object.defineProperty(g, "localStorage", before); else delete g.localStorage;
+  }
 });

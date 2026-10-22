@@ -3,7 +3,8 @@
 // fills public/tesseract/ and public/paddle/ before every dev/build), so no CDN is called. They load only when a photo is read.
 
 import type { Block, Worker } from "tesseract.js";
-import { fold, loadMoreNames, nearKnownName, within } from "./suggest.ts";
+import { jpegUnder } from "./photo.ts";
+import { fold, knownWord, loadMoreNames, nearKnownName, within } from "./suggest.ts";
 
 /** Words read with less confidence than this (0–100) are underlined for the person to check. */
 const UNSURE_BELOW = 70;
@@ -161,7 +162,7 @@ export function joinReads(box: string, read: string): { text: string; joined: bo
 const COULDNT_READ = "Couldn't read it. Type the ingredients or retake the photo.";
 
 type Read = { text: string; unsure: string[]; lines: LabelLine[] };
-export type PhotoRead = Read & { hard: boolean; error?: string; read?: string };
+export type PhotoRead = Read & { hard: boolean; error?: string; read?: string; busy?: true };
 
 /** What a screen shows after a read: no lines → the "couldn't read" message; hard to read (G4) → an empty box and no
  *  lines, the read text kept in `read` for "Show what we read" (follow-up 6, K2), so junk never goes into the box. */
@@ -170,12 +171,48 @@ export function afterRead(r: Read): PhotoRead {
   return hardToRead(r.text, r.unsure) ? { text: "", unsure: r.unsure, lines: [], hard: true, read: r.text } : { ...r, hard: false };
 }
 
+// 070 C2: the "Cloud help for hard labels" switch, off until the person turns it on, remembered on this device only.
+const CLOUD_KEY = "ecogo.cloudHelp.v1";
+export const cloudHelpOn = () => { try { return localStorage.getItem(CLOUD_KEY) === "on"; } catch { return false; } };
+export const setCloudHelp = (on: boolean) => {
+  try { if (on) localStorage.setItem(CLOUD_KEY, "on"); else localStorage.removeItem(CLOUD_KEY); } catch { /* applies this visit */ }
+};
+
+/** 070 C3: the words in `text` that are a known name's word as they stand. */
+export const knownCount = (text: string) => (text.match(/[\p{L}\p{N}]+/gu) ?? []).filter(knownWord).length;
+
+/** 070 C3: a hard photo's phone result, or cloud help's read (`cloud`: its lines; null: no answer) when that has more
+ *  known name words; a tie keeps the phone's. OCR.space gives no confidences, so no unsure words: R4's chips still offer
+ *  near names, and the box is the person's to accept, as with the phone's text. */
+export function withCloud(phone: PhotoRead, cloud: string[] | null): PhotoRead {
+  if (!cloud) return { ...phone, busy: true };
+  const lines = labelLines(cloud), text = linesText(lines);
+  return knownCount(text) > knownCount(phone.read ?? phone.text) ? afterRead({ text, unsure: [], lines }) : phone;
+}
+
+/** 070 C1: the photo's lines from EcoGo's own ocr-cloud function (which asks OCR.space), or null on any failure. */
+async function readCloud(photo: Blob): Promise<string[] | null> {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ocr-cloud`, {
+      method: "POST", body: await jpegUnder(photo, 1024 * 1024), signal: AbortSignal.timeout(30_000),
+      headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "image/jpeg" },
+    });
+    const lines = res.ok ? (await res.json()).lines : null;
+    return Array.isArray(lines) ? lines.filter((l: unknown) => typeof l === "string") : null;
+  } catch (err) {
+    console.warn("[ocr] cloud help didn't answer", err);
+    return null;
+  }
+}
+
 /** readLabel for the screens: never throws (spec §3). `hard` (follow-up 2, G4) only when something was read: a reader
- *  that failed (offline, say) isn't the photo's fault. */
-export async function readPhoto(photo: Blob): Promise<PhotoRead> {
+ *  that failed (offline, say) isn't the photo's fault. With `cloud` (070, the switch on), a hard photo also goes to
+ *  cloud help; nothing else ever does. */
+export async function readPhoto(photo: Blob, cloud = false): Promise<PhotoRead> {
   try {
     loadMoreNames().catch(() => {}); // 066 R4: the USDA words for suggestions, fetched while the photo is read
-    return afterRead(await readLabel(photo));
+    const r = afterRead(await readLabel(photo));
+    return cloud && r.hard ? withCloud(r, await readCloud(photo)) : r;
   } catch (err) {
     console.warn("[ocr] couldn't read the photo", err);
     return { text: "", unsure: [], lines: [], hard: false, error: COULDNT_READ };
@@ -184,7 +221,7 @@ export async function readPhoto(photo: Blob): Promise<PhotoRead> {
 
 /** R9: another photo of the same label: its text (planner: never held back by the hard-to-read hint) and unsure words,
  *  or the "couldn't read" message when nothing was kept. The caller joins it to the box as the box is by then. */
-export async function readAnother(photo: Blob): Promise<{ text: string; unsure: string[] } | { error: string }> {
-  const r = await readPhoto(photo), text = r.read ?? r.text;
-  return r.error || !text ? { error: r.error ?? COULDNT_READ } : { text, unsure: r.unsure };
+export async function readAnother(photo: Blob, cloud = false): Promise<{ text: string; unsure: string[]; busy?: true } | { error: string }> {
+  const r = await readPhoto(photo, cloud), text = r.read ?? r.text;
+  return r.error || !text ? { error: r.error ?? COULDNT_READ } : { text, unsure: r.unsure, busy: r.busy };
 }
