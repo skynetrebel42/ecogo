@@ -45,7 +45,7 @@ D archive the M10 specs still in `specs/` [Process]
 Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 
 ## Chapter 6 · Clarity (after 066)
-068 Scan screen 📋 · A Barcode / Ingredients switch on the camera [Feature] · B "Check ingredients" wording [UI] · C no dead
+068 Scan screen 📋 · A Barcode / Ingredients switch at the bottom of the camera (Minh, 10-22) [Feature] · B "Check ingredients" wording [UI] · C no dead
 end after "Cleaning product" [UI]
 069 Learn + Privacy redesign 📋 · A one frame per card, bubbles + More, Source buttons, badge links [UI] · B How EcoGo checks:
 logos + bold steps [UI] · C new sourced facts: seed-oil contaminants, pesticide foods, cleaning produce, organic [Facts]
