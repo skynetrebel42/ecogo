@@ -39,6 +39,10 @@ matching; auto-accepting suggestions; reading nutrition panels; a Privacy settin
 ## 4. Builder notes
 Start from `src/lib/ocr.ts` (readLabel, labelLines, trimToIngredients, unsureWords, hardToRead) and `src/lib/photo.ts`
 (isBlurry, sharpness). R1 is a spike: it reports before any of R2–R6 is built, and its code isn't kept.
+R1 results (2026-10-22, report in the planner's notes folder): (planner) R2 clean-up dropped for Tesseract (no gain,
+2x slower) and skipped for a Paddle reader; `ppu-paddle-ocr` out (fails curved and angled photos); R6's cause is the
+hard-to-read hint G4, not the blur check; the cloud column moves to R7 (no key needed before then). R5/R6 start now;
+R3's reader waits on Minh's Q2.
 
 ## 5. Questions for Minh
 - **Q1 🎨** May your perfume label photo (and soap/lotion photos you send) become test pictures in the public repo?
