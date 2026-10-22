@@ -244,7 +244,7 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
         )}
         <IngredientEditor value={text} onChange={setText} unsure={unsure} note={readError} lines={lines} onLines={setLines}
           read={readText} onShowRead={() => { setText(readText!); setReadText(undefined); }} onRetake={() => goTo("ingredients")}>
-          {photos.ingredients && <AnotherPhoto text={text} unsure={unsure} begin={begin} onError={setReadError}
+          {photos.ingredients && <AnotherPhoto text={text} unsure={unsure} cloud={cloud} begin={begin} onError={setReadError}
             onRead={r => { setText(r.text); setUnsure(r.unsure); setLines(null); setReadError(undefined); setReadText(undefined); setJoined(true); }} />}
         </IngredientEditor>
       </>}

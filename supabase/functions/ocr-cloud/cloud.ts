@@ -10,7 +10,6 @@ const CORS = {
   "Access-Control-Allow-Origin": SITE,
   "Access-Control-Allow-Headers": "apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Vary": "Origin",
 };
 const answer = (status: number, body: { lines: string[] } | { busy: true } | { error: string }) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });

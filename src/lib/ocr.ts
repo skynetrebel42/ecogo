@@ -192,9 +192,10 @@ export function withCloud(phone: PhotoRead, cloud: string[] | null): PhotoRead {
 
 /** 070 C1: the photo's lines from EcoGo's own ocr-cloud function (which asks OCR.space), or null on any failure. */
 async function readCloud(photo: Blob): Promise<string[] | null> {
+  const ctl = new AbortController(), wait = setTimeout(() => ctl.abort(), 30_000); // not AbortSignal.timeout: iOS 16+ only
   try {
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ocr-cloud`, {
-      method: "POST", body: await jpegUnder(photo, 1024 * 1024), signal: AbortSignal.timeout(30_000),
+      method: "POST", body: await jpegUnder(photo, 1024 * 1024), signal: ctl.signal,
       headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "image/jpeg" },
     });
     const lines = res.ok ? (await res.json()).lines : null;
@@ -202,6 +203,8 @@ async function readCloud(photo: Blob): Promise<string[] | null> {
   } catch (err) {
     console.warn("[ocr] cloud help didn't answer", err);
     return null;
+  } finally {
+    clearTimeout(wait);
   }
 }
 

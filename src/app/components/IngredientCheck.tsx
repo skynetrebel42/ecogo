@@ -274,8 +274,8 @@ export function PhotoButtons({ onPhoto }: { onPhoto: (file: File) => void }) {
  *  text as it is when the read ends, so the box stays editable and in place meanwhile. A blurry photo gets the usual
  *  notice here ("Retake photo" leaves the box as it was). `begin` is the screen's latest-wins: Type it, Check another,
  *  Retake or Close drop a read. One button: without `capture` the phone offers its camera or its library. */
-export function AnotherPhoto({ text, unsure, begin, onRead, onError }: {
-  text: string; unsure: string[]; begin: () => () => boolean;
+export function AnotherPhoto({ text, unsure, cloud, begin, onRead, onError }: {
+  text: string; unsure: string[]; cloud: boolean; begin: () => () => boolean;
   onRead: (r: { text: string; unsure: string[] }) => void; onError: (message: string) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
@@ -286,7 +286,7 @@ export function AnotherPhoto({ text, unsure, begin, onRead, onError }: {
   const [added, setAdded] = useState<{ n: number; joined: boolean; cloudBusy?: boolean }>();
   const read = async (photo: Blob, live = begin()) => {
     setBlurry(undefined); setBusy(true);
-    const r = await readAnother(photo, cloudHelpOn()); // 070: a hard one goes to cloud help too, with the switch on
+    const r = await readAnother(photo, cloud); // 070: a hard one goes to cloud help too, with the switch on
     if (!live()) return;
     setBusy(false);
     if ("error" in r) return onError(r.error);
@@ -423,7 +423,7 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
           read={mode === "photo" ? readText : undefined} onShowRead={() => { setText(readText!); setReadText(undefined); }}
           from={product && (status === "read" ? `From your photo, not from ${source}.` : `From what you typed, not from ${source}.`)} kind={kind}
           onRetake={mode === "photo" ? reset : undefined}>{/* read text stays "from your photo" after Type it */}
-          {mode === "photo" && <AnotherPhoto text={text} unsure={unsure} begin={begin} onError={setError}
+          {mode === "photo" && <AnotherPhoto text={text} unsure={unsure} cloud={cloud} begin={begin} onError={setError}
             onRead={r => { setText(r.text); setUnsure(r.unsure); setLines(null); setError(undefined); setReadText(undefined); }} />}
         </IngredientEditor>}
 
