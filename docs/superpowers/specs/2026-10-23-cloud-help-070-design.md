@@ -35,3 +35,4 @@ Paid tiers; other providers; sending photos that read fine; storing photos or re
 - Builder's calls (accepted): any failure → the busy line; "reads better" = more words matching EcoGo/USDA names, ties
   keep the phone's text; cloud text goes through trim, checkboxes, chips, "Keep as read"; "Add another photo" uses it
   for hard photos too; canvas re-encode to JPEG < 1 MB.
+- Wording while cloud help is on (Minh, 2026-10-23, Option A: "recalling best practices for user transparency… we can edit later"): photo tip "…EcoGo reads the words on your phone, and hard ones with cloud help."; the reading message drops "The photo stays on your phone."; footer "Nothing is saved. With cloud help on, a hard-to-read photo is sent to OCR.space."; Privacy (always) "…checking a list without a barcode sends nothing unless you turn on cloud help."

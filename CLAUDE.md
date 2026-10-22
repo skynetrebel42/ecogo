@@ -48,5 +48,5 @@ subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Suba
 
 ## Current state (replace at each close-out; ≤ 3 lines)
 - Live: origin/main f23f876 (M1–M17, 063, 064, 066; 430,127 USDA foods, engine_rev 4; off-submit v11, place-submit v2).
-- Building: nothing; next brief 070 cloud help (Minh's OCR.space key goes in as a server secret).
+- Building: 070 cloud help (Headsman VI; server piece + logic done; screens with wording A; then deploy, secret, push).
 - Then (decision 071, label first): 070 cloud help → check split → 068 scan screen → 071 reader v3 → 072 ingredient knowledge → 069.
