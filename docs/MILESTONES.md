@@ -44,9 +44,23 @@ Tidy-up 📋 (C, the check-home split, before 068) · A shared check set-up (~-1
 D archive the M10 specs still in `specs/` [Process]
 Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 
-## Chapter 6 · Clarity (after 066)
+## Priority build list (Daedalus keeps it current; top = next)
+1. **066 Label reader v2 live** 🔨 final checks → Minh's push yes → live check
+2. **070 Cloud help, opt-in** 📋 small; needs Minh's OCR.space key as a server secret
+3. **Check-home split** 📋 (tidy-up C) keeps the 7-minute checks from hitting their limit
+4. **068 Scan screen** 📋 Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
+5. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos
+6. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
+7. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
+8. Later: personal care to Open Beauty Facts, home inventory, profile, themes, map rethink, variety packs
+
+## Chapter 6 · Label first (after 066; decision 071: "lets go mad brutal on ingredient scanner")
 068 Scan screen 📋 · A Barcode / Ingredients switch at the bottom of the camera (Minh, 10-22) [Feature] · B "Check ingredients" wording [UI] · C no dead
-end after "Cleaning product" [UI]
+end after "Cleaning product" [UI] · D paste-from-Photos path: tip + Paste button (iPhone copies label text well) [Feature]
+071 Label reader v3 📋 · A brand / product name / net weight lines aren't ingredients [Debug] · B Add a product: name + brand at the end [Feature] ·
+C line-by-line join for cut-off photos [Feature] · D stop phrases from Minh's photos [Debug]
+072 Ingredient knowledge 📋 · A research: official, licence-checked cleaner + personal-care lists [Facts] · B cleaner ingredient library [Facts] ·
+C wider personal-care coverage [Facts]
 069 Learn + Privacy redesign 📋 · A one frame per card, bubbles + More, Source buttons, badge links [UI] · B How EcoGo checks:
 logos + bold steps [UI] · C new sourced facts: seed-oil contaminants, pesticide foods, cleaning produce, organic [Facts]
 
@@ -75,6 +89,7 @@ logos + bold steps [UI] · C new sourced facts: seed-oil contaminants, pesticide
 - 💡 Profile and community: photo, banner, bio, scan count, points, friends, map visits.
 - 💡 Colour themes beyond high contrast (also the intro page).
 - 💡 Add personal care to Open Beauty Facts (today only food can be sent, to Open Food Facts).
+- 💡 Variety packs: several ingredient lists / nutrition panels on one bag, one result per flavour (2026-10-22).
 - 💡 Map rethink: finding clean places is "an easter egg hunt"; keep, shrink or change.
 **Reach & polish** [UI]
 - 💡 "Slow but sharper" reader option: the bigger PaddleOCR model (~33 MB, ~47 s a photo; best on tiny curved print),

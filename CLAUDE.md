@@ -49,4 +49,4 @@ subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Suba
 ## Current state (replace at each close-out; ≤ 3 lines)
 - Live: origin/main 9905870 (M1–M17, 063, 064; 430,127 USDA foods in `foods`, engine_rev 4; off-submit v11, place-submit v2).
 - Building: 066 Label reader v2 (Headsman IV; R1–R6 + R4 lists done; next R4 screen → R9 → R8; cloud help split out to 070).
-- Then Chapter 6 (decision 067): 068 Scan screen switch, 069 Learn + Privacy redesign; tidy-up when a slot opens.
+- Then (decision 071, label first): 070 cloud help → check split → 068 scan screen → 071 reader v3 → 072 ingredient knowledge → 069.
