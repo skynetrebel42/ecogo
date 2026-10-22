@@ -533,7 +533,8 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
       </Accordion>
 
       <Accordion title="Privacy" summary="What leaves your phone">
-        <p className="text-xs text-foreground/80 leading-relaxed">The camera reads barcodes on your phone. Ingredient photos are read on your phone too; checking a list without a barcode sends nothing.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">The camera reads barcodes on your phone. Ingredient photos are read on your phone too; checking a list without a barcode sends nothing unless you turn on cloud help.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">Cloud help is off unless you turn it on. When it's on, a hard-to-read label photo is sent through EcoGo's server to OCR.space, which says it deletes uploaded documents after processing. Nothing else about you is sent.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">If you add a product, what you send goes to Open Food Facts and is public there: the photos, the ingredients you checked, the barcode and the name. EcoGo keeps an anonymous ID and a log of your submissions (barcode, time, result). At your first Send, Cloudflare runs a human check.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, its barcode goes to Open Food Facts and then Open Beauty Facts.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The product catalog loads from EcoGo's database. Your recently viewed list stays in this browser.</p>
