@@ -3,7 +3,7 @@
 // fills public/tesseract/ and public/paddle/ before every dev/build), so no CDN is called. They load only when a photo is read.
 
 import type { Block, Worker } from "tesseract.js";
-import { nearKnownName } from "./suggest.ts";
+import { loadMoreNames, nearKnownName } from "./suggest.ts";
 
 /** Words read with less confidence than this (0–100) are underlined for the person to check. */
 const UNSURE_BELOW = 70;
@@ -138,6 +138,7 @@ export function afterRead(r: Read): PhotoRead {
  *  that failed (offline, say) isn't the photo's fault. */
 export async function readPhoto(photo: Blob): Promise<PhotoRead> {
   try {
+    loadMoreNames().catch(() => {}); // 066 R4: the USDA words for suggestions, fetched while the photo is read
     return afterRead(await readLabel(photo));
   } catch (err) {
     console.warn("[ocr] couldn't read the photo", err);

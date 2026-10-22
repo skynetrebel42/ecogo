@@ -1,6 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { nearKnownName, splitAt, suggestWords } from "./suggest.ts";
+import { loadMoreNames, nearKnownName, splitAt, suggestWords } from "./suggest.ts";
+
+// Runs before loadMoreNames() below: until the USDA words load, only EcoGo's own names are offered.
+test("food words come only after the USDA list loads; it adds them, accents folded", async () => {
+  assert.deepEqual(suggestWords("GAFLIC"), []);
+  await loadMoreNames();
+  assert.deepEqual(suggestWords("GAFLIC"), ["GARLIC"]);
+  assert.deepEqual(suggestWords("MONÓSODIUM"), ["MONOSODIUM"]);
+  assert.deepEqual(suggestWords("lNOSINATE"), ["Inosinate"], "mixed case: the name in title case");
+  assert.deepEqual(suggestWords("iNOSINATE"), [], "already a name, only its case differs");
+  assert.deepEqual(suggestWords("UIHONENE")[0], "LIMONENE", "EcoGo's names still come first when as close");
+  assert.equal(nearKnownName("GAFLIC"), false, "the retake hint still counts words only the USDA list knows (R6 as accepted)");
+});
 
 // 066 R4: up to 3 real name words for a word the reader wasn't sure of, closest first, in the read word's case.
 test("the perfume's misreads get the right name among up to 3 suggestions", () => {
@@ -13,6 +25,13 @@ test("the perfume's misreads get the right name among up to 3 suggestions", () =
 
 test("no suggestions for short words, words that are already names, or words near no name", () => {
   for (const w of ["AGE", "LIMONENE", "FLAMMABIE", "60730"]) assert.deepEqual(suggestWords(w), [], w);
+});
+
+test("accents a reader adds are folded before matching, and the plain name is suggested", () => {
+  // PINENE allows one changed letter: an added accent mustn't use it up.
+  assert.equal(nearKnownName("PÍNENF"), true);
+  assert.deepEqual(suggestWords("PÍNENF"), ["PINENE"]);
+  assert.deepEqual(suggestWords("LÍMONENE"), ["LIMONENE"]);
 });
 
 // The split (spec R4): an item that is two known names run together gets a comma offered between them; 062's

@@ -8,8 +8,17 @@ import { CARE_LIMITED, CARE_NOTES, PERSONAL_CARE } from "./safety/personalCare.t
 const MIN = 5;
 
 /** EcoGo's own ingredient names (library, personal care, notes, limited), upper case, and their words of 5+ letters. */
-const NAMES = new Set([...LIBRARY, ...PERSONAL_CARE, ...CARE_NOTES, ...CARE_LIMITED].flatMap(e => e.aliases.map(a => a.toUpperCase())));
+/** Upper case without accents: a reader's "MONÓSODIUM" is MONOSODIUM with no letter used up. */
+const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toUpperCase();
+const NAMES = new Set([...LIBRARY, ...PERSONAL_CARE, ...CARE_NOTES, ...CARE_LIMITED].flatMap(e => e.aliases.map(fold)));
 const NAME_WORDS = [...new Set([...NAMES].flatMap(a => a.match(/\p{L}+/gu) ?? []).filter(w => w.length >= MIN))];
+const OURS = new Set(NAME_WORDS);
+
+let more: Promise<void> | undefined;
+/** Adds the words of USDA FoodData Central's ingredient lists (planner, 066 §4; ~11 kB gzipped, loaded with the reader). */
+export const loadMoreNames = () => (more ??= import("./data/usda-words.ts").then(m => {
+  for (const w of m.default.split(" ")) if (!OURS.has(w)) NAME_WORDS.push(w);
+}));
 const within = (w: string, n: string) => distance(w, n, Math.floor(n.length / 4)) <= Math.floor(n.length / 4);
 
 /** Edit distance (insert, delete, change one letter), giving up once it must exceed `max`. */
@@ -27,25 +36,28 @@ function distance(a: string, b: string, max: number): number {
 
 /** Whether `word` is within one changed letter per 4 letters of a known name's word ("LNONENE" → LIMONENE). */
 export function nearKnownName(word: string): boolean {
-  const w = word.toUpperCase();
+  const w = fold(word);
   if (w.length < MIN || !/\p{L}/u.test(w)) return false;
-  return NAME_WORDS.some(n => within(w, n));
+  // EcoGo's own names only (R6 as accepted): counting the USDA words too took the retake hint off photos cut off at the
+  // edge (Minh's chip photos 7 and 8: 44 % → 25 %, 31 % → 23 %), where a retake is the right advice.
+  return [...OURS].some(n => within(w, n));
 }
 
 /** R4: up to 3 known name words close to `word` (fewest changed letters first, then closest length), in its case.
  *  None for a word that already is one: the person types it, or retakes. */
 export function suggestWords(word: string): string[] {
-  const w = word.toUpperCase();
-  if (w.length < MIN || !/\p{L}/u.test(w) || NAME_WORDS.includes(w)) return [];
-  const cased = (n: string) => word === w ? n : word === word.toLowerCase() ? n.toLowerCase() : n[0] + n.slice(1).toLowerCase();
+  const w = fold(word);
+  if (w.length < MIN || !/\p{L}/u.test(w) || NAME_WORDS.includes(word.toUpperCase())) return [];
+  const cased = (n: string) => word === word.toUpperCase() ? n : word === word.toLowerCase() ? n.toLowerCase() : n[0] + n.slice(1).toLowerCase();
   return NAME_WORDS.map(n => ({ n, d: distance(w, n, Math.floor(n.length / 4)) })).filter(c => c.d <= Math.floor(c.n.length / 4))
-    .sort((a, b) => a.d - b.d || Math.abs(a.n.length - w.length) - Math.abs(b.n.length - w.length) || a.n.localeCompare(b.n))
+    .sort((a, b) => a.d - b.d || +OURS.has(b.n) - +OURS.has(a.n) // as close: EcoGo's own names first
+      || Math.abs(a.n.length - w.length) - Math.abs(b.n.length - w.length) || a.n.localeCompare(b.n))
     .slice(0, 3).map(c => cased(c.n));
 }
 
 /** Whether `text` is a known name, or close to one (5+ letters, one changed letter per 4). */
 function nameLike(text: string): boolean {
-  const t = text.toUpperCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+  const t = fold(text).replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
   return NAMES.has(t) || (t.length >= MIN && [...NAMES].some(n => within(t, n)));
 }
 
