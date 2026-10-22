@@ -283,6 +283,10 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - **Privacy section out of date (App.tsx ~535):** lookups also go to Open Beauty Facts (since M16) and Suggest a place
   address search goes to Photon (photon.komoot.io); neither is named → fixed with 066 R8.
 
+- **066 R9 join, one-side-cut pairs (planner, 2026-10-22):** when each photo of a label is cut on a different side
+  (chip photos 7 + 8), no 3-word run lines up, so the new text is appended and repeats; flags are still found (7 + 8
+  → all three colours). A line-by-line join is ~4 h; build it once Minh sends a real rotated curved-label pair to test on.
+
 ### Outside audits by ChatGPT, 2026-10-11 → 14 (RC1 / RW1 / trust-UI / R2; at 5a08ad6; planner triage 2026-10-14)
 
 Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` indexes them). Advice, not decisions.
