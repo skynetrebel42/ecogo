@@ -13,14 +13,14 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 - [x] Perfume label (2026-10-21): found three photo-reading bugs → Label reader v2 (066).
 - [x] **1A** (2026-10-22: hair mousse, curved gold label → "hard to read" and junk text on the old reader; goes into 066 as a test photo; personal care has no "add to database" yet) Soap or shampoo: pick Personal care → Take a photo of the ingredients (flat, good light). See: the words
       match the label; any wrong word is underlined. Note it if you get "not clear" on a sharp photo.
-- [ ] **1B** Lotion: same steps. See: if it lists fragrance/parfum, a note naming the 2022 US law (MoCRA).
+- [x] **1B** (2026-10-22: a fragrance product showed the MoCRA note; the Equate lotion lists no fragrance, so no note, correct) Lotion: same steps. See: if it lists fragrance/parfum, a note naming the 2022 US law (MoCRA).
 - [ ] **1C** A flat food box: pick Food → Take a photo. See: fewer mistakes than the curved perfume bottle.
-- [ ] **1D** Perfume again, typed: pick Type it, enter the list by hand. See: "No matches in EcoGo's checked list."
+- [x] **1D** (2026-10-22: Burberry box, 9 allergen notes on the old reader; 066 should catch the 5 it misread) Perfume again, typed: pick Type it, enter the list by hand. See: "No matches in EcoGo's checked list."
       plus allergen notes (benzyl salicylate, limonene…).
 
 ## 2 · Camera: scanning barcodes
-- [ ] **2A** Lotion, soap or shampoo barcode. See: no "More from USDA" section; bigger Back and Save buttons.
-- [ ] **2B** Sunscreen barcode (when you have one). See: FDA status rows and FDA's "more data needed…" line once.
+- [ ] **2A** (2026-10-22: Pantene shampoo isn't in any database, so not testable with it; try another) Lotion, soap or shampoo barcode, **if EcoGo finds it** (not "We couldn't find this barcode"). See: no "More from USDA" section; bigger Back and Save buttons.
+- [ ] **2B** (2026-10-22: Coppertone isn't in any database; its label check works instead) Sunscreen barcode, **if EcoGo finds it** (when you have one). See: FDA status rows and FDA's "more data needed…" line once.
 - [ ] **2C** (2026-10-22: Equate hand soap isn't on EPA's barcode list, so no card, which is correct; try Seventh Generation) Seventh Generation dish liquid (732913451302) or another Safer Choice cleaner. See: a green "EPA Safer
       Choice certified" card, EPA's "not an endorsement" line, the California line.
 - [x] **2D** (2026-10-22: disinfectant spray, no Safer Choice text; the "Cleaning product" dead end goes to 068) Any cleaner not on EPA's list. See: no Safer Choice text at all.
