@@ -212,7 +212,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
   const updateUrl = updateInfoUrl(product);
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="absolute inset-0 z-50 flex flex-col bg-white" style={{ fontFamily: "'Plus Jakarta Sans Variable', sans-serif" }}>
 
       {/* ── Hero ── */}
       <div data-hero {...behind} className="flex-shrink-0 relative" style={{ background: look.gradient, "--hero-solid": look.solid } as CSSProperties}>

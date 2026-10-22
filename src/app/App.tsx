@@ -535,9 +535,10 @@ function ProfileTab({ recentCount, onClearRecent }: { recentCount: number; onCle
       <Accordion title="Privacy" summary="What leaves your phone">
         <p className="text-xs text-foreground/80 leading-relaxed">The camera reads barcodes on your phone. Ingredient photos are read on your phone too; checking a list without a barcode sends nothing.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">If you add a product, what you send goes to Open Food Facts and is public there: the photos, the ingredients you checked, the barcode and the name. EcoGo keeps an anonymous ID and a log of your submissions (barcode, time, result). At your first Send, Cloudflare runs a human check.</p>
-        <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, to Open Food Facts.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, its barcode goes to Open Food Facts and then Open Beauty Facts.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The product catalog loads from EcoGo's database. Your recently viewed list stays in this browser.</p>
         <p className="text-xs text-foreground/80 leading-relaxed">The map asks for your location only when you tap My location. Your location stays on your phone. Map images load from OpenStreetMap's servers, which see the map area you're viewing, as with any web map.</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">When you suggest a place, the address you type is sent to Photon (photon.komoot.io), an address search built on OpenStreetMap, to suggest matches. What you suggest or report is sent to EcoGo and read by its owner; it isn't shown in the app.</p>
       </Accordion>
 
       <p className="text-mini text-muted-foreground text-center leading-relaxed">
@@ -656,8 +657,8 @@ export default function App() {
       style={IS_PHONE ? undefined : { background: "linear-gradient(135deg, #0a1a0f 0%, #1A5C39 50%, #0d3d2b 100%)" }}>
       <div className={IS_PHONE ? "absolute inset-0 overflow-hidden" : "relative overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.7)] flex-shrink-0"}
         style={IS_PHONE
-          ? { background: "#F8F7F2", fontFamily: "'Plus Jakarta Sans', sans-serif" }
-          : { width: 390, height: 844, borderRadius: 44, background: "#F8F7F2", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          ? { background: "#F8F7F2", fontFamily: "'Plus Jakarta Sans Variable', sans-serif" }
+          : { width: 390, height: 844, borderRadius: 44, background: "#F8F7F2", fontFamily: "'Plus Jakarta Sans Variable', sans-serif" }}>
 
         {/* Welcome: first visit on this device only */}
         {appState === "welcome" && (

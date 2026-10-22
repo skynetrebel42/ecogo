@@ -1,0 +1,12 @@
+EcoGo's label reader (066) uses these files, unchanged:
+
+PP-OCRv6_tiny_det_onnx_infer.tar, PP-OCRv6_tiny_rec_onnx_infer.tar
+  PP-OCRv6 tiny text detection and recognition models, Copyright (c) PaddlePaddle Authors.
+  Licensed under the Apache License, Version 2.0 (LICENSE-Apache-2.0.txt in this folder).
+  Source: https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/
+  Model cards: https://huggingface.co/PaddlePaddle/PP-OCRv6_tiny_det, https://huggingface.co/PaddlePaddle/PP-OCRv6_tiny_rec
+
+ort-wasm-simd-threaded.wasm.gz (added at build time from the onnxruntime-web package)
+  ONNX Runtime Web 1.30.0, Copyright (c) Microsoft Corporation. MIT License (LICENSE-onnxruntime-MIT.txt in this folder).
+
+The reader code (@paddleocr/paddleocr-js, Apache-2.0, with OpenCV.js, Apache-2.0) is bundled into the app's scripts.

@@ -12,7 +12,7 @@ import { offEditUrl, offProductUrl } from "../../lib/lookup";
 import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
 import { offSubmit, supabase } from "../../lib/supabase";
 import { justReached, readContributions } from "../../lib/contributions";
-import { IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoNotice, PhotoTips, Reading } from "./IngredientCheck";
+import { AnotherPhoto, IngredientEditor, INGREDIENTS_TIP, PhotoButtons, PhotoNotice, PhotoTips, Reading } from "./IngredientCheck";
 import CropPhoto from "./CropPhoto";
 
 type Kind = PhotoKind;
@@ -118,8 +118,10 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
     if (!live()) return;
     // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (049 H2); the box starts
     // empty either way (K2).
-    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStep("check");
+    setText(r.text); setUnsure(r.unsure); setLines(r.lines); setReadError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setStep("check"); setJoined(false);
   };
+  // 066 R9: more photos of the ingredients join the box's text and stay on the phone: only the first is sent (planner).
+  const [joined, setJoined] = useState(false);
   const onPhoto = (kind: Kind) => async (file: File) => {
     setPhotoError(undefined);
     const live = begin();
@@ -232,17 +234,22 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
     {header("Check the ingredients", "Step 2 of 3", false)}
     <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
       {hard ? <PhotoNotice title="This photo is hard to read." onRetake={() => goTo("ingredients")} onUseAnyway={() => setHard(false)} /> : <>
-        {photos.ingredients && <div className="w-24"><Thumb blob={photos.ingredients} label={LABEL.ingredients} />{cropButton("ingredients")}</div>}
+        {/* R9 (planner): no Crop after a join: cropping reads the first photo again and would drop the joined text */}
+        {photos.ingredients && <div className="w-24"><Thumb blob={photos.ingredients} label={LABEL.ingredients} />{!joined && cropButton("ingredients")}</div>}
         {photos.ingredients && !readError && readText === undefined && (
           <p className="text-sm text-gray-700 leading-relaxed">EcoGo read this from your photo. Fix anything it got wrong.</p>
         )}
         <IngredientEditor value={text} onChange={setText} unsure={unsure} note={readError} lines={lines} onLines={setLines}
-          read={readText} onShowRead={() => { setText(readText!); setReadText(undefined); }} />
+          read={readText} onShowRead={() => { setText(readText!); setReadText(undefined); }} onRetake={() => goTo("ingredients")}>
+          {photos.ingredients && <AnotherPhoto text={text} unsure={unsure} begin={begin} onError={setReadError}
+            onRead={r => { setText(r.text); setUnsure(r.unsure); setLines(null); setReadError(undefined); setReadText(undefined); setJoined(true); }} />}
+        </IngredientEditor>
       </>}
     </div>
     {!hard && <div className="px-4 pt-3 pb-6 flex gap-2.5">
       <button onClick={() => goTo("ingredients")} className="min-h-[52px] px-4 rounded-2xl border border-border bg-white font-bold text-sm">Retake</button>
-      <button onClick={() => setStep("nutrition")} disabled={!text.trim()}
+      {/* goTo, not setStep: an extra photo still being read is dropped */}
+      <button onClick={() => goTo("nutrition")} disabled={!text.trim()}
         className="flex-1 min-h-[52px] rounded-2xl bg-[#1A5C39] text-white font-extrabold text-[15px] disabled:opacity-50">Next: nutrition photo</button>
     </div>}
   </>);
@@ -320,7 +327,7 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
       <div className="bg-white border border-border rounded-2xl p-3.5 space-y-2">
         <h2 className="text-[15px] font-extrabold">This will be public</h2>
         <p className="text-xs text-gray-700 leading-relaxed">Open Food Facts is a free, open database. Your photos and text will be public there, for anyone to see and reuse, under its open licenses (photos CC BY-SA, data ODbL).</p>
-        <p className="text-xs text-gray-700 leading-relaxed">Make sure no faces, receipts or anything personal show in the photos.</p>
+        <p className="text-xs text-gray-700 leading-relaxed">Photograph only the label, never anything private.</p>
         <label className="flex gap-2.5 items-start text-sm font-semibold leading-snug pt-1">
           <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} disabled={sending} className="w-[22px] h-[22px] m-0 flex-shrink-0" />
           <span>I took these photos, and they show only the product.</span>

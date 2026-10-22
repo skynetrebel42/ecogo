@@ -14,12 +14,15 @@
     "import:saferchoice": "node scripts/import-saferchoice.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/plus-jakarta-sans": "5.3.0",
+    "@paddleocr/paddleocr-js": "0.4.2",
     "@supabase/supabase-js": "^2.108.2",
     "@tesseract.js-data/eng": "^1.0.0",
     "barcode-detector": "3.2.2",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "lucide-react": "0.487.0",
+    "onnxruntime-web": "1.30.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "tesseract.js": "^7.0.0",

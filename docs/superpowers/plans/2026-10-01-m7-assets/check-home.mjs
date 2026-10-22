@@ -264,6 +264,15 @@ try {
     b.click(); await __sleep(400); const t = document.body.innerText; b.click(); await __sleep(300); return t; })()`);
   check("053 W5: Privacy says OpenStreetMap's servers see the map area", privacy.includes("The map asks for your location only when you tap My location. "
     + "Your location stays on your phone. Map images load from OpenStreetMap's servers, which see the map area you're viewing, as with any web map."));
+  check("066 R8: Privacy names Open Beauty Facts for barcodes and Photon for place addresses (as Minh approved)",
+    privacy.includes("To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, its barcode goes to Open Food Facts and then Open Beauty Facts.")
+    && privacy.includes("When you suggest a place, the address you type is sent to Photon (photon.komoot.io), an address search built on OpenStreetMap, to suggest matches. "
+      + "What you suggest or report is sent to EcoGo and read by its owner; it isn't shown in the app."));
+  // 066 R8 (fonts, Minh's yes): Plus Jakarta Sans comes from EcoGo's own site; opening the app sends nothing to Google.
+  const font = await run(`document.fonts.ready.then(() => [...document.fonts].filter(f => f.family.includes("Plus Jakarta Sans") && f.status === "loaded").length)`);
+  check("066 R8: the font loads from EcoGo's own site; nothing goes to Google Fonts", font > 0
+    && !requests.some(u => /fonts\.(googleapis|gstatic)\.com/.test(u)) && requests.some(u => u.startsWith(new URL(URL_).origin) && u.endsWith(".woff2")),
+    `${font} loaded; ${requests.filter(u => /woff2|fonts\./.test(u)).join(" ")}`);
   const gh = await run(`(() => { const a = [...document.querySelectorAll("a")].find(a => a.innerText.includes("Source code")); return a ? a.href + " " + a.target : null; })()`);
   check("Profile: source-code link opens GitHub in a new tab", gh === "https://github.com/skynetrebel42/ecogo _blank", gh);
   await home();
@@ -398,6 +407,9 @@ try {
   await run(`(async () => { document.querySelector('input[type="checkbox"]').click(); await __sleep(200); return true; })()`);
   const sendOn = await run(`__btn("Send")?.disabled === false`);
   check("M8: Send stays disabled until the checkbox is ticked", sendOff === true && sendOn === true, `before ${sendOff}, after tick disabled=${!sendOn}`);
+  const sendBox = await run(`document.body.innerText`);
+  check("066 R8: the 'This will be public' box says 'Photograph only the label, never anything private.' (Minh's words)",
+    sendBox.includes("Photograph only the label, never anything private.") && !sendBox.includes("Make sure no faces"));
   check("M8: the human check loads only on the Send screen", !beforeSend && turnstile());
   const backed = await run(`(async () => { __btn("Back").click(); await __sleep(300); const nutrition = !!__btn("Skip");
     __btn("Back").click(); await __sleep(300); return nutrition && document.querySelector("#ingredients")?.value; })()`);
@@ -438,6 +450,14 @@ try {
   const croppedSize = await natural("Ingredients photo");
   check("…Done gives a smaller ingredients photo and reads it again", fullSize === "1000×400" && croppedSize === "800×400" && await run(`window.__sawReading`),
     `${fullSize} → ${croppedSize}, read again: ${await run(`window.__sawReading`)}`);
+  // 066 R9: the check step offers "Add another photo"; the full label joins the cropped one's text, and Crop goes
+  // (cropping reads the first photo again and would drop the joined text). Only the first photo is sent (planner).
+  const r9 = await run(`(async () => { const t = document.body.innerText; ${pickJs(LABEL_PNG).replace(`'input[data-photo="library"]'`, `'input[data-photo="another"]'`)}
+    await __until(() => /Joined 2 photos|Added the new photo/.test(document.body.innerText), 60000);
+    return { hint: t.includes("Curvy label? Cut off? Add more pics."), button: !!__btn("Add another photo"),
+      note: document.body.innerText.includes("Joined 2 photos. Check where they meet."), crop: !!__btn("Crop") }; })()`);
+  check("066 R9: the check step offers 'Add another photo'; a second photo of the label joins the text, and Crop goes",
+    r9.hint && r9.button && r9.note && !r9.crop, JSON.stringify(r9));
   await typeIngredients("Water, sugar, Red 40");
   await run(`(async () => { __btn("Next: nutrition photo").click(); await __sleep(300); return true; })()`);
   await upload();
