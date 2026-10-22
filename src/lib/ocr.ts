@@ -3,6 +3,7 @@
 // public/tesseract/ before every dev/build, so no CDN is called. It loads only when a photo is read.
 
 import type { Block, Worker } from "tesseract.js";
+import { nearKnownName } from "./suggest.ts";
 
 /** Words read with less confidence than this (0–100) are underlined for the person to check. */
 const UNSURE_BELOW = 70;
@@ -79,10 +80,12 @@ export function unsureCount(text: string, unsure: string[]): { words: number; un
 }
 
 /** G4: suggest a retake (never block) when at least this share of the kept words is unsure, or nothing was kept.
- *  25 % (planner, 2026-10-08): clear labels measure 0 %, the curved-bag fixture 29 %, Minh's real Takis read ~50 %. */
+ *  25 % (planner, 2026-10-08): clear labels measure 0 %, the curved-bag fixture 29 %, Minh's real Takis read ~50 %.
+ *  066 R6 (OCR-03): unsure words near a known ingredient name don't count: on a sharp, narrow, curved label they are the
+ *  reader's misreads (a retake won't fix them; R4 offers the name), so Minh's perfume went 30 % → 13 %. */
 export const HARD_TO_READ = 0.25;
 export function hardToRead(text: string, unsure: string[]): boolean {
-  const c = unsureCount(text, unsure);
+  const c = unsureCount(text, unsure.filter(w => !nearKnownName(w)));
   return !c.words || c.unsure / c.words >= HARD_TO_READ;
 }
 

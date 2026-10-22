@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { afterRead, cleanIngredients, hardToRead, labelLines, linesText, trimToIngredients, unsureCount, unsureWords } from "./ocr.ts";
 
 const word = (text: string, confidence: number) => ({ text, confidence });
@@ -126,6 +127,25 @@ test("a photo is hard to read at 25% unsure kept words, or when nothing was kept
   assert.equal(hardToRead("a b c d e f g h i j k l m n o p q r s t", ["a", "b", "c", "d"]), false, "20%");
   assert.equal(hardToRead("a b c d e f g h i j k l m n o p q r s t", ["a", "b", "c", "d", "e"]), true, "25%");
   assert.equal(hardToRead("  ", []), true, "nothing kept");
+});
+
+// 066 R6 (OCR-03): recorded Tesseract reads. Unsure words near a known ingredient name (R4 offers a fix) don't count
+// toward the retake hint; a sharp but narrow, curved label isn't the photo's fault. Glare, angle, cut-off and blur still are.
+const recorded: Record<string, { lines: string[]; unsure: string[] }> =
+  JSON.parse(readFileSync(new URL("./fixtures/ocr/tesseract-reads.json", import.meta.url), "utf8")).reads;
+const hardRead = (name: string) => { const r = recorded[name]; return hardToRead(linesText(labelLines(r.lines)), r.unsure); };
+
+test("a sharp perfume label whose unsure words are near-misses of known names isn't hard to read", () => {
+  assert.equal(hardRead("perfume-screen"), false);
+});
+
+test("glare, an angle, a cut-off edge or blur still make a photo hard to read", () => {
+  for (const name of ["chips3", "chips4", "chips5", "chips7", "chips8"]) assert.equal(hardRead(name), true, name);
+});
+
+test("unsure words that are near a known name are left out of the share; others still count", () => {
+  assert.equal(hardToRead("LNONENE VANILLI SALT SUGAR", ["LNONENE", "VANILLI"]), false, "both near names: 0 %");
+  assert.equal(hardToRead("FLAMMABIE AGE SALT SUGAR", ["FLAMMABIE"]), true, "not near a name: 25 %");
 });
 
 test("a line with only punctuation left in the range isn't ticked", () => {
