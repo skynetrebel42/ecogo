@@ -34,10 +34,10 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 - [ ] **3B** A product not on Open Food Facts yet: three photos → Send. See: "Sent"; it appears on OFF later.
 
 ## 4 · Screens
-- [ ] **4A** Home. See: "What are you checking?" at the top.
-- [ ] **4B** Search "zzzz". See: suggestions include shampoo and sunscreen, and "Or scan its barcode".
-- [ ] **4C** Profile. See: the contribution labels are easy to read.
-- [ ] **4D** Map → Suggest a place. See: every field has a visible border.
+- [x] **4A** (2026-10-22) Home. See: "What are you checking?" at the top.
+- [x] **4B** (2026-10-22) Search "zzzz". See: suggestions include shampoo and sunscreen, and "Or scan its barcode".
+- [x] **4C** (2026-10-22) Profile. See: the contribution labels are easy to read.
+- [x] **4D** (2026-10-22) Map → Suggest a place. See: every field has a visible border.
 - [x] **4E** (2026-10-22: info good; wants bubbles, bullets and source buttons, see playtest notes) Home → the 7th Learn tile "Risks a label can't show" (full width). See: five short sections and source cards.
 
 ## 5 · Demo day (planned Thu 2026-10-22)
