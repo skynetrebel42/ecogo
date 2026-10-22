@@ -27,14 +27,19 @@ const STOP = new RegExp(`(^|[^\\p{L}\\p{N}(])(${["contains(?!\\s*:?\\s*(?:\\d|le
   "distributed by", "manufactured (?:by|for)", "produced by", "packed by", "nutrition facts", "best before", "best by",
   "keep refrigerated", "store in", "net wt", "caution", "warnings?", "directions", "avoid contact", "keep out of reach",
   "for external use", "flammable"].map(s => s.replace(/ /g, "\\s+")).join("|")})(?![\\p{L}\\p{N}-])`, "iu");
+// 066 (planner): "INGREDIENTS:" with its left end cut off by a curve or the photo's edge ("CREDIENTS:"): a word ending in
+// DIENTS (or EDIENT) and a colon, at the start of a line. NUTRIENTS:, CONTENTS: and DIRECTIONS: don't end that way.
+const CUT_START = /(^|\n)[ \t]*(\p{L}*(?:dients|edient))[ \t]*:/iu;
 const asWord = (s: string) => s.replace(/\s+/g, " ").toLowerCase().replace(/^./, c => c.toUpperCase());
 
-/** Where the ingredient list is in text read from a label: just after the first "Ingredients", up to the first stop
- *  phrase after it. No start word → from the beginning; no stop phrase → to the end. */
+/** Where the ingredient list is in text read from a label: just after the first "Ingredients" (or one cut at the left
+ *  edge), up to the first stop phrase after it. No start word → from the beginning; no stop phrase → to the end. With no
+ *  start word, a stop phrase before any text ("DIRECTIONS: …" first) cuts nothing: the line checkboxes decide. */
 export function trimToIngredients(text: string): { start: number; end: number; startWord?: string; stopWord?: string } {
-  const s = START.exec(text);
+  const s = START.exec(text) ?? CUT_START.exec(text);
   const start = s ? s.index + s[0].length : 0;
   const e = STOP.exec(text.slice(start));
+  if (!s && e && !/[\p{L}\p{N}]/u.test(text.slice(0, e.index + e[1].length))) return { start: 0, end: text.length };
   return {
     start, end: e ? start + e.index + e[1].length : text.length,
     ...(s && { startWord: asWord(s[2]) }), ...(e && { stopWord: asWord(e[2]) }),

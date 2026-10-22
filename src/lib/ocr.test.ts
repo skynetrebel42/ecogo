@@ -102,6 +102,26 @@ test("other warning phrases end the list too, in any case, across a line break",
   assert.equal(kept("Ingredients: butane, propane. Extremely flammable."), "butane, propane. Extremely");
 });
 
+// 066 (planner): a curve or a cut edge can lose the start of "INGREDIENTS:" (Minh's mousse read "CREDIENTS:").
+test("a start word cut at the left edge counts at the start of a line: a word ending in DIENTS(S) and a colon", () => {
+  const label = "Salon foam.\nDIRECTIONS: Apply evenly.\nCREDIENTS: WATER (AQUA), GLYCERIN,\nPHENOXYETHANOL\nCAUTION: KEEP OUT OF REACH";
+  assert.equal(kept(label), "WATER (AQUA), GLYCERIN,\nPHENOXYETHANOL");
+  assert.equal(trimToIngredients(label).startWord, "Credients");
+  assert.equal(trimToIngredients("Hair care\nDIENTS: WATER, SALT").startWord, "Dients");
+});
+
+test("NUTRIENTS:, CONTENTS: and DIRECTIONS: never start the list, nor a cut start word mid-line or without a colon", () => {
+  for (const t of ["NUTRIENTS: iron\nwater, salt", "CONTENTS: 200 ml\nwater, salt", "DIRECTIONS: rinse\nwater, salt",
+    "Made with CREDIENTS: water, salt", "CREDIENTS water, salt"]) assert.equal(trimToIngredients(t).startWord, undefined, t);
+});
+
+test("with no start word, a stop phrase before any text doesn't empty the list: nothing is cut", () => {
+  const label = "DIRECTIONS: Use to wash hands.\nWATER, GLYCERIN, SODIUM CHLORIDE.\nDISTRIBUTED BY: Acme";
+  assert.deepEqual(trimToIngredients(label), { start: 0, end: label.length });
+  assert.ok(labelLines(label.split("\n")).every(l => l.on), "every line ticked: the checkboxes are the person's way to leave lines out");
+  assert.deepEqual(trimToIngredients("sugar, salt. Contains: soy"), { start: 0, end: 13, stopWord: "Contains" }, "text before the stop: unchanged");
+});
+
 test("each line read keeps its part of the ingredients; lines outside start unticked", () => {
   const lines = labelLines(["Fruity Chews", "INGREDIENTS: SUGAR, CORN", "SYRUP, RED 40. CONTAINS: NO", "ALLERGENS.", "Distributed by Acme"]);
   assert.deepEqual(lines.map(l => [l.kept, l.on]), [["", false], ["SUGAR, CORN", true], ["SYRUP, RED 40.", true], ["", false], ["", false]]);
