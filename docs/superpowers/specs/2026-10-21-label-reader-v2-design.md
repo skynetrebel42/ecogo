@@ -26,10 +26,11 @@
 | R8 | **Privacy warning on photos that leave the phone** (Q1): the Open Food Facts send's photo step adds "never photograph anything private" next to its existing "public there" line; and the Privacy section (App.tsx ~535) brought up to date: it also names Open Beauty Facts (barcode lookups since M16) and Photon (Suggest a place address search) (planner, 2026-10-22); wording to the planner | UI |
 
 ## 2. Testing
-- R1's table in the builder's report (real output). Node tests: suggestion ranking (the perfume misreads "UIHONENE" →
-  limonene, "HYDROXYCITRONELLASS" → hydroxycitronellal in the top 3), the split, stop words, R6's threshold.
-- check-ocr: a curved-label fixture (§5 Q1) reads with the allergens found after accepting suggestions; the reader and
-  lists load from EcoGo's own site only; no request leaves the page. All six browser gates + `npm test` + build within budget (split, never raise).
+- ✅ R1's table in the builder's report (real output). ✅ Node tests: suggestion ranking (the perfume misreads "UIHONENE" →
+  limonene, "HYDROXYCITRONELLASS" → hydroxycitronellal in the top 3), the split, stop words, R6's threshold; R9's join.
+- ✅ check-ocr: a curved-label fixture (§5 Q1) reads with the allergens found after accepting suggestions; the reader and
+  lists load from EcoGo's own site only; no request leaves the page. R9 in check-ocr and check-home; R8's wording and
+  self-hosted font in check-home. ✅ All six browser gates + `npm test` + build within budget (split, never raise).
 - Live: Minh repeats test 1A–1C on his checklist with v2.
 
 ## 3. Out of scope
