@@ -95,7 +95,7 @@ try {
   await helpers();
   const w = await run(`(async () => { await __until(() => __btn("Look around first")); return document.body.innerText; })()`);
   check("welcome is honest: what EcoGo does, no fake promises", w.includes("Scan. Learn. Decide.") && w.includes("Start scanning")
-    && !/Sign In|Save Money|better prices|Best Price|Amazon|Walmart|Get Started/i.test(w));
+    && !/Sign In|Save Money|better prices|Best Price|Amazon|Walmart|Get Started/i.test(w), String(w).replace(/\n/g, " / ").slice(0, 300));
   await run(`__guest()`); await sleep(800);
 
   const t = await run(`document.body.innerText`);
@@ -268,6 +268,10 @@ try {
     privacy.includes("To find a product, its barcode or search words are sent to EcoGo's database (hosted on Supabase) and, if it isn't there, its barcode goes to Open Food Facts and then Open Beauty Facts.")
     && privacy.includes("When you suggest a place, the address you type is sent to Photon (photon.komoot.io), an address search built on OpenStreetMap, to suggest matches. "
       + "What you suggest or report is sent to EcoGo and read by its owner; it isn't shown in the app."));
+  check("070 C4: Privacy says cloud help is off unless turned on, and what it sends (as Minh approved)",
+    privacy.includes("Ingredient photos are read on your phone too; checking a list without a barcode sends nothing unless you turn on cloud help.")
+    && privacy.includes("Cloud help is off unless you turn it on. When it's on, a hard-to-read label photo is sent through EcoGo's server to OCR.space, "
+      + "which says it deletes uploaded documents after processing. Nothing else about you is sent."));
   // 066 R8 (fonts, Minh's yes): Plus Jakarta Sans comes from EcoGo's own site; opening the app sends nothing to Google.
   const font = await run(`document.fonts.ready.then(() => [...document.fonts].filter(f => f.family.includes("Plus Jakarta Sans") && f.status === "loaded").length)`);
   check("066 R8: the font loads from EcoGo's own site; nothing goes to Google Fonts", font > 0
