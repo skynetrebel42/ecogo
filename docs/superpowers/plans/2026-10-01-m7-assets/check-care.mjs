@@ -187,7 +187,7 @@ try {
     bare.includes("No ingredient list on Open Beauty Facts.") && bare.includes("Check the label yourself") && !bare.includes("Add the ingredients"));
   await click("Check the label yourself");
   const pressed = await run(`[...document.querySelectorAll('[aria-labelledby="check-kind"] button')].map(b => b.innerText + ":" + b.getAttribute("aria-pressed")).join(",")`);
-  check("N6: from an OBF page the check starts on Personal care", pressed === "Food:false,Personal care:true", pressed);
+  check("N6: from an OBF page the check starts on Personal care", pressed === "Food:false,Personal care:true,Cleaning product:false", pressed); // 068 G2: three choices
   const own = await typeIngredients("Aqua, Petrolatum, Parfum");
   check("N6: the typed list is checked as personal care, said to be from what you typed", own.includes("No matches in EcoGo's checked list.")
     && own.includes("From what you typed, not from Open Beauty Facts.") && own.includes("Fragrance:"));
@@ -242,17 +242,19 @@ try {
   await click("Food");
   check("N6: switching to Food runs the food check on the same text", (await run(`document.querySelector('[role="status"]')?.innerText ?? ""`)).includes("Nothing flagged among"));
   await click("Close");
-  // M17 S4: not found → Cleaning product: EPA's label explained, the California line, the maker's website; no buttons to add or check.
+  // M17 S4 + 068 S3 (G3): not found → Cleaning product: EPA's label explained, the California line, the cleaner line, and
+  // "Check the label yourself" (check-scan follows it); no Add or Open Food Facts.
   await home();
   const nfAgain = await scanTyped("0099990000031", "We couldn't find this barcode yet");
   check("S2: the not-found screen says nothing about Safer Choice until Cleaning product is picked", nfAgain.includes("What is it?") && !nfAgain.includes("Safer Choice"));
   await click("Cleaning product");
   const cleanNf = await text();
-  check("S4: Cleaning product shows what EPA's label means, the California line and 'Check the maker's website'",
+  check("S4, 068: Cleaning product shows what EPA's label means, the California line and the cleaner line",
     cleanNf.includes("Products with EPA's Safer Choice label have had every chemical ingredient reviewed by EPA against criteria for human health and the environment.")
-    && cleanNf.includes(CALIFORNIA) && cleanNf.includes("Check the maker's website for the full ingredient list."));
-  check("S4: and no Add, Check the label or Open Food Facts buttons (nothing is sent; no cleaner library yet)",
-    !/Add this product|Check the label yourself|Open Food Facts website|Safer Choice certified/.test(cleanNf) && cleanNf.includes("Scan another product"));
+    && cleanNf.includes(CALIFORNIA) && cleanNf.includes("EcoGo's cleaner checks are just starting: for now it looks for cancer findings (IARC). More official lists are coming.")
+    && !cleanNf.includes("Check the maker's website"));
+  check("S4, 068: 'Check the label yourself', and no Add or Open Food Facts buttons (nothing is sent)",
+    !/Add this product|Open Food Facts website|Safer Choice certified/.test(cleanNf) && cleanNf.includes("Check the label yourself") && cleanNf.includes("Scan another product"));
   const kinds = await run(`[...document.querySelectorAll('[aria-labelledby="what-is-it"] button')].map(b => b.innerText.replace(/\\s+/g, " ") + ":" + b.getAttribute("aria-pressed")).join(",")`);
   const heights = await run(`[...document.querySelectorAll('[aria-labelledby="what-is-it"] button')].map(b => Math.round(b.getBoundingClientRect().height))`);
   check("S4: three 'What is it?' choices, Cleaning product pressed, each at least 44 px tall",

@@ -368,12 +368,13 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
     setSendable(prepared);
     if (blurred) setBlurry(photo); else await read(photo, false, live);
   };
-  // 068 S2: the clipboard is read only on this tap; refused, unsupported or empty → the box gets focus (long-press → Paste).
+  // 068 S2: the clipboard is read only on this tap. The box gets focus first, inside the tap (iOS ignores a focus after
+  // an await), so when the read is refused, unsupported or empty the person can long-press → Paste.
   const paste = async () => {
+    document.getElementById("ingredients")?.focus();
     let clip = "";
     try { clip = await navigator.clipboard.readText(); } catch { /* refused or no clipboard API */ }
-    if (pasteInto("", clip) === null) document.getElementById("ingredients")?.focus();
-    else setText(t => pasteInto(t, clip)!);
+    if (pasteInto("", clip) !== null) setText(t => pasteInto(t, clip)!);
   };
   const reset = () => { begin(); setSendable(undefined); setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setCloudBusy(false); setStatus("idle"); };
   const showHard = mode === "photo" && status === "read" && hard;

@@ -94,7 +94,7 @@ try {
 
   await run(`(async () => { __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
     __btn("Close camera")?.click(); await __sleep(800); return true; })()`);
-  check("the Scan drawer offers 'Check ingredients' (068)", !!(await run(`!!__btn("Check ingredients")`)));
+  check("the Scan drawer offers 'Check ingredients' (068)", !!(await run(`[...document.querySelectorAll("button")].some(b => b.innerText.trim() === "Check ingredients")`)));
   await run(`(async () => { __btn("Check ingredients").click(); await __sleep(500); return true; })()`);
   const opened = await run(`document.body.innerText`);
   check("it opens Check ingredients with the 'nothing saved or sent' note", opened.includes("Check ingredients")
