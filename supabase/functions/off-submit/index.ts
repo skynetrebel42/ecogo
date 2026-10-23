@@ -3,6 +3,7 @@
 // account. Answers { ok: true } or { ok: false, reason } (reasons as in src/lib/contribute.ts).
 // Secrets: OFF_BASE, OFF_USER, OFF_PASSWORD, OFF_CONTACT; SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are built in.
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { readUpTo } from "../_shared/body.ts";
 import { imageForm, limitReason, offHeaders, photoResult, productForm, sendPlan, sendReply, validForm, withLater, type OffAccount, type PhotoKind, type PhotoResult } from "./off.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }; // Supabase Edge Functions: work after the answer
@@ -21,6 +22,7 @@ const answer = (status: number, body: { ok: boolean; reason?: string; textKept?:
 
 const PHOTO_FIELDS: Record<string, PhotoKind> = { front: "front", ingredients_photo: "ingredients", nutrition: "nutrition" };
 const MAX_PHOTO = 5 * 1024 * 1024; // the app sends ≤ 2000 px JPEGs, well under this
+const MAX_BODY = 3 * MAX_PHOTO + 64 * 1024; // three photos and the text fields (075 M1)
 
 Deno.serve(async req => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -31,9 +33,14 @@ Deno.serve(async req => {
   const { data: { user } } = await db.auth.getUser(jwt);
   if (!user) return answer(401, { ok: false, reason: "captcha" });
 
-  // What they send (trust boundary: check everything).
+  // What they send (trust boundary: check everything). 075 M1: read no further than MAX_BODY, with or without Content-Length.
+  if (Number(req.headers.get("Content-Length") ?? 0) > MAX_BODY) return answer(413, { ok: false, reason: "invalid" });
   let form: FormData;
-  try { form = await req.formData(); } catch { return answer(400, { ok: false, reason: "invalid" }); }
+  try {
+    const body = await readUpTo(req, MAX_BODY);
+    if (!body) return answer(413, { ok: false, reason: "invalid" });
+    form = await new Response(body, { headers: { "Content-Type": req.headers.get("Content-Type") ?? "" } }).formData();
+  } catch { return answer(400, { ok: false, reason: "invalid" }); }
   const code = String(form.get("code") ?? "");
   const ingredients = String(form.get("ingredients") ?? "").trim();
   const name = String(form.get("name") ?? "").trim();

@@ -1,6 +1,7 @@
 // place.ts — what `place-submit` checks and does (M8.1 spec P1, P2, P4, P4a): one suggestion or report a call, into
-// `place_reports`. No imports and the database passed in, so Deno (index.ts) and `node --test` both load it.
+// `place_reports`. Only a relative import and the database passed in, so Deno (index.ts) and `node --test` both load it.
 // Answers { ok: true } or { ok: false, reason } (reasons as in src/lib/contribute.ts).
+import { readUpTo } from "../_shared/body.ts";
 
 export const PER_PERSON_DAILY = 10;
 export const ALL_DAILY = 50; // the owner reviews each one by hand
@@ -10,7 +11,6 @@ const NOTE_MAX = 500;
 const WHO_NOTE_MAX = 100;
 const TEXT_MAX = 200; // name, address
 const MAX_BODY = 8 * 1024; // the longest valid form is ~2 KB
-// ponytail: a body sent without Content-Length (chunked) is still read in full; Supabase caps request size anyway.
 
 const OFFERS = ["Food pantry", "Free meals", "Community fridge", "Other"];
 const WHO = ["Anyone", "Students only", "Other"];
@@ -94,6 +94,8 @@ export async function placeSubmit(req: Request, db: PlaceDb, now = new Date()): 
   const user = jwt ? await db.userId(jwt).catch(() => null) : null;
   if (!user) return answer(401, { ok: false, reason: "captcha" });
   if (Number(req.headers.get("Content-Length") ?? 0) > MAX_BODY) return answer(413, { ok: false, reason: "invalid" });
+  const body = await readUpTo(req, MAX_BODY).catch(() => new Uint8Array()); // 075 M1: a streamed body too
+  if (!body) return answer(413, { ok: false, reason: "invalid" });
 
   // P4, M15 C6: each call deletes rejected rows the owner reviewed more than 90 days ago; approved ones keep their row
   // (kind, status, place_ref, dates: M15's count) and lose their text. A failure here mustn't lose the send.
@@ -102,7 +104,7 @@ export async function placeSubmit(req: Request, db: PlaceDb, now = new Date()): 
   await db.clearReviewed("approved", before).catch(err => console.error("cleanup failed", err));
 
   let row: PlaceRow | null = null;
-  try { const b = await req.json(); row = b && typeof b === "object" ? placeRow(b) : null; } catch { /* not JSON */ }
+  try { const b = JSON.parse(new TextDecoder().decode(body)); row = b && typeof b === "object" ? placeRow(b) : null; } catch { /* not JSON */ }
   if (!row) return answer(400, { ok: false, reason: "invalid" });
 
   // ponytail: count-then-insert, so simultaneous sends can pass a limit by a few (as off-submit).

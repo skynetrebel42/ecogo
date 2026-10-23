@@ -1,5 +1,6 @@
 // ocr-cloud's checks and its one call to OCR.space (070 C1, docs/superpowers/specs/2026-10-23-cloud-help-070-design.md).
 // Plain Request → Response with the fetch passed in, so Node tests can run it. Stores nothing; logs no image or text.
+import { readUpTo } from "../_shared/body.ts";
 
 export const SITE = "https://skynetrebel42.github.io";
 export const OCR_SPACE = "https://api.ocr.space/parse/image";
@@ -26,8 +27,8 @@ export async function ocrCloud(req: Request, { key, publicKeys, fetch }: Deps): 
   if (!publicKeys.includes(req.headers.get("apikey") ?? "")) return answer(401, { error: "key" });
   if (Number(req.headers.get("content-length")) > MAX_PHOTO) return answer(413, { error: "size" });
   if (req.headers.get("content-type") !== "image/jpeg") return answer(415, { error: "type" });
-  const photo = new Uint8Array(await req.arrayBuffer());
-  if (photo.length > MAX_PHOTO) return answer(413, { error: "size" });
+  const photo = await readUpTo(req, MAX_PHOTO); // 075 M1: stops past 1 MB, with or without Content-Length
+  if (!photo) return answer(413, { error: "size" });
   if (photo[0] !== 0xff || photo[1] !== 0xd8 || photo[2] !== 0xff) return answer(415, { error: "type" }); // a JPEG's first bytes
   if (!key) { console.error("OCRSPACE_API_KEY is not set"); return busy(); }
 
