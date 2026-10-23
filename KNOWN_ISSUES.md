@@ -234,7 +234,7 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 ### Add a product: known gaps (M8)
 
 - **The Send end to end needs a real browser:** Cloudflare Turnstile (Managed) flags headless Edge and the controlled
-  browser pane as bots (error 600010 or an interactive box), so no automated check presses Send. check-home stops at the
+  browser pane as bots (error 600010 or an interactive box), so no automated check presses Send. check-scan stops at the
   Send button; a live Send is tested by hand in the owner's own browser, on a real product only (real OFF since
   2026-10-09).
 - **Advisor WARN accepted (owner, 2026-10-08):** `auth_allow_anonymous_sign_ins` on `contributions`. The read-own policy
@@ -291,9 +291,10 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - **Shared daily cap:** OCR.space's free plan allows "500 requests per day per IP address"; every EcoGo user goes
   through one Edge Function, so 500 cloud reads a day in total. Over it (or on abuse), everyone sees "Cloud help is
   busy today" until the reset. Per-person quotas were out of scope (spec §3).
-- **Gates leave headless Edge running on Windows** (Headsman VI): `edge.kill()` leaves Edge's browser process; after
-  many runs a port collides and a gate can attach to an old browser with stale localStorage (check-home "welcome is
-  honest" failures). Fix: `Browser.close` over CDP in each gate's finally (tidy-up, with the check-home split).
+- ~~**Gates leave headless Edge running on Windows**~~ ✅ **Fixed in 073 (`4ee1e37`):** every gate starts and closes
+  Edge through `edge.mjs` (`Browser.close` over CDP, then stops anything still running on its `ecogo-` profile), and its
+  last check says nothing is left. *Was* (Headsman VI): `edge.kill()` left Edge's browser process; after many runs a
+  port collided and a gate attached to an old browser with stale localStorage (check-home "welcome is honest" failures).
 
 ### Outside audits by ChatGPT, 2026-10-11 → 14 (RC1 / RW1 / trust-UI / R2; at 5a08ad6; planner triage 2026-10-14)
 
