@@ -39,6 +39,7 @@ try {
   const helpers = () => run(`window.__sleep = ms => new Promise(r => setTimeout(r, ms));
     window.__until = async (fn, ms = 10000) => { for (let t = 0; t < ms; t += 100) { const v = fn(); if (v) return v; await __sleep(100); } return null; };
     window.__btn = s => [...document.querySelectorAll("button")].find(b => b.innerText.includes(s) || b.getAttribute("aria-label") === s);
+    window.__exact = s => [...document.querySelectorAll("button")].find(b => b.innerText.trim() === s);
     // Welcome shows on the first visit only: tap "Look around first" when it's there, else Home is already showing.
     window.__guest = async () => { const b = await __until(() => __btn("Look around first") || __btn("Scan a product"));
       const welcomed = b?.innerText.includes("Look around first"); if (welcomed) { b.click(); await __sleep(400); } return welcomed; }; true`);
@@ -75,20 +76,58 @@ try {
     await __sleep(800); return document.body.innerText; })()`);
   // M8 (spec 2026-10-02-m8-add-product-design.md §7; the photo reader has its own check, check-ocr.mjs).
   check("M8: Home has no no-barcode entry", !(await run(`document.body.innerText`)).includes("No barcode"));
-  await run(`(async () => { __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
-    __btn("Close camera")?.click(); await __sleep(800); return true; })()`);
-  check("M8: the Scan drawer shows 'No barcode? Check ingredients'", !!(await run(`!!__btn("No barcode? Check ingredients")`)));
+  // 068 S1: the camera's Barcode / Ingredients switch; the check it opens has the camera off (G8); closing goes back.
+  const sw = await run(`(async () => { __btn("Scan").click(); await __until(() => __exact("Barcode") || __btn("Close camera"));
+    const on = () => [__exact("Barcode")?.getAttribute("aria-pressed"), __exact("Ingredients")?.getAttribute("aria-pressed")].join();
+    const before = on(); __exact("Ingredients")?.click(); await __sleep(400);
+    const open = { title: document.querySelector("#check-title")?.innerText, food: __exact("Food")?.getAttribute("aria-pressed"),
+      camera: !!document.querySelector("video") || document.body.innerText.includes("Scanning happens on your phone") };
+    if (open.title) __btn("Close").click(); await __until(() => __exact("Barcode") || __btn("Close camera")); return { before, open, after: on() }; })()`);
+  check("068 S1: the camera has a 'Barcode · Ingredients' switch, Barcode on", sw?.before === "true,false", JSON.stringify(sw));
+  check("068 S1, G8: Ingredients opens the check on Food, with the camera off", sw?.open.title === "Check ingredients" && sw.open.food === "true"
+    && !sw.open.camera, JSON.stringify(sw?.open));
+  check("068 S1: closing the check goes back to the camera on Barcode", sw?.open.title && sw.after === "true,false", sw?.after);
+  await run(`(async () => { __btn("Close camera")?.click(); await __sleep(800); return true; })()`);
+  check("068 S1: the Scan drawer says 'Check ingredients', never 'No barcode?'",
+    !!(await run(`!!__exact("Check ingredients") && !document.body.innerText.includes("No barcode")`)));
   const typeIngredients = async text => {
     await run(`(() => { const t = document.querySelector("#ingredients"); t.focus(); t.select(); return true; })()`);
     await send("Input.insertText", { text }); await sleep(300);
     return run(`document.querySelector('[role="status"]')?.innerText ?? ""`);
   };
-  await run(`(async () => { __btn("No barcode? Check ingredients").click(); await __sleep(400); __btn("Type it").click(); await __sleep(300); return true; })()`);
+  await run(`(async () => { (__exact("Check ingredients") ?? __btn("No barcode? Check ingredients")).click(); await __sleep(400); __btn("Type it").click(); await __sleep(300); return true; })()`);
+  // 068 S2: Paste from Photos, with the clipboard allowed (fills the box), then refused (the box gets focus).
+  const origin = new URL(URL_).origin;
+  await send("Emulation.setFocusEmulationEnabled", { enabled: true });
+  await send("Browser.grantPermissions", { origin, permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"] });
+  const pasted = await run(`(async () => { await navigator.clipboard.writeText("Water, Formaldehyde"); __exact("Paste")?.click(); await __sleep(300);
+    return { box: document.querySelector("#ingredients")?.value,
+      tip: document.body.innerText.includes("On iPhone: open the photo, press and hold the words, tap Copy, then tap Paste here.") }; })()`);
+  check("068 S2: under 'Type it', the iPhone tip and Paste, which fills the box", pasted?.tip && pasted.box === "Water, Formaldehyde", JSON.stringify(pasted));
+  await send("Browser.setPermission", { origin, permission: { name: "clipboard-read" }, setting: "denied" });
+  const refused = await run(`(async () => { document.activeElement?.blur(); __exact("Paste")?.click(); await __sleep(300);
+    return { focus: document.activeElement?.id, box: document.querySelector("#ingredients")?.value }; })()`);
+  check("068 S2: refused, Paste leaves the box as it was and gives it focus", refused?.focus === "ingredients" && refused.box === "Water, Formaldehyde",
+    JSON.stringify(refused));
   check("M8: typing a list containing Red 40 shows Some concern", (await typeIngredients("Sugar, corn syrup, Red 40")).includes("Some concern"));
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
   const nf = await scanTyped("3017620429996", "We couldn't find this barcode yet");
   check("M8: the not-found screen shows 'Add this product', the OFF website link stays as a fallback",
     nf.includes("Add this product") && nf.includes("Or add it on the Open Food Facts website"));
+  // 068 S3: no dead end for cleaners: Cleaning product → the label check on a cleaner kind, IARC findings only.
+  const CLEANER = "EcoGo's cleaner checks are just starting: for now it looks for cancer findings (IARC). More official lists are coming.";
+  const cl = await run(`(async () => { __exact("Cleaning product").click(); await __sleep(300); const t = document.body.innerText;
+    __btn("Check the label yourself")?.click(); await __sleep(400); __exact("Type it")?.click(); await __sleep(300);
+    return { t, title: document.querySelector("#check-title")?.innerText, kind: __exact("Cleaning product")?.getAttribute("aria-pressed") }; })()`);
+  check("068 S3: Cleaning product says what the check covers, keeps the California line and offers 'Check the label yourself'",
+    cl.t.includes(CLEANER) && cl.t.includes("California law requires") && cl.t.includes("Check the label yourself") && !cl.t.includes("maker's website"));
+  const clv = cl.title ? await typeIngredients("Water, Formaldehyde, Zinc Pyrithione, Talc") : "";
+  check("068 S3: the check opens on Cleaning product and shows IARC findings only, with the cleaner line",
+    cl.title === "Check ingredients" && cl.kind === "true" && clv.includes("2 findings") && clv.includes("Formaldehyde") && clv.includes("Talc")
+    && clv.includes(CLEANER) && !/Zinc|EU|FDA|[Bb]anned/.test(clv), JSON.stringify({ ...cl, t: undefined, clv }));
+  // Closing the check goes back to the camera (as for personal care), so the add flow below scans the code again.
+  if (cl.title) { await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`); await scanTyped("3017620429996", "We couldn't find this barcode yet"); }
+  await run(`(async () => { __exact("Food")?.click(); await __sleep(300); return true; })()`);
   const turnstile = () => requests.some(u => u.includes("challenges.cloudflare.com"));
   // RW1-01: picks a photo in the page itself, so the next click lands while the photo is still being prepared.
   const pickJs = file => `(() => { const b = Uint8Array.from(atob("${readFileSync(file).toString("base64")}"), c => c.charCodeAt(0)), dt = new DataTransfer();
