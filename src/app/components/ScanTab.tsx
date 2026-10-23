@@ -112,7 +112,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
       <form onSubmit={(e) => { e.preventDefault(); if (typedValid && !busy) handleScan(typedCode); }} className="flex gap-2">
         <input value={typed} onChange={(e) => setTyped(e.target.value)} inputMode="numeric" aria-label="Barcode number"
           placeholder="Type a barcode (8–14 digits)"
-          className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-white/15 bg-white/5 text-white text-xs placeholder:text-white/40 outline-none focus:border-green-400" />
+          className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-white/15 bg-white/5 text-white text-xs placeholder:text-white/60 outline-none focus:border-green-400" />
         <button type="submit" disabled={!typedValid || busy} className="px-4 rounded-2xl bg-white/10 text-white text-xs font-bold disabled:opacity-40">
           Look up
         </button>
@@ -136,7 +136,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
               className="w-full flex items-center justify-between px-4 py-2.5 text-left border-b border-white/5 last:border-0">
               <span>
                 <span className="block text-xs font-semibold leading-tight text-white/80">{demo.label}</span>
-                <span className="block text-nano text-white/40 font-mono">{demo.barcode}</span>
+                <span className="block text-nano text-white/60 font-mono">{demo.barcode}</span>
               </span>
               <span className={`text-nano font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2 ${demo.category === "Not found" ? "bg-amber-500/20 text-amber-400" : "bg-white/10 text-white/60"}`}>
                 {demo.category}
@@ -190,7 +190,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
             </p>
           )}
           <div className="bg-white/8 border border-white/15 rounded-2xl px-5 py-3 w-full max-w-xs">
-            <p className="text-micro text-white/40 uppercase tracking-widest mb-1">Scanned Barcode</p>
+            <p className="text-micro text-white/60 uppercase tracking-widest mb-1">Scanned Barcode</p>
             <p className="text-white font-mono font-bold text-sm tracking-wider">{scannedCode}</p>
           </div>
         </div>
@@ -250,7 +250,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
           style={{ background: scanState === "error" ? "#B45309" : "#1A5C39" }}>
           {scanState === "error" ? "Try again" : busy ? "Looking up…" : "📷 Open camera"}
         </button>
-        <p className="text-center text-white/40 text-micro">
+        <p className="text-center text-white/60 text-micro">
           {products.length} catalog products · others looked up in USDA FoodData Central, then Open Food Facts and Open Beauty Facts
         </p>
       </div>

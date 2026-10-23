@@ -90,6 +90,19 @@ try {
   await run(`(async () => { __btn("Close camera")?.click(); await __sleep(800); return true; })()`);
   check("068 S1: the Scan drawer says 'Check ingredients', never 'No barcode?'",
     !!(await run(`!!__exact("Check ingredients") && !document.body.innerText.includes("No barcode")`)));
+  // 075 A2 (audit): faded white text on the Scan screen's dark green (#0F1F16) is at least 4.5:1 (WCAG 1.4.3), demo
+  // barcodes included. A canvas blends each colour over the green, whatever syntax the browser reports it in.
+  const faint = await run(`(async () => { __btn("Demo barcodes")?.click(); await __sleep(300);
+    const cv = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+    const px = col => { cv.fillStyle = "#0F1F16"; cv.fillRect(0, 0, 1, 1); cv.fillStyle = col; cv.fillRect(0, 0, 1, 1); return [...cv.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+    const L = c => c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const ratio = col => (L(px(col)) + 0.05) / (L(px("#0F1F16")) + 0.05);
+    const texts = [...document.querySelectorAll('[class*="text-white/"]')].filter(e => e.tagName !== "svg" && e.checkVisibility() && e.innerText.trim());
+    const out = { n: texts.length, low: texts.map(e => [e.innerText.slice(0, 24), +ratio(getComputedStyle(e).color).toFixed(2)]).filter(([, r]) => r < 4.5),
+      placeholder: +ratio(getComputedStyle(document.querySelector('input[aria-label="Barcode number"]'), "::placeholder").color).toFixed(2) };
+    __btn("Demo barcodes")?.click(); await __sleep(300); return out; })()`);
+  check("075 A2: faded text on the Scan screen (footer, demo barcodes, the box's placeholder) is at least 4.5:1",
+    faint?.n > 5 && faint.low.length === 0 && faint.placeholder >= 4.5, JSON.stringify(faint));
   const typeIngredients = async text => {
     await run(`(() => { const t = document.querySelector("#ingredients"); t.focus(); t.select(); return true; })()`);
     await send("Input.insertText", { text }); await sleep(300);
