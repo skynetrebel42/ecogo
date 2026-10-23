@@ -14,17 +14,11 @@
 // small "Edit there" link ("Fix it on OSM" is gone); Photon address suggestions (stubbed here).
 // Usage: node docs/superpowers/specs/2026-10-07-m13-assets/check-map.mjs <url> [rows.json]
 //   rows.json (dry run only, before a migration is live): served in place of the database's `resources` rows.
-import { spawn } from "node:child_process";
-import { rmSync, readFileSync } from "node:fs";
-const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+import { startEdge } from "./edge.mjs";
+import { readFileSync } from "node:fs";
 const URL_ = process.argv[2];
 const ROWS = process.argv[3] ? readFileSync(process.argv[3], "utf8") : null;
-const PORT = 9700 + Math.floor(Math.random() * 90);
-const PROFILE = `${process.env.TEMP}\\ecogo-map-${PORT}`;
-rmSync(PROFILE, { recursive: true, force: true });
-const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, "--window-size=900,1000",
-  `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
-setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 300000).unref?.();
+const { PORT, closeAndCheck } = startEdge("map", 9700, "900,1000", 300000);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page asked for after the ZIP checks start
@@ -407,7 +401,7 @@ try {
 } catch (err) {
   check("the script ran to the end", false, String(err?.stack ?? err).slice(0, 300)); // a crash must not read as a pass
 } finally {
+  await closeAndCheck(check);
   console.log(`${ok}/${total} checks passed`);
-  edge.kill();
   process.exit(total > 0 && ok === total ? 0 : 1);
 }

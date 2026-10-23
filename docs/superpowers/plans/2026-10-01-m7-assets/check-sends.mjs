@@ -4,21 +4,13 @@
 // the sign-in and off-submit are all answered here: nothing reaches Cloudflare, Supabase or OFF.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-sends.mjs <url>  (a build with VITE_TURNSTILE_SITE_KEY set,
 // e.g. Cloudflare's public test key 1x00000000000000000000AA)
-import { spawn } from "node:child_process";
-import { readFileSync, rmSync } from "node:fs";
+import { startEdge } from "./edge.mjs";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
-const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const URL_ = process.argv[2];
-const PORT = 9600 + Math.floor(Math.random() * 90);
-// A fresh profile every run: a reused one can keep an old "Recently viewed" list (Edge is killed before it flushes
-// storage), so "first visit" wouldn't be a first visit.
-const PROFILE = `${process.env.TEMP}\\ecogo-sends-${PORT}`;
-rmSync(PROFILE, { recursive: true, force: true });
-const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, "--window-size=900,1000",
-  `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
 // ~120 s here; 300 s leaves room for a slow run.
-setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 300000).unref?.();
+const { PORT, closeAndCheck } = startEdge("sends", 9600, "900,1000", 300000);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page asked for (Network events)
@@ -258,7 +250,7 @@ try {
 } catch (err) {
   check("the script ran to the end", false, String(err?.stack ?? err).slice(0, 300)); // a crash must not read as a pass
 } finally {
+  await closeAndCheck(check);
   console.log(`${ok}/${total} checks passed`);
-  edge.kill();
   process.exit(total > 0 && ok === total ? 0 : 1); // the open DevTools socket would otherwise keep Node alive until the 120 s timeout
 }

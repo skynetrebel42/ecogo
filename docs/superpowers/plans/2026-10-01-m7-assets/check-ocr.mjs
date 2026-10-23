@@ -6,22 +6,16 @@
 // photos load PaddleOCR from EcoGo's own site, and no request leaves the page while they are read. Prints both readers'
 // first-use download sizes. ingredients-cut-edge.jpg is Minh's chip-bag photo with its left edge cut off (Q1: may be public).
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-ocr.mjs <url>
-import { spawn } from "node:child_process";
-import { readFileSync, rmSync } from "node:fs";
+import { startEdge } from "./edge.mjs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const URL_ = process.argv[2];
 const PHOTO = fileURLToPath(new URL("./ingredients-label.jpg", import.meta.url));
 const FULL = fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url));
 const CUT = fileURLToPath(new URL("./ingredients-cut-edge.jpg", import.meta.url));
 const PERFUME = fileURLToPath(new URL("./ingredients-perfume-curved.jpg", import.meta.url)); // Minh's, cropped to the label
 const BLURRED = fileURLToPath(new URL("./ingredients-label-blurred.png", import.meta.url));
-const PORT = 9600 + Math.floor(Math.random() * 90);
-const PROFILE = `${process.env.TEMP}\\ecogo-ocr-${PORT}`;
-rmSync(PROFILE, { recursive: true, force: true });
-const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, "--window-size=375,812",
-  `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
-setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 180000).unref?.();
+const { PORT, closeAndCheck } = startEdge("ocr", 9600, "375,812", 180000);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page (and its workers' fetches) asked for
@@ -353,7 +347,7 @@ try {
 } catch (e) {
   check("the check script ran to the end", false, String(e?.stack ?? e).slice(0, 400));
 } finally {
+  await closeAndCheck(check);
   console.log(`${ok}/${total} checks passed`);
-  edge.kill();
   process.exit(total > 0 && ok === total ? 0 : 1);
 }

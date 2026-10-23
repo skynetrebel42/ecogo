@@ -1,17 +1,11 @@
 // M16 personal care (headless Edge, same CDP setup as check-saved): spec docs/superpowers/specs/2026-10-16-m16-personal-care-design.md §2.
 // Open Beauty Facts, Open Food Facts and the `foods` table are answered in the page (CDP Fetch): nothing reaches them.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-care.mjs <url> [shotDir]
-import { spawn } from "node:child_process";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
-const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+import { startEdge } from "./edge.mjs";
+import { readFileSync, writeFileSync } from "node:fs";
 const URL_ = process.argv[2];
 const SHOTS = process.argv[3];
-const PORT = 9700 + Math.floor(Math.random() * 90);
-const PROFILE = `${process.env.TEMP}\\ecogo-care-${PORT}`;
-rmSync(PROFILE, { recursive: true, force: true });
-const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, "--window-size=375,812",
-  `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
-setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 120000).unref?.();
+const { PORT, closeAndCheck } = startEdge("care", 9700, "375,812", 120000);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page asked for (Network events)
@@ -273,7 +267,7 @@ try {
 } catch (err) {
   check("the check ran to the end", false, String(err?.stack ?? err).slice(0, 300));
 } finally {
+  await closeAndCheck(check);
   console.log(`\n${ok}/${total} passed`);
-  edge.kill();
   process.exit(ok === total && total > 0 ? 0 : 1);
 }

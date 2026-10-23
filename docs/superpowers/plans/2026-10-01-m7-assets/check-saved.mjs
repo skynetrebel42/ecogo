@@ -1,17 +1,11 @@
 // M14 Collections (headless Edge, same CDP setup as check-home): spec docs/superpowers/specs/2026-10-07-m14-collections-design.md.
 // Save a catalog product and a looked-up one, reload, both still saved; the looked-up snapshot's size is printed.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-saved.mjs <url> [shotDir]
-import { spawn } from "node:child_process";
-import { rmSync, writeFileSync } from "node:fs";
-const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+import { startEdge } from "./edge.mjs";
+import { writeFileSync } from "node:fs";
 const URL_ = process.argv[2];
 const SHOTS = process.argv[3];
-const PORT = 9600 + Math.floor(Math.random() * 90);
-const PROFILE = `${process.env.TEMP}\\ecogo-saved-${PORT}`;
-rmSync(PROFILE, { recursive: true, force: true });
-const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, "--window-size=375,812",
-  `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
-setTimeout(() => { console.log("TIMEOUT"); edge.kill(); process.exit(1); }, 120000).unref?.();
+const { PORT, closeAndCheck } = startEdge("saved", 9600, "375,812", 120000);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page asked for (Network events)
@@ -217,7 +211,7 @@ try {
 
   check("no console errors", errors.length === 0, errors.join(" | "));
 } finally {
+  await closeAndCheck(check);
   console.log(`${ok}/${total} checks passed`);
-  edge.kill();
   process.exit(total > 0 && ok === total ? 0 : 1);
 }
