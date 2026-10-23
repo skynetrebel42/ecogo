@@ -49,10 +49,12 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 2. ~~070 Cloud help, opt-in~~ ✅ 10-23 (9fd47c7) · ⏳ Minh's live test (checklist 7A)
 3. ~~073 Check-home split + gates close Edge~~ ✅ 10-23 (d58462c): check-home 103 s / check-scan 185 s, no leftover Edge
 4. **068 Scan screen** 📋 Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
-5. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos
-6. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
-7. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
-8. Later: personal care to Open Beauty Facts, home inventory, profile, themes, map rethink, variety packs
+5. **075 Audit fixes** 📋 ChatGPT audit, all 16 confirmed: High first (cloud upload after close, old-Safari crash,
+   unsourced Tide line incl. the live catalog row), then medium/low (KNOWN_ISSUES)
+6. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos
+7. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
+8. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
+9. Later: personal care to Open Beauty Facts, home inventory, profile, themes, map rethink, variety packs
 
 ## Chapter 6 · Label first (after 066; decision 071: "lets go mad brutal on ingredient scanner")
 068 Scan screen 📋 · A Barcode / Ingredients switch at the bottom of the camera (Minh, 10-22) [Feature] · B "Check ingredients" wording [UI] · C no dead
@@ -61,7 +63,8 @@ end after "Cleaning product" [UI] · D paste-from-Photos path: tip + Paste butto
 C line-by-line join for cut-off photos [Feature] · D stop phrases from Minh's photos [Debug] · E split glued words on condensed print
 ("BENZYLSALICYLATE", "INGREDIENTSALCOHOL…": Burberry) [Debug] · F turn sideways text (Coppertone Drug Facts) [Feature] · G start-word traps:
 "…Imported Ingredients" never starts a list (Pantene), "INGREDIENTS," with a comma (Burberry); Drug Facts stops ("Purpose", "Uses") [Debug]
-072 Ingredient knowledge 📋 · A research: official, licence-checked cleaner + personal-care lists [Facts] · B cleaner ingredient library [Facts] ·
+072 Ingredient knowledge 📋 · A research: official, licence-checked cleaner + personal-care lists [Facts] (Scout 10-23:
+research-072-cleaners.md, research-072-cosmetics.md in the planner notes folder; IARC: per-entry quotes OK, a whole-table library needs IARC's OK) · B cleaner ingredient library [Facts] ·
 C wider personal-care coverage [Facts]
 069 Learn + Privacy redesign 📋 · A one frame per card, bubbles + More, Source buttons, badge links [UI] · B How EcoGo checks:
 logos + bold steps [UI] · C new sourced facts: seed-oil contaminants, pesticide foods, cleaning produce, organic [Facts]
@@ -93,6 +96,8 @@ logos + bold steps [UI] · C new sourced facts: seed-oil contaminants, pesticide
 - 💡 Add personal care to Open Beauty Facts (today only food can be sent, to Open Food Facts).
 - 💡 Variety packs: several ingredient lists / nutrition panels on one bag, one result per flavour (2026-10-22).
 - 💡 Map rethink: finding clean places is "an easter egg hunt"; keep, shrink or change.
+**Process** [Process]
+- Two builders side by side, as an experiment, only on milestones that touch different files (069 Learn redesign + 071 reader v3), after 075 ships, if usage allows (Minh: "later", 2026-10-23).
 **Reach & polish** [UI]
 - 💡 "Slow but sharper" reader option: the bigger PaddleOCR model (~33 MB, ~47 s a photo; best on tiny curved print),
   off by default (066 R1, 2026-10-22).

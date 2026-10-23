@@ -20,7 +20,7 @@ top 40 lines, then `grep -n "^| 0NN |"` for the rows you need; never the whole f
 
 ## Rules
 - Nothing the app shows may be invented: every claim has a verbatim official quote (`verify:sources`). No match = no claim.
-- The browser writes no Supabase rows. Its only Supabase calls: read `foods`; anonymous sign-in at the first Send;
+- The browser writes no Supabase rows. Its only Supabase calls: read `foods`, `products`, `resources`; anonymous sign-in at the first Send;
   invoke `off-submit` (sole writer of `contributions`), `place-submit` (sole writer of `place_reports`) and opt-in
   `ocr-cloud`; read the person's own counts. No secret keys in client code (the Turnstile site key is public). Every push to `main` deploys.
 - Git: commit by exact path; never `add -A`, `commit -a`, amend, reset, rebase, stash or force-push on `main` (hook

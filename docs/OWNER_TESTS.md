@@ -10,9 +10,9 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 - [ ] ❓ Does the EcoGo Build Board show what you need? Leave a comment on it.
 
 ## R · Research you're running (bring results to Scout, the research chat)
-- [ ] **R1** Cleaner ingredient lists: paste the Perplexity and Gemini answers into Scout. Scout checks every source.
-- [ ] **R2** Cosmetic ingredient lists: same two AIs, same way.
-- [ ] **R3** (optional) ChatGPT repo audit with the planner's prompt: paste the report into Scout, which checks each finding against the code.
+- [x] **R1** (2026-10-23: Perplexity + Gemini, verified by Scout → research-072-cleaners.md) Cleaner ingredient lists: paste the Perplexity and Gemini answers into Scout. Scout checks every source.
+- [x] **R2** (2026-10-23: both verified by Scout → research-072-cosmetics.md) Cosmetic ingredient lists: same two AIs, same way.
+- [x] **R3** (2026-10-23: 16 findings, all confirmed by Scout → 075) (optional) ChatGPT repo audit with the planner's prompt: paste the report into Scout, which checks each finding against the code.
 
 ## 1 · Camera: reading ingredient labels (Scan → "Check ingredients")
 - [x] Perfume label (2026-10-21): found three photo-reading bugs → Label reader v2 (066).

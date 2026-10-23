@@ -288,6 +288,19 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
   (chip photos 7 + 8), no 3-word run lines up, so the new text is appended and repeats; flags are still found (7 + 8
   → all three colours). A line-by-line join is ~4 h; build it once Minh sends a real rotated curved-label pair to test on.
 
+### ChatGPT audit, 2026-10-23 (16 findings, all confirmed in code by Scout: notes folder research-audit-chatgpt.md)
+Planner triage → milestone 075 (right after 068). Accepted, no change: S1 (ocr-cloud guards), S2 (count-then-insert
+can pass a limit by a few), S4/D10. Already open: B2 = K-22.
+- **High, 075:** P1 a closed check still uploads a pending hard photo to cloud help (ocr.ts:217, no abort) · B1 regex
+  lookbehind at startup breaks Safari < 16.4 (analyze.ts, foodConcerns.ts, personalCare.ts) · C1 unsourced
+  "1,4-dioxane (trace)" on Tide PODS in products.csv AND the live `products` row id 2 (planner checked 2026-10-23).
+- **Medium, 075:** S3 body size checked only by header (place.ts, cloud.ts, off-submit) · P2 Privacy doesn't say OFF
+  gets an anonymous app id · B3 a failed search shows "No results" · A1 Explainer over the check isn't inert, focus
+  not returned.
+- **Low, 075 if cheap:** C2 "Oreo … 28% … added sugar" has no Oreo source (fix or remove) · P3 Turnstile script loads
+  before Send (load on Send, or say so) · A2 3.79:1 contrast on the Scan screen (ScanTab.tsx:254) · F1 Map code loads at
+  startup (lazy-load). S5 resolved by a rule-text fix (CLAUDE.md now lists the `products`/`resources` reads).
+
 ### Cloud help (070, live 2026-10-23)
 - **Shared daily cap:** OCR.space's free plan allows "500 requests per day per IP address"; every EcoGo user goes
   through one Edge Function, so 500 cloud reads a day in total. Over it (or on abuse), everyone sees "Cloud help is
