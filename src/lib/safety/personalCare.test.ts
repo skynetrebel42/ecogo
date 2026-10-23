@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PERSONAL_CARE, CARE_NOTES, CARE_LIMITED, CARE_NONE, MORE_DATA_MEANING, analyzeCare, isSunscreen } from "./personalCare.ts";
+import { PERSONAL_CARE, CARE_NOTES, CARE_LIMITED, CARE_NONE, MORE_DATA_MEANING, analyzeCare, isSunscreen, analyzeCleaner, CLEANER_LINE } from "./personalCare.ts";
 
 const BODIES = new Set(["IARC", "EU", "FDA"]);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -158,4 +158,23 @@ test("N2b: EU Annex III ingredients are 'limited, not banned': listed apart, no 
 test("blank or unreadable text is no data, not \"nothing flagged\"", () => {
   assert.equal(analyzeCare("").verdict, "no-data");
   assert.equal(analyzeCare("   ").verdict, "no-data");
+});
+
+// 068 S3 (G1): a cleaner gets IARC findings only: no EU or FDA cosmetic rules, no food library, no info rows.
+test("the cleaner check uses IARC findings only", () => {
+  const c = analyzeCleaner("Water, Formaldehyde, Zinc Pyrithione, Sodium Nitrite, Talc, Cocamide DEA, Fragrance, Boric Acid");
+  assert.deepEqual(c.flags.map(f => f.entry.id), ["formaldehyde", "talc", "cocamide-dea"]);
+  for (const f of c.flags) {
+    assert.ok(f.entry.sources.every(s => s.body === "IARC"), `${f.entry.id}: IARC sources only`);
+    assert.doesNotMatch(`${f.entry.concern} ${f.entry.context ?? ""}`, /EU|FDA|[Bb]anned|cosmetic/, f.entry.id);
+  }
+  assert.equal(c.verdict, "known");
+  assert.equal(c.flags[0].entry.concern, "IARC classifies it as carcinogenic to humans (Group 1).");
+  assert.equal(c.flags[2].entry.concern, PERSONAL_CARE.find(e => e.id === "cocamide-dea")!.concern); // already IARC-only
+  assert.deepEqual([c.notes, c.limited], [[], []]);
+  assert.equal(analyzeCleaner("Dibutyl phthalate").flags[0].entry.concern, "IARC classifies it as possibly carcinogenic to humans (Group 2B).");
+  assert.equal(analyzeCleaner("Methylene chloride").verdict, "high");
+  assert.equal(analyzeCleaner("Water, Sodium Lauryl Sulfate").verdict, "none");
+  assert.equal(analyzeCleaner("").verdict, "no-data");
+  assert.equal(CLEANER_LINE, "EcoGo's cleaner checks are just starting: for now it looks for cancer findings (IARC). More official lists are coming.");
 });

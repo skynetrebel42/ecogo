@@ -15,9 +15,10 @@ const MESSAGE: Record<Exclude<CameraState, "live">, string> = {
   unsupported: "No camera available. Type the barcode below.",
 };
 
-export default function CameraScanner({ onCode, onClose, children }: {
+export default function CameraScanner({ onCode, onClose, onIngredients, children }: {
   onCode: (code: string) => void;  // a confirmed barcode (read twice in a row)
   onClose: () => void;             // ✕: back to the manual view
+  onIngredients: () => void;       // 068 S1: the switch's "Ingredients" opens the ingredient check
   children: ReactNode;             // the drawer: type-a-barcode and demo barcodes
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -145,6 +146,11 @@ export default function CameraScanner({ onCode, onClose, children }: {
       </div>
 
       <div className="relative z-10 px-4 pb-4 space-y-2">
+        {/* 068 S1: Barcode is this screen; Ingredients opens the check (App unmounts the tab under it: the camera stops) */}
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-black/50 border border-white/15">
+          <button aria-pressed="true" className="min-h-[44px] rounded-xl bg-white text-[#0F1F16] text-sm font-extrabold">Barcode</button>
+          <button aria-pressed="false" onClick={onIngredients} className="min-h-[44px] rounded-xl text-white text-sm font-bold">Ingredients</button>
+        </div>
         <p className="text-center text-micro text-white/70">Scanning happens on your phone. No images are uploaded.</p>
         <button onClick={() => setDrawerOpen(o => !o)} aria-expanded={drawerOpen}
           className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-black/50 border border-white/15 text-xs font-semibold">

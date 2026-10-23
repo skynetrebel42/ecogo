@@ -7,8 +7,8 @@
 import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
-import { analyzeCare, CARE_LIMITS, MORE_DATA_MEANING, isMoreData, type CareAnalysis } from "../../lib/safety/personalCare";
-import { cloudHelpOn, joinReads, readAnother, readPhoto, setCloudHelp, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
+import { analyzeCare, analyzeCleaner, CARE_LIMITS, CLEANER_LINE, MORE_DATA_MEANING, isMoreData, type CareAnalysis } from "../../lib/safety/personalCare";
+import { cloudHelpOn, joinReads, pasteInto, readAnother, readPhoto, setCloudHelp, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
 import { isBlurry, preparePhoto } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
@@ -26,17 +26,17 @@ function check(ingredients: string): Assessment | null {
   }
 }
 
-function careCheck(ingredients: string): CareAnalysis | null {
+function careCheck(ingredients: string, cleaner: boolean): CareAnalysis | null {
   if (!ingredients.trim()) return null;
   try {
-    return analyzeCare(ingredients);
+    return cleaner ? analyzeCleaner(ingredients) : analyzeCare(ingredients);
   } catch (err) {
     console.error("[safety] personal-care check failed for typed ingredients", err);
     return { verdict: "no-data", flags: [], checkedCount: 0, notes: [], limited: [] };
   }
 }
 
-export type CheckKind = "food" | "care";
+export type CheckKind = "food" | "care" | "cleaner"; // 068 S3: a cleaner runs IARC findings only (analyzeCleaner)
 
 /** M16 N2b: EU Annex III ingredients, one grey row closed by default; hidden when there are none. Never a badge. */
 export function LimitedRow({ limited, className = "" }: { limited: CareAnalysis["limited"]; className?: string }) {
@@ -150,7 +150,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
   kind?: CheckKind;
 }) {
   const assessment = useMemo(() => (kind === "food" ? check(value) : null), [value, kind]);
-  const care = useMemo(() => (kind === "care" ? careCheck(value) : null), [value, kind]);
+  const care = useMemo(() => (kind !== "food" ? careCheck(value, kind === "cleaner") : null), [value, kind]);
   const [explainer, setExplainer] = useState(false);
   const unsureSet = new Set(unsure);
   const box = "w-full min-h-[120px] p-3 text-sm leading-relaxed font-[inherit] whitespace-pre-wrap break-words";
@@ -201,7 +201,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
             : part))}{"\n"}
         </div>
         <textarea id="ingredients" value={value} onChange={e => edit(e.target.value)}
-          placeholder={kind === "care" ? "e.g. Water, Glycerin, Fragrance, …" : "e.g. Sugar, corn syrup, Red 40, …"} aria-describedby={unsureN ? "unsure-note" : undefined}
+          placeholder={kind !== "food" ? "e.g. Water, Glycerin, Fragrance, …" : "e.g. Sugar, corn syrup, Red 40, …"} aria-describedby={unsureN ? "unsure-note" : undefined}
           className={`${box} absolute inset-0 h-full bg-transparent resize-none outline-none rounded-2xl text-foreground overflow-hidden`} />
       </div>
       {unsureN > 0 && <p id="unsure-note" className="text-xs text-muted-foreground">{unsureN === 1 ? "1 word underlined: check it." : `${unsureN} words underlined: check them.`}</p>}
@@ -244,7 +244,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
             {care.notes.map(n => <li key={n.note.id} className="text-xs leading-snug text-gray-700"><b>{n.note.name}:</b> {n.note.text}</li>)}
           </ul>}
           <MoreDataLine notes={care.notes} />
-          <p className="text-xs leading-snug text-gray-700">{CARE_LIMITS}</p>
+          <p className="text-xs leading-snug text-gray-700">{kind === "cleaner" ? CLEANER_LINE : CARE_LIMITS}</p>
           <LimitedRow limited={care.limited} />
         </div>
       )}
@@ -368,6 +368,14 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
     setSendable(prepared);
     if (blurred) setBlurry(photo); else await read(photo, false, live);
   };
+  // 068 S2: the clipboard is read only on this tap. The box gets focus first, inside the tap (iOS ignores a focus after
+  // an await), so when the read is refused, unsupported or empty the person can long-press → Paste.
+  const paste = async () => {
+    document.getElementById("ingredients")?.focus();
+    let clip = "";
+    try { clip = await navigator.clipboard.readText(); } catch { /* refused or no clipboard API */ }
+    if (pasteInto("", clip) !== null) setText(t => pasteInto(t, clip)!);
+  };
   const reset = () => { begin(); setSendable(undefined); setText(""); setUnsure([]); setLines(undefined); setError(undefined); setReadText(undefined); setHard(false); setBlurry(undefined); setCloudBusy(false); setStatus("idle"); };
   const showHard = mode === "photo" && status === "read" && hard;
   const showEditor = (mode === "type" || status === "read") && !showHard;
@@ -389,10 +397,10 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
       <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-4 space-y-3" style={{ scrollbarWidth: "none" }}>
         <div role="group" aria-labelledby="check-kind" className="space-y-1.5">
           <p id="check-kind" className="text-sm font-bold">What is it?</p>
-          <div className="grid grid-cols-2 gap-1.5">
-            {([["food", "Food"], ["care", "Personal care"]] as const).map(([k, label]) => (
+          <div className="grid grid-cols-3 gap-1.5">
+            {([["food", "Food"], ["care", "Personal care"], ["cleaner", "Cleaning product"]] as const).map(([k, label]) => (
               <button key={k} onClick={() => setKind(k)} aria-pressed={kind === k}
-                className={`min-h-[44px] rounded-xl text-sm bg-white ${kind === k ? "border-2 border-[#1A5C39] font-extrabold text-[#1A5C39]" : "border border-border font-bold text-gray-700"}`}>
+                className={`min-h-[44px] px-1 rounded-xl text-sm leading-tight bg-white ${kind === k ? "border-2 border-[#1A5C39] font-extrabold text-[#1A5C39]" : "border border-border font-bold text-gray-700"}`}>
                 {label}
               </button>
             ))}
@@ -406,6 +414,10 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
             </button>
           ))}
         </div>
+        {mode === "type" && <>
+          <p className="text-sm text-gray-700 leading-relaxed">On iPhone: open the photo, press and hold the words, tap Copy, then tap Paste here.</p>
+          <button onClick={paste} className="w-full min-h-[44px] rounded-2xl border-2 border-[#1A5C39] bg-white text-[#1A5C39] font-bold text-sm">Paste</button>
+        </>}
 
         {mode === "photo" && status === "idle" && (blurry
           ? <PhotoNotice title="This photo looks blurry." onRetake={() => setBlurry(undefined)} onUseAnyway={() => read(blurry, true)} />
@@ -428,7 +440,7 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
         </IngredientEditor>}
 
         <p className="text-xs text-gray-600 leading-relaxed">
-          {product || kind === "care" ? "This checks the ingredients only. " : "Without a barcode there's no nutrition label to look up, so this checks ingredients only. "}
+          {product || kind !== "food" ? "This checks the ingredients only. " : "Without a barcode there's no nutrition label to look up, so this checks ingredients only. "}
           {nothingSent(cloud)}
         </p>
       </div>

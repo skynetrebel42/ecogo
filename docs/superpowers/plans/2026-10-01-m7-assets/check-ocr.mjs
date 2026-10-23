@@ -1,5 +1,5 @@
 // M8 (headless Edge, spec docs/superpowers/specs/2026-10-02-m8-add-product-design.md §7): the no-barcode check.
-// Home has no entry (D13); the Scan drawer's "No barcode? Check ingredients" opens it; the recorded label photo
+// Home has no entry (D13); the Scan drawer's "Check ingredients" opens it; the recorded label photo
 // (ingredients-label.jpg, beside this file) is read on the phone with the self-hosted reader (no CDN) into text with its
 // known words and a "Some concern" badge; typed text gets the same live badge, and "Nothing flagged" links its explainer.
 // 066 R3: the first photo is read with the stronger reader's files blocked, so Tesseract (the fallback) reads it; later
@@ -94,8 +94,8 @@ try {
 
   await run(`(async () => { __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
     __btn("Close camera")?.click(); await __sleep(800); return true; })()`);
-  check("the Scan drawer offers 'No barcode? Check ingredients'", !!(await run(`!!__btn("No barcode? Check ingredients")`)));
-  await run(`(async () => { __btn("No barcode? Check ingredients").click(); await __sleep(500); return true; })()`);
+  check("the Scan drawer offers 'Check ingredients' (068)", !!(await run(`[...document.querySelectorAll("button")].some(b => b.innerText.trim() === "Check ingredients")`)));
+  await run(`(async () => { __btn("Check ingredients").click(); await __sleep(500); return true; })()`);
   const opened = await run(`document.body.innerText`);
   check("it opens Check ingredients with the 'nothing saved or sent' note", opened.includes("Check ingredients")
     && opened.includes("Without a barcode there's no nutrition label to look up, so this checks ingredients only. Nothing is saved or sent."));
@@ -323,7 +323,7 @@ try {
   await run(`(async () => { __btn("Retake photo").click(); await __sleep(300); ${pickJs(PHOTO, "image/jpeg")} return true; })()`);
   await run(`__until(() => document.querySelector("#ingredients")?.value, 90000)`);
   check("…a clear photo, switched on, sends nothing", cloudCalls.length === 2 && !(await run(`document.body.innerText`)).includes(BUSY), `${cloudCalls.length} calls`);
-  await run(`(async () => { __btn("Close").click(); await __sleep(600); __btn("No barcode? Check ingredients").click(); await __sleep(500); return true; })()`);
+  await run(`(async () => { __btn("Close").click(); await __sleep(600); __btn("Check ingredients").click(); await __sleep(500); return true; })()`);
   const remembered = await run(`${SWITCH}?.checked`);
   await run(`(async () => { ${SWITCH}.click(); await __sleep(200); __btn("Type it").click(); await __sleep(300); return true; })()`);
   check("070 C2: the switch is remembered on this device; turned off, the note says 'Nothing is saved or sent.' again",
@@ -342,7 +342,7 @@ try {
   check("…and its explainer opens, Back returns to the check", ex.some(t => t.includes("isn’t “healthy”")) && !!(await run(`!!document.querySelector("#ingredients")`)),
     JSON.stringify(ex));
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
-  check("Close returns to Scan", !!(await run(`!!(__btn("No barcode? Check ingredients") || __btn("Close camera"))`)));
+  check("Close returns to Scan", !!(await run(`!!(__btn("Check ingredients") || __btn("Close camera"))`)));
   check("no console errors", errors.length === 0, errors.join(" | "));
 } catch (e) {
   check("the check script ran to the end", false, String(e?.stack ?? e).slice(0, 400));

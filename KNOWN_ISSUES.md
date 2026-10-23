@@ -277,7 +277,8 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - **2C, no claim (correct, data gap):** Equate Clear hand soap (UPC 194346586486) carries the Safer Choice logo but isn't
   in the snapshot (no "Equate" product has a barcode in EPA's Envirofacts rows we import; spec S1 needs a UPC/GTIN).
   No match = no claim holds; matching by name is a separate decision.
-- **Dead end after "Cleaning product" (2C/2D/2E):** the not-found screen swaps its text to Safer Choice meaning + the
+- ~~**Dead end after "Cleaning product" (2C/2D/2E)**~~ ✅ **Fixed in 068 (`0550f58`):** it opens "Check the label
+  yourself" on a cleaner kind (IARC findings only) and says so; 072 adds official cleaner lists. *Was:* the not-found screen swaps its text to Safer Choice meaning + the
   California line + "Check the maker's website" and hides the main button; Minh read it as "nothing changed" and
   expected a label check. EcoGo has no cleaner ingredient library, so it must say so plainly → 068 C.
 - **Privacy section out of date (App.tsx ~535):** lookups also go to Open Beauty Facts (since M16) and Suggest a place

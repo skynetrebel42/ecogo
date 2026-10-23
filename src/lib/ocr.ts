@@ -136,6 +136,10 @@ async function readTesseract(image: Blob): Promise<Read> {
 const piece = (p: string, w: string) => p.length >= 3 && (w.startsWith(p) || w.endsWith(p));
 const sameWord = (x: string, y: string) => x === y || piece(x, y) || piece(y, x) || (Math.min(x.length, y.length) >= 5 && within(x, y));
 
+/** 068 S2: Paste from Photos. The clipboard's text fills an empty box or goes on a new line after what's typed (nothing
+ *  typed is lost); an empty clipboard is null, like a refused read (the box keeps it as it was). */
+export const pasteInto = (box: string, clip: string) => !clip.trim() ? null : box.trim() ? `${box.trimEnd()}\n${clip.trim()}` : clip.trim();
+
 /** 066 R9 "Add another photo": the box's text and a new photo's text as one, joined at the longest run of 3+ words
  *  that ends the box (or ends 1–2 words before its end: a half-cut last line) and stands anywhere in the new text. The
  *  box keeps its words (its fixes) up to there, the new text follows; what the new photo read before the run (another
