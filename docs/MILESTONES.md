@@ -95,6 +95,8 @@ logos + bold steps [UI] · C new sourced facts: seed-oil contaminants, pesticide
 - 💡 Add personal care to Open Beauty Facts (today only food can be sent, to Open Food Facts).
 - 💡 Variety packs: several ingredient lists / nutrition panels on one bag, one result per flavour (2026-10-22).
 - 💡 Map rethink: finding clean places is "an easter egg hunt"; keep, shrink or change.
+**Process** [Process]
+- Two builders side by side, as an experiment, only on milestones that touch different files (069 Learn redesign + 071 reader v3), after 075 ships, if usage allows (Minh: "later", 2026-10-23).
 **Reach & polish** [UI]
 - 💡 "Slow but sharper" reader option: the bigger PaddleOCR model (~33 MB, ~47 s a photo; best on tiny curved print),
   off by default (066 R1, 2026-10-22).
