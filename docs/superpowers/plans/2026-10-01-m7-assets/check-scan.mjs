@@ -1,7 +1,7 @@
 // Split out of check-home.mjs (073, 2026-10-23): the Scan drawer's no-barcode check and adding a product, on a fresh
 // profile. USDA's own API is never called.
 // M8: the Scan drawer (not Home) offers the no-barcode check, where typed Red 40 shows Some concern; the not-found screen
-// offers "Add this product"; Send stays disabled until the consent box is ticked; Turnstile loads only on the Send screen.
+// offers "Add this product"; Send stays disabled until the consent box is ticked; Turnstile loads only when Send is pressed (075 P3).
 // M8 follow-ups (K4 crop, P1/P2 bar, G2/H1 send endings), 055 E1, 066 R9; 053 W4 offline banner last.
 // Usage: node docs/superpowers/plans/2026-10-01-m7-assets/check-scan.mjs <url>
 // Build with a Turnstile site key (locally Cloudflare's public test key: VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA).
@@ -17,7 +17,7 @@ const { PORT, closeAndCheck } = startEdge("scan", 9600, "900,1000", 360000);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const errors = [];
 const requests = []; // every URL the page asked for (Network events)
-let onPaused = () => {}; // Fetch interception (M8 follow-up 2): set where it's used
+let onPaused = () => {}, turnstileStub = () => {}; // Fetch interception (M8 follow-up 2): set where it's used
 let ok = 0, total = 0;
 const check = (name, pass, detail = "") => { total++; if (pass) ok++; console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? "  — " + detail : ""}`); };
 try {
@@ -30,7 +30,7 @@ try {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
     if (m.method === "Network.requestWillBeSent") requests.push(m.params.request.url);
-    if (m.method === "Fetch.requestPaused") onPaused(m.params);
+    if (m.method === "Fetch.requestPaused") (m.params.request.url.includes("challenges.cloudflare.com") ? turnstileStub : onPaused)(m.params);
     if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.exception?.description?.slice(0, 160));
     if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") errors.push(m.params.args.map(a => a.value ?? a.description).join(" ").slice(0, 160));
   });
@@ -58,8 +58,13 @@ try {
     responseHeaders: [{ name: "Access-Control-Allow-Origin", value: "*" }, { name: "Access-Control-Allow-Headers", value: "*" }, { name: "Content-Type", value: "application/json" }],
     body: Buffer.from(p.request.method === "OPTIONS" ? "" : JSON.stringify({ status: 0, status_verbose: "product not found" })).toString("base64") });
   const OBF_PATTERN = { urlPattern: "*openbeautyfacts.org/*" };
+  // 075 P3: Turnstile's script loads only when Send is pressed, so it is served here (nothing reaches Cloudflare); each send
+  // check sets window.__turnstileRender.
+  const TURNSTILE = { urlPattern: "*challenges.cloudflare.com/*" };
+  turnstileStub = p => send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: "Content-Type", value: "text/javascript" }],
+    body: Buffer.from("window.turnstile = { render: (el, o) => window.__turnstileRender(el, o), remove: () => {} };").toString("base64") });
   onPaused = obf404;
-  await send("Fetch.enable", { patterns: [OBF_PATTERN] });
+  await send("Fetch.enable", { patterns: [OBF_PATTERN, TURNSTILE] });
   // The bar checks need motion on, whatever this PC's animation setting is (reduced motion is tested on its own below).
   const MOTION = { features: [{ name: "prefers-reduced-motion", value: "no-preference" }] };
   await send("Emulation.setEmulatedMedia", MOTION);
@@ -184,7 +189,7 @@ try {
   const sendBox = await run(`document.body.innerText`);
   check("066 R8: the 'This will be public' box says 'Photograph only the label, never anything private.' (Minh's words)",
     sendBox.includes("Photograph only the label, never anything private.") && !sendBox.includes("Make sure no faces"));
-  check("M8: the human check loads only on the Send screen", !beforeSend && turnstile());
+  check("075 P3: the human check isn't loaded before Send is pressed, on the Send screen either", !beforeSend && !turnstile());
   const backed = await run(`(async () => { __btn("Back").click(); await __sleep(300); const nutrition = !!__btn("Skip");
     __btn("Back").click(); await __sleep(300); return nutrition && document.querySelector("#ingredients")?.value; })()`);
   check("M8: Back from Send goes to the nutrition photo, then to the check, keeping the text", backed === "Water, sugar, Red 40", String(backed));
@@ -268,8 +273,7 @@ try {
   const lib = (await send("DOM.querySelector", { nodeId: docRoot.nodeId, selector: 'input[data-photo="library"]' })).result.nodeId;
   await send("DOM.setFileInputFiles", { nodeId: lib, files: [fileURLToPath(new URL("./ingredients-label-full.png", import.meta.url))] });
   const waiting = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
-    const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
-    t.render = () => "stub"; t.remove = () => {};
+    window.__turnstileRender = () => "stub";
     // 055 E1a: the app's 60 s wait for a human-check token runs 5 s here (this check only; any other 60 s timer too,
     // for these few seconds).
     const st = window.__setTimeout = window.setTimeout; window.setTimeout = (f, ms, ...a) => st(f, ms === 60000 ? 5000 : ms, ...a);
@@ -279,6 +283,7 @@ try {
       getComputedStyle(document.querySelector("[data-moving]")).animationName].join(" | "); })()`);
   check("M8 P2: while the human check runs: 'Checking you're human…' on a moving bar with no percent, button 'Sending…'",
     waiting === "Sending… | true | Checking you're human… | false | ecogo-indeterminate", waiting);
+  check("075 P3: pressing Send loads the human check", turnstile());
   await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   const still = await run(`getComputedStyle(document.querySelector("[data-moving]")).animationName`);
   await send("Emulation.setEmulatedMedia", MOTION);
@@ -323,7 +328,7 @@ try {
       user: { id: "00000000-0000-4000-8000-000000000048", aud: "authenticated", role: "authenticated", is_anonymous: true } });
     send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
   };
-  await send("Fetch.enable", { patterns: [OBF_PATTERN, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }, { urlPattern: "*/rest/v1/contributions*" }, { urlPattern: "*/rest/v1/place_reports*" }] });
+  await send("Fetch.enable", { patterns: [OBF_PATTERN, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }, { urlPattern: "*/rest/v1/contributions*" }, { urlPattern: "*/rest/v1/place_reports*" }, TURNSTILE] });
   await scanTyped("3017620429996", "We couldn't find this barcode yet");
   await run(`(async () => { __btn("Add this product").click(); await __sleep(400); __btn("Skip").click(); await __sleep(300);
     __btn("No ingredients list? Type it").click(); await __sleep(300); return true; })()`);
@@ -345,8 +350,7 @@ try {
   await throttle(40_000);
   const sent = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
     document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
-    const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
-    t.render = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; }; t.remove = () => {};
+    window.__turnstileRender = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; };
     const live = document.querySelector('p.sr-only[aria-live="polite"]'); window.__said = [live ? JSON.stringify(live.innerText) : "no live region"];
     window.__bar = []; const seen = new MutationObserver(() => { const b = document.querySelector('[role="progressbar"]');
       const s = b && b.getAttribute("aria-valuetext") + "/" + (b.getAttribute("aria-valuenow") ?? "-"); if (s && __bar.at(-1) !== s) __bar.push(s);

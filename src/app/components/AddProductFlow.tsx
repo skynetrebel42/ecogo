@@ -9,7 +9,7 @@ import { latestWins } from "../../lib/latest";
 import { cloudHelpOn, readPhoto, type LabelLine } from "../../lib/ocr";
 import { submitProduct, type PhotoKind, type SendStage, type SubmitReason } from "../../lib/contribute";
 import { offEditUrl, offProductUrl } from "../../lib/lookup";
-import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
+import { turnstileToken } from "../../lib/turnstile"; // 075 P3: it loads Turnstile's script at the first Send, not before
 import { offSubmit, supabase } from "../../lib/supabase";
 import { justReached, readContributions } from "../../lib/contributions";
 import { AnotherPhoto, CLOUD_BUSY, CloudHelpSwitch, IngredientEditor, ingredientsTip, PhotoButtons, PhotoNotice, PhotoTips, Reading } from "./IngredientCheck";
@@ -102,7 +102,6 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
   const [reached, setReached] = useState<string>(); // M15 C5: the milestone this send just reached
   const humanCheckSlot = useRef<HTMLDivElement>(null); // where Turnstile shows a challenge, if it needs one
 
-  useEffect(() => { if (step === "send") loadTurnstile().catch(() => {}); }, [step]); // D8: only on the Send screen
 
   const next: Record<Kind, Step> = { front: "ingredients", ingredients: photosOnly ? "nutrition" : "check", nutrition: "send" };
   const hasPhoto = Object.values(photos).some(Boolean);

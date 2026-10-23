@@ -35,7 +35,7 @@ try {
   // 059 Q4: Photon is always answered here (nothing reaches photon.komoot.io): `photonReply`, or held unanswered.
   const photonAsked = [], photonHeld = [];
   let photonReply = { status: 200, body: { type: "FeatureCollection", features: [] } };
-  const PHOTON = { urlPattern: "*photon.komoot.io/*" };
+  const PHOTON = { urlPattern: "*photon.komoot.io/*" }, TURNSTILE = { urlPattern: "*challenges.cloudflare.com/*" };
   const answerPhoton = p => {
     photonAsked.push(p.request.url);
     if (photonReply === "hold") return void photonHeld.push(p.requestId);
@@ -52,6 +52,10 @@ try {
     if (m.method === "Fetch.requestPaused") {
       const { requestId, request } = m.params;
       if (request.url.includes("photon.komoot.io")) answerPhoton(m.params);
+      // 075 P3: Turnstile's script, loaded only when Send is pressed, is served here (nothing reaches Cloudflare).
+      else if (request.url.includes("challenges.cloudflare.com")) send("Fetch.fulfillRequest", { requestId, responseCode: 200,
+        responseHeaders: [{ name: "Content-Type", value: "text/javascript" }],
+        body: Buffer.from("window.turnstile = { render: (el, o) => window.__turnstileRender(el, o), remove: () => {} };").toString("base64") });
       else if (!request.url.includes("/rest/v1/resources")) onPaused(m.params); // M8.1: auth and place-submit, answered here
       else if (failResources) send("Fetch.failRequest", { requestId, errorReason: "InternetDisconnected" });
       else if (ROWS && request.method === "GET") send("Fetch.fulfillRequest", { requestId, responseCode: 200, body: Buffer.from(ROWS).toString("base64"),
@@ -220,15 +224,16 @@ try {
       user: { id: "00000000-0000-4000-8000-000000000081", aud: "authenticated", role: "authenticated", is_anonymous: true } });
     send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: place && post ? placeReply.status : 200, responseHeaders: CORS, body: Buffer.from(body).toString("base64") });
   };
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }, PHOTON] });
-  const sent = await run(`(async () => { const t = await __until(() => window.turnstile, 10000); if (!t) return "Turnstile didn't load";
-    t.render = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; }; t.remove = () => {};
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, { urlPattern: "*/auth/v1/*" }, { urlPattern: "*/functions/v1/*" }, PHOTON, TURNSTILE] });
+  const cloudflare = () => requests.some(u => u.includes("challenges.cloudflare.com")), formsOpened = cloudflare();
+  const sent = await run(`(async () => { window.__turnstileRender = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; };
     __btn("Send").click(); await __until(() => document.body.innerText.includes("Thanks."), 10000); return document.querySelector('[role="dialog"]')?.innerText ?? "no dialog"; })()`);
   const sb = JSON.parse(placeBodies[0] ?? "{}");
   check("M8.1 P3: Send signs in, posts the suggestion to place-submit and says thanks (all answered here: nothing reaches Supabase)",
     sent.includes("Thanks. EcoGo checks these by hand, so it can take a few days.") && sb.kind === "suggest" && sb.name === "Westside Pantry"
     && sb.link === "https://westsidepantry.org" && sb.who === "Other" && sb.whoNote === "Seniors 60+" && placeAsked.includes("POST v1/signup")
     && placeAsked.every(f => /^(OPTIONS|POST) v1\/(signup|place-submit)$/.test(f)), `${placeAsked.join(", ")} ${placeBodies[0]} ${sent.slice(0, 200)}`);
+  check("075 P3: opening the report and suggest forms loads no human check; pressing Send does", !formsOpened && cloudflare());
   const mapBack = await run(`(async () => { __btn("Back to the map").click(); await __sleep(400); return document.activeElement === __btn("Suggest a place"); })()`);
   check("…'Back to the map' closes the form, focus back on Suggest a place", mapBack);
 
@@ -260,7 +265,7 @@ try {
   check("…no answer is 'Not sure it arrived' with EcoGo's line, and only 'Back to the map' (no Try again)",
     unk.t.includes("We didn't hear back from EcoGo. It may have arrived. Wait a few minutes before sending again.") && unk.back && !unk.again, unk.t.slice(0, 200));
   // M15: with the session above, Profile reads the person's counts; failed here, so nothing reaches Supabase.
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, PHOTON,
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, PHOTON, TURNSTILE,
     { urlPattern: "*/rest/v1/contributions*" }, { urlPattern: "*/rest/v1/place_reports*" }] });
   onPaused = p => /\/rest\/v1\/(contributions|place_reports)/.test(p.request.url)
     ? send("Fetch.failRequest", { requestId: p.requestId, errorReason: "InternetDisconnected" }) : send("Fetch.continueRequest", { requestId: p.requestId });

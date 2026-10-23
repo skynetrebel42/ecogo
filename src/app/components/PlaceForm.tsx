@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { X, Check } from "lucide-react";
 import type { ResourceRow } from "../../lib/catalog";
 import { submitPlace, type SendStage, type SubmitReason } from "../../lib/contribute";
-import { loadTurnstile, turnstileToken } from "../../lib/turnstile";
+import { turnstileToken } from "../../lib/turnstile"; // 075 P3: it loads Turnstile's script at the first Send, not before
 import { placeSubmit, supabase } from "../../lib/supabase";
 import { MIN_CHARS, PAUSE_MS, suggestAddresses } from "../../lib/photon";
 
@@ -94,7 +94,6 @@ export default function PlaceForm({ place, onClose }: { place?: ResourceRow; onC
   const titleRef = useRef<HTMLHeadingElement>(null);
   const set = (k: keyof typeof f) => (v: string) => setF(p => ({ ...p, [k]: v }));
 
-  useEffect(() => { loadTurnstile().catch(() => {}); }, []); // M8 D8: only on a screen with Send
   useEffect(() => { titleRef.current?.focus(); }, [step === "sending" ? "form" : step]); // each new screen, not the send
 
   const placeRef = !place ? "" : place.source === "lacounty" ? `county/${-place.id}` : `${place.osm_type}/${place.osm_id}`;
