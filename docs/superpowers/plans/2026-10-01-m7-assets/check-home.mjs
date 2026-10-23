@@ -135,6 +135,15 @@ try {
   check("063 F9: no results suggests \"shampoo\" and \"sunscreen\" and says 'Or scan its barcode.'",
     empty.includes('Try a product name, brand, or category like "snacks", "shampoo", or "sunscreen".') && empty.includes("Or scan its barcode."), empty.replace(/\s+/g, " ").slice(0, 200));
   await back();
+  // 075 M2 (audit B3): a search that failed (its request dropped here) says so; it isn't "No results".
+  onPaused = p => p.request.url.includes("/rpc/search_foods") ? send("Fetch.failRequest", { requestId: p.requestId, errorReason: "Failed" }) : obf404(p);
+  await send("Fetch.enable", { patterns: [OBF_PATTERN, { urlPattern: "*/rpc/search_foods*" }] });
+  await search("zzqxw");
+  const failed = await run(`(async () => (await __until(() => /Couldn't search right now|No results for/.test(document.body.innerText) && document.body.innerText, 20000)) || document.body.innerText)()`);
+  check("075 M2: a failed search says 'Couldn't search right now.', not 'No results'",
+    failed.includes("Couldn't search right now.") && !failed.includes("No results for"), failed.replace(/\s+/g, " ").slice(0, 200));
+  onPaused = obf404; await send("Fetch.enable", { patterns: [OBF_PATTERN] });
+  await back();
   await run(`(async () => { __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
     __btn("Close camera")?.click(); await __sleep(800); const i = await __until(() => document.querySelector('input[aria-label="Barcode number"]'));
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, "049000042566");

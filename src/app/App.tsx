@@ -272,7 +272,8 @@ function SearchResultsScreen({ query, onBack, onSelectProduct, products }: {
     .map(p => ({ p, a: safeAnalyze(p) }))
     .sort((x, y) => fewestConcerns(x.a, y.a))
     .map(({ p }) => p);
-  const isEmpty = results.length === 0 && usda.status !== "loading" && usda.products.length === 0;
+  // 075 M2: only a search that answered can say "No results"; a failed one shows "Couldn't search right now." below.
+  const isEmpty = results.length === 0 && usda.status === "ok" && usda.products.length === 0;
   // 063 F8: a search that found only personal care shows no food (USDA) section unless USDA found something.
   const showUsda = usda.products.length > 0 || !results.length || !results.every(isPersonalCare);
 
