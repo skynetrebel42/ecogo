@@ -63,7 +63,8 @@ end after "Cleaning product" [UI] · D paste-from-Photos path: tip + Paste butto
 C line-by-line join for cut-off photos [Feature] · D stop phrases from Minh's photos [Debug] · E split glued words on condensed print
 ("BENZYLSALICYLATE", "INGREDIENTSALCOHOL…": Burberry) [Debug] · F turn sideways text (Coppertone Drug Facts) [Feature] · G start-word traps:
 "…Imported Ingredients" never starts a list (Pantene), "INGREDIENTS," with a comma (Burberry); Drug Facts stops ("Purpose", "Uses") [Debug]
-072 Ingredient knowledge 📋 · A research: official, licence-checked cleaner + personal-care lists [Facts] · B cleaner ingredient library [Facts] ·
+072 Ingredient knowledge 📋 · A research: official, licence-checked cleaner + personal-care lists [Facts] (Scout 10-23:
+research-072-cleaners.md, research-072-cosmetics.md in the planner notes folder; IARC: per-entry quotes OK, a whole-table library needs IARC's OK) · B cleaner ingredient library [Facts] ·
 C wider personal-care coverage [Facts]
 069 Learn + Privacy redesign 📋 · A one frame per card, bubbles + More, Source buttons, badge links [UI] · B How EcoGo checks:
 logos + bold steps [UI] · C new sourced facts: seed-oil contaminants, pesticide foods, cleaning produce, organic [Facts]
