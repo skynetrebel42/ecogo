@@ -8,7 +8,7 @@
 ## 1. Parts (one commit each; High first, then stop and report before Medium)
 | # | Finding | Fix |
 |---|---|---|
-| H1 | **P1** a closed check still uploads a pending hard photo to cloud help | An abort reaches `readPhoto`: closing the check (or turning cloud help off) before the phone read finishes means no cloud call. Test: close → no request to `ocr-cloud` |
+| H1 | **P1** a closed check still uploads a pending hard photo to cloud help | An abort reaches `readPhoto`: closing the check (or turning cloud help off) before the phone read finishes means no cloud call. Test: close → no request to `ocr-cloud`. (planner) Node test of `readPhoto` only; no check-ocr browser check (it stays at 130 of 180 s): "still wanted" is asked when the phone's read ends, and unmount ends it too |
 | H2 | **B1** regex lookbehind loads at startup (Safari < 16.4 can't parse it) | Rewrite the 5 lookbehinds without lookbehind, same matches (existing tests + new ones); a test that fails if `(?<` appears in `src/` |
 | H3 | **C1** unsourced "1,4-dioxane (trace)" on Tide PODS | Remove it from `products.csv` and from the live `products` row id 2 (a live DB change: a migration file with the exact UPDATE, Minh's yes in your chat, then `apply_migration`). Nothing else in that row changes |
 | M1 | **S3** body size checked only by header | `place-submit`, `ocr-cloud`, `off-submit`: stop reading past the limit even without Content-Length (deploy each changed function with Minh's yes, server first) |
