@@ -110,6 +110,18 @@ try {
   check("068 S2: refused, Paste leaves the box as it was and gives it focus", refused?.focus === "ingredients" && refused.box === "Water, Formaldehyde",
     JSON.stringify(refused));
   check("M8: typing a list containing Red 40 shows Some concern", (await typeIngredients("Sugar, corn syrup, Red 40")).includes("Some concern"));
+  // 075 M3 (audit A1), as on Home: the article over the check focuses its heading, the check behind it is inert, and Back
+  // returns focus to the link that opened it.
+  await typeIngredients("Water, salt");
+  const why = await run(`(async () => { const link = await __until(() => __btn('Why "Nothing flagged"'), 3000); if (!link) return null;
+    const inert = () => [document.querySelector('button[aria-label="Close"]'), document.querySelector("#ingredients")].map(e => !!e?.closest("[inert]")).join();
+    link.click(); await __sleep(500);
+    const open = { h1: document.activeElement?.tagName === "H1" ? document.activeElement.innerText : null, inert: inert() };
+    [...document.querySelectorAll('button[aria-label="Back"]')].pop()?.click(); await __sleep(500);
+    return { ...open, back: document.activeElement?.innerText, after: inert() }; })()`);
+  check("075 M3: the 'Nothing flagged' article over the check: heading focused, check behind inert, Back returns focus to its link",
+    why?.h1 === "“Nothing flagged” isn’t “healthy”" && why.inert === "true,true" && why.back === 'Why "Nothing flagged" isn\'t "healthy"' && why.after === "false,false",
+    JSON.stringify(why));
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
   const nf = await scanTyped("3017620429996", "We couldn't find this barcode yet");
   check("M8: the not-found screen shows 'Add this product', the OFF website link stays as a fallback",

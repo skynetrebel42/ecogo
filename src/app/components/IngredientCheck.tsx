@@ -5,6 +5,7 @@
 // runs the personal-care check (src/lib/safety/personalCare.ts) on the same photo or typed list.
 
 import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
 import { analyzeCare, analyzeCleaner, CARE_LIMITS, CLEANER_LINE, MORE_DATA_MEANING, isMoreData, type CareAnalysis } from "../../lib/safety/personalCare";
@@ -151,7 +152,16 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
 }) {
   const assessment = useMemo(() => (kind === "food" ? check(value) : null), [value, kind]);
   const care = useMemo(() => (kind !== "food" ? careCheck(value, kind === "cleaner") : null), [value, kind]);
-  const [explainer, setExplainer] = useState(false);
+  // 075 M3 (audit A1), as on Home: the article covers the whole screen (the link's positioned ancestor, as before). It
+  // goes there, everything else on that screen is inert meanwhile, and Back returns focus to the link.
+  const link = useRef<HTMLButtonElement>(null);
+  const [cover, setCover] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!cover) return;
+    const behind = [...cover.children].filter(e => !e.hasAttribute("data-article")) as HTMLElement[];
+    behind.forEach(e => { e.inert = true; });
+    return () => { behind.forEach(e => { e.inert = false; }); link.current?.focus(); };
+  }, [cover]);
   const unsureSet = new Set(unsure);
   const box = "w-full min-h-[120px] p-3 text-sm leading-relaxed font-[inherit] whitespace-pre-wrap break-words";
   const look = assessment ? VERDICT_STYLE[assessment.verdict] : care && VERDICT_STYLE[care.verdict];
@@ -223,7 +233,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
           ))}
           {assessment.verdict === "none" && <>
             <p className="text-xs leading-snug text-gray-700">None of these ingredients match an official finding in EcoGo's list. That isn't the same as "healthy".</p>
-            <button onClick={() => setExplainer(true)} className="text-xs font-bold text-[#1A5C39] underline min-h-[44px] text-left">
+            <button ref={link} onClick={() => setCover(link.current?.offsetParent as HTMLElement | null)} className="text-xs font-bold text-[#1A5C39] underline min-h-[44px] text-left">
               Why "Nothing flagged" isn't "healthy"
             </button>
           </>}
@@ -248,7 +258,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
           <LimitedRow limited={care.limited} />
         </div>
       )}
-      {explainer && <Explainer id="not-healthy" onBack={() => setExplainer(false)} />}
+      {cover && createPortal(<div data-article><Explainer id="not-healthy" onBack={() => setCover(null)} /></div>, cover)}
     </div>
   );
 }
