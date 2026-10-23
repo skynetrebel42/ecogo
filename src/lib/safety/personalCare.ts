@@ -391,3 +391,27 @@ export function analyzeCare(ingredients: string, { sunscreen = true }: { sunscre
   const top = Math.max(0, ...flags.map(f => SEVERITY_RANK[f.entry.severity]));
   return { verdict: LEVELS[top], flags, checkedCount, notes: found, limited };
 }
+
+// ── 068 S3: cleaners (decision 074, G1) ──────────────────────────────────────
+// IARC classifies substances whatever the product, so a cleaner gets the IARC findings above and nothing else: no EU
+// or FDA cosmetic rules, no food library (its IARC findings are about eating), no info rows. 072 adds official cleaner lists.
+export const CLEANER_LINE = "EcoGo's cleaner checks are just starting: for now it looks for cancer findings (IARC). More official lists are coming.";
+const GROUP: Record<string, string> = { "iarc-1": `${IARC_1} (Group 1)`, "iarc-2a": `${IARC_2A} (Group 2A)`, "iarc-2b": `${IARC_2B} (Group 2B)` };
+export const CLEANER: LibraryEntry[] = PERSONAL_CARE.flatMap(e => {
+  const sources = e.sources.filter(s => s.body === "IARC");
+  if (!sources.length) return [];
+  if (sources.length === e.sources.length) return [e]; // its line is already IARC's alone (talc, cocamide DEA)
+  return [{ ...e, sources, severity: deriveSeverity(sources)!, context: undefined, concern: `IARC classifies it as ${GROUP[sources[0].basis]}.` }];
+});
+
+export function analyzeCleaner(ingredients: string): CareAnalysis {
+  const items = parseIngredients(typeof ingredients === "string" ? ingredients : "");
+  if (items.length === 0) return { verdict: "no-data", flags: [], checkedCount: CLEANER.length, notes: [], limited: [] };
+  const flags: Flag[] = [];
+  for (const item of items) {
+    const n = names(item);
+    for (const entry of CLEANER) if (!flags.some(f => f.entry === entry) && entry.aliases.some(a => n.includes(a))) flags.push({ entry, matchedText: item });
+  }
+  flags.sort((a, b) => SEVERITY_RANK[b.entry.severity] - SEVERITY_RANK[a.entry.severity]);
+  return { verdict: LEVELS[Math.max(0, ...flags.map(f => SEVERITY_RANK[f.entry.severity]))], flags, checkedCount: CLEANER.length, notes: [], limited: [] };
+}

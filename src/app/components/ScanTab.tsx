@@ -21,6 +21,7 @@ import { loadSaferChoice, saferChoiceMatch, saferChoiceProduct, SAFER_CHOICE_MEA
 import CameraScanner from "./CameraScanner";
 import { nothingSent, type CheckKind } from "./IngredientCheck";
 import { cloudHelpOn } from "../../lib/ocr";
+import { CLEANER_LINE } from "../../lib/safety/personalCare";
 
 interface DemoBarcode { barcode: string; label: string; category: string }
 
@@ -48,8 +49,8 @@ interface ScanTabProps {
   /** Called with the product (catalog or looked up) so App.tsx can open the product page. */
   onScanResult: (product: Product) => void;
   products: Product[];
-  /** "No barcode? Check ingredients" (M8 D13) and the not-found screen's personal-care check (M16 N6): opens the
-   *  photo-or-type check on that "What is it?" answer. */
+  /** The camera's "Ingredients" switch and the drawer's "Check ingredients" (068 S1, M8 D13), and the not-found screen's
+   *  personal-care and cleaner checks (M16 N6, 068 S3): opens the photo-or-type check on that "What is it?" answer. */
   onCheckIngredients: (kind: CheckKind) => void;
   /** "Add this product" on the not-found screen (M8): opens the add flow for that barcode. */
   onAdd: (code: string) => void;
@@ -62,7 +63,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
   const [typed, setTyped]               = useState("");
   const [scannedCode, setScannedCode]   = useState("");
   // M16 N6 + M17 S4: the not-found screen's "What is it?"
-  const [kind, setKind]                 = useState<CheckKind | "cleaning">("food");
+  const [kind, setKind]                 = useState<CheckKind>("food");
 
   const handleScan = useCallback(async (raw: string) => {
     if (scanState === "scanning" || scanState === "found") return;
@@ -126,7 +127,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
       </button>
       <button onClick={() => onCheckIngredients("food")} disabled={busy}
         className="w-full min-h-[44px] flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-white/15 bg-white/5 text-white/70 text-xs font-medium disabled:opacity-40">
-        <ScrollText size={14} className="text-white/50" />No barcode? Check ingredients
+        <ScrollText size={14} className="text-white/50" />Check ingredients
       </button>
       {selectorOpen && (
         <div className="rounded-2xl overflow-hidden border border-white/10 bg-white/5 max-h-48 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
@@ -167,7 +168,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
           <div role="group" aria-labelledby="what-is-it" className="w-full max-w-xs mb-4">
             <p id="what-is-it" className="text-white text-sm font-bold mb-1.5">What is it?</p>
             <div className="grid grid-cols-3 gap-1.5">
-              {([["food", "Food"], ["care", "Personal care"], ["cleaning", "Cleaning product"]] as const).map(([k, label]) => (
+              {([["food", "Food"], ["care", "Personal care"], ["cleaner", "Cleaning product"]] as const).map(([k, label]) => (
                 <button key={k} onClick={() => setKind(k)} aria-pressed={kind === k}
                   className={`min-h-[44px] px-1 rounded-xl text-sm leading-tight ${kind === k ? "bg-white text-[#1A1200] font-extrabold" : "border border-white/25 text-white font-bold"}`}>
                   {label}
@@ -175,11 +176,11 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
               ))}
             </div>
           </div>
-          {kind === "cleaning" ? (
+          {kind === "cleaner" ? ( // 068 S3 (G3): no dead end: the label check below, IARC findings only
             <div className="text-white/60 text-sm mb-5 leading-relaxed max-w-xs space-y-2">
               <p>{SAFER_CHOICE_MEANING.text}</p>
               <p>{CALIFORNIA_LINE.text}</p>
-              <p className="text-white font-bold">Check the maker's website for the full ingredient list.</p>
+              <p className="text-white font-bold">{CLEANER_LINE}</p>
             </div>
           ) : (
             <p className="text-white/60 text-sm mb-5 leading-relaxed max-w-xs">
@@ -195,12 +196,10 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
         </div>
 
         <div className="px-5 pb-8 flex-shrink-0 flex flex-col gap-2.5">
-          {kind !== "cleaning" && (
-            <button onClick={() => (kind === "food" ? onAdd(scannedCode) : onCheckIngredients("care"))}
-              className="w-full py-4 rounded-2xl font-extrabold text-base shadow-xl" style={{ background: "#F59E0B", color: "#1A1200" }}>
-              {kind === "food" ? "Add this product" : "Check the label yourself"}
-            </button>
-          )}
+          <button onClick={() => (kind === "food" ? onAdd(scannedCode) : onCheckIngredients(kind))}
+            className="w-full py-4 rounded-2xl font-extrabold text-base shadow-xl" style={{ background: "#F59E0B", color: "#1A1200" }}>
+            {kind === "food" ? "Add this product" : "Check the label yourself"}
+          </button>
           <button onClick={scanAgain} className="w-full py-3.5 rounded-2xl font-bold text-sm text-white border border-white/25">
             Scan another product
           </button>
@@ -217,7 +216,7 @@ export default function ScanTab({ onScanResult, products, onCheckIngredients, on
 
   // ── Live camera ────────────────────────────────────────────────────────────
   if (scanState === "idle" && cameraOpen) {
-    return <CameraScanner onCode={handleScan} onClose={() => setCameraOpen(false)}>{manualEntry}</CameraScanner>;
+    return <CameraScanner onCode={handleScan} onClose={() => setCameraOpen(false)} onIngredients={() => onCheckIngredients("food")}>{manualEntry}</CameraScanner>;
   }
 
   // ── Looking up, error, or camera closed ────────────────────────────────────
