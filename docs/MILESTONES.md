@@ -47,7 +47,7 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 ## Priority build list (Daedalus keeps it current; top = next)
 1. ~~066 Label reader v2 live~~ ✅ 10-22 (f23f876, live check passed) · ⏳ Minh's live test (checklist section 6)
 2. ~~070 Cloud help, opt-in~~ ✅ 10-23 (9fd47c7) · ⏳ Minh's live test (checklist 7A)
-3. **073 Check-home split + gates close Edge** 🔨 keeps the checks fast and honest
+3. ~~073 Check-home split + gates close Edge~~ ✅ 10-23 (d58462c): check-home 103 s / check-scan 185 s, no leftover Edge
 4. **068 Scan screen** 📋 Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
 5. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos
 6. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage

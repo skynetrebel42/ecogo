@@ -47,6 +47,6 @@ subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Suba
 - **State** is replaced, never appended to.
 
 ## Current state (replace at each close-out; ≤ 3 lines)
-- Live: origin/main 9fd47c7 (M1–M17, 063–066, 070; 430,127 USDA foods, engine_rev 4; off-submit v11, place-submit v2, ocr-cloud v1).
-- Building: nothing; next brief: check-home split + gates closing Edge (tidy-up), then 068 scan screen.
+- Live: origin/main d58462c (M1–M17, 063–066, 070, 073; 430,127 USDA foods, engine_rev 4; off-submit v11, place-submit v2, ocr-cloud v1).
+- Building: nothing; next brief: 068 scan screen (check-scan covers it; check-ocr at up to 130 s of 180: watch).
 - Then (decision 071, label first): 068 scan screen → 071 reader v3 → 072 ingredient knowledge → 069.
