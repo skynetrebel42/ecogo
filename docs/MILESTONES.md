@@ -49,10 +49,12 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 2. ~~070 Cloud help, opt-in~~ ✅ 10-23 (9fd47c7) · ⏳ Minh's live test (checklist 7A)
 3. ~~073 Check-home split + gates close Edge~~ ✅ 10-23 (d58462c): check-home 103 s / check-scan 185 s, no leftover Edge
 4. **068 Scan screen** 📋 Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
-5. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos
-6. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
-7. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
-8. Later: personal care to Open Beauty Facts, home inventory, profile, themes, map rethink, variety packs
+5. **075 Audit fixes** 📋 ChatGPT audit, all 16 confirmed: High first (cloud upload after close, old-Safari crash,
+   unsourced Tide line incl. the live catalog row), then medium/low (KNOWN_ISSUES)
+6. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos
+7. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
+8. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
+9. Later: personal care to Open Beauty Facts, home inventory, profile, themes, map rethink, variety packs
 
 ## Chapter 6 · Label first (after 066; decision 071: "lets go mad brutal on ingredient scanner")
 068 Scan screen 📋 · A Barcode / Ingredients switch at the bottom of the camera (Minh, 10-22) [Feature] · B "Check ingredients" wording [UI] · C no dead
