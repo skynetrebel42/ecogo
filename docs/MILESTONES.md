@@ -48,7 +48,7 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 1. ~~066 Label reader v2 live~~ ✅ 10-22 (f23f876, live check passed) · ⏳ Minh's live test (checklist section 6)
 2. ~~070 Cloud help, opt-in~~ ✅ 10-23 (9fd47c7) · ⏳ Minh's live test (checklist 7A)
 3. ~~073 Check-home split + gates close Edge~~ ✅ 10-23 (d58462c): check-home 103 s / check-scan 185 s, no leftover Edge
-4. **068 Scan screen** 📋 Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
+4. ~~068 Scan screen~~ ✅ 10-23 (46a86d9) · ⏳ Minh's live test (checklist 8A–8C) · Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
 5. **075 Audit fixes** 📋 ChatGPT audit, all 16 confirmed: High first (cloud upload after close, old-Safari crash,
    unsourced Tide line incl. the live catalog row), then medium/low (KNOWN_ISSUES)
 6. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos
@@ -57,7 +57,7 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 9. Later: personal care to Open Beauty Facts, home inventory, profile, themes, map rethink, variety packs
 
 ## Chapter 6 · Label first (after 066; decision 071: "lets go mad brutal on ingredient scanner")
-068 Scan screen 📋 · A Barcode / Ingredients switch at the bottom of the camera (Minh, 10-22) [Feature] · B "Check ingredients" wording [UI] · C no dead
+068 Scan screen ✅ 10-23 (46a86d9) · A Barcode / Ingredients switch at the bottom of the camera (Minh, 10-22) [Feature] · B "Check ingredients" wording [UI] · C no dead
 end after "Cleaning product" [UI] · D paste-from-Photos path: tip + Paste button; tip (Minh, 10-22): "On iPhone: open the photo, press and hold the words, tap Copy, then tap Paste here." [Feature]
 071 Label reader v3 📋 · A brand / product name / net weight lines aren't ingredients [Debug] · B Add a product: name + brand at the end [Feature] ·
 C line-by-line join for cut-off photos [Feature] · D stop phrases from Minh's photos [Debug] · E split glued words on condensed print

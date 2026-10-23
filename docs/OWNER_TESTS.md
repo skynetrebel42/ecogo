@@ -45,6 +45,11 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 - [x] **4D** (2026-10-22) Map → Suggest a place. See: every field has a visible border.
 - [x] **4E** (2026-10-22: info good; wants bubbles, bullets and source buttons, see playtest notes) Home → the 7th Learn tile "Risks a label can't show" (full width). See: five short sections and source cards.
 
+## 8 · Scan screen (068, live 2026-10-23)
+- [ ] **8A** Scan tab → at the bottom of the camera, tap **Ingredients**. See: the ingredient check opens (camera off); close it → back on Barcode.
+- [ ] **8B** Check ingredients → Type it → copy label text from a photo in Photos (press and hold the words → Copy) → tap **Paste**. See: the text lands in the box.
+- [ ] **8C** Scan a cleaner EcoGo doesn't know → Cleaning product → **Check the label yourself** → photograph its label. See: "EcoGo's cleaner checks are just starting…" and, if it lists something IARC classifies, that finding.
+
 ## 7 · Cloud help (070, live 2026-10-23)
 - [ ] **7A** Check ingredients → Take a photo → turn on "Cloud help for hard labels" → photograph a hard label (the Shu Shu
       bag). See: better text than before (or "Cloud help is busy today"). Then turn it off again.
