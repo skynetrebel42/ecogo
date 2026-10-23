@@ -15,11 +15,12 @@
 | C4 | **Privacy paragraph** for cloud help, as approved, added to Profile → Privacy | UI |
 
 ## 2. Testing
-- Node tests: the function's handler with a stubbed fetch (size limit, non-image, missing JWT, busy, text-only answer,
-  key never echoed); the "reads better" choice; the switch default.
-- check-ocr: switch off (default) → no request leaves the page (existing assert holds); switch on + a hard photo → one
+- ✅ Node tests: the function's handler with a stubbed fetch (size limit, non-image, wrong site or no public key (§4),
+  busy, text-only answer, key never echoed); the "reads better" choice; the switch default.
+- ✅ check-ocr: switch off (default) → no request leaves the page (existing assert holds); switch on + a hard photo → one
   request, only to EcoGo's own `ocr-cloud` (stubbed), never to ocr.space from the browser; busy → the busy line and the
-  phone's text. Each new check red on the old build first. All six gates within budget.
+  phone's text. Each new check red on the old build first. ✅ All six gates within budget (C4's Privacy lines in
+  check-home). ✅ Live function: OPTIONS 200, wrong site 403, no key 401; Minh's 4 hard photos read by Engine 2.
 - Live: Minh turns it on, photographs a hard label (the Shu Shu bag), sees better text or the busy line; turns it off.
 
 ## 3. Out of scope
