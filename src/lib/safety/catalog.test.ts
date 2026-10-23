@@ -16,6 +16,12 @@ test("the catalog and the expected file cover the same 51 products", () => {
   assert.deepEqual(catalog.map(p => String(p.id)).sort(), Object.keys(expected).sort());
 });
 
+// 075 H3 (audit C1): nothing invented. No source backs "1,4-dioxane (trace)" on the Tide PODS sample, so it isn't listed.
+test("the Tide PODS sample lists only its stated ingredients, no unsourced 1,4-dioxane", () => {
+  assert.equal(catalog.find(p => p.id === 2)?.ingredients,
+    "Anionic surfactants, nonionic surfactants, enzymes, fragrance, methylisothiazolinone");
+});
+
 // A real package opens the catalog page, so the catalog's text must flag what that package's official label flags.
 test("catalog products with a verified barcode get the same flags as their USDA label", () => {
   for (const [file, id] of [["oreo-original-044000032029", 14], ["doritos-028400335799", 13]] as const) {
