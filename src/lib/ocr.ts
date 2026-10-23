@@ -142,6 +142,10 @@ const sameWord = (x: string, y: string) => x === y || piece(x, y) || piece(y, x)
  *  panel) and the box's 1–2 words past it are left out. No such run → the new text goes at the end.
  *  ponytail: one overlap, so photos each cut off on one side (every line cut: Minh's chip photos 7 and 8) don't line
  *  up and are added at the end; joining line by line would need the reads' lines, not the box's text. */
+/** 068 S2: Paste from Photos. The clipboard's text fills an empty box or goes on a new line after what's typed (nothing
+ *  typed is lost); an empty clipboard is null, like a refused read (the box gets focus for the phone's own Paste). */
+export const pasteInto = (box: string, clip: string) => !clip.trim() ? null : box.trim() ? `${box.trimEnd()}\n${clip.trim()}` : clip.trim();
+
 export function joinReads(box: string, read: string): { text: string; joined: boolean } {
   const a = box.split(/\s+/).filter(Boolean), b = read.split(/\s+/).filter(Boolean);
   const key = (w: string) => fold(w).replace(/[^\p{L}\p{N}]/gu, "") || w;

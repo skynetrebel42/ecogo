@@ -1,7 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { afterRead, cleanIngredients, cloudHelpOn, hardToRead, joinReads, knownCount, labelLines, linesText, setCloudHelp, trimToIngredients, unsureCount, unsureWords, withCloud } from "./ocr.ts";
+import { afterRead, cleanIngredients, cloudHelpOn, hardToRead, joinReads, knownCount, labelLines, linesText, pasteInto, setCloudHelp, trimToIngredients, unsureCount, unsureWords, withCloud } from "./ocr.ts";
+
+// 068 S2 (G6): Paste fills an empty box, adds to a typed one on a new line, and an empty clipboard counts as refused.
+test("paste fills the box", () => {
+  assert.equal(pasteInto("", "  Water, Sodium Laureth Sulfate\n"), "Water, Sodium Laureth Sulfate");
+  assert.equal(pasteInto("Sugar, salt \n", "Red 40"), "Sugar, salt\nRed 40");
+  assert.equal(pasteInto("Sugar", " \n "), null);
+});
 
 const word = (text: string, confidence: number) => ({ text, confidence });
 const page = (...lines: { text: string; confidence: number }[][]) => [{ paragraphs: [{ lines: lines.map(words => ({ words })) }] }];
