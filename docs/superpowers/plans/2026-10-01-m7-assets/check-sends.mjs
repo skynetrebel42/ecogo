@@ -252,5 +252,5 @@ try {
 } finally {
   await closeAndCheck(check);
   console.log(`${ok}/${total} checks passed`);
-  process.exit(total > 0 && ok === total ? 0 : 1); // the open DevTools socket would otherwise keep Node alive until the 120 s timeout
+  process.exit(total > 0 && ok === total ? 0 : 1); // the open DevTools socket would otherwise keep Node alive until its timeout
 }

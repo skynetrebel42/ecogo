@@ -348,11 +348,12 @@ try {
   const more = await run(`(async () => { const first = () => [...document.querySelectorAll("p")].find(e => e.innerText === "More from USDA FoodData Central")?.parentElement.querySelector("button");
     return !!(await __until(first, 20000)); })()`);
   check("a text search lists more products from our USDA copy", more);
+  check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));
   check("no console errors", errors.length === 0, errors.join(" | "));
 } catch (err) {
   check("the script ran to the end", false, String(err?.stack ?? err).slice(0, 300)); // a crash must not read as a pass
 } finally {
   await closeAndCheck(check);
   console.log(`${ok}/${total} checks passed`);
-  process.exit(total > 0 && ok === total ? 0 : 1); // the open DevTools socket would otherwise keep Node alive until the 120 s timeout
+  process.exit(total > 0 && ok === total ? 0 : 1); // the open DevTools socket would otherwise keep Node alive until its timeout
 }

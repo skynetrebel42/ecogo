@@ -210,6 +210,8 @@ try {
   await send("Fetch.disable");
 
   check("no console errors", errors.length === 0, errors.join(" | "));
+} catch (err) {
+  check("the script ran to the end", false, String(err?.stack ?? err).slice(0, 300)); // a crash must not read as a pass
 } finally {
   await closeAndCheck(check);
   console.log(`${ok}/${total} checks passed`);

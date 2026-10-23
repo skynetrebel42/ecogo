@@ -17,22 +17,26 @@ export function startEdge(name, base, size, ms) {
   rmSync(PROFILE, { recursive: true, force: true });
   spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${PORT}`, `--window-size=${size}`,
     `--user-data-dir=${PROFILE}`, "about:blank"], { stdio: "ignore" });
-  const close = async () => {
-    try {
+  let closing; // one close, whether the gate's finally or its timeout asks first
+  const close = () => closing ??= (async () => {
+    const quit = (async () => {
       const ws = new WebSocket((await (await fetch(`http://127.0.0.1:${PORT}/json/version`)).json()).webSocketDebuggerUrl);
       await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
       ws.send(JSON.stringify({ id: 1, method: "Browser.close" }));
-      await new Promise(r => { ws.onclose = r; setTimeout(r, 3000); });
-    } catch {} // Edge already gone or not answering: the sweep handles it
-    const [stopped, left] = execFileSync("powershell.exe", ["-NoProfile", "-Command", SWEEP],
-      { env: { ...process.env, ECOGO_PROFILE: PROFILE } }).toString().trim().split(" ").map(Number);
-    return { stopped, left };
-  };
-  setTimeout(async () => { console.log("TIMEOUT"); await close(); process.exit(1); }, ms).unref?.();
+      await new Promise(r => { ws.onclose = r; });
+    })().catch(() => {}); // Edge already gone or not answering: the sweep handles it
+    await Promise.race([quit, new Promise(r => setTimeout(r, 5000))]);
+    try {
+      const [stopped, left] = execFileSync("powershell.exe", ["-NoProfile", "-Command", SWEEP],
+        { env: { ...process.env, ECOGO_PROFILE: PROFILE }, timeout: 30000 }).toString().trim().split(" ").map(Number);
+      return { stopped, left };
+    } catch (err) { return { left: NaN, error: String(err).slice(0, 200) }; }
+  })();
+  setTimeout(async () => { console.log("TIMEOUT"); await close(); process.exit(1); }, ms).unref();
   // A gate's last check: its browser closed, and nothing runs on its profile any more.
   const closeAndCheck = async check => {
-    const { stopped, left } = await close();
-    check("073: Edge closed; nothing left running on its profile", left === 0, stopped ? `${stopped} stopped after Browser.close` : "");
+    const { stopped, left, error } = await close();
+    check("073: Edge closed; nothing left running on its profile", left === 0, error ?? (stopped ? `${stopped} stopped after Browser.close` : ""));
   };
   return { PORT, closeAndCheck };
 }
