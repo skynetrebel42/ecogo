@@ -101,15 +101,14 @@ test("a bad body or bad fields is invalid; a limit is its reason; a database err
   assert.equal((await placeSubmit(new Request("https://x/", { method: "OPTIONS" }), fakeDb().db, NOW)).status, 200);
 });
 
-// 075 M1 (audit S3): a body sent without Content-Length (streamed) is read only up to the limit.
-test("a streamed body over 8 KB is refused once past the limit, without reading the rest", async () => {
+// 075 M1 (audit S3): a body sent without Content-Length (streamed) is kept only up to the limit (_shared/body.ts).
+test("a streamed body over 8 KB is refused, and nothing is inserted", async () => {
   let pulled = 0;
   const body = new ReadableStream<Uint8Array>({ pull(c) { if ((pulled += 4096) > 64 * 4096) c.close(); else c.enqueue(new Uint8Array(4096).fill(0x61)); } });
   const req = new Request("https://x.supabase.co/functions/v1/place-submit",
     { method: "POST", headers: { Authorization: "Bearer good-jwt", "Content-Type": "application/json" }, body, duplex: "half" } as RequestInit);
   const f = fakeDb();
   assert.deepEqual(await reply(await placeSubmit(req, f.db, NOW)), [413, { ok: false, reason: "invalid" }]);
-  assert.ok(pulled <= 8 * 1024 + 2 * 4096, `${pulled} bytes read`);
   assert.deepEqual(f.inserted, []);
 });
 

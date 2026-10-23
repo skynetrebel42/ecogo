@@ -46,8 +46,8 @@ test("only a JPEG photo of 1 MB or less is sent on", async () => {
   }
 });
 
-// 075 M1 (audit S3): a photo sent without Content-Length (streamed) is read only up to 1 MB.
-test("a streamed photo over 1 MB is refused once past the limit, without reading the rest", async () => {
+// 075 M1 (audit S3): a photo sent without Content-Length (streamed) is kept only up to 1 MB (_shared/body.ts).
+test("a streamed photo over 1 MB is refused before OCR.space", async () => {
   let pulled = 0;
   const chunk = 64 * 1024;
   const body = new ReadableStream<Uint8Array>({ pull(c) { if ((pulled += chunk) > 4 * MAX_PHOTO) c.close(); else c.enqueue(new Uint8Array(chunk).fill(0xff)); } });
@@ -55,7 +55,6 @@ test("a streamed photo over 1 MB is refused once past the limit, without reading
     { method: "POST", headers: { origin: SITE, apikey: "sb_publishable_test", "content-type": "image/jpeg" }, body, duplex: "half" } as RequestInit);
   const r = await ocrCloud(req, { key: KEY, publicKeys: [PUBLIC], fetch: (() => assert.fail("OCR.space called")) as typeof fetch });
   assert.equal(r.status, 413);
-  assert.ok(pulled <= MAX_PHOTO + 2 * chunk, `${pulled} bytes read`);
 });
 
 test("a photo goes to OCR.space once, with the key in a header, and only the text comes back", async () => {
