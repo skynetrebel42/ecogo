@@ -286,7 +286,7 @@ export function AnotherPhoto({ text, unsure, cloud, begin, onRead, onError }: {
   const [added, setAdded] = useState<{ n: number; joined: boolean; cloudBusy?: boolean }>();
   const read = async (photo: Blob, live = begin()) => {
     setBlurry(undefined); setBusy(true);
-    const r = await readAnother(photo, cloud); // 070: a hard one goes to cloud help too, with the switch on
+    const r = await readAnother(photo, () => cloud && live()); // 070: a hard one goes to cloud help too, with the switch on
     if (!live()) return;
     setBusy(false);
     if ("error" in r) return onError(r.error);
@@ -352,9 +352,10 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
   // RW1-01: latest photo wins. A photo, Type it, Check another, Retake or Close begins anew; a slow preparation, blur
   // check or read whose own check (`live`) went false since then is dropped.
   const [begin] = useState(latestWins);
+  useEffect(() => () => { begin(); }, []); // 075 H1: however the check closes, a read still going sends nothing to cloud help
   const read = async (photo: Blob, blurOk: boolean, live = begin()) => {
     setBlurry(undefined); setStatus("reading");
-    const r = await readPhoto(photo, cloud);
+    const r = await readPhoto(photo, () => cloud && live());
     if (!live()) return;
     // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (H2); the box starts empty either way (K2).
     setText(r.text); setUnsure(r.unsure); setLines(r.lines); setError(r.error); setReadText(r.read); setHard(r.hard && !blurOk); setCloudBusy(!!r.busy); setStatus("read");

@@ -213,13 +213,13 @@ async function readCloud(photo: Blob): Promise<string[] | null> {
 }
 
 /** readLabel for the screens: never throws (spec §3). `hard` (follow-up 2, G4) only when something was read: a reader
- *  that failed (offline, say) isn't the photo's fault. With `cloud` (070, the switch on), a hard photo also goes to
- *  cloud help; nothing else ever does. */
-export async function readPhoto(photo: Blob, cloud = false): Promise<PhotoRead> {
+ *  that failed (offline, say) isn't the photo's fault. A hard photo also goes to cloud help (070) if `cloud()` says so
+ *  when the phone's read ends (075 H1: the switch on and the check still open); nothing else ever does. */
+export async function readPhoto(photo: Blob, cloud = () => false, read = readLabel): Promise<PhotoRead> {
   try {
     loadMoreNames().catch(() => {}); // 066 R4: the USDA words for suggestions, fetched while the photo is read
-    const r = afterRead(await readLabel(photo));
-    return cloud && r.hard ? withCloud(r, await readCloud(photo)) : r;
+    const r = afterRead(await read(photo));
+    return r.hard && cloud() ? withCloud(r, await readCloud(photo)) : r;
   } catch (err) {
     console.warn("[ocr] couldn't read the photo", err);
     return { text: "", unsure: [], lines: [], hard: false, error: COULDNT_READ };
@@ -228,7 +228,7 @@ export async function readPhoto(photo: Blob, cloud = false): Promise<PhotoRead> 
 
 /** R9: another photo of the same label: its text (planner: never held back by the hard-to-read hint) and unsure words,
  *  or the "couldn't read" message when nothing was kept. The caller joins it to the box as the box is by then. */
-export async function readAnother(photo: Blob, cloud = false): Promise<{ text: string; unsure: string[]; busy?: true } | { error: string }> {
+export async function readAnother(photo: Blob, cloud = () => false):Promise<{ text: string; unsure: string[]; busy?: true } | { error: string }> {
   const r = await readPhoto(photo, cloud), text = r.read ?? r.text;
   return r.error || !text ? { error: r.error ?? COULDNT_READ } : { text, unsure: r.unsure, busy: r.busy };
 }

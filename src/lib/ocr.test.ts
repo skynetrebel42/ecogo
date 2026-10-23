@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { afterRead, cleanIngredients, cloudHelpOn, hardToRead, joinReads, knownCount, labelLines, linesText, pasteInto, setCloudHelp, trimToIngredients, unsureCount, unsureWords, withCloud } from "./ocr.ts";
+import { afterRead, cleanIngredients, cloudHelpOn, hardToRead, joinReads, knownCount, labelLines, linesText, pasteInto, readPhoto, setCloudHelp, trimToIngredients, unsureCount, unsureWords, withCloud } from "./ocr.ts";
 
 // 068 S2 (G6): Paste fills an empty box, adds to a typed one on a new line, and an empty clipboard counts as refused.
 test("paste fills the box", () => {
@@ -268,6 +268,16 @@ test("a cloud read no better than the phone's (a tie) keeps the phone's hard-to-
 
 test("no answer from cloud help keeps the phone's result and says busy", () => {
   assert.deepEqual(withCloud(hardPhone, null), { ...hardPhone, busy: true });
+});
+
+// 075 H1 (audit P1): whether cloud help is wanted is asked when the phone's read ends, so a check closed (or anything
+// newer begun) during the read uploads nothing. In Node the upload itself fails, which shows as "busy".
+test("a hard photo goes to cloud help only if still wanted when the phone's read ends", async () => {
+  const phone = async () => ({ text: hardPhone.read!, unsure: hardPhone.unsure, lines: labelLines([hardPhone.read!]) });
+  let open = true;
+  const closedDuringRead = async () => { const r = await phone(); open = false; return r; };
+  assert.deepEqual(await readPhoto(new Blob(), () => open, closedDuringRead), hardPhone);
+  assert.equal((await readPhoto(new Blob(), () => true, phone)).busy, true, "still open: it goes (and fails here)");
 });
 
 test("the cloud help switch is off until turned on, and remembered on this device", () => {

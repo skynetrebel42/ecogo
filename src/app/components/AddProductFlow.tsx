@@ -109,13 +109,14 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
   // RW1-01: latest photo wins. Each photo, crop, Type it, Skip, Retake, Back or Close begins anew; a slow preparation,
   // blur check or read whose own check (`live`) went false since then is dropped.
   const [begin] = useState(latestWins);
+  useEffect(() => () => { begin(); }, []); // 075 H1: however the flow closes, a read still going sends nothing to cloud help
   const goTo = (s: Step) => { begin(); setStep(s); };
   const acceptPhoto = async (kind: Kind, blob: Blob, blurOk: boolean, live = begin()) => {
     setBlurry(undefined);
     setPhotos(p => ({ ...p, [kind]: blob }));
     if (kind !== "ingredients" || photosOnly) { setStep(next[kind]); return; }
     setStep("reading");
-    const r = await readPhoto(blob, cloud);
+    const r = await readPhoto(blob, () => cloud && live());
     if (!live()) return;
     // After "Use it anyway" on a blurry photo, the hard-to-read hint doesn't show again for it (049 H2); the box starts
     // empty either way (K2).
