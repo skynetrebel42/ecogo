@@ -21,3 +21,6 @@
 ## 3. Out of scope
 Auto-detecting barcode vs label in one camera (bigger; later if wanted); the cleaner ingredient library (072);
 Open Products Facts lookups.
+
+## 4. Builder questions (planner, 2026-10-23: all Option A)
+G1 cleaner kind = personal-care entries with an IARC source, shown with that source only ("IARC classifies it as … (Group N)."); no food library, no EU cosmetic rules. G2 check screen gets a third "What is it?" button "Cleaning product", the cleaner line replaces the FDA/EU/IARC limits line, nothing found = "No matches in EcoGo's checked list." G3 not-found → Cleaning product keeps Safer Choice meaning + California line, the cleaner line replaces "Check the maker's website…", main button "Check the label yourself". G4 nothing added to EPA's Safer Choice page. G5 two pressed buttons "Barcode" / "Ingredients", back to Barcode after the check closes; Ingredients starts on Food. G6 Paste appends on a new line; empty clipboard = refused → focus; tip + Paste in "Type it" only. G7 check-ocr selectors renamed (no new checks). G8 camera stops while Ingredients is open.
