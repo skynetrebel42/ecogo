@@ -6,7 +6,7 @@ top 40 lines, then `grep -n "^| 0NN |"` for the rows you need; never the whole f
 
 ## Commands (run before claiming done)
 - `npm test` (node --test: safety engine, 51-product check, lookup) · `npm run build` (must pass)
-- Browser gates: `docs/superpowers/plans/2026-10-01-m7-assets/check-*.mjs` (how to run: `.claude/handoff-knight.md`)
+- Browser gates: `docs/superpowers/plans/2026-10-01-m7-assets/check-*.mjs` (run: `.claude/handoff-knight.md`)
 - `npm run verify:sources` after editing `src/lib/safety/{library,foodConcerns,personalCare}.ts`, `src/lib/saferChoice.ts`
   or `src/lib/learnSources.ts` (internet; fails on an unverifiable source without a dated hand check)
 - Owner-run only: `npm run import:usda` (empty `foods` first), `npm run import:saferchoice`
@@ -48,5 +48,5 @@ subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Suba
 
 ## Current state (replace at each close-out; ≤ 3 lines)
 - Live: origin/main d58462c (M1–M17, 063–066, 070, 073; 430,127 USDA foods, engine_rev 4; off-submit v11, place-submit v2, ocr-cloud v1).
-- Building: nothing; next brief: 068 scan screen (check-scan covers it; check-ocr at up to 130 s of 180: watch).
-- Then (decision 071, label first): 068 scan screen → 071 reader v3 → 072 ingredient knowledge → 069.
+- Building: 068 scan screen (Headsman VIII; push pending). check-ocr up to 130 s of 180: watch.
+- Then (071, label first): 075 audit fixes → 071 reader v3 → 072 ingredient knowledge → 069.
