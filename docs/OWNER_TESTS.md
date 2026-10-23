@@ -9,6 +9,11 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 - [x] ❓ 064 wording (2026-10-21): FDA's own words with a small "*FDA" note; the rest as drafted.
 - [ ] ❓ Does the EcoGo Build Board show what you need? Leave a comment on it.
 
+## R · Research you're running (bring results to Scout, the research chat)
+- [ ] **R1** Cleaner ingredient lists: paste the Perplexity and Gemini answers into Scout. Scout checks every source.
+- [ ] **R2** Cosmetic ingredient lists: same two AIs, same way.
+- [ ] **R3** (optional) ChatGPT repo audit with the planner's prompt: paste the report into Scout, which checks each finding against the code.
+
 ## 1 · Camera: reading ingredient labels (Scan → "Check ingredients")
 - [x] Perfume label (2026-10-21): found three photo-reading bugs → Label reader v2 (066).
 - [x] **1A** (2026-10-22: hair mousse, curved gold label → "hard to read" and junk text on the old reader; goes into 066 as a test photo; personal care has no "add to database" yet) Soap or shampoo: pick Personal care → Take a photo of the ingredients (flat, good light). See: the words
