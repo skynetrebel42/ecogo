@@ -287,6 +287,14 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
   (chip photos 7 + 8), no 3-word run lines up, so the new text is appended and repeats; flags are still found (7 + 8
   → all three colours). A line-by-line join is ~4 h; build it once Minh sends a real rotated curved-label pair to test on.
 
+### Cloud help (070, live 2026-10-23)
+- **Shared daily cap:** OCR.space's free plan allows "500 requests per day per IP address"; every EcoGo user goes
+  through one Edge Function, so 500 cloud reads a day in total. Over it (or on abuse), everyone sees "Cloud help is
+  busy today" until the reset. Per-person quotas were out of scope (spec §3).
+- **Gates leave headless Edge running on Windows** (Headsman VI): `edge.kill()` leaves Edge's browser process; after
+  many runs a port collides and a gate can attach to an old browser with stale localStorage (check-home "welcome is
+  honest" failures). Fix: `Browser.close` over CDP in each gate's finally (tidy-up, with the check-home split).
+
 ### Outside audits by ChatGPT, 2026-10-11 → 14 (RC1 / RW1 / trust-UI / R2; at 5a08ad6; planner triage 2026-10-14)
 
 Reports are in Minh's Downloads (`EcoGo_Claude_Return_Brief_2026-10-13.md` indexes them). Advice, not decisions.

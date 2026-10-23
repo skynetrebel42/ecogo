@@ -40,6 +40,10 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 - [x] **4D** (2026-10-22) Map → Suggest a place. See: every field has a visible border.
 - [x] **4E** (2026-10-22: info good; wants bubbles, bullets and source buttons, see playtest notes) Home → the 7th Learn tile "Risks a label can't show" (full width). See: five short sections and source cards.
 
+## 7 · Cloud help (070, live 2026-10-23)
+- [ ] **7A** Check ingredients → Take a photo → turn on "Cloud help for hard labels" → photograph a hard label (the Shu Shu
+      bag). See: better text than before (or "Cloud help is busy today"). Then turn it off again.
+
 ## 6 · New label reader (066, live 2026-10-22)
 - [ ] **6A** A curved or shiny label (your mousse, a perfume box): Check ingredients → Personal care → Take a photo.
       See: unsure words as buttons under the box ("Check N words"); tap one → "Did you mean" with real names; pick one.

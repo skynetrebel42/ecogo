@@ -39,14 +39,14 @@ C celery context on flagged meats [Facts] · ⏳ Minh's live test (checklist 2F,
 reading [Feature] · C stronger reader on the phone [Foundation] · D unsure words: tap 1 of 3 suggestions, type it, or
 retake [Feature] · E warning text kept as ingredients (OCR-02) · F false "not clear" (OCR-03) [Debug] · (G cloud help → 070) · H "never photograph anything private" on photo sends [UI] · I take another
 photo, text joined at the overlap [Feature]
-070 Cloud help, opt-in (OCR.space) 🔨 right after 066 [Feature][Server] (decision 070; spec docs/superpowers/specs/2026-10-23-cloud-help-070-design.md)
+070 Cloud help, opt-in (OCR.space) ✅ 10-23 (9fd47c7) [Feature][Server] (decision 070; spec docs/archive/2026-10-23-cloud-help-070-design.md)
 Tidy-up 📋 (C, the check-home split, before 068) · A shared check set-up (~-190 lines) · B trim Figma CSV + unread fields · C split check-home (315 s of 420) ·
 D archive the M10 specs still in `specs/` [Process]
 Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 
 ## Priority build list (Daedalus keeps it current; top = next)
 1. ~~066 Label reader v2 live~~ ✅ 10-22 (f23f876, live check passed) · ⏳ Minh's live test (checklist section 6)
-2. **070 Cloud help, opt-in** 📋 small; needs Minh's OCR.space key as a server secret
+2. ~~070 Cloud help, opt-in~~ ✅ 10-23 (9fd47c7) · ⏳ Minh's live test (checklist 7A)
 3. **Check-home split** 📋 (tidy-up C) keeps the 7-minute checks from hitting their limit
 4. **068 Scan screen** 📋 Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
 5. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos
@@ -59,7 +59,8 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 end after "Cleaning product" [UI] · D paste-from-Photos path: tip + Paste button; tip (Minh, 10-22): "On iPhone: open the photo, press and hold the words, tap Copy, then tap Paste here." [Feature]
 071 Label reader v3 📋 · A brand / product name / net weight lines aren't ingredients [Debug] · B Add a product: name + brand at the end [Feature] ·
 C line-by-line join for cut-off photos [Feature] · D stop phrases from Minh's photos [Debug] · E split glued words on condensed print
-("BENZYLSALICYLATE", "INGREDIENTSALCOHOL…": Burberry) [Debug] · F turn sideways text (Coppertone Drug Facts) [Feature]
+("BENZYLSALICYLATE", "INGREDIENTSALCOHOL…": Burberry) [Debug] · F turn sideways text (Coppertone Drug Facts) [Feature] · G start-word traps:
+"…Imported Ingredients" never starts a list (Pantene), "INGREDIENTS," with a comma (Burberry); Drug Facts stops ("Purpose", "Uses") [Debug]
 072 Ingredient knowledge 📋 · A research: official, licence-checked cleaner + personal-care lists [Facts] · B cleaner ingredient library [Facts] ·
 C wider personal-care coverage [Facts]
 069 Learn + Privacy redesign 📋 · A one frame per card, bubbles + More, Source buttons, badge links [UI] · B How EcoGo checks:

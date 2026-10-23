@@ -21,8 +21,8 @@ top 40 lines, then `grep -n "^| 0NN |"` for the rows you need; never the whole f
 ## Rules
 - Nothing the app shows may be invented: every claim has a verbatim official quote (`verify:sources`). No match = no claim.
 - The browser writes no Supabase rows. Its only Supabase calls: read `foods`; anonymous sign-in at the first Send;
-  invoke `off-submit` (sole writer of `contributions`) and `place-submit` (sole writer of `place_reports`); read the
-  person's own counts. No secret keys in client code (the Turnstile site key is public). Every push to `main` deploys.
+  invoke `off-submit` (sole writer of `contributions`), `place-submit` (sole writer of `place_reports`) and opt-in
+  `ocr-cloud`; read the person's own counts. No secret keys in client code (the Turnstile site key is public). Every push to `main` deploys.
 - Git: commit by exact path; never `add -A`, `commit -a`, amend, reset, rebase, stash or force-push on `main` (hook
   enforces). Before any push show `git log --oneline origin/main..HEAD` (own vs others); the owner approves that list.
 
@@ -47,6 +47,6 @@ subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Suba
 - **State** is replaced, never appended to.
 
 ## Current state (replace at each close-out; ≤ 3 lines)
-- Live: origin/main f23f876 (M1–M17, 063, 064, 066; 430,127 USDA foods, engine_rev 4; off-submit v11, place-submit v2).
-- Building: 070 cloud help (Headsman VI; server piece + logic done; screens with wording A; then deploy, secret, push).
-- Then (decision 071, label first): 070 cloud help → check split → 068 scan screen → 071 reader v3 → 072 ingredient knowledge → 069.
+- Live: origin/main 9fd47c7 (M1–M17, 063–066, 070; 430,127 USDA foods, engine_rev 4; off-submit v11, place-submit v2, ocr-cloud v1).
+- Building: nothing; next brief: check-home split + gates closing Edge (tidy-up), then 068 scan screen.
+- Then (decision 071, label first): 068 scan screen → 071 reader v3 → 072 ingredient knowledge → 069.
