@@ -356,7 +356,7 @@ const AMOUNT = /^\d+(?:[.,]\d+)?\s*%\s*|\s*\d+(?:[.,]\d+)?\s*%.*$/g;
 const bare = (item: string) => item.toLowerCase().replace(AMOUNT, "").replace(/\s+usp$/, "").replace(/\s*\/\s*/g, "/").trim();
 /** An item's names: itself and, for "Aqua/Water/Eau", each part. */
 const names = (item: string) => { const b = bare(item); return b.includes("/") ? [b, ...b.split("/").map(s => s.trim())] : [b]; };
-const FRAGRANCE_WORD = /(?<![a-z0-9])(?:fragrance|parfum|aroma)(?![a-z0-9])/;
+const FRAGRANCE_WORD = /(?:^|[^a-z0-9])(?:fragrance|parfum|aroma)(?![a-z0-9])/; // no lookbehind (075 H2)
 
 const SUNSCREEN_WORD = /\bsun ?(?:screen|block)s?\b|\bspf\d*\b/i;
 /** N2c item 2 (revised): a product page shows sunscreen rows only when the name or the OBF categories say sunscreen,

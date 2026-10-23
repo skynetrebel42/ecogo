@@ -20,8 +20,11 @@ export const FOOD_CATEGORIES: ReadonlySet<string> = new Set([
 
 export const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** E-numbers in label text: "E250", "E 250", "E-250", "e150d" — but never a vitamin E dose ("vitamin E 250", "E 250 IU"). */
-const E_CODE = /(?<!\bvit(?:amine?)?\.?[\s-]*)(?<![a-z0-9])e[\s-]?(\d{3,4}[a-z]?)(?![a-z0-9])(?!\s*(?:iu|mg|mcg|µg|%))/g;
+/** E-numbers in label text: "E250", "E 250", "E-250", "e150d" — but never a vitamin E dose ("vitamin E 250", "E 250 IU").
+ *  No lookbehind (075 H2: Safari < 16.4 can't parse it): group 1 is the character before the "e", and the text up to the
+ *  "e" must not end in VITAMIN_BEFORE. */
+const E_CODE = /(^|[^a-z0-9])e[\s-]?(\d{3,4}[a-z]?)(?![a-z0-9])(?!\s*(?:iu|mg|mcg|µg|%))/g;
+const VITAMIN_BEFORE = /\bvit(?:amine?)?\.?[\s-]*$/;
 
 /** US colour spellings → the library's form: "Red #40", "FD&C Red No. 40", "Red Dye 40" → "red 40"; "yellow 5 & 6" → both. */
 const normalizeColours = (s: string) => s
@@ -46,8 +49,9 @@ export function analyzeIngredients(
 
   const matchers = library.map(entry => ({
     entry,
-    // "non-bromated" / "un-bromated" claim absence.
-    aliases: entry.aliases.map(a => new RegExp(`(?<![a-z0-9])(?<!\\b(?:non|un)-)${escapeRegExp(a)}(?![a-z0-9])`)),
+    // "non-bromated" / "un-bromated" claim absence: before the name, the start, a character that is neither a letter, a
+    // digit nor "-", or a "-" after a word that isn't "non" or "un" (no lookbehind, 075 H2).
+    aliases: entry.aliases.map(a => new RegExp(`(?:^|[^a-z0-9-]|(?:^|\\W)(?!(?:non|un)-)\\w*-)${escapeRegExp(a)}(?![a-z0-9])`)),
   }));
   const flags: Flag[] = [];
   const flagged = new Set<string>();
@@ -59,7 +63,8 @@ export function analyzeIngredients(
 
   for (const item of items) {
     const lower = normalizeColours(item.toLowerCase());
-    const itemCodes = [...lower.matchAll(E_CODE)].map(m => `E${m[1].toUpperCase()}`);
+    const itemCodes = [...lower.matchAll(E_CODE)].filter(m => !VITAMIN_BEFORE.test(lower.slice(0, m.index! + m[1].length)))
+      .map(m => `E${m[2].toUpperCase()}`);
     for (const { entry, aliases } of matchers) {
       if (aliases.some(re => re.test(lower)) || itemCodes.some(c => entry.eCodes.includes(c))) flag(entry, item);
     }

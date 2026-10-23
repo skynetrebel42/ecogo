@@ -131,6 +131,17 @@ test("'non-' and 'un-' prefixes state absence", () => {
   assert.equal(bromate("Bromated flour, water"), 1);
 });
 
+// 075 H2: the rewrites without lookbehind consume the character before a match; matches next to each other still count.
+test("codes and names side by side, after a hyphenated word or punctuation, still match", () => {
+  assert.deepEqual(ids(food("Colour (E133 E150d E951 E250)")), ["sodium-nitrite", "aspartame", "brilliant-blue", "caramel-iv"]);
+  assert.deepEqual(ids(food("E-250/E-951")), ["sodium-nitrite", "aspartame"]);
+  assert.deepEqual(ids(food("vit.E250")), []);
+  const bromate = (t: string) => analyzeIngredients({ ingredients: t }, [lib("potassium-bromate", ["bromated flour"])]).flags.length;
+  assert.equal(bromate("Sun-bromated flour"), 1, "a word ending in 'un' isn't 'un-'");
+  assert.equal(bromate("Anon-bromated flour"), 1, "nor one ending in 'non'");
+  assert.equal(bromate("(bromated flour)"), 1);
+});
+
 test("additive codes from Open Food Facts flag by E-number", () => {
   assert.deepEqual(ids(analyzeIngredients({ ingredients: "", additiveCodes: ["en:e951"] }, LIB)), ["aspartame"]);
   assert.deepEqual(ids(analyzeIngredients({ ingredients: "Water", additiveCodes: ["E 250", "en:e330"] }, LIB)), ["sodium-nitrite"]);

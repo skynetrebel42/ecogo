@@ -65,8 +65,9 @@ const FRANKS_RED_HOT = /\bfranks?['’]?s?\s+red\s?hot\b/gi;
 const NOT_MEAT_ITEM = /\bfranks?['’]?s?\s+red\s?hot\b|\b(imitation|vegan|vegetarian(?![- ](?:fed|diet|raised))|plant[- ]based|meatless|meat[- ]free|veggie)\b|\b(?:bacon|ham|sausage|pepperoni|salami|jerky)(?:[- ]flavou?r|[- ]free\b)|\bno (?:bacon|ham|sausage|pepperoni|salami|meat)\b|^(?:rendered )?bacon (?:fat|grease|drippings)$|\bbacon[- ]?(?:type|style)\b/i;
 // "BACON BITS (SOY FLOUR, …)": imitation bits, cut out of the label text before it is split into items (M10.1 A3).
 const IMITATION_BITS = /\bbacon bits?\s*[([][^)\]]*\b(?:soy|textured|vegetable|plant)\b[^)\]]*[)\]]/gi;
-// Meat words on a label: poultry, game and hog included (M10.1 D). Eggs of those birds are not meat.
-const MEAT_INGREDIENT = /\b(pork|hog|beef|chicken|turkey|veal|lamb|mutton|goat|venison|bison|buffalo|(?<!(?:coconut|nuts?|walnut|pecan|crab|lobster|shrimp|clam|oyster|scallop|fish|shellfish|tuna|salmon)\s)meat|poultry|(?:duck|goose|quail|pheasant|ostrich)(?!\s+eggs?\b)|boar|elk|moose|rabbit)\b/i;
+// Meat words on a label: poultry, game and hog included (M10.1 D). Eggs of those birds are not meat. "Meat" right after a
+// space that ends a run of letters ending in "coconut", "crab", "fish"… isn't (no lookbehind, 075 H2).
+const MEAT_INGREDIENT = /\b(pork|hog|beef|chicken|turkey|veal|lamb|mutton|goat|venison|bison|buffalo|poultry|(?:duck|goose|quail|pheasant|ostrich)(?!\s+eggs?\b)|boar|elk|moose|rabbit)\b|(?:^|[^\w\s]|(?:^|[^a-z])(?![a-z]*(?:coconut|nuts?|walnut|pecan|crab|lobster|shrimp|clam|oyster|scallop|fish|shellfish|tuna|salmon)\s)[a-z]*\s)meat\b/i;
 // Named after a meat but made to go with it: "Hot Dog Buns", "Ham Glaze", "Sausage Seasoning". Only hot dog rolls are
 // bread: a "sausage roll" is meat.
 const ACCESSORY = new RegExp(PM_WORD.source + /\s+(buns?|relish|chili|sauce|seasoning|glaze|mix)\b|\bhot ?dogs? rolls?\b/.source, "i");
@@ -126,8 +127,9 @@ const SMOKED_NAME = /\bsmoked\b/i;
 const MEAT_CATEGORY = /\b(?:sausages?|bacon|salami|cold cuts?|cured meat|hot ?dogs?|canned meat|ham)\b/i;
 const NOT_MEAT_CATEGORY = /vegetarian|fish|seafood|cheese|bread|bun|snack/i;
 // Evidence that a label's base is NOT meat: plant proteins, grains, legumes, dairy, eggs, fish. "Hydrolyzed soy protein" is a
-// flavour enhancer in meat labels (it is in real deli roast beef), not a base.
-const NON_MEAT_BASE = /(?<!hydrolyzed )\b(?:soy|pea|wheat|potato|faba|rice|plant|vegetable|milk) protein|\b(?:textured|gluten|seitan|tofu|tempeh|soymilk|soy flour|jackfruit|chickpeas?|lentils?|beans?|mushrooms?|quinoa|nuts?|almonds?|walnuts?|coconut|oats?|flour|rice|cheese|milk|cream|eggs?|salmon|tuna|fish|shrimp|crab(?:meat)?|surimi|pollock|whitefish|roe|seafood|cod|tilapia|scallops?)\b/i;
+// flavour enhancer in meat labels (it is in real deli roast beef), not a base: no run of letters ending in "hydrolyzed" and
+// a space before it (no lookbehind, 075 H2).
+const NON_MEAT_BASE = /(?:^|[^\w ]|(?:^|[^a-z])(?![a-z]*hydrolyzed )[a-z]* )\b(?:soy|pea|wheat|potato|faba|rice|plant|vegetable|milk) protein|\b(?:textured|gluten|seitan|tofu|tempeh|soymilk|soy flour|jackfruit|chickpeas?|lentils?|beans?|mushrooms?|quinoa|nuts?|almonds?|walnuts?|coconut|oats?|flour|rice|cheese|milk|cream|eggs?|salmon|tuna|fish|shrimp|crab(?:meat)?|surimi|pollock|whitefish|roe|seafood|cod|tilapia|scallops?)\b/i;
 // A label that has a "bacon flavor" or "ham flavor" item is a seasoning or a flavoured product, not a brine-only meat label.
 const MEAT_FLAVOUR_ITEM = /\b(?:bacon|ham|sausage|pepperoni|salami|jerky|pork|beef)[- ](?:type |style )?flavou?r/i;
 // A name that says it is not a deli meat itself (a spread, a sauce, bread...): the brine rule does not apply.
