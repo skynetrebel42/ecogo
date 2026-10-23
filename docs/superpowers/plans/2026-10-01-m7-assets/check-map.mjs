@@ -86,10 +86,13 @@ try {
   await send("Page.bringToFront");
   await send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await send("Network.enable");
-  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, PHOTON] });
+  await send("Fetch.enable", { patterns: [{ urlPattern: "*/rest/v1/resources*", requestStage: "Request" }, PHOTON, TURNSTILE] });
   await send("Page.navigate", { url: URL_ });
   await sleep(4000);
+  // 075 F1 (audit): the Map's code is its own file, asked for only when the tab opens.
+  const mapCode = () => requests.some(u => /\/assets\/MapTab-[\w-]+\.js/.test(u)), atStart = mapCode();
   await openMap();
+  check("075 F1: the Map's code isn't loaded at startup, only when the Map tab opens", !atStart && mapCode(), requests.filter(u => u.includes("/assets/")).join(" ").slice(0, 300));
 
   const nav = await run(`[...document.querySelectorAll("button")].map(b => b.innerText.trim()).filter(s => ["Home", "Map", "Scan", "Saved", "Profile"].includes(s))`);
   check("bottom nav is Home, Map, Scan, Saved, Profile", JSON.stringify(nav) === '["Home","Map","Scan","Saved","Profile"]',

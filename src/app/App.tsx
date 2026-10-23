@@ -1,6 +1,5 @@
-import { useState, useEffect, useId, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useState, useEffect, useId, useRef, type ReactNode } from "react";
 import { loadCatalog, type ResourceRow } from "../lib/catalog";
-import MapTab from "./components/MapTab";
 import ProductDetailScreen from "./components/ProductDetailScreen";
 import ScanTab from "./components/ScanTab";
 import csvText from "../data/products.csv?raw";
@@ -37,6 +36,11 @@ type SubScreen = "search-results" | "product-detail" | "check-ingredients" | "ad
 // Bundled CSV catalog: shown until Supabase answers, and kept as the offline
 // fallback. The live catalog comes from the database (src/lib/catalog.ts).
 const PRODUCTS: Product[] = parseProductsCSV(csvText);
+
+// 075 F1: the Map's code (Leaflet, its datasets) loads when the tab opens, not at startup, in the Map's own words.
+// ponytail: a failed load (offline, or an old page after a deploy) stays "Places need a connection" until a reload.
+const mapNote = (text: string) => <p className="p-6 text-center text-sm font-bold">{text}</p>;
+const MapTab = lazy(() => import("./components/MapTab").catch(() => ({ default: () => mapNote("Places need a connection") })));
 
 /** Phones get the app full-screen; desktop keeps the phone frame (M6 spec §4.5).
  *  ponytail: decided once at load; a window resized across 500 px keeps its layout until reload. */
@@ -699,7 +703,7 @@ export default function App() {
                       recent={recentProducts}
                     />
                   )}
-                  {activeTab === "map"     && <MapTab places={places} status={dbStatus} onFormOpen={setMapForm} />}
+                  {activeTab === "map"     && <Suspense fallback={mapNote("Loading places…")}><MapTab places={places} status={dbStatus} onFormOpen={setMapForm} /></Suspense>}
                   {activeTab === "scan"    && (
                     <ScanTab products={products} onScanResult={openProduct} onCheckIngredients={kind => { setCheckKind(kind); setSubScreen("check-ingredients"); }}
                       onAdd={(code) => { setAddCode(code); setAddMode("new"); setAddPhoto(undefined); setSubScreen("add-product"); }} />
