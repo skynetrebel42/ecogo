@@ -48,5 +48,5 @@ subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Suba
 
 ## Current state (replace at each close-out; ≤ 3 lines)
 - Live: origin/main 46a86d9 (M1–M17, 063–066, 068, 070, 073; 430,127 USDA foods, engine_rev 4; off-submit v11, place-submit v2, ocr-cloud v1).
-- Building: 075 audit fixes (Headsman IX). check-ocr up to 130 s of 180: watch.
-- Then (071, label first): 075 audit fixes → 071 reader v3 → 072 ingredient knowledge → 069.
+- Building: 075 audit fixes (Headsman IX; H1–H3 + M1 done, unpushed), paused: weekly usage 94% until the 27 Oct reset.
+- Then (071, label first): finish 075 → model trial (research-model-mix.md) → 071 reader v3 → 072 ingredient knowledge → 069.

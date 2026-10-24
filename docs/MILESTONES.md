@@ -51,6 +51,7 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 4. ~~068 Scan screen~~ ✅ 10-23 (46a86d9) · ⏳ Minh's live test (checklist 8A–8C) · Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
 5. **075 Audit fixes** 🔨 ChatGPT audit, all 16 confirmed: High first (cloud upload after close, old-Safari crash,
    unsourced Tide line incl. the live catalog row), then medium/low (KNOWN_ISSUES)
+   ⏸ paused 10-23 (weekly usage 94%, playbook §9.2) until the 27 Oct reset. Then **model trial** (Minh, 10-23 via Scout): 7 runs, Sonnet/Haiku vs Opus on finished tasks, prompt in research-model-mix.md (planner notes folder) [Process]
 6. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos
 7. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
 8. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
