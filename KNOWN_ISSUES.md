@@ -300,6 +300,10 @@ can pass a limit by a few), S4/D10. Already open: B2 = K-22.
 - **Low, 075 if cheap:** C2 "Oreo … 28% … added sugar" has no Oreo source (fix or remove) · P3 Turnstile script loads
   before Send (load on Send, or say so) · A2 3.79:1 contrast on the Scan screen (ScanTab.tsx:254) · F1 Map code loads at
   startup (lazy-load). S5 resolved by a rule-text fix (CLAUDE.md now lists the `products`/`resources` reads).
+- **Watch (measured in 075):** Supabase's gateway holds a request body over ~1 MiB until the function's wall clock ends
+  it (503 after ~160 s), on every function, with or without Content-Length (1000 KB: answered in 0.6 s; 1030 KB: no
+  answer). Real sends so far are under it (planner: every send on 2026-10-22 got POST 200 in 4.6–8 s). If one stalls,
+  cap the app's total upload below 1 MiB. Nothing built for it.
 
 ### Cloud help (070, live 2026-10-23)
 - **Shared daily cap:** OCR.space's free plan allows "500 requests per day per IP address"; every EcoGo user goes
