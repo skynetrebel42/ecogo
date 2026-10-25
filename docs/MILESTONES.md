@@ -63,7 +63,7 @@ end after "Cleaning product" [UI] · D paste-from-Photos path: tip + Paste butto
 071 Label reader v3 📋 · A brand / product name / net weight lines aren't ingredients [Debug] · B Add a product: name + brand at the end [Feature] ·
 C line-by-line join for cut-off photos [Feature] · D stop phrases from Minh's photos [Debug] · E split glued words on condensed print
 ("BENZYLSALICYLATE", "INGREDIENTSALCOHOL…": Burberry) [Debug] · F turn sideways text (Coppertone Drug Facts) [Feature] · G start-word traps:
-"…Imported Ingredients" never starts a list (Pantene), "INGREDIENTS," with a comma (Burberry); Drug Facts stops ("Purpose", "Uses") [Debug]
+"…Imported Ingredients" never starts a list (Pantene), "INGREDIENTS," with a comma (Burberry); Drug Facts stops ("Purpose", "Uses") [Debug] · proposed (Minh, 10-24; planner pick: here): H "Checking… / Checked" in the Type it box so an edit visibly re-checks [UI] · I unsure words in Type it: red underline + "did you mean …" chips (reuse 066 D) [Feature] · J benzene note in the ingredient check too, not only the product page (2F gap) [Facts]
 072 Ingredient knowledge 📋 · A research: official, licence-checked cleaner + personal-care lists [Facts] (Scout 10-23:
 research-072-cleaners.md, research-072-cosmetics.md in the planner notes folder; IARC: per-entry quotes OK, a whole-table library needs IARC's OK) · B cleaner ingredient library [Facts] ·
 C wider personal-care coverage [Facts]
