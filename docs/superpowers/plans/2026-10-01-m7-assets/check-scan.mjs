@@ -136,10 +136,14 @@ try {
     link.click(); await __sleep(500);
     const open = { h1: document.activeElement?.tagName === "H1" ? document.activeElement.innerText : null, inert: inert() };
     [...document.querySelectorAll('button[aria-label="Back"]')].pop()?.click(); await __sleep(500);
-    return { ...open, back: document.activeElement?.innerText, after: inert() }; })()`);
-  check("075 M3: the 'Nothing flagged' article over the check: heading focused, check behind inert, Back returns focus to its link",
-    why?.h1 === "“Nothing flagged” isn’t “healthy”" && why.inert === "true,true" && why.back === 'Why "Nothing flagged" isn\'t "healthy"' && why.after === "false,false",
-    JSON.stringify(why));
+    const back = document.activeElement?.innerText, after = inert();
+    // Escape closes the article only (handoff: overlays close on Escape), not the check under it.
+    link.click(); await __sleep(500);
+    document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await __sleep(500);
+    return { ...open, back, after, esc: [!!document.querySelector("#check-title"), document.activeElement === link].join() }; })()`);
+  check("075 M3: the 'Nothing flagged' article over the check: heading focused, check behind inert, Back or Escape returns focus to its link",
+    why?.h1 === "“Nothing flagged” isn’t “healthy”" && why.inert === "true,true" && why.back === 'Why "Nothing flagged" isn\'t "healthy"' && why.after === "false,false"
+    && why.esc === "true,true", JSON.stringify(why));
   await run(`(async () => { __btn("Close").click(); await __sleep(600); return true; })()`);
   const nf = await scanTyped("3017620429996", "We couldn't find this barcode yet");
   check("M8: the not-found screen shows 'Add this product', the OFF website link stays as a fallback",

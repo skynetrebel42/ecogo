@@ -158,7 +158,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
   const [cover, setCover] = useState<HTMLElement | null>(null);
   useEffect(() => {
     if (!cover) return;
-    const behind = [...cover.children].filter(e => !e.hasAttribute("data-article")) as HTMLElement[];
+    const behind = ([...cover.children] as HTMLElement[]).filter(e => !e.inert && !e.hasAttribute("data-article"));
     behind.forEach(e => { e.inert = true; });
     return () => { behind.forEach(e => { e.inert = false; }); link.current?.focus(); };
   }, [cover]);
@@ -258,7 +258,8 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
           <LimitedRow limited={care.limited} />
         </div>
       )}
-      {cover && createPortal(<div data-article><Explainer id="not-healthy" onBack={() => setCover(null)} /></div>, cover)}
+      {cover && createPortal(<div data-article onKeyDown={e => { if (e.key === "Escape") { e.stopPropagation(); setCover(null); } }}>
+        <Explainer id="not-healthy" onBack={() => setCover(null)} /></div>, cover)}{/* Escape closes the article only */}
     </div>
   );
 }
