@@ -310,8 +310,9 @@ try {
   const faked = [];
   const CORS = [{ name: "Access-Control-Allow-Origin", value: "*" }, { name: "Access-Control-Allow-Headers", value: "*" },
     { name: "Access-Control-Allow-Methods", value: "POST, OPTIONS" }, { name: "Content-Type", value: "application/json" }];
+  let sentForm = ""; // 071 B: the text fields of the form the app sent
   const stub = createServer((req, res) => {
-    req.resume(); // read the whole upload, then answer after a moment (the "saving" stage)
+    req.on("data", c => { sentForm += c.toString("latin1"); }); // read the whole upload, then answer after a moment (the "saving" stage)
     req.on("end", () => setTimeout(() => {
       res.writeHead(200, Object.fromEntries(CORS.map(h => [h.name, h.value])));
       res.end(JSON.stringify({ ok: true, textKept: false, failedPhotos: ["nutrition"], pendingPhotos: ["front"] }));
@@ -353,6 +354,9 @@ try {
   };
   await throttle(40_000);
   const sent = await run(`(async () => { await __until(() => __btn("Send") && document.querySelector('img[alt="Nutrition photo"]'), 10000);
+    window.__w4 = document.body.innerText.includes("What's it called?") && [...document.querySelectorAll("label")].map(l => l.innerText).filter(t => /^(Product name|Brand)$/.test(t)).join(",");
+    for (const [id, v] of [["product-name", "Guava Punch"], ["product-brand", "Tropilicious"]]) { const i = document.getElementById(id); if (!i) continue;
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, v); i.dispatchEvent(new Event("input", { bubbles: true })); }
     document.querySelector('input[type="checkbox"]').click(); await __sleep(200);
     window.__turnstileRender = (el, o) => { setTimeout(() => o.callback("stub-token"), 50); return "stub"; };
     const live = document.querySelector('p.sr-only[aria-live="polite"]'); window.__said = [live ? JSON.stringify(live.innerText) : "no live region"];
@@ -382,6 +386,10 @@ try {
     && faked.some(f => f.startsWith("POST") && f.includes("signup")) && faked.some(f => f.startsWith("POST") && f.includes("off-submit"))
     && faked.every(f => /^(OPTIONS|POST) v1\/(signup|off-submit)$/.test(f)),
     `${sent.split("|")[1]}; answered here: ${faked.join(", ")}`);
+  const w4 = await run(`__w4`);
+  check("071 B: before Send, 'What's it called?' asks Product name and Brand; the sent form carries both",
+    w4 === "Product name,Brand" && sentForm.includes('name="name"\r\n\r\nGuava Punch\r\n') && sentForm.includes('name="brand"\r\n\r\nTropilicious\r\n'),
+    `${w4} | name ${sentForm.includes('name="name"')}, brand ${sentForm.includes('name="brand"')}`);
   await run(`(async () => { __btn("Scan another product").click(); await __sleep(600); return true; })()`);
   // The send checks for crowd-sourced OFF products (051, 058, 055 E1–E3) are in check-sends.mjs.
   check("USDA's own API is never called",!requests.some(u => u.includes("api.nal.usda.gov")), requests.filter(u => u.includes("usda")).slice(0, 3).join(" "));

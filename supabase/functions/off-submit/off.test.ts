@@ -63,6 +63,19 @@ test("empty ingredients are invalid in a normal send, as before; photos mode acc
   assert.equal(validForm({ ...form, photosMode: true, code: "12" }), false);
 });
 
+// 071 B: "What's it called?" before Send: the name as before, the brand in OFF's `brands`; either can be left out.
+test("071 B: the product form carries the brand in OFF's brands field; neither name nor brand is needed", () => {
+  const both = productForm({ code: "0123456789012", ingredients: "Water", name: "Guava Punch", brand: "Tropilicious" }, who);
+  assert.equal(both.get("product_name_en"), "Guava Punch");
+  assert.equal(both.get("brands"), "Tropilicious");
+  assert.equal(productForm({ code: "0123456789012", ingredients: "Water", name: "Guava Punch" }, who).has("brands"), false);
+  const brandOnly = productForm({ code: "0123456789012", ingredients: "Water", brand: "Tropilicious" }, who);
+  assert.equal(brandOnly.has("product_name_en"), false);
+  assert.equal(brandOnly.get("brands"), "Tropilicious");
+  assert.equal(validForm({ ...form, ingredients: "Water", brand: "x".repeat(200) }), true);
+  assert.equal(validForm({ ...form, ingredients: "Water", brand: "x".repeat(201) }), false, "a brand is checked like a name");
+});
+
 test("photos mode uploads photos only, never the text, and only for a product OFF already has", () => {
   assert.equal(sendPlan(true, true, false), "photos", "OFF has the product but no text: still no text write");
   assert.equal(sendPlan(true, true, true), "photos");

@@ -69,7 +69,7 @@ const input = { code: CODE, ingredients: "Sugar, Red 40" };
 
 test("a first-time sender is signed in anonymously with the human-check token, then the product is sent", async () => {
   const f = fakeClient();
-  const r = await submitProduct({ ...input, name: "Gummy bears", photos: { front: jpeg("f"), ingredients: jpeg("i") } }, token, f.client);
+  const r = await submitProduct({ ...input, name: "Gummy bears", brand: " Haribo ", photos: { front: jpeg("f"), ingredients: jpeg("i") } }, token, f.client);
   assert.deepEqual(r, { ok: true });
   assert.deepEqual(f.calls(), ["signIn turnstile-token", "send off-submit"]);
   assert.deepEqual(request!.headers, { Authorization: "Bearer user-jwt", apikey: "publishable-key" });
@@ -77,6 +77,7 @@ test("a first-time sender is signed in anonymously with the human-check token, t
   assert.equal(body.get("code"), CODE);
   assert.equal(body.get("ingredients"), "Sugar, Red 40");
   assert.equal(body.get("name"), "Gummy bears");
+  assert.equal(body.get("brand"), "Haribo"); // 071 B
   assert.equal(await (body.get("front") as File).text(), "f");
   assert.equal(await (body.get("ingredients_photo") as File).text(), "i");
   assert.equal(body.has("nutrition"), false, "skipped photos aren't sent");
@@ -85,13 +86,14 @@ test("a first-time sender is signed in anonymously with the human-check token, t
 // M8 follow-up 5, J2: new photos for a product OFF has, without text or name.
 test("a photos-only send carries mode=photos and the photos, never the text or the name", async () => {
   const f = fakeClient({ session: true });
-  const r = await submitProduct({ code: CODE, ingredients: "", name: "Gummy bears", photosOnly: true, photos: { nutrition: jpeg("n") } }, token, f.client);
+  const r = await submitProduct({ code: CODE, ingredients: "", name: "Gummy bears", brand: "Haribo", photosOnly: true, photos: { nutrition: jpeg("n") } }, token, f.client);
   assert.deepEqual(r, { ok: true });
   const body = f.sent()!;
   assert.equal(body.get("mode"), "photos");
   assert.equal(await (body.get("nutrition") as File).text(), "n");
   assert.equal(body.has("ingredients"), false);
   assert.equal(body.has("name"), false);
+  assert.equal(body.has("brand"), false);
   const g = fakeClient({ session: true });
   assert.deepEqual(await submitProduct({ code: CODE, ingredients: "", photosOnly: true, photos: {} }, token, g.client),
     { ok: false, reason: "invalid" }, "no photo: nothing to send");
@@ -106,6 +108,7 @@ test("someone already signed in isn't asked for a human check again", async () =
   assert.equal(asked, false);
   assert.deepEqual(f.calls(), ["send off-submit"]);
   assert.equal(f.sent()!.has("name"), false);
+  assert.equal(f.sent()!.has("brand"), false, "skipping the brand still sends");
 });
 
 // M8 follow-up 4 (docs/superpowers/specs/2026-10-09-m8-followup4-send-progress-design.md P1).

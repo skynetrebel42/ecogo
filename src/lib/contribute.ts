@@ -15,6 +15,7 @@ const kinds = (v: unknown): PhotoKind[] => (Array.isArray(v) ? KINDS.filter(k =>
 export interface Submission {
   code: string;
   name?: string;
+  brand?: string;
   ingredients: string;
   photos: { front?: Blob; ingredients?: Blob; nutrition?: Blob };
   /** Follow-up 5, J2: new photos for a product OFF has; no text or name is sent, at least one photo is. */
@@ -119,6 +120,7 @@ export async function submitProduct(s: Submission, getCaptchaToken: () => Promis
   else {
     body.set("ingredients", ingredients);
     if (s.name?.trim()) body.set("name", s.name.trim());
+    if (s.brand?.trim()) body.set("brand", s.brand.trim()); // 071 B (an off-submit from before 071 ignores it)
   }
   if (s.photos.front) body.set("front", s.photos.front, "front.jpg");
   if (s.photos.ingredients) body.set("ingredients_photo", s.photos.ingredients, "ingredients.jpg");

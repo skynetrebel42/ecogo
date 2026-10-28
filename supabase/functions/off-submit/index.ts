@@ -44,6 +44,7 @@ Deno.serve(async req => {
   const code = String(form.get("code") ?? "");
   const ingredients = String(form.get("ingredients") ?? "").trim();
   const name = String(form.get("name") ?? "").trim();
+  const brand = String(form.get("brand") ?? "").trim(); // 071 B
   const photosMode = form.get("mode") === "photos"; // follow-up 5, J3: new photos for a product OFF has, no text
   const photos: [PhotoKind, File][] = [];
   for (const [field, kind] of Object.entries(PHOTO_FIELDS)) {
@@ -52,7 +53,7 @@ Deno.serve(async req => {
     if (!(f instanceof File) || f.type !== "image/jpeg" || f.size === 0 || f.size > MAX_PHOTO) return answer(400, { ok: false, reason: "invalid" });
     photos.push([kind, f]);
   }
-  if (!validForm({ code, ingredients, name, photosMode, photos: photos.length })) return answer(400, { ok: false, reason: "invalid" });
+  if (!validForm({ code, ingredients, name, brand, photosMode, photos: photos.length })) return answer(400, { ok: false, reason: "invalid" });
 
   // Daily limits (UTC day): submissions that didn't fail (10 a person, 200 in all), and every attempt (30 a person, 054 B2).
   // ponytail: count-then-insert, so simultaneous sends can pass a limit by a few; a DB function with a lock if that matters.
@@ -79,18 +80,19 @@ Deno.serve(async req => {
   try {
     // D10: never overwrite OFF's data. Read the product first (main language and English, which EcoGo writes);
     // send text only where it has none.
-    const existing = await fetch(`${OFF_BASE}/api/v3/product/${code}?fields=product_name,product_name_en,ingredients_text,ingredients_text_en`, { headers });
+    const existing = await fetch(`${OFF_BASE}/api/v3/product/${code}?fields=product_name,product_name_en,brands,ingredients_text,ingredients_text_en`, { headers });
     const product = existing.ok ? (await existing.json()).product ?? {} : {};
     if (!existing.ok && existing.status !== 404) throw new Error(`OFF read ${existing.status}`);
     const textKept = Boolean(product.ingredients_text || product.ingredients_text_en);
     const hasName = Boolean(product.product_name || product.product_name_en);
+    const hasBrand = Boolean(product.brands);
     const plan = sendPlan(photosMode, existing.ok, textKept);
     if (!plan) { await finish("failed", "photos mode: not on OFF"); return answer(400, { ok: false, reason: "invalid" }); }
     const writeText = plan === "text";
     const notes: string[] = [];
     if (writeText) {
       const r = await fetch(`${OFF_BASE}/cgi/product_jqm2.pl`, {
-        method: "POST", headers, body: productForm({ code, ingredients, name: hasName ? undefined : name || undefined }, account),
+        method: "POST", headers, body: productForm({ code, ingredients, name: hasName ? undefined : name || undefined, brand: hasBrand ? undefined : brand || undefined }, account),
       });
       const body = r.ok ? await r.json() : null;
       if (body?.status !== 1) throw new Error(`OFF write ${r.status} ${body?.status_verbose ?? ""}`.trim());

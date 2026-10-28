@@ -92,6 +92,7 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
   const [cloud, setCloud] = useState(cloudHelpOn); // 070 C2: only for the ingredients photo, which is read
   const [cloudBusy, setCloudBusy] = useState(false);
   const [name, setName] = useState("");
+  const [brand, setBrand] = useState("");
   const [consent, setConsent] = useState(false);
   const [failed, setFailed] = useState<Failed>("off-down");
   const [textKept, setTextKept] = useState(false);
@@ -144,7 +145,7 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
   };
   const send = async () => {
     setStep("sending"); setStage(undefined);
-    const r = await submitProduct({ code, name, ingredients: text, photos, photosOnly }, () => turnstileToken(humanCheckSlot.current!),
+    const r = await submitProduct({ code, name, brand, ingredients: text, photos, photosOnly }, () => turnstileToken(humanCheckSlot.current!),
       { auth: supabase.auth, ...offSubmit }, setStage);
     if (r.ok) {
       setTextKept(!!r.textKept); setFailedPhotos(r.failedPhotos ?? []); setUploading(!!r.pendingPhotos); setStep("sent");
@@ -320,13 +321,19 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
         </div>
         {photosOnly
           ? <p className="text-xs text-gray-600">{hasPhoto ? "Plus the barcode." : "Add at least one photo to send."}</p>
-          : <>
-            <label htmlFor="product-name" className="block text-sm font-bold">Product name (optional)</label>
-            <input id="product-name" value={name} onChange={e => setName(e.target.value)} disabled={sending} placeholder="As printed on the front" maxLength={200}
-              className="w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm disabled:opacity-60" />
-            <p className="text-xs text-gray-600">Plus the ingredients you checked and the barcode.</p>
-          </>}
+          : <p className="text-xs text-gray-600">Plus the ingredients you checked and the barcode.</p>}
       </div>
+      {!photosOnly && ( // 071 B (W4, Minh's wording): both optional; a name or brand OFF already has is kept (off-submit)
+        <div className="bg-white rounded-2xl p-3.5 space-y-2">
+          <h2 className="text-[15px] font-extrabold">What's it called?</h2>
+          <label htmlFor="product-name" className="block text-sm font-bold">Product name</label>
+          <input id="product-name" value={name} onChange={e => setName(e.target.value)} disabled={sending} placeholder="As printed on the front" maxLength={200}
+            className="w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm disabled:opacity-60" />
+          <label htmlFor="product-brand" className="block text-sm font-bold">Brand</label>
+          <input id="product-brand" value={brand} onChange={e => setBrand(e.target.value)} disabled={sending} maxLength={200}
+            className="w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm disabled:opacity-60" />
+        </div>
+      )}
       <div className="bg-white border border-border rounded-2xl p-3.5 space-y-2">
         <h2 className="text-[15px] font-extrabold">This will be public</h2>
         <p className="text-xs text-gray-700 leading-relaxed">Open Food Facts is a free, open database. Your photos and text will be public there, for anyone to see and reuse, under its open licenses (photos CC BY-SA, data ODbL).</p>
