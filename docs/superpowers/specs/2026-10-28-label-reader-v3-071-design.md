@@ -30,7 +30,7 @@ build first. Gates within budget (check-ocr ≤ 180 s; split, never raise).
 | N | **GA-06:** `joinReads` never drops a word that only one side has (`talc`) | Joined text keeps talc → `high` |
 Exact inputs for K–N: research-grand-audit-chatgpt.md (notes folder). Real photos: Minh's, never committed; use text fixtures.
 
-## Wording (🎨 Minh, one batch, before the build)
+## Wording (Minh, 2026-10-28: the defaults below, locked)
 W1 "Checking…" · W2 "Checked ✓" · W3 "We couldn't read: ‹words›. Fix them above or retake the photo." ·
 W4 title "What's it called?", fields "Product name" and "Brand" (both optional).
 

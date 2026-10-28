@@ -52,7 +52,7 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 5. ~~075 Audit fixes~~ ✅ 10-28 (168efab, live check passed) · ⏳ Minh's live test (checklist 9A–9C) · ChatGPT audit, all 16 confirmed: High first (cloud upload after close, old-Safari crash,
    unsourced Tide line incl. the live catalog row), then medium/low (KNOWN_ISSUES) + grand audit GA-01/02: "no added X" / "free from (X)" flagged as present (decision 076)
    **Next: model trial** 📋 (Minh, 10-23 via Scout): ≤10 runs, Sonnet/Haiku vs Opus on finished tasks incl. log + photo triage, and medium effort + earlier compaction for builders (Minh 10-28; Superpowers stays on), prompt in research-model-mix.md (planner notes folder) [Process]
-6. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos + grand audit GA-03..06 (silent misses)
+6. **071 Label reader v3** 🔨 spec docs/superpowers/specs/2026-10-28-label-reader-v3-071-design.md (wording locked 10-28) · brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos + grand audit GA-03..06 (silent misses)
 7. **076 Audit leftovers** 📋 GA-07 Send can hang, GA-08 lookup never times out (decision 076; GA-09 moved to 071)
 8. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
 9. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
