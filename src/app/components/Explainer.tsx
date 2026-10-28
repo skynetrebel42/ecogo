@@ -91,7 +91,7 @@ function Body({ id, onOpen }: { id: ExplainerId; onOpen: (id: ExplainerId) => vo
     <>
       <p>EcoGo’s badge looks for hazards with an official finding: additives (IARC, EU, FDA) and processed meat. It doesn’t rate nutrition.</p>
       <p>For that, look at the Nutrition section. By the FDA’s rule, 20% of the Daily Value or more per serving is high.</p>
-      <p>Example: Oreo shows “Nothing flagged”, but one serving has 28% of the Daily Value for added sugar.</p>
+      <p>Example: a cookie can show “Nothing flagged” and still be high in added sugar. Check its Nutrition section.</p>
     </>
   );
   return (

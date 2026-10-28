@@ -177,6 +177,8 @@ try {
       covered: !!document.querySelector(${JSON.stringify(`button[aria-label="${name}"]`)})?.closest("[inert]") })`);
     check(`ACCESS-01: opening "${title}" focuses its heading; Home behind it is inert`, focus.tag === "H1" && focus.text === title && focus.covered, JSON.stringify(focus));
     check(`explainer opens with sources: ${title}`, e.includes("Sources") && e.includes("Source checked") && e.includes(title));
+    if (title === HEALTHY) check("075 C2 (Minh's words): the example names no product and no unsourced figure",
+      e.includes("Example: a cookie can show “Nothing flagged” and still be high in added sugar. Check its Nutrition section.") && !e.includes("28%") && !e.includes("Oreo"));
     if (title === LEARN[1]) { // 053 W1, W2 (spec 2026-10-14-trust-wording-design.md)
       const b = e.replace(/’/g, "'");
       check("053 W1: the badge page says each level is the strongest official finding, not all about cancer", b.includes("Each level shows the strongest "
