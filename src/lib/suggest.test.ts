@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addComma, fixList, loadMoreNames, nearKnownName, replaceWord, splitAt, suggestWords } from "./suggest.ts";
+import { addComma, fixList, loadMoreNames, nameFixes, nearKnownName, replaceWord, splitAt, suggestWords } from "./suggest.ts";
 
 // 066 R4 (Minh: "row under the box"): what the row offers for the text in the box, and the two edits it can make.
 test("the row lists the unsure words still in the box, in reading order, and the items to split", () => {
@@ -88,4 +88,46 @@ test("a near-miss of a word that isn't an ingredient name stays unsure", () => {
 
 test("short words are never near a name, so junk like 'AGE' or 'Fi' always counts", () => {
   for (const w of ["AGE", "Fi", "BUTL", "C1", "60730"]) assert.equal(nearKnownName(w), false, w);
+});
+
+// 071 I: Minh's 2F soda, pasted from iPhone Live Text (notes: research-2f-paste-verbatim.md, transcribed by Scout, A and B).
+const PASTED_2F = "CARBONATED WATER,\nCANE SUGAR, CITRIC ACID, NATURAL AND ARTIFICIAL\nGUAVA FLAVORS, ASCORBIC ACID (VITAMIN O, MALIC\n"
+  + "ACID, ACESULFAME POTASSIEM, SUCRALOSE, COLOR\nED&C YILLOW 0. 5, EDIA (TO PRESERVED FRESHNESS),\nCOLORFD&C RED No.40, CARAMEL COLOR, SODIUM\n"
+  + "BENZOATE  AND POTASSIUM SORBATE (AS\nPRESERVATIVE";
+const CLEAN_2F = "CARBONATED WATER, CANE SUGAR, CITRIC ACID, NATURAL AND ARTIFICIAL GUAVA FLAVORS, ASCORBIC ACID (VITAMIN C), MALIC ACID, "
+  + "ACESULFAME POTASSIUM, SUCRALOSE, COLOR FD&C YELLOW No. 5, EDTA (TO PRESERVED FRESHNESS), COLOR FD&C RED No. 40, CARAMEL COLOR, "
+  + "SODIUM BENZOATE, AND POTASSIUM SORBATE (AS PRESERVATIVE)";
+
+test("071 I: a misread colour name is offered whole, and taking it gives the Yellow 5 flag back", async () => {
+  await loadMoreNames();
+  const { assessProduct } = await import("./safety/assess.ts");
+  const flags = (t: string) => assessProduct({ name: "", category: "", ingredients: t, source: {} }).flags.map(f => f.entry.id).sort();
+  assert.deepEqual(flags(PASTED_2F), ["allura-red"]); // the silent loss Minh saw
+  const fix = nameFixes(PASTED_2F).find(f => f.by.includes("YELLOW"));
+  assert.deepEqual(fix, { text: "ED&C YILLOW 0. 5", by: "FD&C YELLOW NO. 5" });
+  assert.deepEqual(flags(PASTED_2F.split(fix!.text).join(fix!.by)), flags(CLEAN_2F));
+  assert.deepEqual(fixList(PASTED_2F, [], true).words, ["POTASSIEM", "YILLOW"]); // and the one-word slips, in reading order
+});
+
+test("071 I: a clean list (and a real look-alike) gets no chips", async () => {
+  await loadMoreNames();
+  assert.deepEqual(nameFixes(CLEAN_2F), []);
+  assert.deepEqual(fixList(CLEAN_2F, [], true), { words: [], splits: [] });
+  // Sodium laureth sulfate is its own ingredient, never a misread sodium lauryl sulfate; nor is Red 3 a misread Red 40.
+  assert.deepEqual(nameFixes("Water, Sodium Laureth Sulfate, Red 3, Yellow 6, FD&C Blue No. 1"), []);
+});
+
+test("071 I: a typed misspelling is offered the name it misses", async () => {
+  await loadMoreNames();
+  assert.deepEqual(fixList("water, sodium benozate, ascorbic acid", [], true).words, ["benozate"]);
+  assert.equal(suggestWords("benozate")[0], "benzoate");
+});
+
+test("071 I: none of the catalog's 51 real lists, typed, gets a chip", async () => {
+  await loadMoreNames();
+  const { readFileSync } = await import("node:fs");
+  const { parseProductsCSV } = await import("./productImporter.ts");
+  const offered = parseProductsCSV(readFileSync(new URL("../data/products.csv", import.meta.url), "utf8"))
+    .flatMap(p => [...fixList(p.ingredients, [], true).words, ...nameFixes(p.ingredients).map(f => f.text)].map(w => `${p.name}: ${w}`));
+  assert.deepEqual(offered, []);
 });

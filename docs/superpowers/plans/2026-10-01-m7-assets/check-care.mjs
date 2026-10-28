@@ -190,7 +190,7 @@ try {
   check("N6: from an OBF page the check starts on Personal care", pressed === "Food:false,Personal care:true,Cleaning product:false", pressed); // 068 G2: three choices
   const own = await typeIngredients("Aqua, Petrolatum, Parfum");
   check("N6: the typed list is checked as personal care, said to be from what you typed", own.includes("No matches in EcoGo's checked list.")
-    && own.includes("From what you typed, not from Open Beauty Facts.") && own.includes("Fragrance:"));
+    && own.includes("From what you typed, not from Open Beauty Facts.") && own.includes("Fragrance\nInfo")); // 071 O: the page's rows
   await click("Close");
   await back(); await home();
 
@@ -234,8 +234,8 @@ try {
   await click("Check the label yourself");
   const formal = await typeIngredients("Water, Formaldehyde, Fragrance (Parfum), Coumarin, Homosalate, Octocrylene");
   check("N6: a typed personal-care list gets the personal-care result (formaldehyde: Known carcinogen; one fragrance row)",
-    formal.includes("Known carcinogen · 1 finding") && formal.includes("Formaldehyde:") && formal.split("Fragrance:").length === 2
-    && formal.includes("Coumarin:") && formal.includes("Not finding a match doesn't mean a product is safe for you."));
+    formal.includes("Known carcinogen · 1 finding") && formal.includes("Formaldehyde\n") && formal.split("Fragrance\nInfo").length === 2
+    && formal.includes("Coumarin\nInfo") && formal.includes("Not finding a match doesn't mean a product is safe for you."));
   check("063 F3: the typed check shows FDA's 'more data' line once for two 'more data' actives", formal.split(MEANING).length === 2);
   check("N6: no send button after a personal-care check", !(await text()).includes("Also send these photos"));
   await shot("care-typed");
@@ -261,6 +261,65 @@ try {
     kinds === "Food:false,Personal care:false,Cleaning product:true" && heights.every(h => h >= 44), `${kinds} ${heights}`);
   await shot("care-not-found-cleaning");
   check("S2: the app never calls EPA (the list is EcoGo's own file)", !requests.some(u => /epa\.gov/.test(u)), requests.find(u => /epa\.gov/.test(u)));
+
+  // 071 O (GA-09), J, H, I (spec docs/superpowers/specs/2026-10-28-label-reader-v3-071-design.md): the no-barcode check
+  // shows each flag's sources as the product page does, the benzene row, "Checking…" / "Checked ✓", and chips for typed text.
+  await home();
+  await run(`document.querySelector('input[placeholder^="Search products"]').focus(); true`);
+  await send("Input.insertText", { text: "spam" });
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, text: "\r" });
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+  await run(`(async () => { (await __until(() => [...document.querySelectorAll("button")].find(b => b.innerText.includes("SPAM Classic"))))?.click(); await __sleep(800); })()`);
+  const nitriteRow = `(async () => { const b = [...document.querySelectorAll("button[aria-expanded]")].find(b => b.innerText.startsWith("Sodium nitrite"));
+    if (!b) return null; if (b.getAttribute("aria-expanded") !== "true") { b.click(); await __sleep(300); }
+    return { text: b.parentElement.innerText, links: [...b.parentElement.querySelectorAll("a")].map(a => a.href) }; })()`;
+  const pageRow = await run(nitriteRow);
+  await back(); await back(); await home();
+  await run(`(async () => { __btn("Scan").click(); await __until(() => document.querySelector('input[aria-label="Barcode number"]') || __btn("Close camera"));
+    __btn("Close camera")?.click(); await __sleep(800);
+    (await __until(() => [...document.querySelectorAll("button")].find(b => /Check ingredients$/.test(b.innerText.trim())), 5000))?.click(); await __sleep(400); return true; })()`);
+  await typeIngredients("sodium nitrite");
+  const checkRow = await run(nitriteRow);
+  check("071 O (GA-09): a typed 'sodium nitrite' shows its sources and links as on SPAM's page, with the checked dates",
+    pageRow?.links.length > 0 && JSON.stringify(checkRow?.links) === JSON.stringify(pageRow.links) && checkRow.text.includes("Source checked"),
+    `${JSON.stringify(pageRow?.links)} | ${JSON.stringify(checkRow?.links)}`);
+  const pair = await typeIngredients("water, sodium benzoate, ascorbic acid");
+  const salt = await typeIngredients("water, sodium benzoate");
+  const acid = await typeIngredients("water, ascorbic acid");
+  check("071 J: benzoate and ascorbic acid typed together give the benzene row with FDA's words; either alone doesn't",
+    pair.includes("Benzene can form") && pair.includes("In some drinks, these two can form benzene at very low levels") && pair.includes("*FDA")
+    && ![salt, acid].some(t => t.includes("Benzene can form")), pair.replace(/\s+/g, " ").slice(0, 200));
+  await run(`(() => { const d = document.querySelector('[role="dialog"]'); window.__live = []; window.__tops = new Set();
+    window.__obs = new MutationObserver(() => { const p = d.querySelector('p[aria-live="polite"]'), s = d.querySelector('[role="status"]');
+      const t = p?.innerText ?? "(none)"; if (__live.at(-1) !== t) __live.push(t); if (s) __tops.add(Math.round(s.getBoundingClientRect().top)); });
+    __obs.observe(d, { subtree: true, childList: true, characterData: true });
+    const box = d.querySelector("#ingredients"); box.focus(); box.select(); return true; })()`);
+  for (const ch of "salt, red 40") { await send("Input.insertText", { text: ch }); await sleep(40); }
+  await sleep(900);
+  const typing = await run(`(() => { __obs.disconnect(); return { live: __live, tops: [...__tops],
+    off: document.querySelector('[role="dialog"] [role="status"]')?.getAttribute("aria-live") }; })()`);
+  check("071 H: typing says 'Checking…', then 'Checked ✓' once it stops; only that line is live and the result doesn't move",
+    typing?.live.join(" → ") === "Checking… → Checked ✓" && typing.tops.length === 1 && typing.off === "off", JSON.stringify(typing));
+  // Minh's 2F soda pasted from iPhone Live Text (notes: research-2f-paste-verbatim.md): "FD&C YELLOW No. 5" came as "ED&C YILLOW 0. 5".
+  const pasted = await typeIngredients("CARBONATED WATER,\nCANE SUGAR, CITRIC ACID, NATURAL AND ARTIFICIAL\nGUAVA FLAVORS, ASCORBIC ACID (VITAMIN O, MALIC\n"
+    + "ACID, ACESULFAME POTASSIEM, SUCRALOSE, COLOR\nED&C YILLOW 0. 5, EDIA (TO PRESERVED FRESHNESS),\nCOLORFD&C RED No.40, CARAMEL COLOR, SODIUM\n"
+    + "BENZOATE  AND POTASSIUM SORBATE (AS\nPRESERVATIVE");
+  const row = await run(`document.body.innerText`);
+  const took = await run(`(async () => { [...document.querySelectorAll("button")].find(b => b.innerText === "ED&C YILLOW 0. 5 ›")?.click(); await __sleep(300);
+    const pick = [...document.querySelectorAll('[role="dialog"] [role="dialog"] button')].find(b => b.innerText === "FD&C YELLOW NO. 5");
+    pick?.click(); await __sleep(400); return { picked: !!pick, box: document.querySelector("#ingredients").value.includes("COLOR\\nFD&C YELLOW NO. 5,"),
+      status: document.querySelector('[role="status"]')?.innerText ?? "" }; })()`);
+  check("071 I: Minh's pasted 2F list says what it couldn't read, and one chip gives Yellow 5 back",
+    !pasted.includes("Tartrazine") && row.includes("We couldn't read: ED&C YILLOW 0. 5, POTASSIEM. Fix them above or retake the photo.")
+    && took.picked && took.box && took.status.includes("Tartrazine (Yellow 5)"), `${row.match(/We couldn't read[^\n]*/)?.[0]} | ${JSON.stringify({ ...took, status: took.status.slice(0, 80) })}`);
+  await typeIngredients("CARBONATED WATER, CANE SUGAR, CITRIC ACID, NATURAL AND ARTIFICIAL GUAVA FLAVORS, ASCORBIC ACID (VITAMIN C), MALIC ACID, "
+    + "ACESULFAME POTASSIUM, SUCRALOSE, COLOR FD&C YELLOW No. 5, EDTA (TO PRESERVED FRESHNESS), COLOR FD&C RED No. 40, CARAMEL COLOR, "
+    + "SODIUM BENZOATE, AND POTASSIUM SORBATE (AS PRESERVATIVE)");
+  const clean = await text();
+  check("071 I: the clean 2F list gets no chips and no 'couldn't read'", !/Check \d+ words?:|We couldn't read|Add a comma\?/.test(clean),
+    clean.match(/.{0,40}(Check \d+ words?:|We couldn't read|Add a comma\?).{0,60}/)?.[0]);
+  await shot("care-071-check");
+  await click("Close");
 
   check("every OBF request is a GET to the v2 product API with EcoGo's X-User-Agent",
     obfAsked.length >= 5 && obfAsked.every(r => /^GET https:\/\/world\.openbeautyfacts\.org\/api\/v2\/product\/\d+\?fields=\S+ EcoGo\/0\.1 \(/.test(r)), `${obfAsked.length} requests`);

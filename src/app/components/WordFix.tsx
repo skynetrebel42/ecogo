@@ -2,24 +2,28 @@
 // ingredients box, a row of the words the reader wasn't sure of and of items that look like two names run together.
 // Each opens a small sheet: up to 3 real names from EcoGo's lists and USDA FoodData Central, "Or type it", "Retake
 // photo", "Keep as read"; or "Add comma" / "No". Nothing changes until the person taps; the box stays the final say.
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { addComma, fixList, replaceWord, suggestWords } from "../../lib/suggest";
+// 071 I: for typed and pasted text too; a stretch a few letters off a name of two or more words is one chip ("ED&C YILLOW
+// 0. 5" → "FD&C YELLOW NO. 5"), and the row says what it couldn't read (W3, Minh's wording).
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { addComma, replaceWord, suggestWords, type fixList, type nameFixes } from "../../lib/suggest";
 
 const CHIP = "min-h-[44px] px-3.5 rounded-full border border-[#D97706] bg-white text-sm font-bold text-gray-900 break-all text-left";
 const MAX = 8;
 type Split = ReturnType<typeof fixList>["splits"][number];
 const short = (s: string, n: number) => (s.length > n ? `…${s.slice(-n)}` : s);
 
-export default function WordFix({ text, unsure, onChange, onRetake }: {
-  text: string; unsure: string[]; onChange: (text: string) => void; onRetake?: () => void;
+export default function WordFix({ text, fixes, onChange, onRetake }: {
+  text: string; fixes: ReturnType<typeof fixList> & { names: ReturnType<typeof nameFixes> }; onChange: (text: string) => void; onRetake?: () => void;
 }) {
   const [kept, setKept] = useState<string[]>([]); // "Keep as read" words and "No" splits
   const [all, setAll] = useState(false);
   const [open, setOpen] = useState<{ word: string } | { split: Split }>();
   const opener = useRef<HTMLElement | null>(null);
   const row = useRef<HTMLDivElement>(null);
-  const fixes = useMemo(() => fixList(text, unsure), [text, unsure]);
-  const words = fixes.words.filter(w => !kept.includes(w));
+  // A stretch's chip stands for the words in it ("YILLOW" is fixed with "ED&C YILLOW 0. 5").
+  const inName = (w: string) => fixes.names.some(n => n.text.split(/[^\p{L}\p{N}]+/u).includes(w));
+  const words = [...fixes.names.map(n => n.text), ...fixes.words.filter(w => !inName(w))].filter(w => !kept.includes(w));
+  const named = (w: string) => fixes.names.find(n => n.text === w);
   const splits = fixes.splits.filter(s => !kept.includes(`${s.before}|${s.after}`));
   if (!words.length && !splits.length && !open) return null;
 
@@ -38,6 +42,7 @@ export default function WordFix({ text, unsure, onChange, onRetake }: {
             <button key={w} onClick={show({ word: w })} className={CHIP}>{w} <span aria-hidden="true">›</span></button>
           ))}
           {!all && words.length > MAX && <button onClick={() => setAll(true)} className={`${CHIP} border-border`}>+{words.length - MAX} more</button>}
+          <p className="w-full text-sm text-gray-700">We couldn't read: {words.join(", ")}. Fix them above or retake the photo.</p>
         </div>
       )}
       {splits.length > 0 && (
@@ -52,8 +57,8 @@ export default function WordFix({ text, unsure, onChange, onRetake }: {
       )}
       {open && <Sheet onClose={close} {...("word" in open ? {
         title: `"${open.word}"`,
-        body: <WordChoices word={open.word} onRetake={onRetake && (() => { setOpen(undefined); onRetake(); })}
-          onUse={by => { onChange(replaceWord(text, open.word, by)); close(); }}
+        body: <WordChoices word={open.word} name={named(open.word)?.by} onRetake={onRetake && (() => { setOpen(undefined); onRetake(); })}
+          onUse={by => { onChange(named(open.word) ? text.split(open.word).join(by) : replaceWord(text, open.word, by)); close(); }}
           onKeep={() => { setKept(k => [...k, open.word]); close(); }} />,
       } : {
         title: `Add a comma between ${open.split.before} and ${open.split.after}?`,
@@ -68,9 +73,9 @@ export default function WordFix({ text, unsure, onChange, onRetake }: {
   );
 }
 
-function WordChoices({ word, onUse, onKeep, onRetake }: { word: string; onUse: (by: string) => void; onKeep: () => void; onRetake?: () => void }) {
+function WordChoices({ word, name, onUse, onKeep, onRetake }: { word: string; name?: string; onUse: (by: string) => void; onKeep: () => void; onRetake?: () => void }) {
   const [typed, setTyped] = useState(word);
-  const names = suggestWords(word);
+  const names = name ? [name] : suggestWords(word);
   const inputId = useId();
   return <>
     {names.length > 0 && <div className="space-y-2">

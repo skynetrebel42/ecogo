@@ -12,20 +12,20 @@ import { toggleSave, type SavedStore } from "../../lib/saved";
 import SaveSheet from "./SaveSheet";
 import {
   ArrowLeft, Bookmark,
-  TrendingUp, ChevronDown, ExternalLink, FlaskConical, Flame, Info, CheckCircle2,
+  TrendingUp, FlaskConical, CheckCircle2,
 } from "lucide-react";
 import { loadSaferChoice, saferChoiceMatch, inCaliforniaScope, NOT_ENDORSEMENT, CALIFORNIA_LINE, PRODUCT_SEARCH, type SaferChoiceProduct } from "../../lib/saferChoice";
 import type { Product } from "../../lib/productImporter";
 import { updateInfoUrl, isPersonalCare, obfEditUrl } from "../../lib/lookup";
 import { escapeRegExp, type Flag } from "../../lib/safety/analyze";
-import { CARE_LIMITS, type CareAnalysis } from "../../lib/safety/personalCare";
-import type { Severity, Source } from "../../lib/safety/library";
+import { CARE_LIMITS } from "../../lib/safety/personalCare";
 import type { Assessment } from "../../lib/safety/assess";
-import { benzeneNote, BENZENE_NOTE } from "../../lib/safety/foodConcerns";
-import Explainer, { EXPLAINERS, type ExplainerId } from "./Explainer";
+import { benzeneNote } from "../../lib/safety/foodConcerns";
+import Explainer, { type ExplainerId } from "./Explainer";
+import Findings, { benzeneFinding, findingGroups, type Finding } from "./Findings";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
 import NutritionPanel, { NutritionChip, EditOnOff, useNutrition } from "./NutritionPanel";
-import IngredientCheck, { LimitedRow, MoreDataLine } from "./IngredientCheck";
+import IngredientCheck, { LimitedRow } from "./IngredientCheck";
 import { topHigh } from "../../lib/nutrition";
 import { snapshotLabel } from "../../lib/foods";
 import { useAlternatives } from "./useAlternatives";
@@ -52,33 +52,6 @@ const NONE_BUT_COOKED = "No hazard flags from IARC, EU or FDA in the ingredients
 // Point to the Nutrition section only when the page has one (no data, e.g. no verified barcode → no section).
 const nutritionNote = (hasSection: boolean) => ` This badge doesn't rate nutrition${hasSection ? "; see the Nutrition section" : ""}.`;
 
-/** One row on the product page: an additive flag, a food-level concern, or an info note (M16 personal care, 064 H2 benzene;
- *  `info`). `learn`: a Learn page the open row links to (064). */
-interface Finding { id: string; name: string; severity?: Severity; info?: boolean; concern: string; cite?: string; detail: string; context?: string; sources: Source[]; learn?: ExplainerId }
-
-/** Findings grouped by where they come from; empty groups are dropped. `care`: regulator context (FDA's dandruff-drug
- *  line, 063 F4) shows in the row next to the EU ban, not behind it. `foodNotes`: food info rows (064 H2). */
-function findingGroups(a: Assessment, notes: CareAnalysis["notes"] = [], care = false, foodNotes: Finding[] = []): { title: string; findings: Finding[] }[] {
-  const fromConcerns = (kind: "food" | "cooking") => a.concerns.filter(c => c.kind === kind).map(c => ({
-    id: c.id, name: c.name, severity: c.severity, concern: c.concern, detail: c.reason, context: c.context, sources: c.sources, learn: c.learn,
-  }));
-  return [
-    { title: "In the ingredients", findings: a.flags.map(({ entry, matchedText }) => ({
-      id: entry.id, name: entry.name, severity: entry.severity, detail: `Listed as “${matchedText}”`, sources: entry.sources,
-      ...(care && entry.context ? { concern: `${entry.concern} ${entry.context}` } : { concern: entry.concern, context: entry.context }),
-    })) },
-    { title: "The food itself", findings: fromConcerns("food") },
-    { title: "Formed when cooked", findings: fromConcerns("cooking") },
-    // M16 N3–N5: info rows; they don't change the badge.
-    { title: "Good to know", findings: [...notes.map(({ note, matchedText }) => ({
-      id: `note-${note.id}`, name: note.name, info: true, concern: note.text, detail: `Listed as “${matchedText}”`, sources: note.sources,
-    })), ...foodNotes] },
-  ].filter(g => g.findings.length > 0);
-}
-
-const COOKING_LOOK = { short: "Forms when cooked", color: "#4B5563", bg: "#F3F4F6", Icon: Flame };
-const INFO_LOOK = { short: "Info", color: "#4B5563", bg: "#F3F4F6", Icon: Info }; // never changes the badge
-
 /** The full ingredient text with the label phrases that triggered flags highlighted. */
 function HighlightedIngredients({ text, flags }: { text: string; flags: Flag[] }) {
   const terms = [...new Set(flags.map(f => f.matchedText))].filter(Boolean);
@@ -90,47 +63,6 @@ function HighlightedIngredients({ text, flags }: { text: string; flags: Flag[] }
         ? <mark key={i} className="bg-red-100 text-red-800 rounded px-0.5 font-semibold">{part}</mark>
         : <span key={i}>{part}</span>)}
     </>
-  );
-}
-
-function FindingRow({ finding: entry, open, onToggle, onLearn }: { finding: Finding; open: boolean; onToggle: () => void; onLearn: (id: ExplainerId, from: HTMLElement) => void }) {
-  const look = entry.info ? INFO_LOOK : entry.severity ? VERDICT_STYLE[entry.severity] : COOKING_LOOK;
-  return (
-    <div className="px-4 py-3">
-      <button onClick={onToggle} aria-expanded={open} className="w-full flex items-start gap-3 text-left">
-        <look.Icon size={16} className="flex-shrink-0 mt-0.5" style={{ color: look.color }} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold">{entry.name}</span>
-            <span className="text-nano font-bold px-1.5 py-0.5 rounded-full" style={{ background: look.bg, color: look.color }}>{look.short}</span>
-          </div>
-          <p className="text-xs text-gray-600 mt-0.5 leading-snug">{entry.concern}</p>
-          {entry.cite && <p className="text-nano text-gray-500">{entry.cite}</p>}
-          <p className="text-micro text-gray-500 mt-0.5">{entry.detail}</p>
-        </div>
-        <ChevronDown size={14} className={`flex-shrink-0 mt-1 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="mt-3 ml-7 space-y-2">
-          {entry.context && (
-            <p className="text-mini text-gray-600 bg-gray-50 rounded-xl p-2.5 leading-snug">
-              <strong>Regulator context:</strong> {entry.context}
-            </p>
-          )}
-          {entry.sources.map((s, i) => (
-            <a key={i} href={s.url} target="_blank" rel="noreferrer" className="block text-mini leading-snug text-primary">
-              <span className="font-bold">{s.body}:</span> {s.finding} <ExternalLink size={9} className="inline" />
-              <span className="block text-nano text-gray-500">Source checked {s.checkedOn}</span>
-            </a>
-          ))}
-          {entry.learn && (
-            <button onClick={e => onLearn(entry.learn!, e.currentTarget)} className="text-mini font-bold text-primary underline text-left">
-              Read: {EXPLAINERS[entry.learn].title}
-            </button>
-          )}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -175,7 +107,6 @@ function SaferChoiceCard({ barcode }: { barcode: string }) {
 }
 
 export default function ProductDetailScreen({ product, onBack, store, savedOk, onChangeSaved, onSelectProduct, onAddToOff }: ProductDetailScreenProps) {
-  const [openFlag, setOpenFlag] = useState<string | null>(null);
   const saved = store.items.some(i => i.id === product.id);
   const [sheet, setSheet] = useState(false);
   const bookmark = useRef<HTMLButtonElement>(null);
@@ -200,7 +131,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
   // 064 H2: the benzene info row (drinks only); outside the assessment, so it never touches the badge.
   const foodNotes = useMemo((): Finding[] => {
     const m = care ? null : benzeneNote(product);
-    return m ? [{ id: "note-benzene", name: BENZENE_NOTE.name, info: true, concern: BENZENE_NOTE.text, cite: BENZENE_NOTE.cite, detail: `Listed as “${m[0]}” and “${m[1]}”`, sources: BENZENE_NOTE.sources, learn: "hidden-risks" }] : [];
+    return m ? [benzeneFinding(m)] : [];
   }, [product, care]);
   const look = VERDICT_STYLE[analysis.verdict];
   const nutrition = useNutrition(product);
@@ -304,18 +235,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
           </div>
 
           {/* ── Findings, grouped by where they come from ── */}
-          {findingGroups(analysis, careNotes, care, foodNotes).map(g => (
-            <div key={g.title} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100 font-bold text-sm">{g.title}</div>
-              <div className="divide-y divide-gray-50">
-                {g.findings.map(f => (
-                  <FindingRow key={f.id} finding={f} open={openFlag === f.id} onLearn={openLearn}
-                    onToggle={() => setOpenFlag(openFlag === f.id ? null : f.id)} />
-                ))}
-              </div>
-              {g.title === "Good to know" && <MoreDataLine notes={careNotes} className="px-4 pb-3" />}
-            </div>
-          ))}
+          <Findings groups={findingGroups(analysis, careNotes, care, foodNotes)} notes={careNotes} onLearn={openLearn} />
 
           <LimitedRow limited={analysis.limited ?? []} />
 

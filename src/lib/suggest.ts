@@ -70,16 +70,58 @@ const parts = (text: string) => text.split(/([\p{L}\p{N}]+)/u);
 
 /** R4's row under the box: the words still in `text` that the reader wasn't sure of, or that are a letter or two off a
  *  known name (the perfume's confidently read "LMONENE"), first appearance first; and the items to offer a comma in
- *  (`at`: where it goes in `text`). */
-export function fixList(text: string, unsure: string[]) {
+ *  (`at`: where it goes in `text`). 071 I, `typed` (typed or pasted: no reader to be unsure): only a word that is no known
+ *  word as it stands and a letter or two off one of EcoGo's own names, a slip that would hide a finding ("benozate",
+ *  Live Text's "YILLOW"); real words outside EcoGo's lists ("distearate", "cyclopentasiloxane") are left alone. */
+export function fixList(text: string, unsure: string[], typed = false) {
   const set = new Set(unsure), near = new Map<string, boolean>();
-  const offer = (w: string) => set.has(w) || (near.has(w) ? near.get(w)! : near.set(w, suggestWords(w).length > 0).get(w)!);
+  const slip = (w: string) => typed ? !knownWord(w) && fold(w).length >= MIN && [...OURS].some(n => distance(fold(w), n, 2) <= Math.min(2, Math.floor(n.length / 4)))
+    : suggestWords(w).length > 0;
+  const offer = (w: string) => set.has(w) || (near.has(w) ? near.get(w)! : near.set(w, slip(w)).get(w)!);
   const words = [...new Set(parts(text).filter((p, i) => i % 2 && offer(p)))];
   const splits = [...text.matchAll(/[^,;]+/g)].flatMap(m => {
     const at = splitAt(m[0]);
     return at === null ? [] : [{ at: m.index! + at, before: m[0].slice(0, at).trim(), after: m[0].slice(at).trim() }];
   });
   return { words, splits };
+}
+
+/** A label word as names are compared: folded, without the brackets or punctuation around it ("(AS" → "AS"); "0.", "O."
+ *  or "N0." before a number is "NO." (Live Text's "YILLOW 0. 5"). */
+const token = (w: string) => fold(w).replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+const NUMBER_SIGN = /^N?[O0]$/;
+/** 071 I: EcoGo's names of two or more words, plus the colours as US labels print them ("FD&C YELLOW NO. 5" for "yellow 5"). */
+const PHRASES = [...NAMES].filter(n => n.includes(" ")).flatMap(n => {
+  const c = /^(RED|YELLOW|BLUE|GREEN) (\d+)$/.exec(n);
+  return c ? [n, `FD&C ${c[1]} NO. ${c[2]}`] : [n];
+}).map(p => ({ p, words: p.split(" ").map(token) }));
+/** Each word of the stretch is the name's word, or (not a digit run, nor a known word as it stands: "CITRATE" is no
+ *  misread "NITRATE") within one changed letter per 4 of it. */
+const closeWord = (w: string, n: string) => w === n || (!/^\d+$/.test(n) && !knownWord(w) && within(w, n));
+
+/** 071 I: stretches of `text` a few letters off one of EcoGo's names of two or more words, with the name in the stretch's
+ *  case (typed, pasted or read: Minh's pasted "ED&C YILLOW 0. 5" → "FD&C YELLOW NO. 5"). Only offered, as R4's words.
+ *  ponytail: one stretch per item, none in an item that already lists a name exactly; per stretch if items mix two. */
+export function nameFixes(text: string): { text: string; by: string }[] {
+  const out = new Map<string, string>();
+  for (const item of text.matchAll(/[^,;]+/g)) {
+    const words = [...item[0].matchAll(/\S+/g)].map(m => {
+      const lead = m[0].match(/^[^\p{L}\p{N}]*/u)![0].length, trail = m[0].match(/[^\p{L}\p{N}]*$/u)![0].length;
+      return { t: token(m[0]), start: item.index! + m.index! + lead, end: item.index! + m.index! + m[0].length - trail };
+    }).filter(w => w.t);
+    words.forEach((w, i) => { if (NUMBER_SIGN.test(w.t) && /^\d/.test(words[i + 1]?.t ?? "")) w.t = "NO"; });
+    let best: { from: number; to: number; by: string } | undefined;
+    search: for (const { p, words: name } of PHRASES) for (let i = 0; i + name.length <= words.length; i++) {
+      const run = words.slice(i, i + name.length);
+      if (!run.every((w, k) => closeWord(w.t, name[k]))) continue;
+      if (run.every((w, k) => w.t === name[k])) { best = undefined; break search; }
+      if (!best || name.length > best.to - best.from) best = { from: i, to: i + name.length, by: p };
+    }
+    if (!best) continue;
+    const from = text.slice(words[best.from].start, words[best.to - 1].end);
+    out.set(from, from === from.toLowerCase() ? best.by.toLowerCase() : best.by);
+  }
+  return [...out].map(([from, by]) => ({ text: from, by }));
 }
 
 /** `word` replaced by `by` wherever it stands as a whole word. */

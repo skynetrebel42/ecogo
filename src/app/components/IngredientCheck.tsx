@@ -8,12 +8,15 @@ import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type Rea
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { assessProduct, type Assessment } from "../../lib/safety/assess";
-import { analyzeCare, analyzeCleaner, CARE_LIMITS, CLEANER_LINE, MORE_DATA_MEANING, isMoreData, type CareAnalysis } from "../../lib/safety/personalCare";
+import { analyzeCare, analyzeCleaner, CARE_LIMITS, CLEANER_LINE, type CareAnalysis } from "../../lib/safety/personalCare";
+import { benzeneNote } from "../../lib/safety/foodConcerns";
 import { cloudHelpOn, joinReads, pasteInto, readAnother, readPhoto, setCloudHelp, trimToIngredients, linesText, unsureCount, type LabelLine } from "../../lib/ocr";
+import { fixList, loadMoreNames, nameFixes } from "../../lib/suggest";
 import { isBlurry, preparePhoto } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
-import Explainer from "./Explainer";
+import Explainer, { type ExplainerId } from "./Explainer";
+import Findings, { benzeneFinding, findingGroups } from "./Findings";
 import WordFix from "./WordFix";
 
 /** The check for typed or read text. No category: it is a food's ingredient list, like a looked-up product's. */
@@ -58,17 +61,6 @@ export function LimitedRow({ limited, className = "" }: { limited: CareAnalysis[
         ))}
       </ul>
     </details>
-  );
-}
-
-/** 063 F3: FDA's own reading of "more data needed", once, when any sunscreen row says it. */
-export function MoreDataLine({ notes, className = "" }: { notes: CareAnalysis["notes"]; className?: string }) {
-  if (!notes.some(n => isMoreData(n.note))) return null;
-  const [s] = MORE_DATA_MEANING.sources;
-  return (
-    <p className={`text-xs leading-snug text-gray-700 ${className}`}>
-      {MORE_DATA_MEANING.text} <a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.body}, sunscreen Q&amp;A (Q9)</a>
-    </p>
   );
 }
 
@@ -152,17 +144,39 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
 }) {
   const assessment = useMemo(() => (kind === "food" ? check(value) : null), [value, kind]);
   const care = useMemo(() => (kind !== "food" ? careCheck(value, kind === "cleaner") : null), [value, kind]);
+  // 071 J: the benzene row, as on a drink's page. A typed list says nothing of what the product is, so it shows whenever
+  // both words are listed (the row itself says "In some drinks").
+  const foodNotes = useMemo(() => {
+    const m = kind === "food" ? benzeneNote({ name: "", category: "Beverages", ingredients: value }) : null;
+    return m ? [benzeneFinding(m)] : [];
+  }, [value, kind]);
   // 075 M3 (audit A1), as on Home: the article covers the whole screen (the link's positioned ancestor, as before). It
-  // goes there, everything else on that screen is inert meanwhile, and Back returns focus to the link.
-  const link = useRef<HTMLButtonElement>(null);
-  const [cover, setCover] = useState<HTMLElement | null>(null);
+  // goes there, everything else on that screen is inert meanwhile, and Back returns focus to the link. 071 O: a finding's
+  // Read link opens its article the same way.
+  const [article, setArticle] = useState<{ id: ExplainerId; from: HTMLElement; cover: HTMLElement }>();
+  const openArticle = (id: ExplainerId, from: HTMLElement) => { const cover = from.offsetParent as HTMLElement | null; if (cover) setArticle({ id, from, cover }); };
   useEffect(() => {
-    if (!cover) return;
-    const behind = ([...cover.children] as HTMLElement[]).filter(e => !e.inert && !e.hasAttribute("data-article"));
+    if (!article) return;
+    const behind = ([...article.cover.children] as HTMLElement[]).filter(e => !e.inert && !e.hasAttribute("data-article"));
     behind.forEach(e => { e.inert = true; });
-    return () => { behind.forEach(e => { e.inert = false; }); link.current?.focus(); };
-  }, [cover]);
-  const unsureSet = new Set(unsure);
+    return () => { behind.forEach(e => { e.inert = false; }); article.from.focus(); };
+  }, [article]);
+  // 071 H: the check reruns on every edit; "Checking…" while the text changes, "Checked ✓" 0.4 s after it stops. Only
+  // this line is live: the result boxes below are aria-live off, so a screen reader hears one word a pause, not each key.
+  const [settled, setSettled] = useState(value);
+  const [edited, setEdited] = useState(false);
+  useEffect(() => {
+    if (value === settled) return;
+    setEdited(true);
+    const t = setTimeout(() => setSettled(value), 400);
+    return () => clearTimeout(t);
+  }, [value, settled]);
+  // 071 I: typed or pasted text gets R4's row too; the USDA words load with the check, then the row is worked out again.
+  const [names, setNames] = useState(false);
+  useEffect(() => { loadMoreNames().then(() => setNames(true), () => {}); }, []);
+  const typed = lines === undefined;
+  const fixes = useMemo(() => ({ ...fixList(value, unsure, typed), names: nameFixes(value) }), [value, unsure, typed, names]);
+  const unsureSet = new Set([...unsure, ...fixes.words]);
   const box = "w-full min-h-[120px] p-3 text-sm leading-relaxed font-[inherit] whitespace-pre-wrap break-words";
   const look = assessment ? VERDICT_STYLE[assessment.verdict] : care && VERDICT_STYLE[care.verdict];
   const [showAll, setShowAll] = useState(false);
@@ -215,51 +229,39 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
           className={`${box} absolute inset-0 h-full bg-transparent resize-none outline-none rounded-2xl text-foreground overflow-hidden`} />
       </div>
       {unsureN > 0 && <p id="unsure-note" className="text-xs text-muted-foreground">{unsureN === 1 ? "1 word underlined: check it." : `${unsureN} words underlined: check them.`}</p>}
-      {lines !== undefined && <WordFix text={value} unsure={unsure} onChange={edit} onRetake={onRetake} />}{/* text from a photo only */}
+      <WordFix text={value} fixes={fixes} onChange={edit} onRetake={onRetake} />
       {children}{/* 066 R9: Add another photo, under the chips */}
       {note &&<p className="text-xs text-muted-foreground">{note}</p>}
 
+      {look && value.trim() && <p aria-live="polite" className="min-h-[16px] text-xs font-bold text-gray-700">{edited && (value === settled ? "Checked ✓" : "Checking…")}</p>}
       {assessment && look && (
-        <div role="status" className="rounded-2xl p-3.5 space-y-1.5" style={{ background: look.bg }}>
+        <div role="status" aria-live="off" className="rounded-2xl p-3.5 space-y-1.5" style={{ background: look.bg }}>
           <p className="flex items-center gap-1.5 text-[15px] font-extrabold" style={{ color: look.color }}>
             <look.Icon size={16} />{verdictHeadline(assessment)}
           </p>
           {from && <p className="text-xs font-bold text-gray-700">{from}</p>}
-          {assessment.flags.map(f => (
-            <p key={f.entry.id} className="text-xs leading-snug" style={{ color: look.solid }}><b>{f.entry.name}:</b> {f.entry.concern}</p>
-          ))}
-          {assessment.concerns.filter(c => c.kind === "food").map(c => (
-            <p key={c.id} className="text-xs leading-snug" style={{ color: look.solid }}><b>{c.name}:</b> {c.concern}</p>
-          ))}
+          <Findings groups={findingGroups(assessment, [], false, foodNotes)} onLearn={openArticle} />
           {assessment.verdict === "none" && <>
             <p className="text-xs leading-snug text-gray-700">None of these ingredients match an official finding in EcoGo's list. That isn't the same as "healthy".</p>
-            <button ref={link} onClick={() => setCover(link.current?.offsetParent as HTMLElement | null)} className="text-xs font-bold text-[#1A5C39] underline min-h-[44px] text-left">
+            <button onClick={e => openArticle("not-healthy", e.currentTarget)} className="text-xs font-bold text-[#1A5C39] underline min-h-[44px] text-left">
               Why "Nothing flagged" isn't "healthy"
             </button>
           </>}
         </div>
       )}
       {care && look && (
-        <div role="status" className="rounded-2xl p-3.5 space-y-1.5" style={{ background: look.bg }}>
+        <div role="status" aria-live="off" className="rounded-2xl p-3.5 space-y-1.5" style={{ background: look.bg }}>
           <p className="flex items-center gap-1.5 text-[15px] font-extrabold" style={{ color: look.color }}>
             <look.Icon size={16} />{verdictHeadline(care, true)}
           </p>
           {from && <p className="text-xs font-bold text-gray-700">{from}</p>}
-          {care.flags.map(f => (
-            <p key={f.entry.id} className="text-xs leading-snug" style={{ color: look.solid }}>
-              <b>{f.entry.name}:</b> {f.entry.concern}{f.entry.context && ` ${f.entry.context}`}
-            </p>
-          ))}
-          {care.notes.length > 0 && <ul aria-label="Good to know" className="space-y-1 pt-0.5">
-            {care.notes.map(n => <li key={n.note.id} className="text-xs leading-snug text-gray-700"><b>{n.note.name}:</b> {n.note.text}</li>)}
-          </ul>}
-          <MoreDataLine notes={care.notes} />
+          <Findings groups={findingGroups({ flags: care.flags, concerns: [] }, care.notes, true)} notes={care.notes} onLearn={openArticle} />
           <p className="text-xs leading-snug text-gray-700">{kind === "cleaner" ? CLEANER_LINE : CARE_LIMITS}</p>
           <LimitedRow limited={care.limited} />
         </div>
       )}
-      {cover && createPortal(<div data-article onKeyDown={e => { if (e.key === "Escape") { e.stopPropagation(); setCover(null); } }}>
-        <Explainer id="not-healthy" onBack={() => setCover(null)} /></div>, cover)}{/* Escape closes the article only */}
+      {article && createPortal(<div data-article onKeyDown={e => { if (e.key === "Escape") { e.stopPropagation(); setArticle(undefined); } }}>
+        <Explainer id={article.id} onBack={() => setArticle(undefined)} /></div>, article.cover)}{/* Escape closes the article only */}
     </div>
   );
 }

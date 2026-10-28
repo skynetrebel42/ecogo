@@ -34,6 +34,15 @@ Exact inputs for K–N: research-grand-audit-chatgpt.md (notes folder). Real pho
 W1 "Checking…" · W2 "Checked ✓" · W3 "We couldn't read: ‹words›. Fix them above or retake the photo." ·
 W4 title "What's it called?", fields "Product name" and "Brand" (both optional).
 
+## Builder calls (Round 1)
+| # | Call |
+|---|---|
+| O | (builder) The product page's rows move to `Findings.tsx`; the check shows them inside its result box (one row open at a time) |
+| J | (builder) A typed list doesn't say it's a drink, so the check passes `Beverages` to `benzeneNote`: the row shows whenever both words are listed (it says "In some drinks") |
+| H | (builder) The W1/W2 line is `aria-live="polite"`, not a second `role="status"` (gates read the first one as the verdict); the result boxes are `aria-live="off"`, so only W1/W2 is announced |
+| I | (builder) Typed/pasted words get a chip only when they are no known word and ≤ 2 letters off one of EcoGo's own names (the catalog's 51 lists, typed: no chips); a stretch off a multi-word name or a US colour form ("FD&C YELLOW NO. 5") is one chip. W3 sits under the chips, photo text too |
+| B | (builder) W4 is a card on the Send screen (the last screen before Send), not an extra screen; a name or brand OFF already has is kept (off-submit reads `brands`) |
+
 ## Out of scope
 Scores or grades; claims without an official quote ("rinse after wipes", "fragrance = endocrine disruptor": no source);
 072's ingredient pages; 076 (stuck Sending, lookup timeout).
