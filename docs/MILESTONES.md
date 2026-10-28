@@ -51,12 +51,13 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 4. ~~068 Scan screen~~ ✅ 10-23 (46a86d9) · ⏳ Minh's live test (checklist 8A–8C) · Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
 5. ~~075 Audit fixes~~ ✅ 10-28 (168efab, live check passed) · ⏳ Minh's live test (checklist 9A–9C) · ChatGPT audit, all 16 confirmed: High first (cloud upload after close, old-Safari crash,
    unsourced Tide line incl. the live catalog row), then medium/low (KNOWN_ISSUES) + grand audit GA-01/02: "no added X" / "free from (X)" flagged as present (decision 076)
-   **Model trial** ✅ 10-28 (11 runs; model-trial-results-2026-10-28.md, notes folder): builder Opus high (only zero-fix run; medium saved nothing), search + source checks Haiku, triage Sonnet (found a real 071 bug), planner Opus; ⏳ Minh's pick per role · was (Minh, 10-23 via Scout): ≤10 runs, Sonnet/Haiku vs Opus on finished tasks incl. log + photo triage, and medium effort + earlier compaction for builders (Minh 10-28; Superpowers stays on), prompt in research-model-mix.md (planner notes folder) [Process]
+   **Model trial** ✅ 10-28 (11 runs; model-trial-results-2026-10-28.md, notes folder): builder Opus high (only zero-fix run; medium saved nothing), search + source checks Haiku, triage Sonnet (found a real 071 bug), planner Opus; Minh picked Option A for each (decision 078) · was (Minh, 10-23 via Scout): ≤10 runs, Sonnet/Haiku vs Opus on finished tasks incl. log + photo triage, and medium effort + earlier compaction for builders (Minh 10-28; Superpowers stays on), prompt in research-model-mix.md (planner notes folder) [Process]
 6. **071 Label reader v3** 🔨 spec docs/superpowers/specs/2026-10-28-label-reader-v3-071-design.md (wording locked 10-28) · brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos + grand audit GA-03..06 (silent misses)
-7. **076 Audit leftovers** 📋 GA-07 Send can hang, GA-08 lookup never times out (decision 076; GA-09 moved to 071)
-8. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
-9. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
-10. Later: personal care to Open Beauty Facts, home inventory, profile, themes, map rethink, variety packs
+7. **077 Wording audit fixes** 📋 [Facts] ChatGPT audit #3 W01–W15 (decision 077; Scout II note research-wording-audit.md): 11 as drafted, W08/W11/W15 reworded, W12 seed oils → WHO quote; one wording batch to Minh first, then verify:sources
+8. **076 Audit leftovers** 📋 GA-07 Send can hang, GA-08 lookup never times out (decision 076; GA-09 moved to 071)
+9. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
+10. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
+11. Later: personal care to Open Beauty Facts, home inventory, profile, themes, map rethink, variety packs
 
 ## Chapter 6 · Label first (after 066; decision 071: "lets go mad brutal on ingredient scanner")
 068 Scan screen ✅ 10-23 (46a86d9) · A Barcode / Ingredients switch at the bottom of the camera (Minh, 10-22) [Feature] · B "Check ingredients" wording [UI] · C no dead
