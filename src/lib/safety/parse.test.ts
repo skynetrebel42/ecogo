@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseIngredients } from "./parse.ts";
+import { analyzeIngredients } from "./analyze.ts";
+import { analyzeCare } from "./personalCare.ts";
 
 test("a comma between digits does not split a chemical name", () => {
   const items = parseIngredients("Water, 1,4-dioxane (trace), salt");
@@ -55,6 +57,29 @@ test("an unclosed bracket still yields its inner items", () => {
 test("negated mentions are dropped", () => {
   const items = parseIngredients("Pork, water, no titanium dioxide, free from aspartame, nitrite-free, salt");
   assert.deepEqual(items, ["Pork", "water", "salt"]);
+});
+
+// 075 GA-01/02 (decision 076, grand audit): absence wording never reads as presence. "No added X" is an absence, not a
+// claim glued to X; what a negated item names in brackets is absent too.
+test("'no added X' and a negated item's bracket are absences", () => {
+  assert.deepEqual(parseIngredients("Water, no added formaldehyde"), ["Water"]);
+  assert.deepEqual(parseIngredients("Pork, no added sodium nitrite"), ["Pork"]);
+  assert.deepEqual(parseIngredients("Water, free from (formaldehyde)"), ["Water"]);
+  assert.deepEqual(parseIngredients("Sugar, no titanium dioxide (E171)"), ["Sugar"]);
+  assert.deepEqual(parseIngredients("Sausage (pork, no added nitrite (E250)), salt"), ["Sausage", "pork", "salt"]);
+  // M10.1 E still holds: a claim glued to the first ingredient keeps the ingredient and its bracket.
+  assert.deepEqual(parseIngredients("NO NITRATES OR NITRITES ADDED*** PORK (WATER, SALT)"), ["PORK", "WATER", "SALT"]);
+});
+
+test("the audit's inputs: no false flag for an absence; the controls still flag", () => {
+  assert.equal(analyzeCare("Water, no added formaldehyde").flags.length, 0);
+  assert.equal(analyzeCare("Water, free from (formaldehyde)").flags.length, 0);
+  const food = (t: string) => analyzeIngredients({ ingredients: t, category: "Snacks" }).flags.map(f => f.entry.id);
+  assert.deepEqual(food("Pork, no added sodium nitrite"), []);
+  assert.deepEqual(food("Sugar, no titanium dioxide (E171)"), []);
+  assert.equal(analyzeCare("Water, formaldehyde").verdict, "known");
+  assert.ok(food("Pork, sodium nitrite").length > 0, "sodium nitrite");
+  assert.ok(food("Sugar, titanium dioxide").length > 0, "titanium dioxide");
 });
 
 // Review Focus: odd whitespace and dash characters from real labels are normalized.

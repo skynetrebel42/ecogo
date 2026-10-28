@@ -13,7 +13,7 @@ const FILLER_PREFIXES: RegExp[] = [
 ];
 
 /** "no titanium dioxide", "made without aspartame", "free of X", "aspartame free" state an absence: drop the item. */
-const NEGATION = /^(?:contains\s+|made\s+)?(?:no|without|free\s+(?:of|from))\s|\sfree$/i;
+const NEGATION = /^(?:contains\s+|made\s+)?(?:no|without|free\s+(?:of|from))(?:\s|$)|\sfree$/i;
 /** "gluten-free", "nitrite-free": drop just the word, keep any real ingredient around it. */
 const FREE_WORD = /\b[a-z0-9]+-free\b/gi;
 
@@ -78,17 +78,21 @@ function expand(raw: string, out: string[]): void {
   const inner = item.slice(open + 1, close === -1 ? item.length : close);
   const rest = close === -1 ? "" : item.slice(close + 1);
   expand(`${item.slice(0, open)} ${rest}`, out);
+  if (NEGATION.test(clean(item.slice(0, open)))) return; // 075 GA-02: "no titanium dioxide (E171)" names an absence
   for (const sub of splitTopLevel(inner)) expand(sub, out);
 }
 
 const tidy = (s: string) => s.replace(/\s+/g, " ").trim().replace(/^[\s.,:;*•-]+|[\s.,:;*•]+$/g, "");
 
 /** "NO NITRATES OR NITRITES ADDED*** PORK": a claim glued to the first ingredient. Drop the claim, keep the ingredient (M10.1 E).
- *  "…ADDED EXCEPT THOSE IN CELERY" is a longer claim: it stays whole and is dropped as an absence, as before. */
-const CLAIM_PREFIX = /^no\b[^,;.]*?\badded\b(?!\s+except\b)[\s*†‡:.-]*/i;
+ *  "…ADDED EXCEPT THOSE IN CELERY" is a longer claim: it stays whole and is dropped as an absence, as before. 075 GA-01:
+ *  "No added formaldehyde" names nothing before "added", so it is an absence, not a claim glued to formaldehyde. */
+const CLAIM_PREFIX = /^no\s+(?!added\b)[^,;.]*?\badded\b(?!\s+except\b)[\s*†‡:.-]*/i;
+
+const clean = (raw: string) => tidy(tidy(stripFiller(tidy(raw.replace(/[()[\]{}]/g, " ")))).replace(CLAIM_PREFIX, ""));
 
 function emit(raw: string, out: string[]): void {
-  const item = tidy(tidy(stripFiller(tidy(raw.replace(/[()[\]{}]/g, " ")))).replace(CLAIM_PREFIX, ""));
+  const item = clean(raw);
   if (!item || NEGATION.test(item)) return;
   const kept = tidy(item.replace(FREE_WORD, " "));
   if (kept) out.push(kept);
