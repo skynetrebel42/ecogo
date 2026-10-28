@@ -48,6 +48,6 @@ subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Suba
 - **State** is replaced, never appended to.
 
 ## Current state (replace at each close-out; ≤ 3 lines)
-- Live: origin/main 168efab (M1–M17, 063–066, 068, 070, 073, 075; 430k USDA foods, engine_rev 4; off-submit v13, place-submit v5, ocr-cloud v4).
-- Building: 071 (Headsman X; Round 1 fix, then push). Models: decision 078.
-- Then: 071 Round 2 → 077 wording → 076 → 072 ingredients → 069.
+- Live: origin/main 67896a7 (M1–M17, 063–066, 068, 070, 073, 075, 071 R1; 430k USDA foods, engine_rev 4; off-submit v14, place-submit v5, ocr-cloud v4).
+- Building: 071 Round 2 (fresh Headsman). Models: decision 078.
+- Then: 077 wording → 076 → 072 ingredients → 069.

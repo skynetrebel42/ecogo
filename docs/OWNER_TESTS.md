@@ -45,6 +45,12 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 - [x] **4D** (2026-10-22) Map → Suggest a place. See: every field has a visible border.
 - [x] **4E** (2026-10-22: info good; wants bubbles, bullets and source buttons, see playtest notes) Home → the 7th Learn tile "Risks a label can't show" (full width). See: five short sections and source cards.
 
+## 10 · Check screen (071 Round 1, live 2026-10-28)
+- [ ] **10A** Your Guava Punch soda: Scan → Check ingredients → paste the label with Live Text. See: "Checked ✓", a grey
+      "Benzene can form" note, and an underlined "ED&C YILLOW 0. 5": tap it, then "FD&C Yellow No. 5", and Yellow 5 is flagged.
+- [ ] **10B** Type a list with a garbled word (e.g. `Water, sugar, xqzvb`). See: "We couldn't read: …" with that word.
+- [ ] **10C** Add a product (your own real product): before Send, "What's it called?" asks Product name and Brand; skipping both still sends.
+
 ## 9 · Audit fixes (075, live 2026-10-28)
 - [ ] **9A** Check ingredients → Type it → `Water, glycerin, no added formaldehyde` → check. See: no formaldehyde warning. Then type `Water, formaldehyde`: the warning shows.
 - [ ] **9B** Profile → open **Privacy** ("What leaves your phone"). See: "Open Food Facts gets that same anonymous ID with each product you add."
