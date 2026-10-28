@@ -37,7 +37,7 @@ pick (foundations first); later ideas go to `docs/MILESTONES.md` Future features
 
 ## Skills
 graphify (structure) · diagnosing-bugs (bugs) · tdd (spec'd features) · code-review + ponytail-review (before a push) ·
-verification-before-completion (before a report) · pr (PR text). Skip brainstorming / writing-plans /
+pr (PR text). Skip brainstorming / writing-plans /
 subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Subagents only for big read-only searches
 (≤15-line summary).
 
