@@ -49,5 +49,5 @@ subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Suba
 
 ## Current state (replace at each close-out; ≤ 3 lines)
 - Live: origin/main 168efab (M1–M17, 063–066, 068, 070, 073, 075; 430k USDA foods, engine_rev 4; off-submit v13, place-submit v5, ocr-cloud v4).
-- Building: nothing. Next: model trial, then a fresh Headsman X for 071.
-- Then: 071 reader v3 → 076 leftovers → 072 ingredients → 069.
+- Building: 071 (Headsman X; Round 1 fix, then push). Models: decision 078.
+- Then: 071 Round 2 → 077 wording → 076 → 072 ingredients → 069.
