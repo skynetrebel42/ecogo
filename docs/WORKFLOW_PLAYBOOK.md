@@ -24,9 +24,10 @@ hypotheses. Check them against the code, and ask the owner before you rely on th
 
 | Role | Who | Does | Never does |
 |---|---|---|---|
-| **Owner** | The human (may be non-technical) | Makes every decision, approves every push, deploy or live-data change | Has to write code or read diffs |
+| **Owner** | The human (may be non-technical) | Makes every decision about what users see, scope, cost and new data sharing; says yes to every push, deploy or live-data change once the planner has checked it (§2.7) | Has to write code or read diffs |
 | **Planner** | One agent chat/task | Talks to the owner, keeps the milestone order, writes specs, records decisions, sends build briefs to the builder, checks the live result after a push | Writes product code |
 | **Builder** | One agent session at a time, fresh for each milestone | Builds one spec on its own branch, test-first, runs the checks, reports to the planner | Asks the owner design questions (they go to the planner); starts work no spec covers; carries over to the next milestone |
+| **Research desk** | One read-only agent chat (optional) | Verifies outside reports (other AIs, videos, audits) and finds official sources; writes short notes the planner plans from | Edits the repo, settings or data; makes decisions |
 
 **How a builder starts**
 - **Preferred: the planner spawns it.** If your tool lets one chat start another session, the planner starts a fresh
@@ -36,8 +37,11 @@ hypotheses. Check them against the code, and ask the owner before you rely on th
 - Either way, the builder is retired when its milestone ships. Fresh context per job avoids stale assumptions and
   cuts per-turn cost on long builds *(rule of thumb; research supports the direction, not a measured gain)*.
 
-- **Only two agents.** More parallel agents caused collisions (duplicate features, overwritten commits), frozen
-  prompts and wasted usage. Add a third only for a truly independent, read-only job.
+- **A fixed, small team: 2 standing chats (planner, research desk) + 1 builder while a milestone builds.** State the
+  rule once and keep it. More parallel agents caused collisions (duplicate features, overwritten commits), frozen
+  prompts and wasted usage; finished chats are archived, not left open.
+- **Two doors in:** decisions and test results go to the planner, research and outside reports to the research desk.
+  Relaying through extra chats loses context. Every result lands in a repo file or note the same day.
 - **All decisions are asked in one place, the planner.** If two chats ask the same question, the owner may give two
   different answers.
 - The builder asks the owner directly **only** right before a push, deploy or live-database change.
@@ -70,7 +74,10 @@ hypotheses. Check them against the code, and ask the owner before you rely on th
    anything skipped, and one line headed **"In plain terms:"** saying what the owner would notice. If a decision is
    needed, it gives options and stops.
 7. **Push gate.** Before any push, the builder shows the exact list of commits to be pushed, marking its own and any
-   from others. The owner approves **that exact list**. If anything changes, it asks again.
+   from others. Its first line says **"Changes the live app: yes/no"** (any diff in app or server code) and, if yes, what
+   users will see. The planner checks it first (tests, review, reads every database or server change) and the ask opens
+   with that verdict and how to undo, so a non-technical owner's yes means "I trust that check", not "I read the diff".
+   The owner approves **that exact list**. If anything changes, it asks again.
 8. **Verify live.** After deploying, the planner checks the real site/app, not just the tests.
 9. **Close.** Add one line to the handoff file's "shipped" list and one plain-English line to the owner's guide log.
    Archive the spec.
@@ -105,7 +112,8 @@ Keep these files short, because agents read them every session.
 
 ## 4. Rules that prevent the expensive mistakes
 
-**Git (enforce with a pre-command hook if your tool supports one)**
+**Git (enforce with a pre-command hook if your tool supports one; keep the hook in the *committed* project settings,
+or new builder worktrees start without it)**
 - Stage files **by exact path**. Never stage everything at once (`add -A`, `add .`, `commit -a`).
 - Never amend, reset, rebase, stash, force-push or delete branches on the main branch.
 - Check the status and the last few commits right before every commit. Another chat may have moved things.
@@ -129,6 +137,9 @@ Keep these files short, because agents read them every session.
 
 ## 5. Talking to the owner
 
+- **Name choices in words** ("Option A: closer to FDA"), never codes the owner might confuse with their own checklist.
+  Put the question and its choices in the message itself: side panels and buttons may not show on a phone.
+- Reports from other AIs or videos go to the research desk to verify before anything is planned from them.
 - **Every decision is multiple choice**: 2–4 options, the recommended one first and marked, one line of trade-off each.
   The owner can always type their own answer.
 - **Every report ends with "In plain terms:"**, one or two jargon-free sentences.
@@ -153,7 +164,10 @@ Keep these files short, because agents read them every session.
   level, and have a watchdog timer of about 20 minutes. If a job dies on a usage limit, never relaunch it unchanged:
   shrink it, or check directly.
 - Prefer cheap real checks (run it, compare the output) over big static reviews.
-- Turn off integrations and connectors you aren't using.
+- Turn off integrations, plugins and connectors you aren't using: each one loads into every chat.
+- Batch late fixes before re-running slow checks: re-runs after small fixes were the biggest avoidable cost of one
+  milestone (40 % of its usage went to commands and checks).
+- Match the model to the job: test cheaper models on finished tasks with known answers before switching a role.
 
 ---
 
@@ -221,6 +235,7 @@ Track every milestone as lettered steps in `docs/MILESTONES.md`, each with a wor
 | Reset day, ≥ 15 % weekly left (use-it-or-lose-it) | Maintenance run: code-map refresh, memory consolidation, size audit of always-loaded files, connector check. |
 | Any rule file, handoff or memory note over its cap | Prune before adding anything. |
 | An outside report or owner test finds a bug the checks missed | Add a check for it, and a line to §9.4. |
+| Weekly (with the maintenance run) | Blind-spot check: unused plugins/connectors, notes never landed in the plan, chats ≥ 50 % context, more chats than the team rule, model vs job, one-line direction. Report only. |
 
 ### 9.3 Guardrails for the bottlenecks seen so far
 - **Rubber-stamp approvals:** tag every ask 🔒 rule call (the rules pick A; confirm) or 🎨 owner's call (owner answers
@@ -239,3 +254,8 @@ Track every milestone as lettered steps in `docs/MILESTONES.md`, each with a wor
 | 2026-10-21 | Owner approved A on autopilot for a week; taste calls drifted to the planner | 🔒/🎨 tags, owner answers 🎨 first (§9.3) |
 | 2026-10-21 | Four releases shipped without the owner's live test; the first test found 3 bugs | Live tests listed at close-out (§9.1, §9.3) |
 | 2026-10-21 | Rulebook state grew append-only; code map 18 days stale; a deprecated connector loaded in every chat | Size caps, replace-not-append, named triggers (§9.1, §9.2) |
+| 2026-10-28 | Chats grew from 2 to ~15; team size changed rule three times | Fixed team rule: 2 standing + 1 builder; finished chats archived (§1) |
+| 2026-10-28 | Owner approved pushes he could not judge ("false authority") | Push ask opens with "Changes the live app" and the planner's checked verdict (§2.7) |
+| 2026-10-28 | Unused plugins and connectors loaded into every chat; found by the owner, not the team | Weekly blind-spot check (§9.2) |
+| 2026-10-28 | The git guard lived in local settings, so new worktrees had none | Hook in committed project settings (§4) |
+| 2026-10-28 | Notes and choices lost when relayed through extra chats | Two doors in; every result in a file the same day (§1) |
