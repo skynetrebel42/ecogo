@@ -102,6 +102,20 @@ export async function preparePhoto(file: Blob, crop?: Crop): Promise<Blob> {
   return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error("Couldn't prepare the photo."))), "image/jpeg", 0.85));
 }
 
+/** 071 F: the photo turned a quarter, clockwise (1) or counter-clockwise (-1), as a JPEG. */
+export async function quarterTurn(photo: Blob, way: 1 | -1): Promise<Blob> {
+  const bitmap = await createImageBitmap(photo, { imageOrientation: "from-image" });
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.height;
+  canvas.height = bitmap.width;
+  const ctx = canvas.getContext("2d")!;
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((way * Math.PI) / 2);
+  ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
+  bitmap.close();
+  return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error("Couldn't turn the photo."))), "image/jpeg", 0.92));
+}
+
 /** 070: the photo as a JPEG of `max` bytes or less (OCR.space's free limit is 1 MB), smaller until it fits. Always
  *  re-encoded, so nothing but the pixels (no place or time it was taken) goes to cloud help. */
 export async function jpegUnder(photo: Blob, max: number): Promise<Blob> {

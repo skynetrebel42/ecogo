@@ -4,6 +4,8 @@
 // when a photo is read; ocr.ts falls back to Tesseract if it fails. The SDK gives one score per line, so the letter
 // confidences that mark unsure words come from decoding the recognizer's own output here.
 
+import { quarterTurn } from "./photo.ts";
+
 type Word = { text: string; conf: number };
 
 /** Greedy CTC decode of one sample (the SDK's rule): the best class per time step, repeats collapsed, blanks (class 0)
@@ -55,7 +57,16 @@ const DETECT = { textDetBoxThresh: 0.3 };
 
 type Tensor = { dims: readonly number[]; data: ArrayLike<number> };
 type Session = { run: (...a: unknown[]) => Promise<Record<string, Tensor>> };
-type Ocr = { predict: (img: Blob, params?: object) => Promise<{ items: { text: string }[] }[]>; recModel?: { config?: { charDict?: string[] } } };
+type Point = [x: number, y: number];
+type Item = { text: string; score: number; poly: Point[] };
+type Ocr = { predict: (img: Blob, params?: object) => Promise<{ items: Item[] }[]>; recModel?: { config?: { charDict?: string[] } } };
+
+/** 071 F: most line boxes stand on end (1.5 × taller than wide, the SDK's own rule for turning one line): the label is
+ *  sideways. */
+export function standing(polys: Point[][]): boolean {
+  const size = (p: Point[], k: 0 | 1) => Math.max(...p.map(q => q[k])) - Math.min(...p.map(q => q[k]));
+  return polys.filter(p => size(p, 1) >= 1.5 * size(p, 0)).length * 2 > polys.length;
+}
 
 let ready: Promise<Ocr> | undefined;
 let captured: Tensor[] | null = null; // the recognizer's outputs during one read
@@ -96,11 +107,21 @@ export function readPaddle(image: Blob): Promise<{ lines: string[]; words: Word[
 }
 let queue: Promise<unknown> = Promise.resolve();
 
+/** 071 F: a sideways label (its lines standing on end) is read turned a quarter both ways, and the read the recognizer
+ *  is surer of is kept: the wrong way reads every line upside down; without the turn, the SDK turns each line one way
+ *  only and the lines come out last first. */
 async function readOne(image: Blob): Promise<{ lines: string[]; words: Word[] }> {
+  const read = await recognise(image);
+  if (!standing(read.polys)) return read;
+  const left = await recognise(await quarterTurn(image, -1)), right = await recognise(await quarterTurn(image, 1));
+  return left.score >= right.score ? left : right;
+}
+
+async function recognise(image: Blob): Promise<{ lines: string[]; words: Word[]; polys: Point[][]; score: number }> {
   if (!ready) { ready = load(); ready.catch(() => { ready = undefined; }); }
   const ocr = await ready;
   const outs: Tensor[] = captured = [];
-  let items: { text: string }[];
+  let items: Item[];
   try { items = (await ocr.predict(image, DETECT))[0]?.items ?? []; } finally { captured = null; }
   // Match decoded samples to lines by their text (the SDK reorders samples by width before recognising them).
   const dict = ocr.recModel?.config?.charDict ?? [];
@@ -116,5 +137,6 @@ async function readOne(image: Blob): Promise<{ lines: string[]; words: Word[] }>
   const lines = items.map(i => i.text);
   // A line we couldn't match keeps its words unsure (confidence 0): better a needless underline than a missed one.
   const words = lines.flatMap(l => byText.get(l)?.shift() ?? wordConfidences([...l], [...l].map(() => 0)));
-  return { lines, words };
+  const score = items.reduce((sum, i) => sum + i.score, 0) / (items.length || 1);
+  return { lines, words, polys: items.map(i => i.poly), score };
 }

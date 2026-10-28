@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ctcDecode, unsureByLetters, wordConfidences } from "./paddle.ts";
+import { ctcDecode, standing, unsureByLetters, wordConfidences } from "./paddle.ts";
 
 // 066 R3: the recognizer gives, for each time step, a probability per class (0 = blank, then the dictionary).
 // Worked example: dictionary [A, B, " "], 6 steps reading "A A _ B" with repeats and blanks.
@@ -34,4 +34,13 @@ test("each word's confidence is its weakest letter or digit; an unsure comma doe
 test("words whose weakest letter is under the cut are unsure, without their punctuation, once each", () => {
   const words = [{ text: "LIMONENE,", conf: 0.95 }, { text: "ACETAIE", conf: 0.4 }, { text: "(PNENE)", conf: 0.5 }, { text: "ACETAIE,", conf: 0.3 }, { text: "—", conf: 0.1 }];
   assert.deepEqual(unsureByLetters(words, 0.6), ["ACETAIE", "PNENE"]);
+});
+
+// 071 F: a sideways label (Coppertone's Drug Facts): its line boxes stand on end. The gate check-label reads one.
+const box = (w: number, h: number): [number, number][] => [[0, 0], [w, 0], [w, h], [0, h]];
+test("most line boxes standing on end (1.5x taller than wide) mean the label is sideways", () => {
+  assert.equal(standing([box(30, 400), box(30, 250), box(30, 90), box(80, 30)]), true);
+  assert.equal(standing([box(400, 30), box(250, 30), box(30, 60), box(30, 70)]), false, "half isn't most");
+  assert.equal(standing([box(40, 40), box(300, 40)]), false, "a lone % or a square word isn't standing");
+  assert.equal(standing([]), false);
 });
