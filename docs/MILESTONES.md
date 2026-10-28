@@ -73,9 +73,9 @@ C wider personal-care coverage [Facts]
 logos + bold steps [UI] · C new sourced facts: seed-oil contaminants, pesticide foods, cleaning produce, organic [Facts]
 
 ## Future features (saved for later; Minh picks when) · 💡 = Minh's own idea
-- 💡 **Ingredient "Pokédex"** (Minh, 2026-10-28): one facts-first page per ingredient (what it is, sourced concerns, where it shows up); flag "sus" ingredients and help people weigh trade-offs (castile vs an affordable soap) [Facts][Feature] → candidate for 072
-- 💡 **Safe-use facts for cleaners** (Minh, 2026-10-28): rinse food-contact surfaces with water after bleach wipes, never mix bleach with other cleaners, microplastics and endocrine disruptors (fragrance) explained; official quotes only [Facts] → candidate for 072 / 069
-- 💡 **Sunscreen: sprays vs sticks/lotions** (Minh, 2026-10-28; learned from EWG + Instagram): official facts only, e.g. FDA benzene-contamination recalls of some aerosol batches and FDA questions on inhaling sprays; EWG is advocacy, not a quotable source [Facts] → Scout sources, then 072
+- 💡 **Ingredient "Pokédex"** (Minh, 2026-10-28); competitor check (Scout II, research-competitors.md): stand out with quote + "applies to / can't tell you" lines: one facts-first page per ingredient (what it is, sourced concerns, where it shows up); flag "sus" ingredients and help people weigh trade-offs (castile vs an affordable soap) [Facts][Feature] → candidate for 072
+- 💡 **Safe-use facts for cleaners** (Minh, 2026-10-28); Scout II 10-28, research-072-safe-use-sunscreen.md: bleach-mixing (CDC) and microplastics (FDA) quotable; "rinse after wipes" and "fragrance = endocrine disruptor" have NO official quote, so no claim: rinse food-contact surfaces with water after bleach wipes, never mix bleach with other cleaners, microplastics and endocrine disruptors (fragrance) explained; official quotes only [Facts] → candidate for 072 / 069
+- 💡 **Sunscreen: sprays vs sticks/lotions** (Minh, 2026-10-28; learned from EWG + Instagram); Scout II 10-28 (same note): J&J 2021 + Banana Boat 2022 benzene recalls and FDA 2019 spray-inhalation concerns quotable: official facts only, e.g. FDA benzene-contamination recalls of some aerosol batches and FDA questions on inhaling sprays; EWG is advocacy, not a quotable source [Facts] → Scout sources, then 072
 - 💡 **New app name** (Minh, 2026-10-28: "EcoGo" may change) [Process]
 **Core: reading labels** [Foundation]
 - 💡 Label reader as strong as the iPhone's Live Text (2026-10-21; "almost more important than the barcode"): moved
