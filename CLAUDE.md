@@ -25,6 +25,7 @@ top 40 lines, then `grep -n "^| 0NN |"` for the rows you need; never the whole f
   `ocr-cloud`; read the person's own counts. No secret keys in client code (the Turnstile site key is public). Every push to `main` deploys.
 - Git: commit by exact path; never `add -A`, `commit -a`, amend, reset, rebase, stash or force-push on `main` (hook
   enforces). Before any push show `git log --oneline origin/main..HEAD` (own vs others); the owner approves that list.
+  First line: "Changes the live app: yes/no" (`git diff --stat origin/main HEAD -- src supabase`); if yes, what users see.
 
 ## Roles
 - **Daedalus** (planner): talks to Minh, writes specs and the decision log, spawns one fresh **Headsman** (builder) per
@@ -37,7 +38,7 @@ pick (foundations first); later ideas go to `docs/MILESTONES.md` Future features
 
 ## Skills
 graphify (structure) · diagnosing-bugs (bugs) · tdd (spec'd features) · code-review + ponytail-review (before a push) ·
-verification-before-completion (before a report) · pr (PR text). Skip brainstorming / writing-plans /
+pr (PR text). Skip brainstorming / writing-plans /
 subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Subagents only for big read-only searches
 (≤15-line summary).
 
@@ -47,6 +48,6 @@ subagent-driven-development unless Minh invokes them. Tiny edits: no skill. Suba
 - **State** is replaced, never appended to.
 
 ## Current state (replace at each close-out; ≤ 3 lines)
-- Live: origin/main 46a86d9 (M1–M17, 063–066, 068, 070, 073; 430,127 USDA foods, engine_rev 4; off-submit v11, place-submit v2, ocr-cloud v1).
-- Building: 075 audit fixes (Headsman IX). check-ocr up to 130 s of 180: watch.
-- Then (071, label first): 075 audit fixes → 071 reader v3 → 072 ingredient knowledge → 069.
+- Live: origin/main 46a86d9 (M1–M17, 063–066, 068, 070, 073; 430k USDA foods, engine_rev 4; off-submit v12, place-submit v5, ocr-cloud v4).
+- Building: 075 audit fixes + GA-01/02 (Headsman IX), resumed 10-28.
+- Then: model trial → 071 reader v3 → 076 leftovers → 072 ingredients → 069.

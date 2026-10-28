@@ -273,6 +273,12 @@ which also removed tw-animate-css, the unused theme tokens and `productImporter`
 - Not a bug: the same screen showed the pre-063 wording because the phone's tab still ran the old build (no service
   worker; GitHub Pages caches index.html 10 min). Closing and reopening the tab loads the new one.
 
+### Minh's tests, 2026-10-24 (planner check, read-only)
+- Benzoate + ascorbic acid typed into Type it shows no benzene note: by design so far. `benzeneNote` runs only on the
+  product page (ProductDetailScreen.tsx:203), not in the ingredient check; a typo ("benozate") would miss it anyway.
+  → 071 J. Owner test 2F still needs a real drink scanned by barcode.
+- Typing edits re-check silently, so Minh wasn't sure a fix registered → 071 H.
+
 ### Minh's tests, 2026-10-22 (planner check, read-only)
 - **2C, no claim (correct, data gap):** Equate Clear hand soap (UPC 194346586486) carries the Safer Choice logo but isn't
   in the snapshot (no "Equate" product has a barcode in EPA's Envirofacts rows we import; spec S1 needs a UPC/GTIN).
