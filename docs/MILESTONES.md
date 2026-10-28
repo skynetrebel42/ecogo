@@ -73,6 +73,9 @@ C wider personal-care coverage [Facts]
 logos + bold steps [UI] · C new sourced facts: seed-oil contaminants, pesticide foods, cleaning produce, organic [Facts]
 
 ## Future features (saved for later; Minh picks when) · 💡 = Minh's own idea
+- 💡 **Ingredient "Pokédex"** (Minh, 2026-10-28): one facts-first page per ingredient (what it is, sourced concerns, where it shows up); flag "sus" ingredients and help people weigh trade-offs (castile vs an affordable soap) [Facts][Feature] → candidate for 072
+- 💡 **Safe-use facts for cleaners** (Minh, 2026-10-28): rinse food-contact surfaces with water after bleach wipes, never mix bleach with other cleaners, microplastics and endocrine disruptors (fragrance) explained; official quotes only [Facts] → candidate for 072 / 069
+- 💡 **New app name** (Minh, 2026-10-28: "EcoGo" may change) [Process]
 **Core: reading labels** [Foundation]
 - 💡 Label reader as strong as the iPhone's Live Text (2026-10-21; "almost more important than the barcode"): moved
   into 066 (Label reader v2).
