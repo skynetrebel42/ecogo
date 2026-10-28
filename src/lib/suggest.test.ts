@@ -132,3 +132,14 @@ test("071 I: none of the catalog's 51 real lists, typed, gets a chip", async () 
     .flatMap(p => [...fixList(p.ingredients, [], true).words, ...nameFixes(p.ingredients).map(f => f.text)].map(w => `${p.name}: ${w}`));
   assert.deepEqual(offered, []);
 });
+
+// 071 E (planner): splitting glued words never changes a flag on clean text: the 51 lists and the 2F texts stay as typed.
+test("071 E: no glued-word split in the catalog's 51 lists or the 2F texts", async () => {
+  await loadMoreNames();
+  const { readFileSync } = await import("node:fs");
+  const { parseProductsCSV } = await import("./productImporter.ts");
+  const { unglue } = await import("./ocr.ts");
+  const lists = parseProductsCSV(readFileSync(new URL("../data/products.csv", import.meta.url), "utf8")).map(p => p.ingredients);
+  assert.equal(lists.length, 51);
+  for (const text of [...lists, PASTED_2F, CLEAN_2F]) assert.equal(unglue(text), text);
+});

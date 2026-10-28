@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { afterRead, cleanIngredients, cloudHelpOn, hardToRead, joinReads, knownCount, labelLines, linesText, pasteInto, readPhoto, setCloudHelp, trimToIngredients, unsureCount, unsureWords, withCloud } from "./ocr.ts";
+import { afterRead, cleanIngredients, cloudHelpOn, hardToRead, joinReads, knownCount, labelLines, linesText, pasteInto, readPhoto, setCloudHelp, trimToIngredients, unglue, unsureCount, unsureWords, withCloud } from "./ocr.ts";
+import { loadMoreNames } from "./suggest.ts";
 import { assessProduct } from "./safety/assess.ts";
 import { analyzeCare } from "./safety/personalCare.ts";
 
@@ -365,4 +366,16 @@ test("071 C: two photos of a label's top and bottom join once at their shared li
     "SODIUM BENZOATE, DMDM HYDANTOIN, METHYLPARABEN,", "METHYLISOTHIAZOLINONE, RED 40."]);
   assert.deepEqual(joinReads(top, bottom), { joined: true, text: "WATER, SODIUM LAURETH SULFATE, COCAMIDOPROPYL BETAINE, GLYCERIN, "
     + "SODIUM CHLORIDE, CITRIC ACID, FRAGRANCE, TALC, SODIUM BENZOATE, DMDM HYDANTOIN, METHYLPARABEN, METHYLISOTHIAZOLINONE, RED 40." });
+});
+
+test("071 E: one of EcoGo's names glued on condensed print gets its spaces back; 'INGREDIENTS' glued on is split off (Burberry)", async () => {
+  assert.equal(unglue("BENZYLSALICYLATE, Hydroxycitronellal, sodiumnitrite"), "BENZYL SALICYLATE, Hydroxycitronellal, sodium nitrite");
+  assert.equal(unglue("INGREDIENTSALCOHOL DENAT., PARFUM"), "INGREDIENTS ALCOHOL DENAT., PARFUM");
+  assert.equal(unglue("INGREDIENTES: AGUA"), "INGREDIENTES: AGUA");
+  const r = withCloud(hardPhone, ["BURBERRY", "INGREDIENTSALCOHOL, PARFUM (FRAGRANCE), BENZYLSALICYLATE, COUMARIN"]);
+  assert.equal(r.text, "ALCOHOL, PARFUM (FRAGRANCE), BENZYL SALICYLATE, COUMARIN");
+  assert.ok(analyzeCare(r.text).notes.some(n => n.note.name === "Benzyl Salicylate"));
+  await loadMoreNames();
+  for (const w of ["SUNFLOWER", "BUTTERMILK", "CORNSTARCH", "PEPPERMINT", "WATERMELON", "Hydroxyethylcellulose", "Methylisothiazolinone"])
+    assert.equal(unglue(w), w, `${w}: a real word isn't split`);
 });

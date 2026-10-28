@@ -21,6 +21,16 @@ export const loadMoreNames = () => (more ??= import("./data/usda-words.ts").then
   for (const w of m.default.split(" ")) if (!OURS.has(w)) { NAME_WORDS.push(w); KNOWN.add(w); }
   suggested.clear();
 }));
+
+/** 071 E: EcoGo's names of 2+ words of letters, as condensed print glues them ("BENZYLSALICYLATE" → BENZYL SALICYLATE). */
+const GLUED = new Map([...NAMES].filter(n => /^\p{L}+(?: \p{L}+)+$/u.test(n)).map(n => [n.replace(/ /g, ""), n]));
+/** 071 E: `word` with its spaces back if it is one of EcoGo's names glued together, in its own case; else null. Names
+ *  only, never any two known words: those split real words ("Hydroxyethylcellulose" → "Hydroxy ethyl cellulose"). */
+export function unglueName(word: string): string | null {
+  const name = GLUED.get(fold(word));
+  let at = 0;
+  return name ? name.split(" ").map(p => word.slice(at, at += p.length)).join(" ") : null;
+}
 /** 070 C3: whether `word` is a known name's word as it stands (5+ letters, EcoGo's or, once loaded, USDA's). */
 export const knownWord = (word: string) => KNOWN.has(fold(word));
 export const within = (w: string, n: string) => distance(w, n, Math.floor(n.length / 4)) <= Math.floor(n.length / 4);

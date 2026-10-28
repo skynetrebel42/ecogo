@@ -4,7 +4,7 @@
 
 import type { Block, Worker } from "tesseract.js";
 import { jpegUnder } from "./photo.ts";
-import { fold, knownWord, loadMoreNames, nearKnownName, within } from "./suggest.ts";
+import { fold, knownWord, loadMoreNames, nearKnownName, unglueName, within } from "./suggest.ts";
 
 /** Words read with less confidence than this (0–100) are underlined for the person to check. */
 const UNSURE_BELOW = 70;
@@ -112,6 +112,14 @@ export function labelLines(lines: string[]): LabelLine[] {
 export const linesText = (lines: LabelLine[]) =>
   cleanIngredients(lines.filter(l => l.on).map(l => l.kept || l.text).join("\n")).replace(/\s*[,;]$/, "");
 
+/** 071 E: words glued together on condensed print: one of EcoGo's names ("BENZYLSALICYLATE") gets its spaces back, and
+ *  "INGREDIENTS" glued to the first ingredient (Burberry's "INGREDIENTSALCOHOL…") is split off, so the list starts. */
+export const unglue = (line: string) =>
+  line.replace(/\p{L}{6,}/gu, w => unglueName(w) ?? w.replace(/^(ingredients?)(?=\p{L}{3})/iu, "$1 "));
+
+/** A photo's lines as read, glued words split (071 E): its ingredients and its lines to tick. */
+const readLines = (read: string[]) => labelLines(read.map(t => unglue(t.trim())).filter(Boolean));
+
 type WordsOnly = { paragraphs: { lines: { words: { text: string; confidence: number }[] }[] }[] }[];
 
 /** The low-confidence words, without surrounding punctuation, each once. */
@@ -147,7 +155,7 @@ export async function readLabel(image: Blob): Promise<Read> {
   try {
     const { readPaddle, unsureByLetters, UNSURE_LETTER } = await import("./paddle.ts");
     const { lines: read, words } = await readPaddle(image);
-    const lines = labelLines(read.map(t => t.trim()).filter(Boolean));
+    const lines = readLines(read);
     return { text: linesText(lines), unsure: unsureByLetters(words, UNSURE_LETTER), lines };
   } catch (err) {
     console.warn("[ocr] the stronger reader failed; reading with Tesseract", err);
@@ -170,7 +178,7 @@ async function readTesseract(image: Blob): Promise<Read> {
   const { data } = await (await worker).recognize(image, {}, { text: true, blocks: true });
   const blocks = data.blocks as Block[] | null;
   const read = blocks ? blocks.flatMap(b => b.paragraphs.flatMap(p => p.lines.map(l => l.text))) : data.text.split("\n");
-  const lines = labelLines(read.map(t => t.trim()).filter(Boolean));
+  const lines = readLines(read);
   return { text: linesText(lines), unsure: unsureWords(blocks), lines };
 }
 
@@ -246,7 +254,7 @@ export const knownCount = (text: string) => (text.match(/[\p{L}\p{N}]+/gu) ?? []
  *  near names, and the box is the person's to accept, as with the phone's text. */
 export function withCloud(phone: PhotoRead, cloud: string[] | null): PhotoRead {
   if (!cloud) return { ...phone, busy: true };
-  const lines = labelLines(cloud), text = linesText(lines);
+  const lines = readLines(cloud), text = linesText(lines);
   return knownCount(text) > knownCount(phone.read ?? phone.text) ? afterRead({ text, unsure: [], lines }) : phone;
 }
 
