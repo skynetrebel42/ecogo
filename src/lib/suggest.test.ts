@@ -107,6 +107,7 @@ test("071 I: a misread colour name is offered whole, and taking it gives the Yel
   assert.deepEqual(fix, { text: "ED&C YILLOW 0. 5", by: "FD&C YELLOW NO. 5" });
   assert.deepEqual(flags(PASTED_2F.split(fix!.text).join(fix!.by)), flags(CLEAN_2F));
   assert.deepEqual(fixList(PASTED_2F, [], true).words, ["POTASSIEM", "YILLOW"]); // and the one-word slips, in reading order
+  assert.deepEqual(nameFixes("water, Yelow 5"), [{ text: "Yelow 5", by: "Yellow 5" }], "in the stretch's own case");
 });
 
 test("071 I: a clean list (and a real look-alike) gets no chips", async () => {

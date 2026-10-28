@@ -23,8 +23,8 @@ export function limitReason(mine: number, all: number, attempts = 0): "limit-you
 
 /** The sent fields check (trust boundary). Follow-up 5, J3: photos mode (`mode=photos`) needs no ingredients text but at
  *  least one photo; a normal send needs the text, as before. */
-export function validForm(f: { code: string; ingredients: string; name: string; brand?: string; photosMode: boolean; photos: number }): boolean {
-  if (!/^[0-9]{8,14}$/.test(f.code) || f.ingredients.length > 5000 || f.name.length > 200 || (f.brand ?? "").length > 200) return false;
+export function validForm(f: { code: string; ingredients: string; name: string; brand: string; photosMode: boolean; photos: number }): boolean {
+  if (!/^[0-9]{8,14}$/.test(f.code) || f.ingredients.length > 5000 || f.name.length > 200 || f.brand.length > 200) return false;
   return f.photosMode ? f.photos > 0 : f.ingredients !== "";
 }
 

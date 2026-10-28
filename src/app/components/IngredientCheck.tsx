@@ -16,7 +16,7 @@ import { isBlurry, preparePhoto } from "../../lib/photo";
 import { latestWins } from "../../lib/latest";
 import { VERDICT_STYLE, verdictHeadline } from "./verdict";
 import Explainer, { type ExplainerId } from "./Explainer";
-import Findings, { benzeneFinding, findingGroups } from "./Findings";
+import Findings, { benzeneFinding } from "./Findings";
 import WordFix from "./WordFix";
 
 /** The check for typed or read text. No category: it is a food's ingredient list, like a looked-up product's. */
@@ -39,6 +39,8 @@ function careCheck(ingredients: string, cleaner: boolean): CareAnalysis | null {
     return { verdict: "no-data", flags: [], checkedCount: 0, notes: [], limited: [] };
   }
 }
+
+const NONE: string[] = []; // one array, so the editor's row isn't worked out again on every render
 
 export type CheckKind = "food" | "care" | "cleaner"; // 068 S3: a cleaner runs IARC findings only (analyzeCleaner)
 
@@ -171,11 +173,13 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
     const t = setTimeout(() => setSettled(value), 400);
     return () => clearTimeout(t);
   }, [value, settled]);
-  // 071 I: typed or pasted text gets R4's row too; the USDA words load with the check, then the row is worked out again.
-  const [names, setNames] = useState(false);
-  useEffect(() => { loadMoreNames().then(() => setNames(true), () => {}); }, []);
+  // 071 I: typed or pasted text gets R4's row too. Its slips and the whole-name stretches need the USDA words (without
+  // them a real "sodium citrate" reads as a misread "sodium nitrate"), so they wait for the words; never offered offline.
+  const [wordsLoaded, setWordsLoaded] = useState(false);
+  useEffect(() => { loadMoreNames().then(() => setWordsLoaded(true), () => {}); }, []);
   const typed = lines === undefined;
-  const fixes = useMemo(() => ({ ...fixList(value, unsure, typed), names: nameFixes(value) }), [value, unsure, typed, names]);
+  const fixes = useMemo(() => typed && !wordsLoaded ? { words: [], splits: [], names: [] }
+    : { ...fixList(value, unsure, typed), names: wordsLoaded ? nameFixes(value) : [] }, [value, unsure, typed, wordsLoaded]);
   const unsureSet = new Set([...unsure, ...fixes.words]);
   const box = "w-full min-h-[120px] p-3 text-sm leading-relaxed font-[inherit] whitespace-pre-wrap break-words";
   const look = assessment ? VERDICT_STYLE[assessment.verdict] : care && VERDICT_STYLE[care.verdict];
@@ -184,7 +188,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
   // G5: with a start or stop word found, lines left out (and not ticked) wait behind a button.
   const listed = (l: LabelLine) => showAll || !(found.startWord || found.stopWord) || l.kept !== "" || l.on;
   const hidden = lines?.filter(l => !listed(l)).length ?? 0;
-  const unsureN = unsureCount(value, unsure).unsure; // G6: the box's own words
+  const unsureN = unsureCount(value, [...unsureSet]).unsure; // G6: the box's own words, as underlined
   // Typing in the box, or a fix chosen under it, hides the lines for good: the box is the final say (F3).
   const edit = (text: string) => { if (lines?.length) onLines?.(null); onChange(text); };
   const tick = (i: number) => {
@@ -233,14 +237,16 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
       {children}{/* 066 R9: Add another photo, under the chips */}
       {note &&<p className="text-xs text-muted-foreground">{note}</p>}
 
-      {look && value.trim() && <p aria-live="polite" className="min-h-[16px] text-xs font-bold text-gray-700">{edited && (value === settled ? "Checked ✓" : "Checking…")}</p>}
+      <p aria-live="polite" className="min-h-[16px] text-xs font-bold text-gray-700">{/* always there: a new live region's first words often go unread */}
+        {edited && value.trim() && (value === settled ? "Checked ✓" : "Checking…")}
+      </p>
       {assessment && look && (
         <div role="status" aria-live="off" className="rounded-2xl p-3.5 space-y-1.5" style={{ background: look.bg }}>
           <p className="flex items-center gap-1.5 text-[15px] font-extrabold" style={{ color: look.color }}>
             <look.Icon size={16} />{verdictHeadline(assessment)}
           </p>
           {from && <p className="text-xs font-bold text-gray-700">{from}</p>}
-          <Findings groups={findingGroups(assessment, [], false, foodNotes)} onLearn={openArticle} />
+          <Findings found={assessment} foodNotes={foodNotes} onLearn={openArticle} />
           {assessment.verdict === "none" && <>
             <p className="text-xs leading-snug text-gray-700">None of these ingredients match an official finding in EcoGo's list. That isn't the same as "healthy".</p>
             <button onClick={e => openArticle("not-healthy", e.currentTarget)} className="text-xs font-bold text-[#1A5C39] underline min-h-[44px] text-left">
@@ -255,7 +261,7 @@ export function IngredientEditor({ value, onChange, unsure, note, lines, onLines
             <look.Icon size={16} />{verdictHeadline(care, true)}
           </p>
           {from && <p className="text-xs font-bold text-gray-700">{from}</p>}
-          <Findings groups={findingGroups({ flags: care.flags, concerns: [] }, care.notes, true)} notes={care.notes} onLearn={openArticle} />
+          <Findings found={{ flags: care.flags, concerns: [] }} notes={care.notes} care onLearn={openArticle} />
           <p className="text-xs leading-snug text-gray-700">{kind === "cleaner" ? CLEANER_LINE : CARE_LIMITS}</p>
           <LimitedRow limited={care.limited} />
         </div>
@@ -444,7 +450,7 @@ export default function IngredientCheck({ onClose, product, onSendPhotos, kind: 
         {mode === "photo" && status === "reading" && <Reading cloud={cloud} />}
         {mode === "photo" && status === "read" && cloudBusy && <p role="alert" className="text-sm font-bold text-gray-700">{CLOUD_BUSY}</p>}
         {showHard && <PhotoNotice title="This photo is hard to read." onRetake={reset} onUseAnyway={() => setHard(false)} />}
-        {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : []}
+        {showEditor && <IngredientEditor value={text} onChange={setText} unsure={mode === "photo" ? unsure : NONE}
           note={mode === "photo" ? error : undefined} lines={mode === "photo" ? lines : undefined} onLines={setLines}
           read={mode === "photo" ? readText : undefined} onShowRead={() => { setText(readText!); setReadText(undefined); }}
           from={product && (status === "read" ? `From your photo, not from ${source}.` : `From what you typed, not from ${source}.`)} kind={kind}

@@ -31,7 +31,7 @@ export const benzeneFinding = (m: [string, string]): Finding =>
 
 /** Findings grouped by where they come from; empty groups are dropped. `care`: regulator context (FDA's dandruff-drug
  *  line, 063 F4) shows in the row next to the EU ban, not behind it. `foodNotes`: food info rows (064 H2). */
-export function findingGroups(a: Pick<Assessment, "flags" | "concerns">, notes: CareAnalysis["notes"] = [], care = false, foodNotes: Finding[] = []): { title: string; findings: Finding[] }[] {
+function findingGroups(a: Pick<Assessment, "flags" | "concerns">, notes: CareAnalysis["notes"] = [], care = false, foodNotes: Finding[] = []): { title: string; findings: Finding[] }[] {
   const fromConcerns = (kind: "food" | "cooking") => a.concerns.filter(c => c.kind === kind).map(c => ({
     id: c.id, name: c.name, severity: c.severity, concern: c.concern, detail: c.reason, context: c.context, sources: c.sources, learn: c.learn,
   }));
@@ -94,12 +94,13 @@ function FindingRow({ finding: entry, open, onToggle, onLearn }: { finding: Find
 }
 
 /** The groups as cards of rows, one row open at a time; FDA's "more data" line closes "Good to know". */
-export default function Findings({ groups, notes = [], onLearn }: {
-  groups: ReturnType<typeof findingGroups>; notes?: CareAnalysis["notes"]; onLearn: (id: ExplainerId, from: HTMLElement) => void;
+export default function Findings({ found, notes = [], care = false, foodNotes, onLearn }: {
+  found: Pick<Assessment, "flags" | "concerns">; notes?: CareAnalysis["notes"]; care?: boolean; foodNotes?: Finding[];
+  onLearn: (id: ExplainerId, from: HTMLElement) => void;
 }) {
   const [openFlag, setOpenFlag] = useState<string | null>(null);
   return <>
-    {groups.map(g => (
+    {findingGroups(found, notes, care, foodNotes).map(g => (
       <div key={g.title} className="bg-white text-gray-900 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 font-bold text-sm">{g.title}</div>
         <div className="divide-y divide-gray-50">

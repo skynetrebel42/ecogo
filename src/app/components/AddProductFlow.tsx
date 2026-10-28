@@ -39,6 +39,7 @@ const PHOTO_TIPS: Record<Exclude<Kind, "ingredients">, string> = { // ingredient
   nutrition: "Photograph the Nutrition Facts panel. Open Food Facts reads the numbers from it.",
 };
 const LABEL: Record<Kind, string> = { front: "Front", ingredients: "Ingredients", nutrition: "Nutrition" };
+const FIELD = "w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm disabled:opacity-60";
 
 /** A photo's thumbnail; its object URL is released when the photo changes or the screen closes. */
 function Thumb({ blob, label }: { blob?: Blob; label: string }) {
@@ -327,11 +328,9 @@ export default function AddProductFlow({ code, mode = "new", ingredientsPhoto, o
         <div className="bg-white rounded-2xl p-3.5 space-y-2">
           <h2 className="text-[15px] font-extrabold">What's it called?</h2>
           <label htmlFor="product-name" className="block text-sm font-bold">Product name</label>
-          <input id="product-name" value={name} onChange={e => setName(e.target.value)} disabled={sending} placeholder="As printed on the front" maxLength={200}
-            className="w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm disabled:opacity-60" />
+          <input id="product-name" value={name} onChange={e => setName(e.target.value)} disabled={sending} placeholder="As printed on the front" maxLength={200} className={FIELD} />
           <label htmlFor="product-brand" className="block text-sm font-bold">Brand</label>
-          <input id="product-brand" value={brand} onChange={e => setBrand(e.target.value)} disabled={sending} maxLength={200}
-            className="w-full min-h-[44px] px-3 rounded-xl border border-border bg-white text-sm disabled:opacity-60" />
+          <input id="product-brand" value={brand} onChange={e => setBrand(e.target.value)} disabled={sending} maxLength={200} className={FIELD} />
         </div>
       )}
       <div className="bg-white border border-border rounded-2xl p-3.5 space-y-2">

@@ -310,7 +310,7 @@ try {
     pick?.click(); await __sleep(400); return { picked: !!pick, box: document.querySelector("#ingredients").value.includes("COLOR\\nFD&C YELLOW NO. 5,"),
       status: document.querySelector('[role="status"]')?.innerText ?? "" }; })()`);
   check("071 I: Minh's pasted 2F list says what it couldn't read, and one chip gives Yellow 5 back",
-    !pasted.includes("Tartrazine") && row.includes("We couldn't read: ED&C YILLOW 0. 5, POTASSIEM. Fix them above or retake the photo.")
+    !pasted.includes("Tartrazine") && row.includes("We couldn't read: POTASSIEM, ED&C YILLOW 0. 5. Fix them above or retake the photo.")
     && took.picked && took.box && took.status.includes("Tartrazine (Yellow 5)"), `${row.match(/We couldn't read[^\n]*/)?.[0]} | ${JSON.stringify({ ...took, status: took.status.slice(0, 80) })}`);
   await typeIngredients("CARBONATED WATER, CANE SUGAR, CITRIC ACID, NATURAL AND ARTIFICIAL GUAVA FLAVORS, ASCORBIC ACID (VITAMIN C), MALIC ACID, "
     + "ACESULFAME POTASSIUM, SUCRALOSE, COLOR FD&C YELLOW No. 5, EDTA (TO PRESERVED FRESHNESS), COLOR FD&C RED No. 40, CARAMEL COLOR, "

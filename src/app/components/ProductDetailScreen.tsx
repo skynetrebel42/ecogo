@@ -22,7 +22,7 @@ import { CARE_LIMITS } from "../../lib/safety/personalCare";
 import type { Assessment } from "../../lib/safety/assess";
 import { benzeneNote } from "../../lib/safety/foodConcerns";
 import Explainer, { type ExplainerId } from "./Explainer";
-import Findings, { benzeneFinding, findingGroups, type Finding } from "./Findings";
+import Findings, { benzeneFinding, type Finding } from "./Findings";
 import { VERDICT_STYLE, safeAnalyze, verdictHeadline, formsWhenCooked } from "./verdict";
 import NutritionPanel, { NutritionChip, EditOnOff, useNutrition } from "./NutritionPanel";
 import IngredientCheck, { LimitedRow } from "./IngredientCheck";
@@ -235,7 +235,7 @@ export default function ProductDetailScreen({ product, onBack, store, savedOk, o
           </div>
 
           {/* ── Findings, grouped by where they come from ── */}
-          <Findings groups={findingGroups(analysis, careNotes, care, foodNotes)} notes={careNotes} onLearn={openLearn} />
+          <Findings found={analysis} notes={careNotes} care={care} foodNotes={foodNotes} onLearn={openLearn} />
 
           <LimitedRow limited={analysis.limited ?? []} />
 

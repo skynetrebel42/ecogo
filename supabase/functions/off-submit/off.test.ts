@@ -54,7 +54,7 @@ test("nothing taken because OFF refused a photo is photo-rejected; all duplicate
 });
 
 // M8 follow-up 5 (docs/superpowers/specs/2026-10-09-m8-followup5-fix-off-products-design.md J3).
-const form = { code: "0123456789012", ingredients: "", name: "", photosMode: false, photos: 1 };
+const form = { code: "0123456789012", ingredients: "", name: "", brand: "", photosMode: false, photos: 1 };
 test("empty ingredients are invalid in a normal send, as before; photos mode accepts them with at least one photo", () => {
   assert.equal(validForm({ ...form, ingredients: "Water" }), true);
   assert.equal(validForm(form), false);

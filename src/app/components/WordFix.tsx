@@ -22,8 +22,9 @@ export default function WordFix({ text, fixes, onChange, onRetake }: {
   const row = useRef<HTMLDivElement>(null);
   // A stretch's chip stands for the words in it ("YILLOW" is fixed with "ED&C YILLOW 0. 5").
   const inName = (w: string) => fixes.names.some(n => n.text.split(/[^\p{L}\p{N}]+/u).includes(w));
-  const words = [...fixes.names.map(n => n.text), ...fixes.words.filter(w => !inName(w))].filter(w => !kept.includes(w));
-  const named = (w: string) => fixes.names.find(n => n.text === w);
+  const words = [...fixes.names.map(n => n.text), ...fixes.words.filter(w => !inName(w))].filter(w => !kept.includes(w))
+    .sort((a, b) => text.indexOf(a) - text.indexOf(b)); // reading order (ponytail: a word's first match, even inside another)
+  const stretch = open && "word" in open ? fixes.names.find(n => n.text === open.word) : undefined;
   const splits = fixes.splits.filter(s => !kept.includes(`${s.before}|${s.after}`));
   if (!words.length && !splits.length && !open) return null;
 
@@ -57,8 +58,8 @@ export default function WordFix({ text, fixes, onChange, onRetake }: {
       )}
       {open && <Sheet onClose={close} {...("word" in open ? {
         title: `"${open.word}"`,
-        body: <WordChoices word={open.word} name={named(open.word)?.by} onRetake={onRetake && (() => { setOpen(undefined); onRetake(); })}
-          onUse={by => { onChange(named(open.word) ? text.split(open.word).join(by) : replaceWord(text, open.word, by)); close(); }}
+        body: <WordChoices word={open.word} name={stretch?.by} onRetake={onRetake && (() => { setOpen(undefined); onRetake(); })}
+          onUse={by => { onChange(stretch ? text.split(open.word).join(by) : replaceWord(text, open.word, by)); close(); }}
           onKeep={() => { setKept(k => [...k, open.word]); close(); }} />,
       } : {
         title: `Add a comma between ${open.split.before} and ${open.split.after}?`,

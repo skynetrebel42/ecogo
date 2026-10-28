@@ -119,7 +119,8 @@ export function nameFixes(text: string): { text: string; by: string }[] {
     }
     if (!best) continue;
     const from = text.slice(words[best.from].start, words[best.to - 1].end);
-    out.set(from, from === from.toLowerCase() ? best.by.toLowerCase() : best.by);
+    out.set(from, from === from.toUpperCase() ? best.by : from === from.toLowerCase() ? best.by.toLowerCase()
+      : best.by.split(" ").map(w => (w.includes("&") ? w : w[0] + w.slice(1).toLowerCase())).join(" ")); // "Yelow 5" → "Yellow 5"
   }
   return [...out].map(([from, by]) => ({ text: from, by }));
 }
@@ -132,7 +133,7 @@ export const addComma = (text: string, at: number) => `${text.slice(0, at)},${te
 
 /** Whether `text` is a known name, or close to one (5+ letters, one changed letter per 4). */
 function nameLike(text: string): boolean {
-  const t = fold(text).replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+  const t = token(text);
   return NAMES.has(t) || (t.length >= MIN && [...NAMES].some(n => within(t, n)));
 }
 
