@@ -51,13 +51,15 @@ W4 title "What's it called?", fields "Product name" and "Brand" (both optional).
 |---|---|
 | K–N | (planner) Inputs rebuilt from the grand audit's shorthand and quoted in the report; Daedalus checks them against GA-03..06 |
 | C | (planner) Top/bottom halves joined at shared lines; left/right halves stitched line by line (every line cut) is out, to Future features |
-| C, N | (builder) The overlap may end before the box's end by up to 2 words or the overlap's own length (a cut-off line). The box's words past it each meet the new read's: one it also has (or a cut-off start of) gives way to it; as many unmatched on both sides between two such are misreads (the new read's kept); any other word only the box has is kept |
+| C, N | (builder) The overlap may end before the box's end by up to 2 words or the overlap's own length (a cut-off line). The box's words past it each meet the new read's: one it also has (or, the box's last word, a cut-off start of) gives way to it; a box word paired with a look-alike (half its letters in place) gives way unless it is a word of EcoGo's names ("talc" stays beside "tale"); any other word only the box has is kept, with a comma so it stays its own item |
 | E | (planner) Splitting glued words never changes a flag on clean text: the catalog's 51 lists and Round 1's 2F texts are unchanged by it (test) |
 | E | (builder) Only EcoGo's own multi-word names are put back together ("BENZYLSALICYLATE"), plus "INGREDIENTS" glued to a word; never any two known words (that split "Hydroxyethylcellulose"). The names ship with the app, so nothing waits for the USDA words |
 | F | (planner) No new download: when most line boxes stand on end, the photo is read turned a quarter both ways and the surer read is kept |
 | F | (planner) Its check is a new gate, `check-label.mjs` (~45 s of 120); check-ocr and check-care are unchanged |
 | G, M | (builder) Drug Facts: after "Active ingredient(s)" the list ends at "Purpose", "Uses" or "Inactive ingredients" (not in other lists: "all-purpose flour"); the table header "(in each 5 mL) Purpose" is skipped; the inactive list is a second range, joined after a comma. The trim note keeps its wording ("from … to …" names the start and the inactive list's stop) |
-| A | (builder) A net quantity (NET WT, a number with fl oz, oz, ml, g, kg or lb) ends a list; with no "Ingredients" word, front-panel lines without a comma down to it are left out |
+| A | (builder) A net quantity ("NET WT …", or a number with fl oz, oz, ml, g, kg or lb at a line's start) ends a list; "(50 g per 100 g)" inside a line doesn't. With no "Ingredients" word, the net quantity's line is left out but the lines around it stay ticked: a brand and name can't be told from a one-ingredient list ("Peanuts", "Talc") |
+| E | (builder) A name that is itself one word in EcoGo's lists ("Methyleugenol") is never split |
+| M | (builder) "Questions?" ends a list (Drug Facts' last section) |
 
 ## Out of scope
 Scores or grades; claims without an official quote ("rinse after wipes", "fragrance = endocrine disruptor": no source);

@@ -11,7 +11,9 @@ const MIN = 5;
 export const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toUpperCase();
 /** EcoGo's own ingredient names (library, personal care, notes, limited), upper case, and their words of 5+ letters. */
 const NAMES = new Set([...LIBRARY, ...PERSONAL_CARE, ...CARE_NOTES, ...CARE_LIMITED].flatMap(e => e.aliases.map(fold)));
-const NAME_WORDS = [...new Set([...NAMES].flatMap(a => a.match(/\p{L}+/gu) ?? []).filter(w => w.length >= MIN))];
+/** 071 N: the words of EcoGo's names, any length ("TALC", "RED"). */
+const NAME_PARTS = new Set([...NAMES].flatMap(a => a.match(/\p{L}+/gu) ?? []));
+const NAME_WORDS = [...NAME_PARTS].filter(w => w.length >= MIN);
 const OURS = new Set(NAME_WORDS);
 const KNOWN = new Set(NAME_WORDS);
 
@@ -25,8 +27,7 @@ export const loadMoreNames = () => (more ??= import("./data/usda-words.ts").then
 /** 071 E: EcoGo's names of 2+ words of letters, as condensed print glues them ("BENZYLSALICYLATE" → BENZYL SALICYLATE). */
 const GLUED = new Map([...NAMES].filter(n => /^\p{L}+(?: \p{L}+)+$/u.test(n) && !NAMES.has(n.replace(/ /g, "")))
   .map(n => [n.replace(/ /g, ""), n])); // "METHYLEUGENOL" is a name itself
-/** 071 N: the words of EcoGo's names, any length ("TALC", "RED"). */
-const NAME_PARTS = new Set([...NAMES].flatMap(n => n.match(/\p{L}+/gu) ?? []));
+/** 071 N: whether `word`, punctuation aside, is a word of EcoGo's names. */
 export const nameWord = (word: string) => NAME_PARTS.has(fold(word).replace(/[^\p{L}]/gu, ""));
 /** 071 E: `word` with its spaces back if it is one of EcoGo's names glued together, in its own case; else null. Names
  *  only, never any two known words: those split real words ("Hydroxyethylcellulose" → "Hydroxy ethyl cellulose"). */
