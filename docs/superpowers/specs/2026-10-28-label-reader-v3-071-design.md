@@ -46,6 +46,19 @@ W4 title "What's it called?", fields "Product name" and "Brand" (both optional).
 | B | (planner) W4's labels stay as locked, with no "(optional)": "both optional" describes behaviour, not labels |
 | B | (planner) A comma in the brand is left as typed: OFF's `brands` is comma-separated by design ("A, B" is two brands) |
 
+## Builder calls (Round 2)
+| # | Call |
+|---|---|
+| K–N | (planner) Inputs rebuilt from the grand audit's shorthand and quoted in the report; Daedalus checks them against GA-03..06 |
+| C | (planner) Top/bottom halves joined at shared lines; left/right halves stitched line by line (every line cut) is out, to Future features |
+| C, N | (builder) The overlap may end before the box's end by up to 2 words or the overlap's own length (a cut-off line). The box's words past it each meet the new read's: one it also has (or a cut-off start of) gives way to it; as many unmatched on both sides between two such are misreads (the new read's kept); any other word only the box has is kept |
+| E | (planner) Splitting glued words never changes a flag on clean text: the catalog's 51 lists and Round 1's 2F texts are unchanged by it (test) |
+| E | (builder) Only EcoGo's own multi-word names are put back together ("BENZYLSALICYLATE"), plus "INGREDIENTS" glued to a word; never any two known words (that split "Hydroxyethylcellulose"). The names ship with the app, so nothing waits for the USDA words |
+| F | (planner) No new download: when most line boxes stand on end, the photo is read turned a quarter both ways and the surer read is kept |
+| F | (planner) Its check is a new gate, `check-label.mjs` (~45 s of 120); check-ocr and check-care are unchanged |
+| G, M | (builder) Drug Facts: after "Active ingredient(s)" the list ends at "Purpose", "Uses" or "Inactive ingredients" (not in other lists: "all-purpose flour"); the table header "(in each 5 mL) Purpose" is skipped; the inactive list is a second range, joined after a comma. The trim note keeps its wording ("from … to …" names the start and the inactive list's stop) |
+| A | (builder) A net quantity (NET WT, a number with fl oz, oz, ml, g, kg or lb) ends a list; with no "Ingredients" word, front-panel lines without a comma down to it are left out |
+
 ## Out of scope
 Scores or grades; claims without an official quote ("rinse after wipes", "fragrance = endocrine disruptor": no source);
 072's ingredient pages; 076 (stuck Sending, lookup timeout).
