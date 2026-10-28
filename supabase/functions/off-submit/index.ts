@@ -33,7 +33,7 @@ Deno.serve(async req => {
   const { data: { user } } = await db.auth.getUser(jwt);
   if (!user) return answer(401, { ok: false, reason: "captcha" });
 
-  // What they send (trust boundary: check everything). 075 M1: read no further than MAX_BODY, with or without Content-Length.
+  // What they send (trust boundary: check everything). 075 M1: keep no more than MAX_BODY, with or without Content-Length.
   if (Number(req.headers.get("Content-Length") ?? 0) > MAX_BODY) return answer(413, { ok: false, reason: "invalid" });
   let form: FormData;
   try {
