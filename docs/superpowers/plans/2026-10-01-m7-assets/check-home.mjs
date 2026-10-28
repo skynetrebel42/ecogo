@@ -265,6 +265,8 @@ try {
     privacy.includes("Ingredient photos are read on your phone too; checking a list without a barcode sends nothing unless you turn on cloud help.")
     && privacy.includes("Cloud help is off unless you turn it on. When it's on, a hard-to-read label photo is sent through EcoGo's server to OCR.space, "
       + "which says it deletes uploaded documents after processing. Nothing else about you is sent."));
+  check("075 M4 (Minh's words): Privacy says Open Food Facts gets the same anonymous ID",
+    privacy.includes("EcoGo keeps an anonymous ID and a log of your submissions (barcode, time, result). Open Food Facts gets that same anonymous ID with each product you add."));
   // 066 R8 (fonts, Minh's yes): Plus Jakarta Sans comes from EcoGo's own site; opening the app sends nothing to Google.
   const font = await run(`document.fonts.ready.then(() => [...document.fonts].filter(f => f.family.includes("Plus Jakarta Sans") && f.status === "loaded").length)`);
   check("066 R8: the font loads from EcoGo's own site; nothing goes to Google Fonts", font > 0
