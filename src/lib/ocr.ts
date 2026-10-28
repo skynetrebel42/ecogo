@@ -45,6 +45,8 @@ const IMPORTED = (before: string) => /(?:^|[^\p{L}\p{N}])imported\s*$/iu.test(be
 const ACTIVE = /(?:^|[^\p{L}\p{N}])active\s*$/iu;
 /** 071 K (GA-03): a stop phrase right after "(", spaces or not ("cheese ( contains milk)"), is part of the list. */
 const IN_BRACKET = (before: string) => /\(\s*$/.test(before);
+/** 071 G: the rest of the Drug Facts table's header after "Active ingredient" ("(in each 5 mL)   Purpose") isn't the list. */
+const HEADER = /^\s*(?:\([^)]*\)\s*)?(?:purposes?(?![\p{L}\p{N}]))?/iu;
 // 066 (planner): "INGREDIENTS:" with its left end cut off by a curve or the photo's edge ("CREDIENTS:"): a word ending in
 // DIENTS (or EDIENT) and a colon, at the start of a line. NUTRIENTS:, CONTENTS: and DIRECTIONS: don't end that way.
 const CUT_START = /(^|\n)[ \t]*(\p{L}*(?:dients|edient))[ \t]*:/iu;
@@ -58,6 +60,7 @@ export function trimToIngredients(text: string): Range & { startWord?: string; s
   const s = first(START, text, IMPORTED) ?? CUT_START.exec(text);
   let start = s ? s.index + s[0].length : 0;
   const active = !!s && ACTIVE.test(text.slice(0, s.index + s[1].length));
+  if (active) start += HEADER.exec(text.slice(start))![0].length;
   let e = stopAt(text, start, active ? ACTIVE_STOP : STOP);
   // 071 A: no start word, and only a front panel (brand, name: no comma) before a net quantity: the list starts after it.
   if (!s && e && /^(?:net|\d)/i.test(e.word) && !text.slice(0, e.end).includes(",")) {

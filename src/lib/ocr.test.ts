@@ -339,6 +339,8 @@ test("071 G, M (GA-05): Drug Facts keeps the active line up to 'Purpose', and th
   assert.ok(careFlags(linesText(lines)).includes("formaldehyde"));
   assert.equal(kept("Active ingredients Titanium dioxide 6%\nUses helps prevent sunburn"), "Titanium dioxide 6%");
   assert.equal(kept("Active ingredient Avobenzone 3%\nWarnings For external use only"), "Avobenzone 3%");
+  assert.equal(kept("Active ingredient (in each 5 mL) Purpose\nPyrithione zinc 1% Antidandruff\nUses helps"), "Pyrithione zinc 1% Antidandruff",
+    "the table's header 'Purpose' doesn't end it");
   assert.equal(kept("Ingredients: all-purpose flour, sugar, all purpose seasoning"), "all-purpose flour, sugar, all purpose seasoning",
     "'Purpose' and 'Uses' end only a Drug Facts active line");
 });
