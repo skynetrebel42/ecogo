@@ -1,5 +1,6 @@
 // turnstile.ts — Cloudflare Turnstile, the human check before the one anonymous sign-in (M8 spec D8). Loaded only when
-// Send is pressed and a sign-in is needed (075 P3); usually invisible, it shows a challenge in the given element only when Cloudflare needs one.
+// Send is pressed and a sign-in is needed (075 P3); usually invisible, it shows a challenge in the given element only
+// when Cloudflare needs one.
 
 type Turnstile = {
   render(el: HTMLElement, o: Record<string, unknown>): string;

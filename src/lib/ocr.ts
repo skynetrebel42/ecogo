@@ -228,7 +228,7 @@ export async function readPhoto(photo: Blob, cloud = () => false, read = readLab
 
 /** R9: another photo of the same label: its text (planner: never held back by the hard-to-read hint) and unsure words,
  *  or the "couldn't read" message when nothing was kept. The caller joins it to the box as the box is by then. */
-export async function readAnother(photo: Blob, cloud = () => false):Promise<{ text: string; unsure: string[]; busy?: true } | { error: string }> {
+export async function readAnother(photo: Blob, cloud = () => false): Promise<{ text: string; unsure: string[]; busy?: true } | { error: string }> {
   const r = await readPhoto(photo, cloud), text = r.read ?? r.text;
   return r.error || !text ? { error: r.error ?? COULDNT_READ } : { text, unsure: r.unsure, busy: r.busy };
 }
