@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { afterRead, cleanIngredients, cloudHelpOn, hardToRead, joinReads, knownCount, labelLines, linesText, pasteInto, readPhoto, setCloudHelp, trimToIngredients, unsureCount, unsureWords, withCloud } from "./ocr.ts";
+import { assessProduct } from "./safety/assess.ts";
+import { analyzeCare } from "./safety/personalCare.ts";
 
 // 068 S2 (G6): Paste fills an empty box, adds to a typed one on a new line, and an empty clipboard counts as refused.
 test("paste fills the box", () => {
@@ -295,4 +297,72 @@ test("the cloud help switch is off until turned on, and remembered on this devic
   } finally {
     if (before) Object.defineProperty(g, "localStorage", before); else delete g.localStorage;
   }
+});
+
+// 071 Round 2 (docs/superpowers/specs/2026-10-28-label-reader-v3-071-design.md). K–N: the grand audit's GA-03..06,
+// inputs rebuilt from its shorthand (research-grand-audit-chatgpt.md, planner 2026-10-28).
+const photo = (lines: string[]) => linesText(labelLines(lines));
+const food = (text: string) => assessProduct({ name: "", category: "", ingredients: text, source: {} }).verdict;
+const careFlags = (text: string) => analyzeCare(text).flags.map(f => f.entry.id);
+
+test("071 K (GA-03): a stop phrase after '(' and a space doesn't end the list", () => {
+  const text = photo(["INGREDIENTS: wheat flour, cheese ( contains milk), sodium nitrite"]);
+  assert.equal(text, "wheat flour, cheese ( contains milk), sodium nitrite");
+  assert.equal(food(text), "high");
+  assert.equal(kept("Ingredients: pasta, cheese (\ncontains milk), salt. Contains: wheat"), "pasta, cheese (\ncontains milk), salt.");
+});
+
+test("071 L (GA-04): a hyphen after a digit at a line's end is kept; one inside a word still joins", () => {
+  const text = photo(["INGREDIENTS: WATER, HYDROXYISOHEXYL 3-", "CYCLOHEXENE CARBOXALDEHYDE, GLYCERIN"]);
+  assert.equal(text, "WATER, HYDROXYISOHEXYL 3-CYCLOHEXENE CARBOXALDEHYDE, GLYCERIN");
+  assert.deepEqual(careFlags(text), ["hydroxyisohexyl-3-cyclohexene-carboxaldehyde"]);
+  assert.equal(cleanIngredients("methyl-\nparaben, 1,2-\nhexanediol"), "methylparaben, 1,2-hexanediol");
+});
+
+test("071 D: '…Imported Ingredients' never starts the list (Pantene)", () => {
+  const label = "Made in Mexico with US and Imported Ingredients\nDistributed by Procter & Gamble\nINGREDIENTS: WATER, SODIUM LAURETH SULFATE, FRAGRANCE";
+  assert.equal(kept(label), "WATER, SODIUM LAURETH SULFATE, FRAGRANCE");
+});
+
+test("071 G: 'INGREDIENTS,' with a comma starts the list (Burberry)", () => {
+  assert.equal(photo(["BURBERRY", "INGREDIENTS, ALCOHOL, PARFUM (FRAGRANCE), COUMARIN"]), "ALCOHOL, PARFUM (FRAGRANCE), COUMARIN");
+});
+
+const DRUG_FACTS = ["Drug Facts", "Active ingredient", "Zinc pyrithione 1%", "Purpose", "Antidandruff", "Uses",
+  "helps prevent recurrence of flaking and itching", "Warnings", "For external use only", "Inactive ingredients: Water, formaldehyde"];
+
+test("071 G, M (GA-05): Drug Facts keeps the active line up to 'Purpose', and the inactive list", () => {
+  const lines = labelLines(DRUG_FACTS);
+  assert.deepEqual(lines.map(l => l.on), [false, false, true, false, false, false, false, false, false, true]);
+  assert.equal(linesText(lines), "Zinc pyrithione 1%, Water, formaldehyde");
+  assert.ok(careFlags(linesText(lines)).includes("formaldehyde"));
+  assert.equal(kept("Active ingredients Titanium dioxide 6%\nUses helps prevent sunburn"), "Titanium dioxide 6%");
+  assert.equal(kept("Active ingredient Avobenzone 3%\nWarnings For external use only"), "Avobenzone 3%");
+  assert.equal(kept("Ingredients: all-purpose flour, sugar, all purpose seasoning"), "all-purpose flour, sugar, all purpose seasoning",
+    "'Purpose' and 'Uses' end only a Drug Facts active line");
+});
+
+test("071 A: brand, product name and net quantity lines are never kept", () => {
+  const front = labelLines(["ACME", "Organic Tomato Soup", "NET WT 15 OZ (425g)", "Tomatoes, water, sea salt, citric acid"]);
+  assert.deepEqual(front.map(l => l.on), [false, false, false, true]);
+  assert.equal(linesText(front), "Tomatoes, water, sea salt, citric acid");
+  assert.equal(photo(["Ingredients: water, glycerin, fragrance", "8 FL OZ (236 mL)"]), "water, glycerin, fragrance");
+  assert.equal(photo(["INGREDIENTS: WATER, GLYCERIN", "1.7 oz / 50 g"]), "WATER, GLYCERIN");
+  assert.equal(photo(["Tomatoes, water, salt", "NET WT 15 OZ (425g)"]), "Tomatoes, water, salt", "a list before the net weight stays");
+  assert.equal(kept("Ingredients: water, contains 2% or less of salt, vitamin D3 (400 IU)"), "water, contains 2% or less of salt, vitamin D3 (400 IU)");
+});
+
+test("071 N (GA-06): joining two reads never drops a word only one of them has", () => {
+  const j = joinReads("Water, sodium chloride, talc, glycerin", "Water, sodium chloride, glycerin, fragrance");
+  assert.deepEqual(j, { text: "Water, sodium chloride, talc, glycerin, fragrance", joined: true });
+  assert.equal(analyzeCare(j.text).verdict, "high");
+});
+
+test("071 C: two photos of a label's top and bottom join once at their shared lines, the cut-off line read from the second", () => {
+  const top = photo(["INGREDIENTS: WATER, SODIUM LAURETH SULFATE,", "COCAMIDOPROPYL BETAINE, GLYCERIN, SODIUM",
+    "CHLORIDE, CITRIC ACID, FRAGRANCE, TALC,", "S0DlUN 8FNZ0ATF, DMDN HYDANT0IN, METHYLPARABFN"]); // the last line cut by the edge
+  const bottom = photo(["C0CAMIDOPR0PYL BFTAINE, GLYCFRIN, S0DIUN", "CHLORIDE, CITRIC ACID, FRAGRANCE, TALC,",
+    "SODIUM BENZOATE, DMDM HYDANTOIN, METHYLPARABEN,", "METHYLISOTHIAZOLINONE, RED 40."]);
+  assert.deepEqual(joinReads(top, bottom), { joined: true, text: "WATER, SODIUM LAURETH SULFATE, COCAMIDOPROPYL BETAINE, GLYCERIN, "
+    + "SODIUM CHLORIDE, CITRIC ACID, FRAGRANCE, TALC, SODIUM BENZOATE, DMDM HYDANTOIN, METHYLPARABEN, METHYLISOTHIAZOLINONE, RED 40." });
 });

@@ -9,10 +9,11 @@ import { fold, knownWord, loadMoreNames, nearKnownName, within } from "./suggest
 /** Words read with less confidence than this (0–100) are underlined for the person to check. */
 const UNSURE_BELOW = 70;
 
-/** Tidy text read from a label: drop a leading "Ingredients:", rejoin words hyphenated across lines, one line. */
+/** Tidy text read from a label: drop a leading "Ingredients:", rejoin words hyphenated across lines (071 L, GA-04: a
+ *  hyphen after a digit is part of the name, "3-\nCyclohexene" → "3-Cyclohexene"), one line. */
 export function cleanIngredients(raw: string): string {
   return raw
-    .replace(/-[ \t]*\r?\n\s*/g, "")
+    .replace(/(\d?)-[ \t]*\r?\n\s*/g, (_, digit) => (digit ? `${digit}-` : ""))
     .replace(/^\s*ingredients?\s*:\s*/i, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -24,13 +25,26 @@ export function cleanIngredients(raw: string): string {
 // stop phrase right after "(" ("cheese (contains milk)") or followed by "-" ("Allergen-free"). 066 R5 (OCR-02) adds the
 // personal-care and cleaner warnings ("CAUTION: FLAMMABLE… AVOID CONTACT WITH EYES" on Minh's perfume), and (planner,
 // Minh's live tests) service and distributor lines ("Satisfaction guaranteed – For questions or comments please call…"
-// on his Equate lotion, "DIST. FOR/POUR COTY" on a Burberry box).
-const START = /(^|[^\p{L}\p{N}])(ingredients?)(?![\p{L}\p{N}])\s*:?/iu;
-const STOP = new RegExp(`(^|[^\\p{L}\\p{N}(])(${["contains(?!\\s*:?\\s*(?:\\d|less|one or more))", "may contain", "allergens?", "allergy",
+// on his Equate lotion, "DIST. FOR/POUR COTY" on a Burberry box). 071 G: "INGREDIENTS," starts a list as "INGREDIENTS:"
+// does (Burberry); 071 A: a net quantity ("NET WT 15 OZ", "8 FL OZ (236 mL)", "1.7 oz / 50 g") ends one.
+const START = /(^|[^\p{L}\p{N}])(ingredients?)(?![\p{L}\p{N}])\s*[:,]?/giu;
+const STOPS = ["contains(?!\\s*:?\\s*(?:\\d|less|one or more))", "may contain", "allergens?", "allergy",
   "distributed by", "manufactured (?:by|for)", "produced by", "packed by", "nutrition facts", "best before", "best by",
   "keep refrigerated", "store in", "net wt", "caution", "warnings?", "directions", "avoid contact", "keep out of reach",
-  "for external use", "flammable", "satisfaction guaranteed", "questions or comments", "please call", "dist[.,]?\\s*for"]
-  .map(s => s.replace(/ /g, "\\s+")).join("|")})(?![\\p{L}\\p{N}-])`, "iu");
+  "for external use", "flammable", "satisfaction guaranteed", "questions or comments", "please call", "dist[.,]?\\s*for",
+  "\\d+(?:[.,]\\d+)?\\s*(?:fl\\.?\\s*oz|oz|ml|g|kg|lbs?)"];
+const stops = (words: string[]) =>
+  new RegExp(`(^|[^\\p{L}\\p{N}])(${words.map(s => s.replace(/ /g, "\\s+")).join("|")})(?![\\p{L}\\p{N}-])`, "giu");
+const STOP = stops(STOPS);
+// 071 G, M (GA-05): a Drug Facts "Active ingredient" line ends at its "Purpose", "Uses" or "Inactive ingredients"
+// ("all-purpose flour" in a food list isn't a stop); the inactive list after it is read too.
+const ACTIVE_STOP = stops([...STOPS, "purposes?", "uses", "inactive ingredients?"]);
+const INACTIVE = /(^|[^\p{L}\p{N}])inactive\s+ingredients?(?![\p{L}\p{N}])\s*[:,]?/iu;
+/** 071 D: "Made in Mexico with US and Imported Ingredients" (Pantene) isn't the list's start. */
+const IMPORTED = (before: string) => /(?:^|[^\p{L}\p{N}])imported\s*$/iu.test(before);
+const ACTIVE = /(?:^|[^\p{L}\p{N}])active\s*$/iu;
+/** 071 K (GA-03): a stop phrase right after "(", spaces or not ("cheese ( contains milk)"), is part of the list. */
+const IN_BRACKET = (before: string) => /\(\s*$/.test(before);
 // 066 (planner): "INGREDIENTS:" with its left end cut off by a curve or the photo's edge ("CREDIENTS:"): a word ending in
 // DIENTS (or EDIENT) and a colon, at the start of a line. NUTRIENTS:, CONTENTS: and DIRECTIONS: don't end that way.
 const CUT_START = /(^|\n)[ \t]*(\p{L}*(?:dients|edient))[ \t]*:/iu;
@@ -39,27 +53,56 @@ const asWord = (s: string) => s.replace(/\s+/g, " ").toLowerCase().replace(/^./,
 /** Where the ingredient list is in text read from a label: just after the first "Ingredients" (or one cut at the left
  *  edge), up to the first stop phrase after it. No start word → from the beginning; no stop phrase → to the end. With no
  *  start word, a stop phrase before any text ("DIRECTIONS: …" first) cuts nothing: the line checkboxes decide. */
-export function trimToIngredients(text: string): { start: number; end: number; startWord?: string; stopWord?: string } {
-  const s = START.exec(text) ?? CUT_START.exec(text);
-  const start = s ? s.index + s[0].length : 0;
-  const e = STOP.exec(text.slice(start));
-  if (!s && e && !/[\p{L}\p{N}]/u.test(text.slice(0, e.index + e[1].length))) return { start: 0, end: text.length };
+type Range = { start: number; end: number };
+export function trimToIngredients(text: string): Range & { startWord?: string; stopWord?: string; then?: Range } {
+  const s = first(START, text, IMPORTED) ?? CUT_START.exec(text);
+  let start = s ? s.index + s[0].length : 0;
+  const active = !!s && ACTIVE.test(text.slice(0, s.index + s[1].length));
+  let e = stopAt(text, start, active ? ACTIVE_STOP : STOP);
+  // 071 A: no start word, and only a front panel (brand, name: no comma) before a net quantity: the list starts after it.
+  if (!s && e && /^(?:net|\d)/i.test(e.word) && !text.slice(0, e.end).includes(",")) {
+    start = text.indexOf("\n", e.end) + 1 || text.length;
+    e = stopAt(text, start);
+  }
+  if (!s && e && !/[\p{L}\p{N}]/u.test(text.slice(start, e.end))) return { start, end: text.length };
+  const i = active && e ? INACTIVE.exec(text.slice(e.end)) : null;
+  const then = i && { start: e!.end + i.index + i[0].length, end: text.length };
+  const e2 = then && stopAt(text, then.start);
+  if (then && e2) then.end = e2.end;
+  const last = then ? e2 : e;
   return {
-    start, end: e ? start + e.index + e[1].length : text.length,
-    ...(s && { startWord: asWord(s[2]) }), ...(e && { stopWord: asWord(e[2]) }),
+    start, end: e?.end ?? text.length,
+    ...(s && { startWord: asWord(s[2]) }), ...(last && { stopWord: asWord(last.word) }), ...(then && { then }),
   };
+}
+
+/** The first match of `re` (flag g) in `text` that `skip`, given the text before its word, doesn't rule out. */
+function first(re: RegExp, text: string, skip: (before: string) => boolean): RegExpExecArray | null {
+  re.lastIndex = 0;
+  for (let m; (m = re.exec(text)); ) if (!skip(text.slice(0, m.index + m[1].length))) return m;
+  return null;
+}
+
+/** Where the list from `start` ends: at the first stop phrase's word, or null for none. */
+function stopAt(text: string, start: number, re = STOP): { end: number; word: string } | null {
+  const e = first(re, text.slice(start), IN_BRACKET);
+  return e && { end: start + e.index + e[1].length, word: e[2] };
 }
 
 /** A line read from the photo, its part inside the ingredients ("" = none) and whether it's ticked (F2). */
 export type LabelLine = { text: string; kept: string; on: boolean };
 
 export function labelLines(lines: string[]): LabelLine[] {
-  const { start, end } = trimToIngredients(lines.join("\n"));
+  const t = trimToIngredients(lines.join("\n"));
+  const ranges = t.then ? [t, t.then] : [t];
   let at = 0;
   return lines.map(text => {
     const from = at; at += text.length + 1;
-    const part = text.slice(Math.max(start - from, 0), Math.max(end - from, 0)).trim();
-    const kept = /[\p{L}\p{N}]/u.test(part) ? part : "";
+    const kept = ranges.map(({ start, end }, i) => {
+      const part = text.slice(Math.max(start - from, 0), Math.max(end - from, 0)).trim();
+      // 071 M: the Drug Facts active line's end takes a comma, so the inactive list's first item stays its own.
+      return i < ranges.length - 1 && end <= at && /[\p{L}\p{N}]/u.test(part) && !/[,;]$/.test(part) ? `${part},` : part;
+    }).filter(part => /[\p{L}\p{N}]/u.test(part)).join(" ");
     return { text, kept, on: kept !== "" };
   });
 }
@@ -141,11 +184,14 @@ const sameWord = (x: string, y: string) => x === y || piece(x, y) || piece(y, x)
 export const pasteInto = (box: string, clip: string) => !clip.trim() ? null : box.trim() ? `${box.trimEnd()}\n${clip.trim()}` : clip.trim();
 
 /** 066 R9 "Add another photo": the box's text and a new photo's text as one, joined at the longest run of 3+ words
- *  that ends the box (or ends 1–2 words before its end: a half-cut last line) and stands anywhere in the new text. The
- *  box keeps its words (its fixes) up to there, the new text follows; what the new photo read before the run (another
- *  panel) and the box's 1–2 words past it are left out. No such run → the new text goes at the end.
+ *  that ends the box (or ends before its end, by up to 2 words or the run's own length: 071 C, a cut-off last line)
+ *  and stands anywhere in the new text. The box keeps its words (its fixes) up to there, the new text follows; what the
+ *  new photo read before the run (another panel) is left out. No such run → the new text goes at the end.
+ *  071 N (GA-06): the box's words past the run each meet the new text's next words: one the new text also has (or a
+ *  cut-off start of) gives way to it; words between two such that the new text has as many of are misreads of those;
+ *  any other word only the box has is kept ("talc" was dropped).
  *  ponytail: one overlap, so photos each cut off on one side (every line cut: Minh's chip photos 7 and 8) don't line
- *  up and are added at the end; joining line by line would need the reads' lines, not the box's text. */
+ *  up and are added at the end; joining those line by line would need the reads' line positions (Future features). */
 export function joinReads(box: string, read: string): { text: string; joined: boolean } {
   const a = box.split(/\s+/).filter(Boolean), b = read.split(/\s+/).filter(Boolean);
   const key = (w: string) => fold(w).replace(/[^\p{L}\p{N}]/gu, "") || w;
@@ -153,14 +199,24 @@ export function joinReads(box: string, read: string): { text: string; joined: bo
   let best = { k: 0, p: 0, q: 0 }, run = kb.map(() => 0); // run[q]: words alike in a row, ending at a[p] and b[q]
   for (let p = 0; p < a.length; p++) {
     run = kb.map((w, q) => (sameWord(ka[p], w) ? (q ? run[q - 1] : 0) + 1 : 0));
-    if (p >= a.length - 3) run.forEach((k, q) => { if (k && k >= best.k) best = { k, p, q }; });
+    run.forEach((k, q) => { if (k && k >= best.k && a.length - 1 - p <= Math.max(2, k)) best = { k, p, q }; });
   }
   // No overlap: after a comma, so the box's last item and the new first one stay two items (whole-name matching).
   if (best.k < 3) return { text: [box.trim().replace(/\s*[,;]$/, ""), read.trim()].filter(Boolean).join(", "), joined: false };
   const { p, q } = best, ends = (w: string) => w.match(/[^\p{L}\p{N}]*$/u)![0];
   // Where they meet: the new word if the box's is a cut-off piece of it, else the box's with the new one's punctuation.
   const meet = ka[p] !== kb[q] && piece(ka[p], kb[q]) ? b[q] : a[p].slice(0, a[p].length - ends(a[p]).length) + ends(b[q]);
-  return { text: [...a.slice(0, p), meet, ...b.slice(q + 1)].join(" "), joined: true };
+  const text = [...a.slice(0, p), meet];
+  let j = q + 1, gap: string[] = []; // b[j]: the new text's next word; gap: the box's words since the last one met
+  for (let i = p + 1; i < a.length; i++) {
+    let r = j;
+    while (r < b.length && !sameWord(ka[i], kb[r]) && !kb[r].startsWith(ka[i])) r++;
+    if (r === b.length) { gap.push(a[i]); continue; }
+    if (gap.length !== r - j) text.push(...gap);
+    text.push(...b.slice(j, r + 1));
+    gap = []; j = r + 1;
+  }
+  return { text: [...text, ...gap, ...b.slice(j)].join(" "), joined: true };
 }
 
 const COULDNT_READ = "Couldn't read it. Type the ingredients or retake the photo.";
