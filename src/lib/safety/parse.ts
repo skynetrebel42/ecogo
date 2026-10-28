@@ -12,8 +12,10 @@ const FILLER_PREFIXES: RegExp[] = [
   /^contains\s*:\s*/i,
 ];
 
-/** "no titanium dioxide", "made without aspartame", "free of X", "aspartame free" state an absence: drop the item. */
-const NEGATION = /^(?:contains\s+|made\s+)?(?:no|without|free\s+(?:of|from))(?:\s|$)|\sfree$/i;
+/** "no titanium dioxide", "made without aspartame", "free of X": an absence named first. */
+const ABSENCE = /^(?:contains\s+|made\s+)?(?:no|without|free\s+(?:of|from))(?:[\s-]|$)/i;
+/** …and "aspartame free": either states an absence, so the item is dropped. */
+const NEGATION = new RegExp(`${ABSENCE.source}|\\sfree$`, "i");
 /** "gluten-free", "nitrite-free": drop just the word, keep any real ingredient around it. */
 const FREE_WORD = /\b[a-z0-9]+-free\b/gi;
 
@@ -78,7 +80,10 @@ function expand(raw: string, out: string[]): void {
   const inner = item.slice(open + 1, close === -1 ? item.length : close);
   const rest = close === -1 ? "" : item.slice(close + 1);
   expand(`${item.slice(0, open)} ${rest}`, out);
-  if (NEGATION.test(clean(item.slice(0, open)))) return; // 075 GA-02: "no titanium dioxide (E171)" names an absence
+  // 075 GA-02: "no titanium dioxide (E171)" names what is absent; "sugar free (sweetened with …)" and "…added except those
+  // in celery (celery powder)" name what is there.
+  const head = clean(item.slice(0, open));
+  if (ABSENCE.test(head) && !/\bexcept\b/i.test(head)) return;
   for (const sub of splitTopLevel(inner)) expand(sub, out);
 }
 
@@ -87,7 +92,7 @@ const tidy = (s: string) => s.replace(/\s+/g, " ").trim().replace(/^[\s.,:;*•-
 /** "NO NITRATES OR NITRITES ADDED*** PORK": a claim glued to the first ingredient. Drop the claim, keep the ingredient (M10.1 E).
  *  "…ADDED EXCEPT THOSE IN CELERY" is a longer claim: it stays whole and is dropped as an absence, as before. 075 GA-01:
  *  "No added formaldehyde" names nothing before "added", so it is an absence, not a claim glued to formaldehyde. */
-const CLAIM_PREFIX = /^no\s+(?!added\b)[^,;.]*?\badded\b(?!\s+except\b)[\s*†‡:.-]*/i;
+const CLAIM_PREFIX = /^no\b(?![\s-]*added\b)[^,;.]*?\badded\b(?!\s+except\b)[\s*†‡:.-]*/i;
 
 const clean = (raw: string) => tidy(tidy(stripFiller(tidy(raw.replace(/[()[\]{}]/g, " ")))).replace(CLAIM_PREFIX, ""));
 

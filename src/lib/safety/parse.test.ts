@@ -69,6 +69,12 @@ test("'no added X' and a negated item's bracket are absences", () => {
   assert.deepEqual(parseIngredients("Sausage (pork, no added nitrite (E250)), salt"), ["Sausage", "pork", "salt"]);
   // M10.1 E still holds: a claim glued to the first ingredient keeps the ingredient and its bracket.
   assert.deepEqual(parseIngredients("NO NITRATES OR NITRITES ADDED*** PORK (WATER, SALT)"), ["PORK", "WATER", "SALT"]);
+  assert.deepEqual(parseIngredients("NO-NITRITE-ADDED PORK"), ["PORK"]);
+  assert.deepEqual(parseIngredients("Water, no-added formaldehyde"), ["Water"]);
+  // Review: a bracket after "X free" or an "…except…" claim lists real ingredients, which stay.
+  assert.deepEqual(parseIngredients("Water, sugar free (sweetened with aspartame)"), ["Water", "sweetened with aspartame"]);
+  assert.deepEqual(parseIngredients("Pork, no nitrites added except those naturally occurring in celery (celery powder, sea salt)"),
+    ["Pork", "celery powder", "sea salt"]);
 });
 
 test("the audit's inputs: no false flag for an absence; the controls still flag", () => {
