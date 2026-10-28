@@ -346,7 +346,7 @@ test("071 G, M (GA-05): Drug Facts keeps the active line up to 'Purpose', and th
 });
 
 test("071 A: brand, product name and net quantity lines are never kept", () => {
-  const front = labelLines(["ACME", "Organic Tomato Soup", "NET WT 15 OZ (425g)", "Tomatoes, water, sea salt, citric acid"]);
+  const front = labelLines(["ACME", "Organic Tomato Soup", "NET WT 15 OZ (425g)", "Ingredients: Tomatoes, water, sea salt, citric acid"]);
   assert.deepEqual(front.map(l => l.on), [false, false, false, true]);
   assert.equal(linesText(front), "Tomatoes, water, sea salt, citric acid");
   assert.equal(photo(["Ingredients: water, glycerin, fragrance", "8 FL OZ (236 mL)"]), "water, glycerin, fragrance");
@@ -355,10 +355,34 @@ test("071 A: brand, product name and net quantity lines are never kept", () => {
   assert.equal(kept("Ingredients: water, contains 2% or less of salt, vitamin D3 (400 IU)"), "water, contains 2% or less of salt, vitamin D3 (400 IU)");
 });
 
+test("071 A: a quantity inside a line isn't a net quantity; with no 'Ingredients', the net quantity line is only left out", () => {
+  assert.equal(photo(["Ingredients: sugar, strawberries (50 g per 100 g), pectin, citric acid"]), "sugar, strawberries (50 g per 100 g), pectin, citric acid");
+  assert.equal(photo(["Ingredients: water, vitamin C 5 g, salt"]), "water, vitamin C 5 g, salt");
+  // A front panel's brand and name can't be told from a one-ingredient list: they stay ticked for the person to untick.
+  const lines = labelLines(["Peanuts", "NET WT 16 OZ (1 LB) 454g"]);
+  assert.deepEqual(lines.map(l => l.on), [true, false]);
+  assert.equal(linesText(lines), "Peanuts");
+  assert.equal(photo(["Talc", "NET WT 4 OZ", "Made in USA"]), "Talc, Made in USA");
+  assert.equal(photo(["NET WT 15 OZ (425g)", "Tomatoes, water, salt"]), "Tomatoes, water, salt");
+});
+
+test("071 M: Drug Facts' 'Questions?' line ends the inactive list", () => {
+  assert.equal(photo([...DRUG_FACTS, "Questions? Call 1-800-555-1212"]), "Zinc pyrithione 1%, Water, formaldehyde");
+});
+
 test("071 N (GA-06): joining two reads never drops a word only one of them has", () => {
   const j = joinReads("Water, sodium chloride, talc, glycerin", "Water, sodium chloride, glycerin, fragrance");
   assert.deepEqual(j, { text: "Water, sodium chloride, talc, glycerin, fragrance", joined: true });
   assert.equal(analyzeCare(j.text).verdict, "high");
+  const last = joinReads("Water, sodium chloride, glycerin, talc", "Water, sodium chloride, glycerin, fragrance").text;
+  assert.equal(last, "Water, sodium chloride, glycerin, talc, fragrance", "a box-only word stays its own item");
+  assert.deepEqual(careFlags(last), ["talc"]);
+  assert.equal(joinReads("Water, sodium chloride, talc, glycerin, fragrance", "Water, sodium chloride, tale, glycerin, fragrance").text,
+    "Water, sodium chloride, talc, tale, glycerin, fragrance", "a word of EcoGo's names never gives way to a look-alike");
+  assert.equal(joinReads("Water, sodium chloride, glycerin, Vitamin C, talc", "Water, sodium chloride, glycerin, citric acid, talc, fragrance").text,
+    "Water, sodium chloride, glycerin, Vitamin C, citric acid, talc, fragrance", "different words in the same place both stay");
+  assert.equal(joinReads("SALT, WHEY, CORN, SUGAR, R3D", "SALT, WHEY, CORN, SUGAR, RED 40").text, "SALT, WHEY, CORN, SUGAR, RED 40",
+    "the box's cut-off last word gives way to the word it misreads");
 });
 
 test("071 C: two photos of a label's top and bottom join once at their shared lines, the cut-off line read from the second", () => {
@@ -378,6 +402,6 @@ test("071 E: one of EcoGo's names glued on condensed print gets its spaces back;
   assert.equal(r.text, "ALCOHOL, PARFUM (FRAGRANCE), BENZYL SALICYLATE, COUMARIN");
   assert.ok(analyzeCare(r.text).notes.some(n => n.note.name === "Benzyl Salicylate"));
   await loadMoreNames();
-  for (const w of ["SUNFLOWER", "BUTTERMILK", "CORNSTARCH", "PEPPERMINT", "WATERMELON", "Hydroxyethylcellulose", "Methylisothiazolinone"])
+  for (const w of ["SUNFLOWER", "BUTTERMILK", "CORNSTARCH", "PEPPERMINT", "WATERMELON", "Hydroxyethylcellulose", "Methylisothiazolinone", "Methyleugenol"])
     assert.equal(unglue(w), w, `${w}: a real word isn't split`);
 });

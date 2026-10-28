@@ -113,8 +113,15 @@ let queue: Promise<unknown> = Promise.resolve();
 async function readOne(image: Blob): Promise<{ lines: string[]; words: Word[] }> {
   const read = await recognise(image);
   if (!standing(read.polys)) return read;
-  const left = await recognise(await quarterTurn(image, -1)), right = await recognise(await quarterTurn(image, 1));
-  return left.score >= right.score ? left : right;
+  // ponytail: three reads for a sideways photo; the sideways read's own score (0.98 the SDK's way, 0.51 upside down on
+  // the gate's label) could pick one turn if phones find it slow.
+  try {
+    const left = await recognise(await quarterTurn(image, -1)), right = await recognise(await quarterTurn(image, 1));
+    return left.score >= right.score ? left : right;
+  } catch (err) {
+    console.warn("[ocr] couldn't turn the sideways photo; keeping its first read", err);
+    return read;
+  }
 }
 
 async function recognise(image: Blob): Promise<{ lines: string[]; words: Word[]; polys: Point[][]; score: number }> {

@@ -23,7 +23,11 @@ export const loadMoreNames = () => (more ??= import("./data/usda-words.ts").then
 }));
 
 /** 071 E: EcoGo's names of 2+ words of letters, as condensed print glues them ("BENZYLSALICYLATE" → BENZYL SALICYLATE). */
-const GLUED = new Map([...NAMES].filter(n => /^\p{L}+(?: \p{L}+)+$/u.test(n)).map(n => [n.replace(/ /g, ""), n]));
+const GLUED = new Map([...NAMES].filter(n => /^\p{L}+(?: \p{L}+)+$/u.test(n) && !NAMES.has(n.replace(/ /g, "")))
+  .map(n => [n.replace(/ /g, ""), n])); // "METHYLEUGENOL" is a name itself
+/** 071 N: the words of EcoGo's names, any length ("TALC", "RED"). */
+const NAME_PARTS = new Set([...NAMES].flatMap(n => n.match(/\p{L}+/gu) ?? []));
+export const nameWord = (word: string) => NAME_PARTS.has(fold(word).replace(/[^\p{L}]/gu, ""));
 /** 071 E: `word` with its spaces back if it is one of EcoGo's names glued together, in its own case; else null. Names
  *  only, never any two known words: those split real words ("Hydroxyethylcellulose" → "Hydroxy ethyl cellulose"). */
 export function unglueName(word: string): string | null {
