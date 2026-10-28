@@ -50,12 +50,13 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 3. ~~073 Check-home split + gates close Edge~~ ✅ 10-23 (d58462c): check-home 103 s / check-scan 185 s, no leftover Edge
 4. ~~068 Scan screen~~ ✅ 10-23 (46a86d9) · ⏳ Minh's live test (checklist 8A–8C) · Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
 5. **075 Audit fixes** 🔨 ChatGPT audit, all 16 confirmed: High first (cloud upload after close, old-Safari crash,
-   unsourced Tide line incl. the live catalog row), then medium/low (KNOWN_ISSUES)
+   unsourced Tide line incl. the live catalog row), then medium/low (KNOWN_ISSUES) + grand audit GA-01/02: "no added X" / "free from (X)" flagged as present (decision 076)
    ⏸ paused 10-23 (weekly usage 94%, playbook §9.2) until the 27 Oct reset. Then **model trial** (Minh, 10-23 via Scout): ≤10 runs, Sonnet/Haiku vs Opus on finished tasks incl. log + photo triage, prompt in research-model-mix.md (planner notes folder) [Process]
-6. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos
-7. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
-8. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
-9. Later: personal care to Open Beauty Facts, home inventory, profile, themes, map rethink, variety packs
+6. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos + grand audit GA-03..06 (silent misses)
+7. **076 Audit leftovers** 📋 GA-07 Send can hang, GA-08 lookup never times out, GA-09 source links on the ingredient check (decision 076)
+8. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
+9. **069 Learn + Privacy redesign** 📋 prettier cards, bubbles, Source buttons, new sourced facts
+10. Later: personal care to Open Beauty Facts, home inventory, profile, themes, map rethink, variety packs
 
 ## Chapter 6 · Label first (after 066; decision 071: "lets go mad brutal on ingredient scanner")
 068 Scan screen ✅ 10-23 (46a86d9) · A Barcode / Ingredients switch at the bottom of the camera (Minh, 10-22) [Feature] · B "Check ingredients" wording [UI] · C no dead
@@ -63,7 +64,8 @@ end after "Cleaning product" [UI] · D paste-from-Photos path: tip + Paste butto
 071 Label reader v3 📋 · A brand / product name / net weight lines aren't ingredients [Debug] · B Add a product: name + brand at the end [Feature] ·
 C line-by-line join for cut-off photos [Feature] · D stop phrases from Minh's photos [Debug] · E split glued words on condensed print
 ("BENZYLSALICYLATE", "INGREDIENTSALCOHOL…": Burberry) [Debug] · F turn sideways text (Coppertone Drug Facts) [Feature] · G start-word traps:
-"…Imported Ingredients" never starts a list (Pantene), "INGREDIENTS," with a comma (Burberry); Drug Facts stops ("Purpose", "Uses") [Debug] · proposed (Minh, 10-24; planner pick: here): H "Checking… / Checked" in the Type it box so an edit visibly re-checks [UI] · I unsure words in Type it: red underline + "did you mean …" chips (reuse 066 D) [Feature] · J benzene note in the ingredient check too, not only the product page (2F gap) [Facts]
+"…Imported Ingredients" never starts a list (Pantene), "INGREDIENTS," with a comma (Burberry); Drug Facts stops ("Purpose", "Uses") [Debug] · proposed (Minh, 10-24; planner pick: here): H "Checking… / Checked" in the Type it box so an edit visibly re-checks [UI] · I unsure words in Type it: red underline + "did you mean …" chips (reuse 066 D) [Feature] · J benzene note in the ingredient check too, not only the product page (2F gap) [Facts] · K–N grand audit GA-03..06: a space after "(" cuts the list, "3-" + line break glues words, Drug Facts inactive list never read, joinReads drops a word (decision 076) [Debug]
+076 Audit leftovers 📋 (after 071) · A GA-07 Send and Suggest a place never stuck on "Sending…" [Debug] · B GA-08 product lookup gets a deadline [Debug] · C GA-09 ingredient check shows source links like the product page [Facts]
 072 Ingredient knowledge 📋 · A research: official, licence-checked cleaner + personal-care lists [Facts] (Scout 10-23:
 research-072-cleaners.md, research-072-cosmetics.md in the planner notes folder; IARC: per-entry quotes OK, a whole-table library needs IARC's OK) · B cleaner ingredient library [Facts] ·
 C wider personal-care coverage [Facts]
