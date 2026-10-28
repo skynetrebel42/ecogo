@@ -45,6 +45,11 @@ Start every session by opening https://skynetrebel42.github.io/ecogo/ in a **fre
 - [x] **4D** (2026-10-22) Map → Suggest a place. See: every field has a visible border.
 - [x] **4E** (2026-10-22: info good; wants bubbles, bullets and source buttons, see playtest notes) Home → the 7th Learn tile "Risks a label can't show" (full width). See: five short sections and source cards.
 
+## 9 · Audit fixes (075, live 2026-10-28)
+- [ ] **9A** Check ingredients → Type it → `Water, glycerin, no added formaldehyde` → check. See: no formaldehyde warning. Then type `Water, formaldehyde`: the warning shows.
+- [ ] **9B** Profile → open **Privacy** ("What leaves your phone"). See: "Open Food Facts gets that same anonymous ID with each product you add."
+- [ ] **9C** Search for anything with Wi-Fi and data off. See: "Couldn't search right now." (not "No results").
+
 ## 8 · Scan screen (068, live 2026-10-23)
 - [x] **8A** (2026-10-24: "the new barcode to ingredient flipper is great") Scan tab → at the bottom of the camera, tap **Ingredients**. See: the ingredient check opens (camera off); close it → back on Barcode.
 - [x] **8B** (2026-10-24: "the paste bar works great") Check ingredients → Type it → copy label text from a photo in Photos (press and hold the words → Copy) → tap **Paste**. See: the text lands in the box.

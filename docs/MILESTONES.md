@@ -49,9 +49,9 @@ Minh's next-chapter review ✅ 10-22 (playtest) → Chapter 6 (decision 067).
 2. ~~070 Cloud help, opt-in~~ ✅ 10-23 (9fd47c7) · ⏳ Minh's live test (checklist 7A)
 3. ~~073 Check-home split + gates close Edge~~ ✅ 10-23 (d58462c): check-home 103 s / check-scan 185 s, no leftover Edge
 4. ~~068 Scan screen~~ ✅ 10-23 (46a86d9) · ⏳ Minh's live test (checklist 8A–8C) · Barcode / Ingredients switch at the bottom, "Check ingredients", no dead end after "Cleaning product", a paste-from-Photos path
-5. **075 Audit fixes** 🔨 ChatGPT audit, all 16 confirmed: High first (cloud upload after close, old-Safari crash,
+5. ~~075 Audit fixes~~ ✅ 10-28 (168efab, live check passed) · ⏳ Minh's live test (checklist 9A–9C) · ChatGPT audit, all 16 confirmed: High first (cloud upload after close, old-Safari crash,
    unsourced Tide line incl. the live catalog row), then medium/low (KNOWN_ISSUES) + grand audit GA-01/02: "no added X" / "free from (X)" flagged as present (decision 076)
-   ⏸ paused 10-23 (weekly usage 94%, playbook §9.2) until the 27 Oct reset. Then **model trial** (Minh, 10-23 via Scout): ≤10 runs, Sonnet/Haiku vs Opus on finished tasks incl. log + photo triage, and medium effort + earlier compaction for builders (Minh 10-28; Superpowers stays on), prompt in research-model-mix.md (planner notes folder) [Process]
+   **Next: model trial** 📋 (Minh, 10-23 via Scout): ≤10 runs, Sonnet/Haiku vs Opus on finished tasks incl. log + photo triage, and medium effort + earlier compaction for builders (Minh 10-28; Superpowers stays on), prompt in research-model-mix.md (planner notes folder) [Process]
 6. **071 Label reader v3** 📋 brand / product name / net weight lines never kept as ingredients; Add a product asks name + brand at the end; line-by-line join for cut-off photos; more stop phrases from real photos + grand audit GA-03..06 (silent misses)
 7. **076 Audit leftovers** 📋 GA-07 Send can hang, GA-08 lookup never times out, GA-09 source links on the ingredient check (decision 076)
 8. **072 Ingredient knowledge** 📋 research first (official, licence-checked lists): a cleaner ingredient library (none today) and wider personal-care coverage
