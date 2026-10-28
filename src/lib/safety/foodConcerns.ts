@@ -148,12 +148,16 @@ function plainMeatWords(name: string): string[] {
   return out;
 }
 
+/** 071 J: the label text with a line break or wide gap inside a name read as one space (Live Text's "SODIUM\nBENZOATE"),
+ *  for every rule here that reads the raw text rather than parsed items. */
+const labelText = (p: FoodInput) => (p.ingredients || "").replace(/\s+/g, " ");
+
 function processedMeat(p: FoodInput): FoodConcern | null {
   if (p.category && !FOOD_CATEGORIES.has(p.category)) return null;
   const name = p.name.replace(FRANKS_RED_HOT, " ");
   const words = plainMeatWords(name);
   if (NEGATOR.test(name)) return null;
-  const text = p.ingredients || "";
+  const text = labelText(p);
   const items = parseIngredients(text.replace(IMITATION_BITS, " ")).filter(item => !NOT_MEAT_ITEM.test(item));
   if (FLAVOURED_NAME.test(name) && !(items.length > 0 && MEAT_INGREDIENT.test(items[0]))) return null;
   const cat = p.source?.foodCategory ?? "";
@@ -283,7 +287,7 @@ export function acrylamideMatch(p: FoodInput): EuCategory | null {
   }
   const bucket = p.source ? USDA_CATEGORIES[p.source.foodCategory ?? ""] : CATALOG_CATEGORIES[p.category];
   if (!p.source && !FOOD_CATEGORIES.has(p.category)) return null;
-  if (bucket === "snack") return snack(p.name, p.ingredients);
+  if (bucket === "snack") return snack(p.name, labelText(p));
   if (bucket === "d" && PORRIDGE.test(p.name)) return null;
   if (bucket) return bucket;
   if (/\b(coffee|espresso)\b/i.test(p.name) && !/creamer/i.test(p.name)) return "f";
@@ -327,7 +331,7 @@ const isDrink = (p: FoodInput) => !p.source ? p.category === "Beverages"
 
 /** H2: the two label words that call for the benzene row, or null. Not part of the assessment: no badge, no count. */
 export function benzeneNote(p: FoodInput): [string, string] | null {
-  const text = p.ingredients || "";
+  const text = labelText(p);
   const salt = text.match(BENZOATE), acid = text.match(VITAMIN_C_ACID);
   return salt && acid && isDrink(p) ? [salt[0], acid[0]] : null;
 }
@@ -364,7 +368,7 @@ const withCeleryContext = (c: FoodConcern): FoodConcern =>
 export function foodConcerns(p: FoodInput): FoodConcern[] {
   const out: FoodConcern[] = [];
   const meat = processedMeat(p);
-  if (meat) out.push(CELERY_CURE.test(p.ingredients || "") ? withCeleryContext(meat) : meat);
+  if (meat) out.push(CELERY_CURE.test(labelText(p)) ? withCeleryContext(meat) : meat);
   if (acrylamideMatch(p)) out.push(ACRYLAMIDE);
   return out;
 }

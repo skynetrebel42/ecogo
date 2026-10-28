@@ -85,3 +85,15 @@ test("H2: the row never reaches the badge: same level, flags and concerns as wit
     assert.deepEqual(withRow, without);
   }
 });
+
+// 071 J: Minh's 2F soda as iPhone Live Text pasted it (notes: research-2f-paste-verbatim.md, A), "SODIUM" and
+// "BENZOATE" on two lines. A line break or a wide gap inside a name is a space, for every label-text rule here.
+test("071 J: a name split by a line break still counts (Minh's pasted 2F soda; the celery cure too)", () => {
+  const pasted = "CARBONATED WATER,\nCANE SUGAR, CITRIC ACID, NATURAL AND ARTIFICIAL\nGUAVA FLAVORS, ASCORBIC ACID (VITAMIN O, MALIC\n"
+    + "ACID, ACESULFAME POTASSIEM, SUCRALOSE, COLOR\nED&C YILLOW 0. 5, EDIA (TO PRESERVED FRESHNESS),\nCOLORFD&C RED No.40, CARAMEL COLOR, SODIUM\n"
+    + "BENZOATE  AND POTASSIUM SORBATE (AS\nPRESERVATIVE";
+  assert.deepEqual(benzeneNote(drink(pasted)), ["SODIUM BENZOATE", "ASCORBIC ACID"]);
+  assert.deepEqual(benzeneNote(drink("water, sodium  benzoate, ascorbic\tacid")), ["sodium benzoate", "ascorbic acid"]);
+  const franks = foodConcerns(meat("Uncured Beef Franks", "BEEF, WATER, SALT, CULTURED\nCELERY POWDER", "Sausages, Hotdogs & Brats"));
+  assert.ok(franks.find(c => c.id === "processed-meat")?.context.endsWith(` ${CELERY_CURING.text}`));
+});

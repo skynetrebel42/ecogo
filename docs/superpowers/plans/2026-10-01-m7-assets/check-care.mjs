@@ -304,6 +304,8 @@ try {
   const pasted = await typeIngredients("CARBONATED WATER,\nCANE SUGAR, CITRIC ACID, NATURAL AND ARTIFICIAL\nGUAVA FLAVORS, ASCORBIC ACID (VITAMIN O, MALIC\n"
     + "ACID, ACESULFAME POTASSIEM, SUCRALOSE, COLOR\nED&C YILLOW 0. 5, EDIA (TO PRESERVED FRESHNESS),\nCOLORFD&C RED No.40, CARAMEL COLOR, SODIUM\n"
     + "BENZOATE  AND POTASSIUM SORBATE (AS\nPRESERVATIVE");
+  check("071 J: Minh's pasted 2F list (\"SODIUM\" and \"BENZOATE\" on two lines) gets the benzene row",
+    pasted.includes("Benzene can form") && pasted.includes("Listed as “SODIUM BENZOATE” and “ASCORBIC ACID”"), pasted.replace(/\s+/g, " ").slice(0, 160));
   const row = await run(`document.body.innerText`);
   const took = await run(`(async () => { [...document.querySelectorAll("button")].find(b => b.innerText === "ED&C YILLOW 0. 5 ›")?.click(); await __sleep(300);
     const pick = [...document.querySelectorAll('[role="dialog"] [role="dialog"] button')].find(b => b.innerText === "FD&C YELLOW NO. 5");
